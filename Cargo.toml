@@ -1,5 +1,9 @@
 [package]
 name = "php-rs"
+description = "Bindings for the Zend API to build PHP extensions natively in Rust."
+repository = "https://github.com/davidcole1340/php-rs"
+license = "MIT"
+keywords = ["php"]
 version = "0.1.0"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
