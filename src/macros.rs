@@ -28,6 +28,7 @@ macro_rules! info_table_row {
 }
 
 /// INTERNAL: Calls a variadic C function with the number of parameters, then following with the parameters.
+#[doc(hidden)]
 #[macro_export]
 macro_rules! _info_table_row {
     ($fn: ident, $($element: expr),*) => {
