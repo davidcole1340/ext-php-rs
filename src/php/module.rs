@@ -13,9 +13,13 @@ use crate::{
     functions::{build_id, c_str},
 };
 
+/// A Zend module entry. Alias.
 pub type ModuleEntry = zend_module_entry;
+/// A Zend function entry. Alias.
 pub type FunctionEntry = zend_function_entry;
+/// A function to be called when the extension is starting up or shutting down.
 pub type StartupShutdownFunc = extern "C" fn(type_: c_int, module_number: c_int) -> zend_result;
+/// A function to be called when `phpinfo();` is called.
 pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);
 
 /// Builds a Zend extension. Must be called from within an external function called `get_module`,
