@@ -1,22 +1,14 @@
-use std::{
-    ffi::c_void,
-    mem,
-    os::raw::{c_char, c_int},
-    ptr,
-};
+use std::{ffi::c_void, mem, os::raw::c_int, ptr};
 
 use crate::{
-    bindings::{
-        zend_function_entry, zend_module_entry, zend_result, USING_ZTS, ZEND_DEBUG,
-        ZEND_MODULE_API_NO,
-    },
+    bindings::{zend_module_entry, zend_result, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO},
     functions::{build_id, c_str},
 };
 
+use super::function::FunctionEntry;
+
 /// A Zend module entry. Alias.
 pub type ModuleEntry = zend_module_entry;
-/// A Zend function entry. Alias.
-pub type FunctionEntry = zend_function_entry;
 /// A function to be called when the extension is starting up or shutting down.
 pub type StartupShutdownFunc = extern "C" fn(type_: c_int, module_number: c_int) -> zend_result;
 /// A function to be called when `phpinfo();` is called.
@@ -55,8 +47,8 @@ impl ModuleBuilder {
     /// * `version` - The current version of the extension. TBD: Deprecate in favour of the `Cargo.toml` version?
     pub fn new<N, V>(name: N, version: V) -> Self
     where
-        N: Into<String>,
-        V: Into<String>,
+        N: AsRef<str>,
+        V: AsRef<str>,
     {
         Self {
             module: ModuleEntry {
@@ -152,13 +144,7 @@ impl ModuleBuilder {
     /// Builds the extension and returns a `ModuleEntry`.
     pub fn build(mut self) -> ModuleEntry {
         // TODO: move to seperate function
-        self.functions.push(FunctionEntry {
-            fname: ptr::null() as *const c_char,
-            handler: None,
-            arg_info: ptr::null(),
-            num_args: 0,
-            flags: 0,
-        });
+        self.functions.push(FunctionEntry::end());
         self.module.functions =
             Box::into_raw(self.functions.into_boxed_slice()) as *const FunctionEntry;
         self.module
