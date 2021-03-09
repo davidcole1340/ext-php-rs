@@ -28,9 +28,9 @@ use std::ffi::{CStr, CString};
 /// ```
 pub fn c_str<S>(s: S) -> *const i8
 where
-    S: Into<String>,
+    S: AsRef<str>,
 {
-    CString::into_raw(CString::new(s.into()).unwrap())
+    CString::into_raw(CString::new(s.as_ref()).unwrap())
 }
 
 /// Fetches the `build_id` for a Zend extension module.
