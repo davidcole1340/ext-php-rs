@@ -26,16 +26,16 @@ impl Arg {
         Arg {
             name: name.to_string(),
             _type,
-            required: false,
+            required: true,
             as_ref: false,
             allow_null: false,
             default_value: None,
         }
     }
 
-    /// Sets the argument as required.
-    pub fn required(mut self) -> Self {
-        self.required = true;
+    /// Sets the argument as not required.
+    pub fn not_required(mut self) -> Self {
+        self.required = false;
         self
     }
 
