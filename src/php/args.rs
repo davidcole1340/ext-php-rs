@@ -6,7 +6,6 @@ use crate::bindings::zend_internal_arg_info;
 pub struct Arg {
     pub(crate) name: String,
     pub(crate) _type: DataType,
-    pub(crate) required: bool,
     pub(crate) as_ref: bool,
     pub(crate) allow_null: bool,
     pub(crate) default_value: Option<String>,
@@ -26,17 +25,10 @@ impl Arg {
         Arg {
             name: name.to_string(),
             _type,
-            required: true,
             as_ref: false,
             allow_null: false,
             default_value: None,
         }
-    }
-
-    /// Sets the argument as not required.
-    pub fn not_required(mut self) -> Self {
-        self.required = false;
-        self
     }
 
     /// Sets the argument as a reference.

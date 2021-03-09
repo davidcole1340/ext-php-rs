@@ -1,4 +1,4 @@
-use std::{any::Any, borrow::Borrow, os::raw::c_char, ptr};
+use std::{os::raw::c_char, ptr};
 
 use crate::{
     bindings::{zend_execute_data, zend_function_entry, zval},
@@ -45,7 +45,7 @@ pub type FunctionHandler = extern "C" fn(execute_data: *mut ExecutionData, retva
 pub struct FunctionBuilder {
     function: FunctionEntry,
     args: Vec<Arg>,
-    n_req: u32,
+    n_req: Option<usize>,
     retval: Option<DataType>,
     ret_as_ref: bool,
     ret_as_null: bool,
@@ -72,7 +72,7 @@ impl FunctionBuilder {
                 flags: 0, // TBD?
             },
             args: vec![],
-            n_req: 0,
+            n_req: None,
             retval: None,
             ret_as_ref: false,
             ret_as_null: false,
@@ -85,10 +85,13 @@ impl FunctionBuilder {
     ///
     /// * `arg` - The argument to add to the function.
     pub fn arg(mut self, arg: Arg) -> Self {
-        if arg.required {
-            self.n_req += 1;
-        }
         self.args.push(arg);
+        self
+    }
+
+    /// Sets the rest of the given arguments as not required.
+    pub fn not_required(mut self) -> Self {
+        self.n_req = Some(self.args.len());
         self
     }
 
@@ -112,7 +115,13 @@ impl FunctionBuilder {
 
         // argument header, retval etc
         args.push(ArgInfo {
-            name: c_str(self.n_req.to_string()),
+            name: c_str(
+                (match self.n_req {
+                    Some(req) => req,
+                    None => self.args.len(),
+                })
+                .to_string(),
+            ),
             type_: match self.retval {
                 Some(retval) => {
                     ZendType::empty_from_type(retval, self.ret_as_ref, false, self.ret_as_null)
