@@ -1,4 +1,4 @@
-use std::{collections::{HashSet}, env, path::PathBuf, process::Command};
+use std::{collections::HashSet, env, path::PathBuf, process::Command};
 
 use bindgen::callbacks::{MacroParsingBehavior, ParseCallbacks};
 
