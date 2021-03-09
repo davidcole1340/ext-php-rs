@@ -4,23 +4,14 @@
 
 #[macro_use]
 pub mod macros;
+pub(crate) mod bindings;
 pub mod functions;
-pub mod module;
+pub mod php;
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-
-#[cfg(test)]
-mod tests {
-    use crate::info_table_start;
-
-    #[test]
-    fn test() {
-        info_table_start!();
-
-        info_table_header!("Hello", "World", "From", "Macro");
-        info_table_header!();
-        info_table_row!("Hello", "World!");
-
-        info_table_end!();
-    }
+// Bindings used by macros. Used so that the rest of the bindings can be hidden with `pub(crate)`.
+extern "C" {
+    pub fn php_info_print_table_header(num_cols: ::std::os::raw::c_int, ...);
+    pub fn php_info_print_table_row(num_cols: ::std::os::raw::c_int, ...);
+    pub fn php_info_print_table_start();
+    pub fn php_info_print_table_end();
 }
