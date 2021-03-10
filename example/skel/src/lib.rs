@@ -3,8 +3,9 @@ use php_rs::{
     php::{
         args::Arg,
         enums::DataType,
-        function::{ExecutionData, FunctionBuilder, Zval},
+        function::{ExecutionData, FunctionBuilder},
         module::{ModuleBuilder, ModuleEntry},
+        zval::Zval,
     },
 };
 
@@ -19,6 +20,8 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
 pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
     let funct = FunctionBuilder::new("skeleton_version", skeleton_version)
         .arg(Arg::new("test", DataType::String))
+        .arg(Arg::new("another", DataType::String))
+        .arg(Arg::new("one", DataType::String))
         .returns(DataType::Long, false, false)
         .build();
 
