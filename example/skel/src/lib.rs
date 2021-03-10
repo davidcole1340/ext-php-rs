@@ -7,7 +7,7 @@ use php_rs::{
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::ZendLong,
-        zval::Zval,
+        zval::{SetZval, Zval},
     },
 };
 
@@ -49,10 +49,12 @@ pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, _retval: *m
         return;
     }
 
-    println!(
+    let result = format!(
         "x: {}, y: {}, z: {}",
         x.val::<ZendLong>().unwrap_or_default(),
         y.val::<f64>().unwrap_or_default(),
         z.val::<f64>().unwrap_or_default()
     );
+
+    _retval.set_string(result).unwrap();
 }
