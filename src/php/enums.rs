@@ -3,6 +3,8 @@ use crate::bindings::{
     IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
 };
 
+use super::types::ZendLong;
+
 /// Valid data types for PHP.
 #[derive(Clone, Copy)]
 pub enum DataType {
@@ -20,4 +22,32 @@ pub enum DataType {
     ConstantExpression = IS_CONSTANT_AST as isize,
 
     Void = IS_VOID as isize,
+}
+
+impl From<ZendLong> for DataType {
+    fn from(_: ZendLong) -> Self {
+        Self::Long
+    }
+}
+
+impl From<bool> for DataType {
+    fn from(x: bool) -> Self {
+        if x == true {
+            Self::True
+        } else {
+            Self::False
+        }
+    }
+}
+
+impl From<f64> for DataType {
+    fn from(_: f64) -> Self {
+        Self::Double
+    }
+}
+
+impl From<String> for DataType {
+    fn from(_: String) -> Self {
+        Self::String
+    }
 }

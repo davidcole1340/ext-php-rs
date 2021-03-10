@@ -44,7 +44,7 @@ impl ExecutionData {
     /// Translation of macro `ZEND_CALL_ARG(call, n)`
     /// zend_compile.h:578
     #[doc(hidden)]
-    unsafe fn zend_call_arg(&self, n: usize) -> Option<&'static Zval> {
+    pub(crate) unsafe fn zend_call_arg(&self, n: usize) -> Option<&'static Zval> {
         let ptr = self.zend_call_var_num(n as isize);
         ptr.as_ref()
     }

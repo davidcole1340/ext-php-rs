@@ -35,16 +35,16 @@ impl FunctionEntry {
 pub type FunctionHandler = extern "C" fn(execute_data: *mut ExecutionData, retval: *mut Zval);
 
 /// Builds a function to be exported as a PHP function.
-pub struct FunctionBuilder {
+pub struct FunctionBuilder<'a> {
     function: FunctionEntry,
-    args: Vec<Arg>,
+    args: Vec<Arg<'a>>,
     n_req: Option<usize>,
     retval: Option<DataType>,
     ret_as_ref: bool,
     ret_as_null: bool,
 }
 
-impl FunctionBuilder {
+impl<'a> FunctionBuilder<'a> {
     /// Creates a new function builder, used to build functions
     /// to be exported to PHP.
     ///
@@ -77,7 +77,7 @@ impl FunctionBuilder {
     /// # Parameters
     ///
     /// * `arg` - The argument to add to the function.
-    pub fn arg(mut self, arg: Arg) -> Self {
+    pub fn arg(mut self, arg: Arg<'a>) -> Self {
         self.args.push(arg);
         self
     }

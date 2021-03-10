@@ -7,6 +7,7 @@ use crate::bindings::{
 
 use super::enums::DataType;
 
+/// Internal Zend type.
 pub type ZendType = zend_type;
 
 impl ZendType {
@@ -84,4 +85,5 @@ impl ZendType {
     }
 }
 
+/// Internal identifier used for a long.
 pub type ZendLong = zend_long;
