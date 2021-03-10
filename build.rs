@@ -1,6 +1,7 @@
 use std::{collections::HashSet, env, path::PathBuf, process::Command};
 
 use bindgen::callbacks::{MacroParsingBehavior, ParseCallbacks};
+use regex::{Captures, Regex};
 
 extern crate bindgen;
 
@@ -18,6 +19,9 @@ impl ParseCallbacks for IgnoreMacros {
     }
 }
 
+const MIN_PHP_API_VER: u32 = 20200930;
+const MAX_PHP_API_VER: u32 = 20200930;
+
 fn main() {
     // rerun if wrapper header is changed
     println!("cargo:rerun-if-changed=wrapper.h");
@@ -33,6 +37,38 @@ fn main() {
             .unwrap_or_else(|_| String::from("Unable to read stderr"));
         panic!("Error running `php-config`: {}", stderr);
     }
+
+    // Ensure the PHP API version is supported.
+    // We could easily use grep and sed here but eventually we want to support Windows,
+    // so it's easier to just use regex.
+    let php_i_cmd = Command::new("php")
+        .arg("-i")
+        .output()
+        .expect("Unable to run `php -i`. Please ensure it is visible in your PATH.");
+
+    if !php_i_cmd.status.success() {
+        let stderr = String::from_utf8(includes_cmd.stderr)
+            .unwrap_or_else(|_| String::from("Unable to read stderr"));
+        panic!("Error running `php -i`: {}", stderr);
+    }
+
+    let php_i = String::from_utf8(php_i_cmd.stdout).expect("unabel to parse `php -i` stdout");
+    let php_api_regex = Regex::new(r"PHP API => ([0-9]+)").unwrap();
+    let api_ver: Vec<Captures> = php_api_regex.captures_iter(php_i.as_ref()).collect();
+
+    match api_ver.first() {
+        Some(api_ver) => match api_ver.get(1) {
+            Some(api_ver) => {
+                let api_ver: u32 = api_ver.as_str().parse().unwrap();
+
+                if api_ver < MIN_PHP_API_VER || api_ver > MAX_PHP_API_VER {
+                    panic!("The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}", api_ver, MIN_PHP_API_VER, MAX_PHP_API_VER);
+                }
+            },
+            None => panic!("Unable to retrieve PHP API version from `php -i`. Please check the installation and ensure it is callable.")
+        },
+        None => panic!("Unable to retrieve PHP API version from `php -i`. Please check the installation and ensure it is callable.")
+    };
 
     let includes =
         String::from_utf8(includes_cmd.stdout).expect("unable to parse `php-config` stdout");
