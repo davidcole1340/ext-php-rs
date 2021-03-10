@@ -9,6 +9,7 @@ use super::types::ZendLong;
 #[derive(Clone, Copy)]
 pub enum DataType {
     Undef = IS_UNDEF as isize,
+
     Null = IS_NULL as isize,
     False = IS_FALSE as isize,
     True = IS_TRUE as isize,
@@ -19,8 +20,8 @@ pub enum DataType {
     Object = IS_OBJECT as isize,
     Resource = IS_RESOURCE as isize,
     Reference = IS_REFERENCE as isize,
-    ConstantExpression = IS_CONSTANT_AST as isize,
 
+    ConstantExpression = IS_CONSTANT_AST as isize,
     Void = IS_VOID as isize,
 }
 
