@@ -36,16 +36,23 @@ pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
 pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, _retval: *mut Zval) {
     let mut x = Arg::new("x", DataType::Long);
     let mut y = Arg::new("y", DataType::Double);
+    let mut z = Arg::new("z", DataType::Double);
 
-    let result = ArgParser::new(execute_data).arg(&mut x).arg(&mut y).parse();
+    let result = ArgParser::new(execute_data)
+        .arg(&mut x)
+        .arg(&mut y)
+        .not_required()
+        .arg(&mut z)
+        .parse();
 
     if let Err(_) = result {
         return;
     }
 
     println!(
-        "x: {}, y: {}",
+        "x: {}, y: {}, z: {}",
         x.val::<ZendLong>().unwrap_or_default(),
-        y.val::<f64>().unwrap_or_default()
+        y.val::<f64>().unwrap_or_default(),
+        z.val::<f64>().unwrap_or_default()
     );
 }
