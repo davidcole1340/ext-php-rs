@@ -1,8 +1,6 @@
-use std::any::Any;
+use super::{enums::DataType, execution_data::ExecutionData};
 
-use super::{enums::DataType, function::ExecutionData};
-
-use crate::bindings::zend_internal_arg_info;
+use crate::bindings::{zend_internal_arg_info, zend_wrong_parameters_count_error};
 
 /// Represents an argument to a function.
 pub struct Arg {
@@ -59,7 +57,7 @@ pub type ArgInfo = zend_internal_arg_info;
 
 pub struct ArgParser {
     args: Vec<Arg>,
-    n_req: Option<u32>,
+    min_num_args: Option<u32>,
 }
 
 impl ArgParser {
@@ -67,7 +65,7 @@ impl ArgParser {
     pub fn new() -> Self {
         ArgParser {
             args: vec![],
-            n_req: None,
+            min_num_args: None,
         }
     }
 
@@ -83,27 +81,42 @@ impl ArgParser {
 
     /// Sets the next arguments to be added as not required.
     pub fn not_required(mut self) -> Self {
-        self.n_req = Some(self.args.len() as u32);
+        self.min_num_args = Some(self.args.len() as u32);
         self
     }
 
-    pub fn parse(mut self, execute_data: &mut ExecutionData) -> Result<(), String> {
-        if let Some(n_req) = self.n_req {
-            let num_args = unsafe { execute_data.This.u2.num_args };
-            if num_args < n_req || num_args > self.args.len() as u32 {
-                return Err(format!(
-                    "Expected {} arguments, got {} arguments.",
-                    n_req, num_args,
-                ));
-            }
+    /// Uses the argument parser to parse the arguments contained in the given
+    /// `ExecutionData` object.
+    ///
+    /// # Parameters
+    ///
+    /// * `execute_data` - The execution data from the function.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - The arguments were successfully parsed.
+    /// * `Err(String)` - There were too many or too little arguments
+    /// passed to the function. The user has already been notified so you
+    /// can discard and return from the function if an `Err` is received.
+    pub fn parse(self, execute_data: *mut ExecutionData) -> Result<(), String> {
+        let execute_data = unsafe { execute_data.as_ref() }.unwrap();
+        let num_args = unsafe { execute_data.This.u2.num_args };
+        let max_num_args = self.args.len() as u32;
+        let min_num_args = match self.min_num_args {
+            Some(n) => n,
+            None => max_num_args,
+        };
+
+        if num_args < min_num_args || num_args > max_num_args {
+            unsafe { zend_wrong_parameters_count_error(min_num_args, max_num_args) };
+
+            return Err(format!(
+                "Expected at least {} arguments, got {} arguments.",
+                min_num_args, num_args,
+            ));
         }
 
-        for arg in self.args {
-            match arg._type {
-                DataType::Long => {}
-                _ => return Err(String::from("argument type is not implemented")),
-            }
-        }
+        for (i, arg) in self.args.iter().enumerate() {}
 
         Ok(())
     }

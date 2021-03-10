@@ -1,13 +1,11 @@
 use std::{os::raw::c_char, ptr};
 
-use crate::{
-    bindings::{zend_execute_data, zend_function_entry},
-    functions::c_str,
-};
+use crate::{bindings::zend_function_entry, functions::c_str};
 
 use super::{
     args::{Arg, ArgInfo},
     enums::DataType,
+    execution_data::ExecutionData,
     types::ZendType,
     zval::Zval,
 };
@@ -32,9 +30,6 @@ impl FunctionEntry {
         Box::into_raw(Box::new(self))
     }
 }
-
-/// Execution data passed when a function is called from Zend.
-pub type ExecutionData = zend_execute_data;
 
 /// Function representation in Rust.
 pub type FunctionHandler = extern "C" fn(execute_data: *mut ExecutionData, retval: *mut Zval);
