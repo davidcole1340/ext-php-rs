@@ -142,7 +142,10 @@ impl<'a, 'b> ArgParser<'a, 'b> {
 
         for (i, arg) in self.args.iter_mut().enumerate() {
             let zval = unsafe { execute_data.zend_call_arg(i) };
-            arg.zval = Some(zval.unwrap());
+
+            if let Some(zval) = zval {
+                arg.zval = Some(zval);
+            }
         }
 
         Ok(())
