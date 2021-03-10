@@ -1,4 +1,6 @@
-use super::enums::DataType;
+use std::any::Any;
+
+use super::{enums::DataType, function::ExecutionData};
 
 use crate::bindings::zend_internal_arg_info;
 
@@ -54,3 +56,55 @@ impl Arg {
 }
 
 pub type ArgInfo = zend_internal_arg_info;
+
+pub struct ArgParser {
+    args: Vec<Arg>,
+    n_req: Option<u32>,
+}
+
+impl ArgParser {
+    /// Builds a new function argument parser.
+    pub fn new() -> Self {
+        ArgParser {
+            args: vec![],
+            n_req: None,
+        }
+    }
+
+    /// Adds a new argument to the parser.
+    ///
+    /// # Parameters
+    ///
+    /// * `arg` - The argument to add to the parser.
+    pub fn arg(mut self, arg: Arg) -> Self {
+        self.args.push(arg);
+        self
+    }
+
+    /// Sets the next arguments to be added as not required.
+    pub fn not_required(mut self) -> Self {
+        self.n_req = Some(self.args.len() as u32);
+        self
+    }
+
+    pub fn parse(mut self, execute_data: &mut ExecutionData) -> Result<(), String> {
+        if let Some(n_req) = self.n_req {
+            let num_args = unsafe { execute_data.This.u2.num_args };
+            if num_args < n_req || num_args > self.args.len() as u32 {
+                return Err(format!(
+                    "Expected {} arguments, got {} arguments.",
+                    n_req, num_args,
+                ));
+            }
+        }
+
+        for arg in self.args {
+            match arg._type {
+                DataType::Long => {}
+                _ => return Err(String::from("argument type is not implemented")),
+            }
+        }
+
+        Ok(())
+    }
+}
