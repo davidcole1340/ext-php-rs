@@ -1,8 +1,18 @@
-use std::convert::{TryFrom, TryInto};
+use std::{
+    borrow::Borrow,
+    convert::{TryFrom, TryInto},
+};
 
 use super::{enums::DataType, execution_data::ExecutionData, zval::Zval};
 
-use crate::bindings::{zend_internal_arg_info, zend_wrong_parameters_count_error};
+use crate::bindings::{
+    _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY, _zend_expected_type_Z_EXPECTED_BOOL,
+    _zend_expected_type_Z_EXPECTED_DOUBLE, _zend_expected_type_Z_EXPECTED_LONG,
+    _zend_expected_type_Z_EXPECTED_OBJECT, _zend_expected_type_Z_EXPECTED_RESOURCE,
+    _zend_expected_type_Z_EXPECTED_STRING, zend_internal_arg_info, zend_wrong_parameter_error,
+    zend_wrong_parameters_count_error, ZPP_ERROR_WRONG_CLASS_OR_NULL,
+};
+use crate::functions::c_str;
 
 /// Represents an argument to a function.
 pub struct Arg<'a> {
@@ -69,6 +79,27 @@ impl<'a> Arg<'a> {
                 Err(_) => None,
             },
             None => None,
+        }
+    }
+}
+
+impl From<Arg<'_>> for _zend_expected_type {
+    fn from(arg: Arg) -> Self {
+        let err = match arg._type {
+            DataType::False | DataType::True => _zend_expected_type_Z_EXPECTED_BOOL,
+            DataType::Long => _zend_expected_type_Z_EXPECTED_LONG,
+            DataType::Double => _zend_expected_type_Z_EXPECTED_DOUBLE,
+            DataType::String => _zend_expected_type_Z_EXPECTED_STRING,
+            DataType::Array => _zend_expected_type_Z_EXPECTED_ARRAY,
+            DataType::Object => _zend_expected_type_Z_EXPECTED_OBJECT,
+            DataType::Resource => _zend_expected_type_Z_EXPECTED_RESOURCE,
+            _ => unreachable!(),
+        };
+
+        if arg.allow_null {
+            err + 1
+        } else {
+            err
         }
     }
 }
@@ -142,7 +173,26 @@ impl<'a, 'b> ArgParser<'a, 'b> {
 
         for (i, arg) in self.args.iter_mut().enumerate() {
             let zval = unsafe { execute_data.zend_call_arg(i) };
-            arg.zval = Some(zval.unwrap());
+
+            if let Some(zval) = zval {
+                // if !arg.allow_null && zval.is_null() {
+                //     unsafe {
+                //         zend_wrong_parameter_error(
+                //             ZPP_ERROR_WRONG_CLASS_OR_NULL as i32,
+                //             i as u32,
+                //             c_str(arg.name) as *mut i8,
+                //             _zend_expected_type::from(**arg),
+                //             &mut *zval,
+                //         );
+                //     }
+                //     return Err(format!(
+                //         "Argument at index {} was null but is non-nullable.",
+                //         i
+                //     ));
+                // }
+
+                arg.zval = Some(zval);
+            }
         }
 
         Ok(())
