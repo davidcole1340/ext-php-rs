@@ -1,7 +1,7 @@
 use std::{os::raw::c_char, ptr};
 
 use crate::{
-    bindings::{zend_execute_data, zend_function_entry, zval},
+    bindings::{zend_execute_data, zend_function_entry},
     functions::c_str,
 };
 
@@ -9,6 +9,7 @@ use super::{
     args::{Arg, ArgInfo},
     enums::DataType,
     types::ZendType,
+    zval::Zval,
 };
 
 /// A Zend function entry. Alias.
@@ -34,9 +35,6 @@ impl FunctionEntry {
 
 /// Execution data passed when a function is called from Zend.
 pub type ExecutionData = zend_execute_data;
-
-/// Zend value.
-pub type Zval = zval;
 
 /// Function representation in Rust.
 pub type FunctionHandler = extern "C" fn(execute_data: *mut ExecutionData, retval: *mut Zval);
