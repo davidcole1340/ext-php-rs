@@ -6,6 +6,8 @@ Very much a work-in-progress. The library will likely have to change name before
 
 ## Usage
 
+This project only works for PHP >= 8.0 (for now). Due to the fact that the PHP extension system relies heavily on C macros (which cannot be exported to Rust easily), structs have to be hard coded in.
+
 See the [example project](example/skel). There is inline documentation. Starting by creating a C extension is a good start as well.
 
 ## Contributions

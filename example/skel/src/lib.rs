@@ -1,10 +1,13 @@
 use php_rs::{
     info_table_end, info_table_row, info_table_start,
     php::{
-        args::Arg,
+        args::{Arg, ArgParser},
         enums::DataType,
-        function::{ExecutionData, FunctionBuilder, Zval},
+        execution_data::ExecutionData,
+        function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
+        types::ZendLong,
+        zval::Zval,
     },
 };
 
@@ -18,7 +21,7 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
 #[no_mangle]
 pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
     let funct = FunctionBuilder::new("skeleton_version", skeleton_version)
-        .arg(Arg::new("test", DataType::String))
+        .arg(Arg::new("test", DataType::Long))
         .returns(DataType::Long, false, false)
         .build();
 
@@ -30,6 +33,19 @@ pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
 }
 
 #[no_mangle]
-pub extern "C" fn skeleton_version(_execute_data: *mut ExecutionData, _retval: *mut Zval) {
-    panic!("it worked?");
+pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, _retval: *mut Zval) {
+    let mut x = Arg::new("x", DataType::Long);
+    let mut y = Arg::new("y", DataType::Double);
+
+    let result = ArgParser::new(execute_data).arg(&mut x).arg(&mut y).parse();
+
+    if let Err(_) = result {
+        return;
+    }
+
+    println!(
+        "x: {}, y: {}",
+        x.val::<ZendLong>().unwrap_or_default(),
+        y.val::<f64>().unwrap_or_default()
+    );
 }

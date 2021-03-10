@@ -1,12 +1,13 @@
 use std::{ffi::c_void, ptr};
 
 use crate::bindings::{
-    zend_type, IS_MIXED, MAY_BE_ANY, MAY_BE_BOOL, _IS_BOOL, _ZEND_IS_VARIADIC_BIT,
+    zend_long, zend_type, IS_MIXED, MAY_BE_ANY, MAY_BE_BOOL, _IS_BOOL, _ZEND_IS_VARIADIC_BIT,
     _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NULLABLE_BIT,
 };
 
 use super::enums::DataType;
 
+/// Internal Zend type.
 pub type ZendType = zend_type;
 
 impl ZendType {
@@ -83,3 +84,6 @@ impl ZendType {
         }) | Self::arg_info_flags(pass_by_ref, is_variadic)
     }
 }
+
+/// Internal identifier used for a long.
+pub type ZendLong = zend_long;
