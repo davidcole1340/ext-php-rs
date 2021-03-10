@@ -95,7 +95,7 @@ fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindgen::Builder::default()
         .header("wrapper.h")
-        .clang_args(includes.split(" "))
+        .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .parse_callbacks(Box::new(ignore_math_h_macros))
         .rustfmt_bindings(true)
