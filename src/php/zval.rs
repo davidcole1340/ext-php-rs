@@ -162,7 +162,7 @@ pub trait SetZval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_string<S>(self, val: S) -> Result<(), String>
+    fn set_string<S>(&self, val: S) -> Result<(), String>
     where
         S: AsRef<str>;
 
@@ -208,7 +208,7 @@ pub trait SetZval {
 }
 
 impl SetZval for *mut Zval {
-    fn set_string<S>(self, val: S) -> Result<(), String>
+    fn set_string<S>(&self, val: S) -> Result<(), String>
     where
         S: AsRef<str>,
     {
