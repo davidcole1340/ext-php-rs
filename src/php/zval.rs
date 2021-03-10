@@ -1,4 +1,5 @@
 use core::slice;
+use std::convert::TryFrom;
 
 use crate::bindings::{zend_object, zend_resource, zval};
 
@@ -141,5 +142,45 @@ impl Zval {
     /// Returns true if the zval is a reference, false otherwise.
     pub fn is_reference(&self) -> bool {
         unsafe { self.u1.v.type_ == DataType::Reference as u8 }
+    }
+}
+
+impl TryFrom<&Zval> for ZendLong {
+    type Error = ();
+    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
+        match value.long() {
+            Some(val) => Ok(val),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&Zval> for bool {
+    type Error = ();
+    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
+        match value.bool() {
+            Some(val) => Ok(val),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&Zval> for f64 {
+    type Error = ();
+    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
+        match value.double() {
+            Some(val) => Ok(val),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&Zval> for String {
+    type Error = ();
+    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
+        match value.string() {
+            Some(val) => Ok(val),
+            _ => Err(()),
+        }
     }
 }
