@@ -14,6 +14,10 @@ See the [example project](example/skel). There is inline documentation. Starting
 
 Contributions are very much welcome. I am a novice Rust developer and any suggestions are wanted and welcome. Feel free to file issues and PRs through Github.
 
+## Resources
+
+- [PHP Internals Book](https://www.phpinternalsbook.com/)
+
 ## License
 
 ```
