@@ -36,10 +36,8 @@ impl Zval {
     pub fn double(&self) -> Option<f64> {
         if self.is_double() {
             Some(unsafe { self.value.dval })
-        } else if let Some(long) = self.long() {
-            Some(long as f64)
         } else {
-            None
+            self.long().map(|x| x as f64)
         }
     }
 
@@ -58,10 +56,8 @@ impl Zval {
 
                 Some(_str.to_string())
             }
-        } else if let Some(double) = self.double() {
-            Some(double.to_string())
         } else {
-            None
+            self.double().map(|x| x.to_string())
         }
     }
 

@@ -42,6 +42,7 @@ impl<'a> Arg<'a> {
     }
 
     /// Sets the argument as a reference.
+    #[allow(clippy::wrong_self_convention)]
     pub fn as_ref(mut self) -> Self {
         self.as_ref = true;
         self

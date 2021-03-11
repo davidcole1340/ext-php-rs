@@ -33,7 +33,7 @@ impl From<ZendLong> for DataType {
 
 impl From<bool> for DataType {
     fn from(x: bool) -> Self {
-        if x == true {
+        if x {
             Self::True
         } else {
             Self::False
