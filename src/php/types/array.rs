@@ -1,6 +1,7 @@
 use crate::{
     bindings::{
-        HashTable, _zend_new_array, zend_hash_index_update, zend_hash_str_update, HT_MIN_SIZE,
+        HashTable, _Bucket, _zend_new_array, zend_hash_index_update, zend_hash_next_index_insert,
+        zend_hash_str_update, HT_MIN_SIZE,
     },
     functions::c_str,
 };
@@ -107,35 +108,55 @@ impl ZendHashTable {
     /// # Parameters
     ///
     /// * `val` - The value to insert into the hash table.
-    ///
-    /// # Returns
-    ///
-    /// * `Some(Zval)` - The existing value in the hash table that was overriden.
-    /// * `None` - The element was inserted.
-    pub fn push<V>(&mut self, val: V) -> Option<&Zval>
+    pub fn push<V>(&mut self, val: V)
     where
         V: Into<Zval>,
     {
-        self.insert_at_index(self.nNextFreeElement as u64, val)
+        let val: Zval = val.into();
+
+        unsafe { zend_hash_next_index_insert(self as *mut Self, Box::into_raw(Box::new(val))) };
     }
 }
 
-impl IntoIterator for ZendHashTable {
+impl<'a> IntoIterator for &'a ZendHashTable {
     type Item = Zval;
-    type IntoIter = ZendHashTableIterator;
+    type IntoIter = ZendHashTableIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        Self::IntoIter::new(self)
     }
 }
 
 /// Iterator for a Zend hashtable/array.
-pub struct ZendHashTableIterator {}
+pub struct ZendHashTableIterator<'a> {
+    ht: &'a ZendHashTable,
+    pos: *mut _Bucket,
+    end: *mut _Bucket,
+}
 
-impl Iterator for ZendHashTableIterator {
+impl<'a> ZendHashTableIterator<'a> {
+    pub fn new(ht: &'a ZendHashTable) -> Self {
+        let pos = ht.arData;
+        let end = unsafe { ht.arData.offset(ht.nNumUsed as isize) };
+        Self { ht, pos, end }
+    }
+}
+
+impl<'a> Iterator for ZendHashTableIterator<'a> {
     type Item = Zval;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if self.pos == self.end {
+            return None;
+        }
+
+        let result = if let Some(val) = unsafe { self.pos.as_ref() } {
+            Some(val.val)
+        } else {
+            None
+        };
+
+        self.pos = unsafe { self.pos.offset(1) };
+        result
     }
 }

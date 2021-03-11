@@ -79,5 +79,8 @@ pub extern "C" fn skeleton_array(execute_data: *mut ExecutionData, mut _retval: 
     }
 
     let ht: &ZendHashTable = arr.val().unwrap();
-    println!("{}", ht.nNumOfElements);
+
+    for (x, y) in ht {
+        println!("{:?}", x.string());
+    }
 }
