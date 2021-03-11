@@ -28,6 +28,7 @@ impl ExecutionData {
     /// * `Some()` - The argument was successfully read and parsed.
     /// * `None` - The argument was not present or the type of the
     /// argument was wrong.
+    #[allow(dead_code)]
     pub(crate) unsafe fn get_arg<T>(&self, offset: usize) -> Option<T>
     where
         T: TryFrom<&'static Zval>,
