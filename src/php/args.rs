@@ -1,7 +1,4 @@
-use std::{
-    borrow::Borrow,
-    convert::{TryFrom, TryInto},
-};
+use std::convert::{TryFrom, TryInto};
 
 use super::{enums::DataType, execution_data::ExecutionData, zval::Zval};
 
@@ -9,10 +6,9 @@ use crate::bindings::{
     _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY, _zend_expected_type_Z_EXPECTED_BOOL,
     _zend_expected_type_Z_EXPECTED_DOUBLE, _zend_expected_type_Z_EXPECTED_LONG,
     _zend_expected_type_Z_EXPECTED_OBJECT, _zend_expected_type_Z_EXPECTED_RESOURCE,
-    _zend_expected_type_Z_EXPECTED_STRING, zend_internal_arg_info, zend_wrong_parameter_error,
-    zend_wrong_parameters_count_error, ZPP_ERROR_WRONG_CLASS_OR_NULL,
+    _zend_expected_type_Z_EXPECTED_STRING, zend_internal_arg_info,
+    zend_wrong_parameters_count_error,
 };
-use crate::functions::c_str;
 
 /// Represents an argument to a function.
 pub struct Arg<'a> {

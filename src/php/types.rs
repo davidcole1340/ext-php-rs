@@ -75,12 +75,10 @@ impl ZendType {
 
         (if type_ == _IS_BOOL {
             MAY_BE_BOOL
+        } else if type_ == IS_MIXED {
+            MAY_BE_ANY
         } else {
-            if type_ == IS_MIXED {
-                MAY_BE_ANY
-            } else {
-                1 << type_
-            }
+            1 << type_
         }) | (if allow_null {
             _ZEND_TYPE_NULLABLE_BIT
         } else {
