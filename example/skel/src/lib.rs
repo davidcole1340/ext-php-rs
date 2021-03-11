@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use php_rs::{
     info_table_end, info_table_row, info_table_start,
     php::{
@@ -7,6 +9,7 @@ use php_rs::{
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::{
+            array::ZendHashTable,
             long::ZendLong,
             zval::{SetZval, Zval},
         },
@@ -27,9 +30,14 @@ pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
         .returns(DataType::Long, false, false)
         .build();
 
+    let array = FunctionBuilder::new("skel_array", skeleton_array)
+        .arg(Arg::new("arr", DataType::Array))
+        .build();
+
     ModuleBuilder::new("ext-skel", "0.1.0")
         .info_function(php_module_info)
         .function(funct)
+        .function(array)
         .build()
         .into_raw()
 }
@@ -59,4 +67,17 @@ pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, mut _retval
     );
 
     _retval.set_string(result).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn skeleton_array(execute_data: *mut ExecutionData, mut _retval: *mut Zval) {
+    let mut arr = Arg::new("arr", DataType::Array);
+
+    let result = ArgParser::new(execute_data).arg(&mut arr).parse();
+    if let Err(_) = result {
+        return;
+    }
+
+    let ht: &ZendHashTable = arr.val().unwrap();
+    println!("{}", ht.nNumOfElements);
 }

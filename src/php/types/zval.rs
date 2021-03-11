@@ -1,5 +1,5 @@
 use core::slice;
-use std::{convert::TryFrom, ops::Deref};
+use std::convert::TryFrom;
 
 use crate::bindings::{
     _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_object, zend_resource, zend_value,
@@ -11,10 +11,12 @@ use crate::php::{
     types::{long::ZendLong, string::ZendString},
 };
 
+use super::array::ZendHashTable;
+
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
 
-impl Zval {
+impl<'a> Zval {
     /// Creates a new, empty zval.
     pub(crate) fn new() -> Self {
         Self {
@@ -81,6 +83,15 @@ impl Zval {
         // resources so I don't know if this is the optimal way to return this.
         if self.is_resource() {
             Some(unsafe { self.value.res })
+        } else {
+            None
+        }
+    }
+
+    /// Returns the value of the zval if it is an array.
+    pub fn array(&self) -> Option<&'a ZendHashTable> {
+        if self.is_array() {
+            unsafe { self.value.arr.as_ref() }
         } else {
             None
         }
@@ -401,6 +412,16 @@ impl TryFrom<&Zval> for String {
     type Error = ();
     fn try_from(value: &Zval) -> Result<Self, Self::Error> {
         match value.string() {
+            Some(val) => Ok(val),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'a, 'b> TryFrom<&'b Zval> for &'a ZendHashTable {
+    type Error = ();
+    fn try_from(value: &'b Zval) -> Result<Self, Self::Error> {
+        match value.array() {
             Some(val) => Ok(val),
             _ => Err(()),
         }
