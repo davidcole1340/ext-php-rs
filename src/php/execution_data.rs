@@ -2,7 +2,7 @@ use std::{convert::TryFrom, mem};
 
 use crate::bindings::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
 
-use super::zval::Zval;
+use super::types::zval::Zval;
 
 /// Execution data passed when a function is called from Zend.
 pub type ExecutionData = zend_execute_data;

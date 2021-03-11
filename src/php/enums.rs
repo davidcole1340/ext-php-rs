@@ -3,7 +3,7 @@ use crate::bindings::{
     IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
 };
 
-use super::types::ZendLong;
+use super::types::long::ZendLong;
 
 /// Valid data types for PHP.
 #[derive(Clone, Copy)]

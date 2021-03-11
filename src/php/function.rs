@@ -6,8 +6,8 @@ use super::{
     args::{Arg, ArgInfo},
     enums::DataType,
     execution_data::ExecutionData,
+    types::zval::Zval,
     types::ZendType,
-    zval::Zval,
 };
 
 /// A Zend function entry. Alias.

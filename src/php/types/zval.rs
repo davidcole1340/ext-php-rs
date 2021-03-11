@@ -3,9 +3,9 @@ use std::convert::TryFrom;
 
 use crate::bindings::{zend_object, zend_resource, zval, IS_INTERNED_STRING_EX, IS_STRING_EX};
 
-use super::{
+use crate::php::{
     enums::DataType,
-    types::{ZendLong, ZendString},
+    types::{long::ZendLong, string::ZendString},
 };
 
 /// Zend value. Represents most data types that are in the Zend engine.
