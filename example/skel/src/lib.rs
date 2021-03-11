@@ -6,8 +6,10 @@ use php_rs::{
         execution_data::ExecutionData,
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
-        types::ZendLong,
-        zval::{SetZval, Zval},
+        types::{
+            long::ZendLong,
+            zval::{SetZval, Zval},
+        },
     },
 };
 
@@ -33,7 +35,7 @@ pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
 }
 
 #[no_mangle]
-pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, _retval: *mut Zval) {
+pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, mut _retval: *mut Zval) {
     let mut x = Arg::new("x", DataType::Long);
     let mut y = Arg::new("y", DataType::Double);
     let mut z = Arg::new("z", DataType::Double);
