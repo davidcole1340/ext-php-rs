@@ -234,7 +234,9 @@ pub trait SetZval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_array(&mut self, val: ZendHashTable) -> Result<(), String>;
+    fn set_array<V>(&mut self, val: V) -> Result<(), String>
+    where
+        V: Into<ZendHashTable>;
 }
 
 impl SetZval for Zval {
@@ -290,9 +292,12 @@ impl SetZval for Zval {
         Ok(())
     }
 
-    fn set_array(&mut self, val: ZendHashTable) -> Result<(), String> {
+    fn set_array<V>(&mut self, val: V) -> Result<(), String>
+    where
+        V: Into<ZendHashTable>,
+    {
         self.u1.type_info = DataType::Array as u32;
-        self.value.arr = val.into_ptr();
+        self.value.arr = val.into().into_ptr();
         Ok(())
     }
 }
@@ -392,7 +397,10 @@ impl SetZval for *mut Zval {
         _self.set_object(val, _copy)
     }
 
-    fn set_array(&mut self, val: ZendHashTable) -> Result<(), String> {
+    fn set_array<V>(&mut self, val: V) -> Result<(), String>
+    where
+        V: Into<ZendHashTable>,
+    {
         let _self = match unsafe { self.as_mut() } {
             Some(val) => val,
             None => {
