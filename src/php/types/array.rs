@@ -119,7 +119,7 @@ impl ZendHashTable {
 }
 
 impl<'a> IntoIterator for &'a ZendHashTable {
-    type Item = Zval;
+    type Item = (u64, Option<String>, &'a Zval);
     type IntoIter = ZendHashTableIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -143,20 +143,32 @@ impl<'a> ZendHashTableIterator<'a> {
 }
 
 impl<'a> Iterator for ZendHashTableIterator<'a> {
-    type Item = Zval;
+    type Item = (u64, Option<String>, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
+        // iterator complete
         if self.pos == self.end {
             return None;
         }
 
         let result = if let Some(val) = unsafe { self.pos.as_ref() } {
-            Some(val.val)
+            // SAFETY: We can ensure safety further by checking if it is null before
+            // converting it to a reference (val.key.as_ref() returns None if ptr == null)
+            let str_key: Option<String> = unsafe { val.key.as_ref() }.map(|key| key.into());
+
+            Some((val.h, str_key, &val.val))
         } else {
             None
         };
 
         self.pos = unsafe { self.pos.offset(1) };
         result
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.ht.nNumOfElements as usize
     }
 }

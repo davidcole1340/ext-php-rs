@@ -1,3 +1,5 @@
+use core::slice;
+
 use crate::{
     bindings::{
         zend_string, zend_strpprintf, GC_FLAGS_MASK, GC_FLAGS_SHIFT, GC_INFO_SHIFT, IS_STR_INTERNED,
@@ -34,5 +36,21 @@ impl ZendString {
         (((self.gc.u.type_info >> GC_INFO_SHIFT) & (GC_FLAGS_MASK >> GC_FLAGS_SHIFT))
             & IS_STR_INTERNED)
             != 0
+    }
+}
+
+impl From<&ZendString> for String {
+    fn from(zs: &ZendString) -> Self {
+        let len = zs.len;
+        let ptr = zs.val.as_ptr() as *const u8;
+
+        // SAFETY: Zend strings have a length that we know we can read.
+        // By reading this many bytes we will not run into any issues.
+        //
+        // We can safely cast our *const c_char into a *const u8 as both
+        // only occupy one byte.
+        std::str::from_utf8(unsafe { slice::from_raw_parts(ptr, len as usize) })
+            .unwrap()
+            .to_string()
     }
 }
