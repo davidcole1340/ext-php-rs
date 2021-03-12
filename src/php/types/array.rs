@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     bindings::{
         HashTable, _Bucket, _zend_new_array, zend_hash_index_update, zend_hash_next_index_insert,
@@ -170,5 +172,52 @@ impl<'a> Iterator for ZendHashTableIterator<'a> {
         Self: Sized,
     {
         self.ht.nNumOfElements as usize
+    }
+}
+
+/// Implementation converting a ZendHashTable into a Rust HashTable.
+impl<'a> From<&'a ZendHashTable> for HashMap<String, &'a Zval> {
+    fn from(zht: &'a ZendHashTable) -> Self {
+        let mut hm = HashMap::new();
+
+        for (idx, key, val) in zht.into_iter() {
+            hm.insert(key.unwrap_or(idx.to_string()), val);
+        }
+
+        hm
+    }
+}
+
+/// Implementation converting a Rust HashTable into a ZendHashTable.
+impl<'a, K, V> From<HashMap<K, V>> for &'a mut ZendHashTable
+where
+    K: Into<String>,
+    V: Into<Zval>,
+{
+    fn from(hm: HashMap<K, V>) -> Self {
+        // Should this be changed to a `TryFrom` implementation?
+        let ht = ZendHashTable::new().unwrap();
+
+        for (k, v) in hm {
+            ht.insert(k.into(), v.into());
+        }
+
+        ht
+    }
+}
+
+/// Implementation for converting a Rust Vec into a ZendHashTable.
+impl<'a, V> From<Vec<V>> for &'a mut ZendHashTable
+where
+    V: Into<Zval>,
+{
+    fn from(vec: Vec<V>) -> Self {
+        let ht = ZendHashTable::new().unwrap();
+
+        for v in vec {
+            ht.push(v);
+        }
+
+        ht
     }
 }
