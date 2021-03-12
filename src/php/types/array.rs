@@ -3,8 +3,9 @@ use std::{collections::HashMap, u64};
 use crate::{
     bindings::{
         HashTable, _Bucket, _zend_new_array, zend_array_destroy, zend_hash_clean,
-        zend_hash_index_find, zend_hash_index_update, zend_hash_next_index_insert,
-        zend_hash_str_find, zend_hash_str_update, HT_MIN_SIZE,
+        zend_hash_index_del, zend_hash_index_find, zend_hash_index_update,
+        zend_hash_next_index_insert, zend_hash_str_del, zend_hash_str_find, zend_hash_str_update,
+        HT_MIN_SIZE,
     },
     functions::c_str,
 };
@@ -91,6 +92,51 @@ impl ZendHashTable {
     /// `None` - No value at the given position was found.
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self.ptr, key).as_ref() }
+    }
+
+    /// Attempts to remove a value from the hash table with a string key.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to remove from the hash table.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` - Key was successfully removed.
+    /// `Err(())` - No key was removed, did not exist.
+    pub fn remove<K>(&self, key: K) -> Option<()>
+    where
+        K: Into<String>,
+    {
+        let _key = key.into();
+        let len = _key.len();
+        let result = unsafe { zend_hash_str_del(self.ptr, c_str(_key), len as u64) };
+
+        if result < 0 {
+            None
+        } else {
+            Some(())
+        }
+    }
+
+    /// Attempts to remove a value from the hash table with a string key.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to remove from the hash table.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` - Key was successfully removed.
+    /// `Err(())` - No key was removed, did not exist.
+    pub fn remove_index(&self, key: u64) -> Option<()> {
+        let result = unsafe { zend_hash_index_del(self.ptr, key) };
+
+        if result < 0 {
+            None
+        } else {
+            Some(())
+        }
     }
 
     /// Attempts to insert an item into the hash table, or update if the key already exists.
