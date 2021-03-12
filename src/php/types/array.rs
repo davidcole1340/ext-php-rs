@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, u64};
 
 use crate::{
     bindings::{
-        HashTable, _Bucket, _zend_new_array, zend_array_destroy, zend_hash_index_update,
-        zend_hash_next_index_insert, zend_hash_str_update, HT_MIN_SIZE,
+        HashTable, _Bucket, _zend_new_array, zend_array_destroy, zend_hash_clean,
+        zend_hash_index_find, zend_hash_index_update, zend_hash_next_index_insert,
+        zend_hash_str_find, zend_hash_str_update, HT_MIN_SIZE,
     },
     functions::c_str,
 };
@@ -56,7 +57,40 @@ impl ZendHashTable {
 
     /// Clears the hash table, removing all values.
     pub fn clear(&mut self) {
-        todo!();
+        unsafe { zend_hash_clean(self.ptr) }
+    }
+
+    /// Attempts to retrieve a value from the hash table with a string key.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to search for in the hash table.
+    ///
+    /// # Returns
+    ///
+    /// `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// `None` - No value at the given position was found.
+    pub fn get<K>(&self, key: K) -> Option<&Zval>
+    where
+        K: Into<String>,
+    {
+        let _key = key.into();
+        let len = _key.len();
+        unsafe { zend_hash_str_find(self.ptr, c_str(_key), len as u64).as_ref() }
+    }
+
+    /// Attempts to retrieve a value from the hash table with an index.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to search for in the hash table.
+    ///
+    /// # Returns
+    ///
+    /// `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// `None` - No value at the given position was found.
+    pub fn get_index(&self, key: u64) -> Option<&Zval> {
+        unsafe { zend_hash_index_find(self.ptr, key).as_ref() }
     }
 
     /// Attempts to insert an item into the hash table, or update if the key already exists.
