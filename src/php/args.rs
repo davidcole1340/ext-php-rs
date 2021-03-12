@@ -1,6 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 
-use super::{enums::DataType, execution_data::ExecutionData, zval::Zval};
+use super::{enums::DataType, execution_data::ExecutionData, types::zval::Zval};
 
 use crate::bindings::{
     _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY, _zend_expected_type_Z_EXPECTED_BOOL,

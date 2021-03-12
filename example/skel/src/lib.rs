@@ -6,8 +6,11 @@ use php_rs::{
         execution_data::ExecutionData,
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
-        types::ZendLong,
-        zval::{SetZval, Zval},
+        types::{
+            array::ZendHashTable,
+            long::ZendLong,
+            zval::{SetZval, Zval},
+        },
     },
 };
 
@@ -25,15 +28,20 @@ pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
         .returns(DataType::Long, false, false)
         .build();
 
+    let array = FunctionBuilder::new("skel_array", skeleton_array)
+        .arg(Arg::new("arr", DataType::Array))
+        .build();
+
     ModuleBuilder::new("ext-skel", "0.1.0")
         .info_function(php_module_info)
         .function(funct)
+        .function(array)
         .build()
         .into_raw()
 }
 
 #[no_mangle]
-pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, _retval: *mut Zval) {
+pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, mut _retval: *mut Zval) {
     let mut x = Arg::new("x", DataType::Long);
     let mut y = Arg::new("y", DataType::Double);
     let mut z = Arg::new("z", DataType::Double);
@@ -45,7 +53,7 @@ pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, _retval: *m
         .arg(&mut z)
         .parse();
 
-    if let Err(_) = result {
+    if result.is_err() {
         return;
     }
 
@@ -57,4 +65,24 @@ pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, _retval: *m
     );
 
     _retval.set_string(result).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn skeleton_array(execute_data: *mut ExecutionData, mut _retval: *mut Zval) {
+    let mut arr = Arg::new("arr", DataType::Array);
+
+    let result = ArgParser::new(execute_data).arg(&mut arr).parse();
+    if result.is_err() {
+        return;
+    }
+
+    let ht: ZendHashTable = arr.val().unwrap();
+
+    for (k, x, y) in ht {
+        println!("{:?} {:?} {:?}", k, x, y.string());
+    }
+
+    let mut new = ZendHashTable::new();
+    new.insert("Hello", "WOrld");
+    let _ = _retval.set_array(new);
 }

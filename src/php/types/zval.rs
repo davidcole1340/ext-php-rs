@@ -1,17 +1,35 @@
 use core::slice;
-use std::convert::TryFrom;
+use std::{convert::TryFrom, ptr};
 
-use crate::bindings::{zend_object, zend_resource, zval, IS_INTERNED_STRING_EX, IS_STRING_EX};
-
-use super::{
-    enums::DataType,
-    types::{ZendLong, ZendString},
+use crate::bindings::{
+    _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_object, zend_resource, zend_value,
+    zval, IS_INTERNED_STRING_EX, IS_STRING_EX,
 };
+
+use crate::php::{
+    enums::DataType,
+    types::{long::ZendLong, string::ZendString},
+};
+
+use super::array::ZendHashTable;
 
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
 
-impl Zval {
+impl<'a> Zval {
+    /// Creates a new, empty zval.
+    pub(crate) fn new() -> Self {
+        Self {
+            value: zend_value {
+                ptr: ptr::null_mut(),
+            },
+            u1: _zval_struct__bindgen_ty_1 {
+                type_info: DataType::Null as u32,
+            },
+            u2: _zval_struct__bindgen_ty_2 { next: 0 },
+        }
+    }
+
     /// Returns the value of the zval if it is a long.
     pub fn long(&self) -> Option<ZendLong> {
         if self.is_long() {
@@ -67,6 +85,15 @@ impl Zval {
         // resources so I don't know if this is the optimal way to return this.
         if self.is_resource() {
             Some(unsafe { self.value.res })
+        } else {
+            None
+        }
+    }
+
+    /// Returns the value of the zval if it is an array.
+    pub fn array(&self) -> Option<ZendHashTable> {
+        if self.is_array() {
+            Some(ZendHashTable::from_ptr(unsafe { self.value.arr }))
         } else {
             None
         }
@@ -158,7 +185,7 @@ pub trait SetZval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_string<S>(&self, val: S) -> Result<(), String>
+    fn set_string<S>(&mut self, val: S) -> Result<(), String>
     where
         S: AsRef<str>;
 
@@ -167,32 +194,32 @@ pub trait SetZval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_long(&self, val: ZendLong) -> Result<(), String>;
+    fn set_long(&mut self, val: ZendLong) -> Result<(), String>;
 
     /// Sets the value of the zval as a double.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_double(&self, val: f64) -> Result<(), String>;
+    fn set_double(&mut self, val: f64) -> Result<(), String>;
 
     /// Sets the value of the zval as a boolean.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_bool(&self, val: bool) -> Result<(), String>;
+    fn set_bool(&mut self, val: bool) -> Result<(), String>;
 
     /// Sets the value of the zval as null.
     /// This is the default of a zval.
-    fn set_null(&self) -> Result<(), String>;
+    fn set_null(&mut self) -> Result<(), String>;
 
     /// Sets the value of the zval as a resource.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_resource(&self, val: *mut zend_resource) -> Result<(), String>;
+    fn set_resource(&mut self, val: *mut zend_resource) -> Result<(), String>;
 
     /// Sets the value of the zval as an object.
     ///
@@ -200,11 +227,83 @@ pub trait SetZval {
     ///
     /// * `val` - The value to set the zval as.
     /// * `copy` - Whether to copy the object or pass as a reference.
-    fn set_object(&self, val: *mut zend_object, copy: bool) -> Result<(), String>;
+    fn set_object(&mut self, val: *mut zend_object, copy: bool) -> Result<(), String>;
+
+    /// Sets the value of the zval as an array.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to set the zval as.
+    fn set_array<V>(&mut self, val: V) -> Result<(), String>
+    where
+        V: Into<ZendHashTable>;
+}
+
+impl SetZval for Zval {
+    fn set_string<S>(&mut self, val: S) -> Result<(), String>
+    where
+        S: AsRef<str>,
+    {
+        let zend_str = ZendString::new(val);
+        self.value.str = zend_str;
+        self.u1.type_info = if unsafe { zend_str.as_ref().unwrap().is_interned() } {
+            IS_INTERNED_STRING_EX
+        } else {
+            IS_STRING_EX
+        };
+        Ok(())
+    }
+
+    fn set_long(&mut self, val: ZendLong) -> Result<(), String> {
+        self.value.lval = val;
+        self.u1.type_info = DataType::Long as u32;
+        Ok(())
+    }
+
+    fn set_double(&mut self, val: f64) -> Result<(), String> {
+        self.value.dval = val;
+        self.u1.type_info = DataType::Double as u32;
+        Ok(())
+    }
+
+    fn set_bool(&mut self, val: bool) -> Result<(), String> {
+        self.u1.type_info = if val {
+            DataType::True as u32
+        } else {
+            DataType::False as u32
+        };
+        Ok(())
+    }
+
+    fn set_null(&mut self) -> Result<(), String> {
+        self.u1.type_info = DataType::Null as u32;
+        Ok(())
+    }
+
+    fn set_resource(&mut self, val: *mut zend_resource) -> Result<(), String> {
+        self.u1.type_info = DataType::Resource as u32;
+        self.value.res = val;
+        Ok(())
+    }
+
+    fn set_object(&mut self, val: *mut zend_object, _copy: bool) -> Result<(), String> {
+        self.u1.type_info = DataType::Object as u32;
+        self.value.obj = val;
+        Ok(())
+    }
+
+    fn set_array<V>(&mut self, val: V) -> Result<(), String>
+    where
+        V: Into<ZendHashTable>,
+    {
+        self.u1.type_info = DataType::Array as u32;
+        self.value.arr = val.into().into_ptr();
+        Ok(())
+    }
 }
 
 impl SetZval for *mut Zval {
-    fn set_string<S>(&self, val: S) -> Result<(), String>
+    fn set_string<S>(&mut self, val: S) -> Result<(), String>
     where
         S: AsRef<str>,
     {
@@ -217,18 +316,10 @@ impl SetZval for *mut Zval {
             }
         };
 
-        let zend_str = ZendString::new(val);
-        _self.value.str = zend_str;
-        _self.u1.type_info = if unsafe { zend_str.as_ref().unwrap().is_interned() } {
-            IS_INTERNED_STRING_EX
-        } else {
-            IS_STRING_EX
-        };
-
-        Ok(())
+        _self.set_string(val)
     }
 
-    fn set_long(&self, val: ZendLong) -> Result<(), String> {
+    fn set_long(&mut self, val: ZendLong) -> Result<(), String> {
         let _self = match unsafe { self.as_mut() } {
             Some(val) => val,
             None => {
@@ -238,13 +329,10 @@ impl SetZval for *mut Zval {
             }
         };
 
-        _self.value.lval = val;
-        _self.u1.type_info = DataType::Long as u32;
-
-        Ok(())
+        _self.set_long(val)
     }
 
-    fn set_double(&self, val: f64) -> Result<(), String> {
+    fn set_double(&mut self, val: f64) -> Result<(), String> {
         let _self = match unsafe { self.as_mut() } {
             Some(val) => val,
             None => {
@@ -254,13 +342,10 @@ impl SetZval for *mut Zval {
             }
         };
 
-        _self.value.dval = val;
-        _self.u1.type_info = DataType::Double as u32;
-
-        Ok(())
+        _self.set_double(val)
     }
 
-    fn set_bool(&self, val: bool) -> Result<(), String> {
+    fn set_bool(&mut self, val: bool) -> Result<(), String> {
         let _self = match unsafe { self.as_mut() } {
             Some(val) => val,
             None => {
@@ -270,16 +355,10 @@ impl SetZval for *mut Zval {
             }
         };
 
-        _self.u1.type_info = if val {
-            DataType::True as u32
-        } else {
-            DataType::False as u32
-        };
-
-        Ok(())
+        _self.set_bool(val)
     }
 
-    fn set_null(&self) -> Result<(), String> {
+    fn set_null(&mut self) -> Result<(), String> {
         let _self = match unsafe { self.as_mut() } {
             Some(val) => val,
             None => {
@@ -289,12 +368,10 @@ impl SetZval for *mut Zval {
             }
         };
 
-        _self.u1.type_info = DataType::Null as u32;
-
-        Ok(())
+        _self.set_null()
     }
 
-    fn set_resource(&self, val: *mut zend_resource) -> Result<(), String> {
+    fn set_resource(&mut self, val: *mut zend_resource) -> Result<(), String> {
         let _self = match unsafe { self.as_mut() } {
             Some(val) => val,
             None => {
@@ -304,13 +381,10 @@ impl SetZval for *mut Zval {
             }
         };
 
-        _self.u1.type_info = DataType::Resource as u32;
-        _self.value.res = val;
-
-        Ok(())
+        _self.set_resource(val)
     }
 
-    fn set_object(&self, val: *mut zend_object, _copy: bool) -> Result<(), String> {
+    fn set_object(&mut self, val: *mut zend_object, _copy: bool) -> Result<(), String> {
         let _self = match unsafe { self.as_mut() } {
             Some(val) => val,
             None => {
@@ -320,10 +394,23 @@ impl SetZval for *mut Zval {
             }
         };
 
-        _self.u1.type_info = DataType::Object as u32;
-        _self.value.obj = val;
+        _self.set_object(val, _copy)
+    }
 
-        Ok(())
+    fn set_array<V>(&mut self, val: V) -> Result<(), String>
+    where
+        V: Into<ZendHashTable>,
+    {
+        let _self = match unsafe { self.as_mut() } {
+            Some(val) => val,
+            None => {
+                return Err(String::from(
+                    "Could not retrieve mutable reference of zend value.",
+                ))
+            }
+        };
+
+        _self.set_array(val)
     }
 }
 
@@ -364,5 +451,54 @@ impl TryFrom<&Zval> for String {
             Some(val) => Ok(val),
             _ => Err(()),
         }
+    }
+}
+
+impl<'a, 'b> TryFrom<&'b Zval> for ZendHashTable {
+    type Error = ();
+    fn try_from(value: &'b Zval) -> Result<Self, Self::Error> {
+        match value.array() {
+            Some(val) => Ok(val),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<ZendLong> for Zval {
+    fn from(val: ZendLong) -> Self {
+        let mut zv = Self::new();
+        zv.set_long(val).unwrap(); // this can never fail
+        zv
+    }
+}
+
+impl From<bool> for Zval {
+    fn from(val: bool) -> Self {
+        let mut zv = Self::new();
+        zv.set_bool(val).unwrap(); // this can never fail
+        zv
+    }
+}
+impl From<f64> for Zval {
+    fn from(val: f64) -> Self {
+        let mut zv = Self::new();
+        zv.set_double(val).unwrap(); // this can never fail
+        zv
+    }
+}
+
+impl From<String> for Zval {
+    fn from(val: String) -> Self {
+        let mut zv = Self::new();
+        zv.set_string(val).unwrap(); // this can never fail
+        zv
+    }
+}
+
+impl From<&str> for Zval {
+    fn from(val: &str) -> Self {
+        let mut zv = Self::new();
+        zv.set_string(val).unwrap(); // this can never fail
+        zv
     }
 }
