@@ -1,5 +1,5 @@
 use core::slice;
-use std::convert::TryFrom;
+use std::{convert::TryFrom, ptr};
 
 use crate::bindings::{
     _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_object, zend_resource, zend_value,
@@ -20,9 +20,11 @@ impl<'a> Zval {
     /// Creates a new, empty zval.
     pub(crate) fn new() -> Self {
         Self {
-            value: zend_value { lval: 0 },
+            value: zend_value {
+                ptr: ptr::null_mut(),
+            },
             u1: _zval_struct__bindgen_ty_1 {
-                type_info: DataType::Undef as u32,
+                type_info: DataType::Null as u32,
             },
             u2: _zval_struct__bindgen_ty_2 { next: 0 },
         }
@@ -89,9 +91,9 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is an array.
-    pub fn array(&self) -> Option<&'a ZendHashTable> {
+    pub fn array(&self) -> Option<ZendHashTable> {
         if self.is_array() {
-            unsafe { self.value.arr.as_ref() }
+            Some(ZendHashTable::from_ptr(unsafe { self.value.arr }))
         } else {
             None
         }
@@ -226,6 +228,13 @@ pub trait SetZval {
     /// * `val` - The value to set the zval as.
     /// * `copy` - Whether to copy the object or pass as a reference.
     fn set_object(&mut self, val: *mut zend_object, copy: bool) -> Result<(), String>;
+
+    /// Sets the value of the zval as an array.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to set the zval as.
+    fn set_array(&mut self, val: ZendHashTable) -> Result<(), String>;
 }
 
 impl SetZval for Zval {
@@ -278,6 +287,12 @@ impl SetZval for Zval {
     fn set_object(&mut self, val: *mut zend_object, _copy: bool) -> Result<(), String> {
         self.u1.type_info = DataType::Object as u32;
         self.value.obj = val;
+        Ok(())
+    }
+
+    fn set_array(&mut self, val: ZendHashTable) -> Result<(), String> {
+        self.u1.type_info = DataType::Array as u32;
+        self.value.arr = val.into_ptr();
         Ok(())
     }
 }
@@ -376,6 +391,19 @@ impl SetZval for *mut Zval {
 
         _self.set_object(val, _copy)
     }
+
+    fn set_array(&mut self, val: ZendHashTable) -> Result<(), String> {
+        let _self = match unsafe { self.as_mut() } {
+            Some(val) => val,
+            None => {
+                return Err(String::from(
+                    "Could not retrieve mutable reference of zend value.",
+                ))
+            }
+        };
+
+        _self.set_array(val)
+    }
 }
 
 impl TryFrom<&Zval> for ZendLong {
@@ -418,7 +446,7 @@ impl TryFrom<&Zval> for String {
     }
 }
 
-impl<'a, 'b> TryFrom<&'b Zval> for &'a ZendHashTable {
+impl<'a, 'b> TryFrom<&'b Zval> for ZendHashTable {
     type Error = ();
     fn try_from(value: &'b Zval) -> Result<Self, Self::Error> {
         match value.array() {

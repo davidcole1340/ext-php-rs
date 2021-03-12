@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     bindings::{
-        HashTable, _Bucket, _zend_new_array, zend_hash_index_update, zend_hash_next_index_insert,
-        zend_hash_str_update, HT_MIN_SIZE,
+        HashTable, _Bucket, _zend_new_array, zend_array_destroy, zend_hash_index_update,
+        zend_hash_next_index_insert, zend_hash_str_update, HT_MIN_SIZE,
     },
     functions::c_str,
 };
@@ -11,11 +11,14 @@ use crate::{
 use super::zval::Zval;
 
 /// A PHP array, which internally is a hash table.
-pub type ZendHashTable = HashTable;
+pub struct ZendHashTable {
+    ptr: *mut HashTable,
+    free: bool,
+}
 
 impl ZendHashTable {
     /// Creates a new, empty, PHP associative array.
-    pub fn new<'a>() -> Option<&'a mut Self> {
+    pub fn new() -> Self {
         Self::with_capacity(HT_MIN_SIZE)
     }
 
@@ -24,15 +27,26 @@ impl ZendHashTable {
     /// # Parameters
     ///
     /// * `size` - The size to initialize the array with.
-    pub fn with_capacity<'a>(size: u32) -> Option<&'a mut Self> {
+    pub fn with_capacity(size: u32) -> Self {
         // SAFETY: PHP allocater handles the creation of the
         // array.
-        unsafe { _zend_new_array(size).as_mut() }
+        let ptr = unsafe { _zend_new_array(size) };
+        Self { ptr, free: true }
+    }
+
+    /// Creates a new hash table wrapper.
+    /// This _will not_ be freed when it goes out of scope in Rust.
+    ///
+    /// # Parameters
+    ///
+    /// * `ptr` - The pointer of the actual hash table.
+    pub(crate) fn from_ptr(ptr: *mut HashTable) -> Self {
+        Self { ptr, free: false }
     }
 
     /// Returns the current number of elements in the array.
     pub fn len(&self) -> usize {
-        self.nNumOfElements as usize
+        unsafe { *self.ptr }.nNumOfElements as usize
     }
 
     /// Returns whether the hash table is empty.
@@ -67,7 +81,7 @@ impl ZendHashTable {
 
         let existing_ptr = unsafe {
             zend_hash_str_update(
-                self as *mut Self,
+                self.ptr,
                 c_str(key),
                 len as u64,
                 Box::into_raw(Box::new(val)), // Do we really want to allocate the value on the heap?
@@ -99,7 +113,7 @@ impl ZendHashTable {
         let val: Zval = val.into();
 
         let existing_ptr =
-            unsafe { zend_hash_index_update(self as *mut Self, key, Box::into_raw(Box::new(val))) };
+            unsafe { zend_hash_index_update(self.ptr, key, Box::into_raw(Box::new(val))) };
 
         // See `insert` function comment.
         unsafe { existing_ptr.as_ref() }
@@ -116,13 +130,33 @@ impl ZendHashTable {
     {
         let val: Zval = val.into();
 
-        unsafe { zend_hash_next_index_insert(self as *mut Self, Box::into_raw(Box::new(val))) };
+        unsafe { zend_hash_next_index_insert(self.ptr, Box::into_raw(Box::new(val))) };
+    }
+
+    /// Converts the hash table into a raw pointer to be passed to Zend.
+    pub(crate) fn into_ptr(mut self) -> *mut HashTable {
+        self.free = false;
+        self.ptr
     }
 }
 
-impl<'a> IntoIterator for &'a ZendHashTable {
-    type Item = (u64, Option<String>, &'a Zval);
-    type IntoIter = ZendHashTableIterator<'a>;
+impl Default for ZendHashTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for ZendHashTable {
+    fn drop(&mut self) {
+        if self.free {
+            unsafe { zend_array_destroy(self.ptr) };
+        }
+    }
+}
+
+impl IntoIterator for ZendHashTable {
+    type Item = (u64, Option<String>, Zval);
+    type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
         Self::IntoIter::new(self)
@@ -130,22 +164,23 @@ impl<'a> IntoIterator for &'a ZendHashTable {
 }
 
 /// Iterator for a Zend hashtable/array.
-pub struct ZendHashTableIterator<'a> {
-    ht: &'a ZendHashTable,
+pub struct Iter {
+    ht: ZendHashTable,
     pos: *mut _Bucket,
     end: *mut _Bucket,
 }
 
-impl<'a> ZendHashTableIterator<'a> {
-    pub fn new(ht: &'a ZendHashTable) -> Self {
-        let pos = ht.arData;
-        let end = unsafe { ht.arData.offset(ht.nNumUsed as isize) };
+impl Iter {
+    pub fn new(ht: ZendHashTable) -> Self {
+        let ptr = unsafe { *ht.ptr };
+        let pos = ptr.arData;
+        let end = unsafe { ptr.arData.offset(ptr.nNumUsed as isize) };
         Self { ht, pos, end }
     }
 }
 
-impl<'a> Iterator for ZendHashTableIterator<'a> {
-    type Item = (u64, Option<String>, &'a Zval);
+impl Iterator for Iter {
+    type Item = (u64, Option<String>, Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         // iterator complete
@@ -158,7 +193,7 @@ impl<'a> Iterator for ZendHashTableIterator<'a> {
             // converting it to a reference (val.key.as_ref() returns None if ptr == null)
             let str_key: Option<String> = unsafe { val.key.as_ref() }.map(|key| key.into());
 
-            Some((val.h, str_key, &val.val))
+            Some((val.h, str_key, val.val))
         } else {
             None
         };
@@ -171,17 +206,17 @@ impl<'a> Iterator for ZendHashTableIterator<'a> {
     where
         Self: Sized,
     {
-        self.ht.nNumOfElements as usize
+        unsafe { *self.ht.ptr }.nNumOfElements as usize
     }
 }
 
 /// Implementation converting a ZendHashTable into a Rust HashTable.
-impl<'a> From<&'a ZendHashTable> for HashMap<String, &'a Zval> {
-    fn from(zht: &'a ZendHashTable) -> Self {
+impl<'a> From<ZendHashTable> for HashMap<String, Zval> {
+    fn from(zht: ZendHashTable) -> Self {
         let mut hm = HashMap::new();
 
         for (idx, key, val) in zht.into_iter() {
-            hm.insert(key.unwrap_or(idx.to_string()), val);
+            hm.insert(key.unwrap_or_else(|| idx.to_string()), val);
         }
 
         hm
@@ -189,14 +224,13 @@ impl<'a> From<&'a ZendHashTable> for HashMap<String, &'a Zval> {
 }
 
 /// Implementation converting a Rust HashTable into a ZendHashTable.
-impl<'a, K, V> From<HashMap<K, V>> for &'a mut ZendHashTable
+impl<'a, K, V> From<HashMap<K, V>> for ZendHashTable
 where
     K: Into<String>,
     V: Into<Zval>,
 {
     fn from(hm: HashMap<K, V>) -> Self {
-        // Should this be changed to a `TryFrom` implementation?
-        let ht = ZendHashTable::new().unwrap();
+        let mut ht = ZendHashTable::new();
 
         for (k, v) in hm {
             ht.insert(k.into(), v.into());
@@ -207,12 +241,12 @@ where
 }
 
 /// Implementation for converting a Rust Vec into a ZendHashTable.
-impl<'a, V> From<Vec<V>> for &'a mut ZendHashTable
+impl<'a, V> From<Vec<V>> for ZendHashTable
 where
     V: Into<Zval>,
 {
     fn from(vec: Vec<V>) -> Self {
-        let ht = ZendHashTable::new().unwrap();
+        let mut ht = ZendHashTable::new();
 
         for v in vec {
             ht.push(v);

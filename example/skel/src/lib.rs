@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use php_rs::{
     info_table_end, info_table_row, info_table_start,
     php::{
@@ -55,7 +53,7 @@ pub extern "C" fn skeleton_version(execute_data: *mut ExecutionData, mut _retval
         .arg(&mut z)
         .parse();
 
-    if let Err(_) = result {
+    if result.is_err() {
         return;
     }
 
@@ -74,13 +72,17 @@ pub extern "C" fn skeleton_array(execute_data: *mut ExecutionData, mut _retval: 
     let mut arr = Arg::new("arr", DataType::Array);
 
     let result = ArgParser::new(execute_data).arg(&mut arr).parse();
-    if let Err(_) = result {
+    if result.is_err() {
         return;
     }
 
-    let ht: &ZendHashTable = arr.val().unwrap();
+    let ht: ZendHashTable = arr.val().unwrap();
 
     for (k, x, y) in ht {
         println!("{:?} {:?} {:?}", k, x, y.string());
     }
+
+    let mut new = ZendHashTable::new();
+    new.insert("Hello", "WOrld");
+    let _ = _retval.set_array(new);
 }
