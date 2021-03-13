@@ -136,6 +136,7 @@ impl<'a> FunctionBuilder<'a> {
             });
         }
 
+        self.function.num_args = (args.len() - 1) as u32;
         self.function.arg_info = Box::into_raw(args.into_boxed_slice()) as *const ArgInfo;
         self.function
     }
