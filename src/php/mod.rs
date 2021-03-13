@@ -1,6 +1,7 @@
 pub mod args;
 pub mod class;
 pub mod enums;
+pub mod errors;
 pub mod execution_data;
 pub mod flags;
 pub mod function;

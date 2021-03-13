@@ -1,8 +1,8 @@
-use std::mem;
+use std::{mem, ptr};
 
 use crate::bindings::{
     zend_class_entry, zend_declare_class_constant_ex, zend_declare_property_ex,
-    zend_register_internal_class,
+    zend_register_internal_class_ex,
 };
 
 use super::{
@@ -17,6 +17,7 @@ pub type ClassEntry = zend_class_entry;
 /// Builds a class to be exported as a PHP class.
 pub struct ClassBuilder<'a> {
     ptr: &'a mut ClassEntry,
+    extends: *mut ClassEntry,
     functions: Vec<FunctionEntry>,
     properties: Vec<(&'a str, &'a str, Zval, PropertyFlags)>,
     constants: Vec<(&'a str, &'a str, Zval, ConstantFlags)>,
@@ -36,12 +37,23 @@ impl<'a> ClassBuilder<'a> {
         let ptr = unsafe { libc::malloc(mem::size_of::<ClassEntry>()) } as *mut ClassEntry;
         let self_ = Self {
             ptr: unsafe { ptr.as_mut() }.unwrap(),
+            extends: ptr::null_mut(),
             functions: vec![],
             properties: vec![],
             constants: vec![],
         };
         self_.ptr.name = ZendString::new_interned(name, true);
         self_
+    }
+
+    /// Sets the class builder to extend another class.
+    ///
+    /// # Parameters
+    ///
+    /// * `parent` - The parent class to extend.
+    pub fn extends(mut self, parent: *mut ClassEntry) -> Self {
+        self.extends = parent;
+        self
     }
 
     /// Adds a method to the class.
@@ -118,7 +130,7 @@ impl<'a> ClassBuilder<'a> {
         let func = Box::into_raw(self.functions.into_boxed_slice()) as *const FunctionEntry;
         self.ptr.info.internal.builtin_functions = func;
 
-        let class = unsafe { zend_register_internal_class(self.ptr) };
+        let class = unsafe { zend_register_internal_class_ex(self.ptr, self.extends) };
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
 
         for (name, doc, default, flags) in self.properties {
