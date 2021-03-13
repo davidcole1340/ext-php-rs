@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Build 
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -16,10 +16,7 @@ jobs:
           - stable
           - nightly
         php:
-          - "8.0"
-        thread-safety:
-          - ts
-          - nts
+          - '8.0'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -27,8 +24,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-        env:
-          phpts: ${{ matrix.thread-safety }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
