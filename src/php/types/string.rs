@@ -2,8 +2,8 @@ use core::slice;
 
 use crate::{
     bindings::{
-        zend_string, zend_string_init_interned, zend_strpprintf, GC_FLAGS_MASK, GC_FLAGS_SHIFT,
-        GC_INFO_SHIFT, IS_STR_INTERNED,
+        zend_string, zend_string_init_interned, GC_FLAGS_MASK, GC_FLAGS_SHIFT, GC_INFO_SHIFT,
+        IS_STR_INTERNED,
     },
     functions::c_str,
 };
@@ -27,8 +27,7 @@ impl ZendString {
     where
         S: AsRef<str>,
     {
-        let str_ = str_.as_ref();
-        unsafe { zend_strpprintf(str_.len() as u64, c_str(str_)) }
+        Self::new_interned(str_, false)
     }
 
     /// Creates a new interned Zend string.

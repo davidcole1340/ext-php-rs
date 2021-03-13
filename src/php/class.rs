@@ -1,9 +1,12 @@
 use std::mem;
 
-use crate::bindings::{zend_class_entry, zend_declare_property_ex, zend_register_internal_class};
+use crate::bindings::{
+    zend_class_entry, zend_declare_class_constant_ex, zend_declare_property_ex,
+    zend_register_internal_class,
+};
 
 use super::{
-    flags::{ClassFlags, MethodFlags, PropertyFlags},
+    flags::{ClassFlags, ConstantFlags, MethodFlags, PropertyFlags},
     function::FunctionEntry,
     types::{string::ZendString, zval::Zval},
 };
@@ -16,6 +19,7 @@ pub struct ClassBuilder<'a> {
     ptr: &'a mut ClassEntry,
     functions: Vec<FunctionEntry>,
     properties: Vec<(&'a str, &'a str, Zval, PropertyFlags)>,
+    constants: Vec<(&'a str, &'a str, Zval, ConstantFlags)>,
 }
 
 impl<'a> ClassBuilder<'a> {
@@ -34,6 +38,7 @@ impl<'a> ClassBuilder<'a> {
             ptr: unsafe { ptr.as_mut() }.unwrap(),
             functions: vec![],
             properties: vec![],
+            constants: vec![],
         };
         self_.ptr.name = ZendString::new_interned(name, true);
         self_
@@ -59,7 +64,7 @@ impl<'a> ClassBuilder<'a> {
     /// * `name` - The name of the property to add to the class.
     /// * `doc` - Documentation comment for the property.
     /// * `default` - The default value of the property.
-    /// * `flags` - Flags relating to the property. See [`PropertyFlags`]
+    /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
     pub fn property<T>(
         mut self,
         name: &'a str,
@@ -71,6 +76,29 @@ impl<'a> ClassBuilder<'a> {
         T: Into<Zval>,
     {
         self.properties.push((name, doc, default.into(), flags));
+        self
+    }
+
+    /// Adds a constant to the class.
+    /// The type of the constant is defined by the type of the given default.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the constant to add to the class.
+    /// * `doc` - Documentation comment for the constant.
+    /// * `value` - The value of the constant.
+    /// * `flags` - Flags relating to the constant. See [`ConstantFlags`].
+    pub fn constant<T>(
+        mut self,
+        name: &'a str,
+        doc: &'a str,
+        value: T,
+        flags: ConstantFlags,
+    ) -> Self
+    where
+        T: Into<Zval>,
+    {
+        self.constants.push((name, doc, value.into(), flags));
         self
     }
 
@@ -98,6 +126,13 @@ impl<'a> ClassBuilder<'a> {
             let doc = ZendString::new_interned(doc, true);
             let default = Box::into_raw(Box::new(default));
             unsafe { zend_declare_property_ex(class, name, default, flags.bits() as i32, doc) };
+        }
+
+        for (name, doc, value, flags) in self.constants {
+            let name = ZendString::new_interned(name, true);
+            let doc = ZendString::new_interned(doc, true);
+            let value = Box::into_raw(Box::new(value));
+            unsafe { zend_declare_class_constant_ex(class, name, value, flags.bits() as i32, doc) };
         }
 
         class

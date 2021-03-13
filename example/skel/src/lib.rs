@@ -7,7 +7,7 @@ use php_rs::{
         class::{ClassBuilder, ClassEntry},
         enums::DataType,
         execution_data::ExecutionData,
-        flags::{ClassFlags, MethodFlags, PropertyFlags},
+        flags::{ConstantFlags, MethodFlags, PropertyFlags},
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::{
@@ -34,6 +34,12 @@ pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
     ClassBuilder::new("TestClass")
         .function(func, MethodFlags::Public)
         .property("hello", "doc", 10, PropertyFlags::Public)
+        .constant(
+            "TEST",
+            "Documentation of constant",
+            "Hello world",
+            ConstantFlags::Public,
+        )
         .build();
 
     0
