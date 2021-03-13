@@ -2,7 +2,8 @@ use core::slice;
 
 use crate::{
     bindings::{
-        zend_string, zend_strpprintf, GC_FLAGS_MASK, GC_FLAGS_SHIFT, GC_INFO_SHIFT, IS_STR_INTERNED,
+        zend_string, zend_string_init_interned, zend_strpprintf, GC_FLAGS_MASK, GC_FLAGS_SHIFT,
+        GC_INFO_SHIFT, IS_STR_INTERNED,
     },
     functions::c_str,
 };
@@ -28,6 +29,22 @@ impl ZendString {
     {
         let str_ = str_.as_ref();
         unsafe { zend_strpprintf(str_.len() as u64, c_str(str_)) }
+    }
+
+    /// Creates a new interned Zend string.
+    ///
+    /// Note that this returns a raw pointer, and will not be freed by
+    /// Rust.
+    ///
+    /// # Parameters
+    ///
+    /// * `str_` - The string to create a Zend string from.
+    pub fn new_interned<S>(str_: S, permanent: bool) -> *mut Self
+    where
+        S: AsRef<str>,
+    {
+        let str_ = str_.as_ref();
+        unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as u64, permanent) }
     }
 
     /// Translation of the `ZSTR_IS_INTERNED` macro.
