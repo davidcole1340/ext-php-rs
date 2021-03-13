@@ -1,9 +1,13 @@
+use std::{os::raw::c_int, thread, time::Duration};
+
 use php_rs::{
     info_table_end, info_table_row, info_table_start,
     php::{
         args::{Arg, ArgParser},
+        class::{ClassBuilder, ClassEntry},
         enums::DataType,
         execution_data::ExecutionData,
+        flags::{ClassFlags, MethodFlags},
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::{
@@ -22,6 +26,19 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
 }
 
 #[no_mangle]
+pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
+    let func = FunctionBuilder::new("test", skeleton_version)
+        .returns(DataType::Long, false, false)
+        .build();
+
+    ClassBuilder::new("TestClass")
+        .function(func, MethodFlags::Public)
+        .build();
+
+    0
+}
+
+#[no_mangle]
 pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
     let funct = FunctionBuilder::new("skeleton_version", skeleton_version)
         .arg(Arg::new("test", DataType::Long))
@@ -34,6 +51,7 @@ pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
 
     ModuleBuilder::new("ext-skel", "0.1.0")
         .info_function(php_module_info)
+        .startup_function(module_init)
         .function(funct)
         .function(array)
         .build()

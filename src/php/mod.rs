@@ -1,4 +1,5 @@
 pub mod args;
+pub mod class;
 pub mod enums;
 pub mod execution_data;
 pub mod flags;
