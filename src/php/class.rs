@@ -1,11 +1,11 @@
 use std::mem;
 
-use crate::bindings::{zend_class_entry, zend_register_internal_class};
+use crate::bindings::{zend_class_entry, zend_declare_property_ex, zend_register_internal_class};
 
 use super::{
-    flags::{ClassFlags, MethodFlags},
+    flags::{ClassFlags, MethodFlags, PropertyFlags},
     function::FunctionEntry,
-    types::string::ZendString,
+    types::{string::ZendString, zval::Zval},
 };
 
 /// A Zend class entry. Alias.
@@ -15,6 +15,7 @@ pub type ClassEntry = zend_class_entry;
 pub struct ClassBuilder<'a> {
     ptr: &'a mut ClassEntry,
     functions: Vec<FunctionEntry>,
+    properties: Vec<(&'a str, &'a str, Zval, PropertyFlags)>,
 }
 
 impl<'a> ClassBuilder<'a> {
@@ -32,6 +33,7 @@ impl<'a> ClassBuilder<'a> {
         let self_ = Self {
             ptr: unsafe { ptr.as_mut() }.unwrap(),
             functions: vec![],
+            properties: vec![],
         };
         self_.ptr.name = ZendString::new_interned(name, true);
         self_
@@ -46,6 +48,29 @@ impl<'a> ClassBuilder<'a> {
     pub fn function(mut self, mut func: FunctionEntry, flags: MethodFlags) -> Self {
         func.flags = flags.bits();
         self.functions.push(func);
+        self
+    }
+
+    /// Adds a property to the class.
+    /// The type of the property is defined by the type of the given default.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the property to add to the class.
+    /// * `doc` - Documentation comment for the property.
+    /// * `default` - The default value of the property.
+    /// * `flags` - Flags relating to the property. See [`PropertyFlags`]
+    pub fn property<T>(
+        mut self,
+        name: &'a str,
+        doc: &'a str,
+        default: T,
+        flags: PropertyFlags,
+    ) -> Self
+    where
+        T: Into<Zval>,
+    {
+        self.properties.push((name, doc, default.into(), flags));
         self
     }
 
@@ -67,6 +92,14 @@ impl<'a> ClassBuilder<'a> {
 
         let class = unsafe { zend_register_internal_class(self.ptr) };
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
+
+        for (name, doc, default, flags) in self.properties {
+            let name = ZendString::new_interned(name, true);
+            let doc = ZendString::new_interned(doc, true);
+            let default = Box::into_raw(Box::new(default));
+            unsafe { zend_declare_property_ex(class, name, default, flags.bits() as i32, doc) };
+        }
+
         class
     }
 }
