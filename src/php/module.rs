@@ -1,7 +1,7 @@
-use std::{ffi::c_void, mem, os::raw::c_int, ptr};
+use std::{ffi::c_void, mem, ptr};
 
 use crate::{
-    bindings::{zend_module_entry, zend_result, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO},
+    bindings::{zend_module_entry, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO},
     functions::{build_id, c_str},
 };
 
@@ -10,7 +10,7 @@ use super::function::FunctionEntry;
 /// A Zend module entry. Alias.
 pub type ModuleEntry = zend_module_entry;
 /// A function to be called when the extension is starting up or shutting down.
-pub type StartupShutdownFunc = extern "C" fn(type_: c_int, module_number: c_int) -> zend_result;
+pub type StartupShutdownFunc = extern "C" fn(_type: i32, _module_number: i32) -> i32;
 /// A function to be called when `phpinfo();` is called.
 pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);
 
