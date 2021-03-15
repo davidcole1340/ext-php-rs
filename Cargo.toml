@@ -17,3 +17,4 @@ bitflags = "1.2.1"
 [build-dependencies]
 bindgen = "0.53.1"
 regex = "1"
+cc = "1.0.67"

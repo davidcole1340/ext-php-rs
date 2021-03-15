@@ -1,12 +1,15 @@
 use std::{mem, ptr};
 
-use crate::bindings::{
-    zend_class_entry, zend_declare_class_constant_ex, zend_declare_property_ex,
-    zend_register_internal_class_ex,
+use crate::{
+    bindings::{
+        zend_class_entry, zend_declare_class_constant, zend_declare_property_ex,
+        zend_register_internal_class_ex,
+    },
+    functions::c_str,
 };
 
 use super::{
-    flags::{ClassFlags, ConstantFlags, MethodFlags, PropertyFlags},
+    flags::{ClassFlags, MethodFlags, PropertyFlags},
     function::FunctionEntry,
     types::{string::ZendString, zval::Zval},
 };
@@ -20,7 +23,7 @@ pub struct ClassBuilder<'a> {
     extends: *mut ClassEntry,
     functions: Vec<FunctionEntry>,
     properties: Vec<(&'a str, &'a str, Zval, PropertyFlags)>,
-    constants: Vec<(&'a str, &'a str, Zval, ConstantFlags)>,
+    constants: Vec<(&'a str, Zval)>,
 }
 
 impl<'a> ClassBuilder<'a> {
@@ -42,7 +45,7 @@ impl<'a> ClassBuilder<'a> {
             properties: vec![],
             constants: vec![],
         };
-        self_.ptr.name = ZendString::new_interned(name, true);
+        self_.ptr.name = ZendString::new_interned(name);
         self_
     }
 
@@ -97,20 +100,12 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `name` - The name of the constant to add to the class.
-    /// * `doc` - Documentation comment for the constant.
     /// * `value` - The value of the constant.
-    /// * `flags` - Flags relating to the constant. See [`ConstantFlags`].
-    pub fn constant<T>(
-        mut self,
-        name: &'a str,
-        doc: &'a str,
-        value: T,
-        flags: ConstantFlags,
-    ) -> Self
+    pub fn constant<T>(mut self, name: &'a str, value: T) -> Self
     where
         T: Into<Zval>,
     {
-        self.constants.push((name, doc, value.into(), flags));
+        self.constants.push((name, value.into()));
         self
     }
 
@@ -134,17 +129,15 @@ impl<'a> ClassBuilder<'a> {
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
 
         for (name, doc, default, flags) in self.properties {
-            let name = ZendString::new_interned(name, true);
-            let doc = ZendString::new_interned(doc, true);
+            let name = ZendString::new_interned(name);
+            let doc = ZendString::new_interned(doc);
             let default = Box::into_raw(Box::new(default));
             unsafe { zend_declare_property_ex(class, name, default, flags.bits() as i32, doc) };
         }
 
-        for (name, doc, value, flags) in self.constants {
-            let name = ZendString::new_interned(name, true);
-            let doc = ZendString::new_interned(doc, true);
+        for (name, value) in self.constants {
             let value = Box::into_raw(Box::new(value));
-            unsafe { zend_declare_class_constant_ex(class, name, value, flags.bits() as i32, doc) };
+            unsafe { zend_declare_class_constant(class, c_str(name), name.len() as u64, value) };
         }
 
         class

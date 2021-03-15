@@ -1,13 +1,11 @@
-use std::{os::raw::c_int, thread, time::Duration};
-
 use php_rs::{
     info_table_end, info_table_row, info_table_start,
     php::{
         args::{Arg, ArgParser},
-        class::{ClassBuilder, ClassEntry},
+        class::ClassBuilder,
         enums::DataType,
         execution_data::ExecutionData,
-        flags::{ConstantFlags, MethodFlags, PropertyFlags},
+        flags::{MethodFlags, PropertyFlags},
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::{
@@ -34,12 +32,7 @@ pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
     ClassBuilder::new("TestClass")
         .function(func, MethodFlags::Public)
         .property("hello", "doc", 10, PropertyFlags::Public)
-        .constant(
-            "TEST",
-            "Documentation of constant",
-            "Hello world",
-            ConstantFlags::Public,
-        )
+        .constant("TEST", "Hello world")
         .build();
 
     0

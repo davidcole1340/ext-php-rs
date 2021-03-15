@@ -1,4 +1,9 @@
-use std::{collections::HashSet, env, path::PathBuf, process::Command};
+use std::{
+    collections::HashSet,
+    env,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use bindgen::callbacks::{MacroParsingBehavior, ParseCallbacks};
 use regex::{Captures, Regex};
@@ -24,7 +29,8 @@ const MAX_PHP_API_VER: u32 = 20200930;
 
 fn main() {
     // rerun if wrapper header is changed
-    println!("cargo:rerun-if-changed=wrapper.h");
+    println!("cargo:rerun-if-changed=src/wrapper/wrapper.h");
+    println!("cargo:rerun-if-changed=src/wrapper/wrapper.c");
 
     // use php-config to fetch includes
     let includes_cmd = Command::new("php-config")
@@ -73,6 +79,16 @@ fn main() {
     let includes =
         String::from_utf8(includes_cmd.stdout).expect("unable to parse `php-config` stdout");
 
+    // Build `wrapper.c` and link to Rust.
+    cc::Build::new()
+        .file("src/wrapper/wrapper.c")
+        .includes(
+            str::replace(includes.as_ref(), "-I", "")
+                .split(" ")
+                .map(|path| Path::new(path)),
+        )
+        .compile("wrapper");
+
     let ignore_math_h_macros = IgnoreMacros(
         vec![
             // math.h:914 - enum which uses #define for values
@@ -94,7 +110,7 @@ fn main() {
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindgen::Builder::default()
-        .header("wrapper.h")
+        .header("src/wrapper/wrapper.h")
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .parse_callbacks(Box::new(ignore_math_h_macros))

@@ -2,8 +2,8 @@ use core::slice;
 
 use crate::{
     bindings::{
-        zend_string, zend_string_init_interned, GC_FLAGS_MASK, GC_FLAGS_SHIFT, GC_INFO_SHIFT,
-        IS_STR_INTERNED,
+        php_rs_zend_string_init, zend_string, zend_string_init_interned, GC_FLAGS_MASK,
+        GC_FLAGS_SHIFT, GC_INFO_SHIFT, IS_STR_INTERNED,
     },
     functions::c_str,
 };
@@ -27,7 +27,8 @@ impl ZendString {
     where
         S: AsRef<str>,
     {
-        Self::new_interned(str_, false)
+        let str_ = str_.as_ref();
+        unsafe { php_rs_zend_string_init(c_str(str_), str_.len() as u64, true) }
     }
 
     /// Creates a new interned Zend string.
@@ -38,12 +39,12 @@ impl ZendString {
     /// # Parameters
     ///
     /// * `str_` - The string to create a Zend string from.
-    pub fn new_interned<S>(str_: S, permanent: bool) -> *mut Self
+    pub fn new_interned<S>(str_: S) -> *mut Self
     where
         S: AsRef<str>,
     {
         let str_ = str_.as_ref();
-        unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as u64, permanent) }
+        unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as u64, true) }
     }
 
     /// Translation of the `ZSTR_IS_INTERNED` macro.
