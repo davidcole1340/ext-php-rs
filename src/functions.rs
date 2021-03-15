@@ -1,4 +1,4 @@
-use std::ffi::{CString};
+use std::ffi::CString;
 
 /// Takes a Rust string object, converts it into a C string
 /// and then releases the string to the C world.
@@ -31,4 +31,3 @@ where
 {
     CString::into_raw(CString::new(s.as_ref()).unwrap())
 }
-
