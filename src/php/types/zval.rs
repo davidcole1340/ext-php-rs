@@ -189,6 +189,26 @@ pub trait SetZval {
     where
         S: AsRef<str>;
 
+    /// Sets the value of the zval as a persistent string.
+    /// This means that the zend string will persist between
+    /// request lifetime.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to set the zval as.
+    fn set_persistent_string<S>(&mut self, val: S) -> Result<(), String>
+    where
+        S: AsRef<str>;
+
+    /// Sets the value of the zval as a interned string.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to set the zval as.
+    fn set_interned_string<S>(&mut self, val: S) -> Result<(), String>
+    where
+        S: AsRef<str>;
+
     /// Sets the value of the zval as a long.
     ///
     /// # Parameters
@@ -244,13 +264,29 @@ impl SetZval for Zval {
     where
         S: AsRef<str>,
     {
-        let zend_str = ZendString::new(val);
+        let zend_str = ZendString::new(val, false);
         self.value.str = zend_str;
-        self.u1.type_info = if unsafe { zend_str.as_ref().unwrap().is_interned() } {
-            IS_INTERNED_STRING_EX
-        } else {
-            IS_STRING_EX
-        };
+        self.u1.type_info = IS_STRING_EX;
+        Ok(())
+    }
+
+    fn set_persistent_string<S>(&mut self, val: S) -> Result<(), String>
+    where
+        S: AsRef<str>,
+    {
+        let zend_str = ZendString::new(val, true);
+        self.value.str = zend_str;
+        self.u1.type_info = IS_STRING_EX;
+        Ok(())
+    }
+
+    fn set_interned_string<S>(&mut self, val: S) -> Result<(), String>
+    where
+        S: AsRef<str>,
+    {
+        let zend_str = ZendString::new_interned(val);
+        self.value.str = zend_str;
+        self.u1.type_info = IS_INTERNED_STRING_EX;
         Ok(())
     }
 
@@ -317,6 +353,38 @@ impl SetZval for *mut Zval {
         };
 
         _self.set_string(val)
+    }
+
+    fn set_persistent_string<S>(&mut self, val: S) -> Result<(), String>
+    where
+        S: AsRef<str>,
+    {
+        let _self = match unsafe { self.as_mut() } {
+            Some(val) => val,
+            None => {
+                return Err(String::from(
+                    "Could not retrieve mutable reference of zend value.",
+                ))
+            }
+        };
+
+        _self.set_persistent_string(val)
+    }
+
+    fn set_interned_string<S>(&mut self, val: S) -> Result<(), String>
+    where
+        S: AsRef<str>,
+    {
+        let _self = match unsafe { self.as_mut() } {
+            Some(val) => val,
+            None => {
+                return Err(String::from(
+                    "Could not retrieve mutable reference of zend value.",
+                ))
+            }
+        };
+
+        _self.set_interned_string(val)
     }
 
     fn set_long(&mut self, val: ZendLong) -> Result<(), String> {

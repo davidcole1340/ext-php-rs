@@ -1,10 +1,7 @@
 use core::slice;
 
 use crate::{
-    bindings::{
-        php_rs_zend_string_init, zend_string, zend_string_init_interned, GC_FLAGS_MASK,
-        GC_FLAGS_SHIFT, GC_INFO_SHIFT, IS_STR_INTERNED,
-    },
+    bindings::{php_rs_zend_string_init, zend_string, zend_string_init_interned},
     functions::c_str,
 };
 
@@ -23,12 +20,13 @@ impl ZendString {
     /// # Parameters
     ///
     /// * `str_` - The string to create a Zend string from.
-    pub fn new<S>(str_: S) -> *mut Self
+    /// * `peresistent` - Whether the request should relive the request boundary.
+    pub fn new<S>(str_: S, persistent: bool) -> *mut Self
     where
         S: AsRef<str>,
     {
         let str_ = str_.as_ref();
-        unsafe { php_rs_zend_string_init(c_str(str_), str_.len() as u64, true) }
+        unsafe { php_rs_zend_string_init(c_str(str_), str_.len() as u64, persistent) }
     }
 
     /// Creates a new interned Zend string.
@@ -45,14 +43,6 @@ impl ZendString {
     {
         let str_ = str_.as_ref();
         unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as u64, true) }
-    }
-
-    /// Translation of the `ZSTR_IS_INTERNED` macro.
-    /// zend_string.h:76
-    pub(crate) unsafe fn is_interned(&self) -> bool {
-        (((self.gc.u.type_info >> GC_INFO_SHIFT) & (GC_FLAGS_MASK >> GC_FLAGS_SHIFT))
-            & IS_STR_INTERNED)
-            != 0
     }
 }
 

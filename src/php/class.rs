@@ -11,7 +11,10 @@ use crate::{
 use super::{
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     function::FunctionEntry,
-    types::{string::ZendString, zval::Zval},
+    types::{
+        string::ZendString,
+        zval::{SetZval, Zval},
+    },
 };
 
 /// A Zend class entry. Alias.
@@ -105,7 +108,16 @@ impl<'a> ClassBuilder<'a> {
     where
         T: Into<Zval>,
     {
-        self.constants.push((name, value.into()));
+        let mut value = value.into();
+
+        // TODO ZendString destructor?
+        if value.is_string() {
+            value
+                .set_persistent_string(value.string().unwrap())
+                .unwrap();
+        }
+
+        self.constants.push((name, value));
         self
     }
 
