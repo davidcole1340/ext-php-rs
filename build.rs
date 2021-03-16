@@ -84,7 +84,7 @@ fn main() {
         .file("src/wrapper/wrapper.c")
         .includes(
             str::replace(includes.as_ref(), "-I", "")
-                .split(" ")
+                .split(' ')
                 .map(|path| Path::new(path)),
         )
         .compile("wrapper");
