@@ -2,8 +2,8 @@ use std::{mem, ptr};
 
 use crate::{
     bindings::{
-        zend_class_entry, zend_declare_class_constant, zend_declare_property,
-        zend_register_internal_class_ex,
+        php_rs_zend_string_release, zend_class_entry, zend_declare_class_constant,
+        zend_declare_property, zend_register_internal_class_ex,
     },
     functions::c_str,
 };
@@ -103,11 +103,10 @@ impl<'a> ClassBuilder<'a> {
     {
         let mut value = value.into();
 
-        // TODO ZendString destructor?
         if value.is_string() {
-            value
-                .set_persistent_string(value.string().unwrap())
-                .unwrap();
+            let val = value.string().unwrap();
+            unsafe { php_rs_zend_string_release(value.value.str) };
+            value.set_persistent_string(val).unwrap();
         }
 
         self.constants.push((name, value));
