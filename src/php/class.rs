@@ -2,7 +2,7 @@ use std::{mem, ptr};
 
 use crate::{
     bindings::{
-        zend_class_entry, zend_declare_class_constant, zend_declare_property_ex,
+        zend_class_entry, zend_declare_class_constant, zend_declare_property,
         zend_register_internal_class_ex,
     },
     functions::c_str,
@@ -25,7 +25,7 @@ pub struct ClassBuilder<'a> {
     ptr: &'a mut ClassEntry,
     extends: *mut ClassEntry,
     functions: Vec<FunctionEntry>,
-    properties: Vec<(&'a str, &'a str, Zval, PropertyFlags)>,
+    properties: Vec<(&'a str, Zval, PropertyFlags)>,
     constants: Vec<(&'a str, Zval)>,
 }
 
@@ -80,20 +80,13 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `name` - The name of the property to add to the class.
-    /// * `doc` - Documentation comment for the property.
     /// * `default` - The default value of the property.
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
-    pub fn property<T>(
-        mut self,
-        name: &'a str,
-        doc: &'a str,
-        default: T,
-        flags: PropertyFlags,
-    ) -> Self
+    pub fn property<T>(mut self, name: &'a str, default: T, flags: PropertyFlags) -> Self
     where
         T: Into<Zval>,
     {
-        self.properties.push((name, doc, default.into(), flags));
+        self.properties.push((name, default.into(), flags));
         self
     }
 
@@ -140,11 +133,17 @@ impl<'a> ClassBuilder<'a> {
         let class = unsafe { zend_register_internal_class_ex(self.ptr, self.extends) };
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
 
-        for (name, doc, default, flags) in self.properties {
-            let name = ZendString::new_interned(name);
-            let doc = ZendString::new_interned(doc);
+        for (name, default, flags) in self.properties {
             let default = Box::into_raw(Box::new(default));
-            unsafe { zend_declare_property_ex(class, name, default, flags.bits() as i32, doc) };
+            unsafe {
+                zend_declare_property(
+                    class,
+                    c_str(name),
+                    name.len() as u64,
+                    default,
+                    flags.bits() as i32,
+                );
+            }
         }
 
         for (name, value) in self.constants {
