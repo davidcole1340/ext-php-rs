@@ -313,7 +313,7 @@ where
     V: Into<Zval>,
 {
     fn from(hm: HashMap<K, V>) -> Self {
-        let mut ht = ZendHashTable::new();
+        let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
 
         for (k, v) in hm {
             ht.insert(k.into(), v.into());
@@ -329,7 +329,7 @@ where
     V: Into<Zval>,
 {
     fn from(vec: Vec<V>) -> Self {
-        let mut ht = ZendHashTable::new();
+        let mut ht = ZendHashTable::with_capacity(vec.len() as u32);
 
         for v in vec {
             ht.push(v);
