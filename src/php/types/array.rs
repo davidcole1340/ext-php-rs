@@ -72,8 +72,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Some(&Zval)` - A reference to the zval at the position in the hash table.
-    /// `None` - No value at the given position was found.
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// * `None` - No value at the given position was found.
     pub fn get<K>(&self, key: K) -> Option<&Zval>
     where
         K: Into<String>,
@@ -91,8 +91,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Some(&Zval)` - A reference to the zval at the position in the hash table.
-    /// `None` - No value at the given position was found.
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// * `None` - No value at the given position was found.
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self.ptr, key).as_ref() }
     }
@@ -105,8 +105,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Ok(())` - Key was successfully removed.
-    /// `Err(())` - No key was removed, did not exist.
+    /// * `Ok(())` - Key was successfully removed.
+    /// * `Err(())` - No key was removed, did not exist.
     pub fn remove<K>(&self, key: K) -> Option<()>
     where
         K: Into<String>,
@@ -130,8 +130,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Ok(())` - Key was successfully removed.
-    /// `Err(())` - No key was removed, did not exist.
+    /// * `Ok(())` - Key was successfully removed.
+    /// * `Err(())` - No key was removed, did not exist.
     pub fn remove_index(&self, key: u64) -> Option<()> {
         let result = unsafe { zend_hash_index_del(self.ptr, key) };
 
