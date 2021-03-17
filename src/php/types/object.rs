@@ -1,3 +1,6 @@
+//! Represents an object in PHP. Allows for overriding the internal object used by classes,
+//! allowing users to store Rust data inside a PHP object.
+
 use std::ops::Deref;
 
 use crate::{

@@ -1,3 +1,6 @@
+//! Functions for interacting with the execution data passed to PHP functions\
+//! introduced in Rust.
+
 use std::{convert::TryFrom, mem};
 
 use crate::bindings::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};

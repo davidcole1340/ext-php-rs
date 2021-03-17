@@ -1,3 +1,5 @@
+//! Builder and objects for creating classes in the PHP world.
+
 use std::{mem, ptr};
 
 use crate::{

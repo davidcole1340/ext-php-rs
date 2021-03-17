@@ -1,3 +1,5 @@
+//! Objects relating to PHP and the Zend engine.
+
 pub mod args;
 pub mod class;
 pub mod enums;

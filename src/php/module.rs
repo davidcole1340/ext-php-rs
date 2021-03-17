@@ -1,3 +1,5 @@
+//! Builder and objects for creating modules in PHP. A module is the base of a PHP extension.
+
 use std::{ffi::c_void, mem, ptr};
 
 use crate::{

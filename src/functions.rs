@@ -1,3 +1,5 @@
+//! Helper functions useful for interacting with PHP and Zend.
+
 use std::ffi::CString;
 
 /// Takes a Rust string object, converts it into a C string
@@ -7,6 +9,7 @@ use std::ffi::CString;
 /// Rust, and this can cause memory leaks.
 ///
 /// # Examples
+///
 /// ```
 /// use std::ffi::CString;
 /// use php_rs::functions::c_str;

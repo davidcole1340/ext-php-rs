@@ -1,3 +1,7 @@
+//! Macros for interacting with PHP, mainly when the function takes variadic arguments.
+//! Unforutunately, this is the best way to handle these.
+//! Note that most of these will introduce unsafe into your code base.
+
 /// Starts the PHP extension information table displayed when running `phpinfo();`
 /// Must be run *before* rows are inserted into the table.
 #[macro_export]

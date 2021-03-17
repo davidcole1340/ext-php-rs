@@ -1,3 +1,6 @@
+//! The base value in PHP. A Zval can contain any PHP type, and the type that it contains is
+//! determined by a property inside the struct. The content of the Zval is stored in a union.
+
 use core::slice;
 use std::{convert::TryFrom, ptr};
 

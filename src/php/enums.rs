@@ -1,3 +1,5 @@
+//! Wrapper for enums introduced in C.
+
 use crate::bindings::{
     IS_ARRAY, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_OBJECT, IS_REFERENCE,
     IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,

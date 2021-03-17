@@ -1,3 +1,5 @@
+//! Builder and objects used to create functions and methods in PHP.
+
 use std::{os::raw::c_char, ptr};
 
 use crate::{bindings::zend_function_entry, functions::c_str};
@@ -25,7 +27,7 @@ impl FunctionEntry {
         }
     }
 
-    /// Converts the function entry into a raw pointer, releasing it to the C world.
+    /// Converts the function entry into a raw and  pointer, releasing it to the C world.
     pub fn into_raw(self) -> *mut Self {
         Box::into_raw(Box::new(self))
     }

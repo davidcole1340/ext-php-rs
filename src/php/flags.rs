@@ -1,3 +1,5 @@
+//! Bitflags used in PHP and the Zend engine.
+
 use bitflags::bitflags;
 
 use crate::bindings::{

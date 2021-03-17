@@ -1,4 +1,4 @@
-//! Contains all the base PHP extensions.
+//! Contains all the base PHP throwables, including `Throwable` and `Exception`.
 
 use super::class::ClassEntry;
 use crate::bindings::{

@@ -1,3 +1,5 @@
+//! Builder and objects relating to function and method arguments.
+
 use std::convert::{TryFrom, TryInto};
 
 use super::{enums::DataType, execution_data::ExecutionData, types::zval::Zval};
