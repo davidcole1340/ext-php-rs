@@ -1,5 +1,6 @@
 pub mod array;
 pub mod long;
+pub mod object;
 pub mod string;
 pub mod zval;
 

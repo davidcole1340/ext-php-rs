@@ -14,3 +14,8 @@ const char *php_rs_php_build_id()
 {
     return ZEND_MODULE_BUILD_ID;
 }
+
+void *php_rs_zend_object_alloc(size_t obj_size, zend_class_entry *ce)
+{
+    return zend_object_alloc(obj_size, ce);
+}

@@ -1,3 +1,5 @@
+use std::ffi::c_void;
+
 use php_rs::{
     info_table_end, info_table_row, info_table_start,
     php::{
@@ -23,15 +25,23 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_end!();
 }
 
+struct Test;
+
+impl Test {
+    pub extern "C" fn hello(execute_data: *mut ExecutionData, mut _retval: *mut Zval) {
+        _retval.set_string("Hello, world!").unwrap();
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
-    let func = FunctionBuilder::new("test", skeleton_version)
-        .returns(DataType::Long, false, false)
+    let hello = FunctionBuilder::new("hello", Test::hello)
+        .returns(DataType::String, false, false)
         .build();
 
     ClassBuilder::new("TestClass")
-        .function(func, MethodFlags::Public)
-        .property("hello", "doc", 10, PropertyFlags::Public)
+        .function(hello, MethodFlags::Public)
+        .property("value", 10, PropertyFlags::Public)
         .constant("TEST", "Hello world")
         .build();
 
