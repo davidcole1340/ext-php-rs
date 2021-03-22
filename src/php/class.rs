@@ -14,6 +14,7 @@ use super::{
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     function::FunctionEntry,
     types::{
+        object::{ZendObject, ZendObjectOverride},
         string::ZendString,
         zval::{SetZval, Zval},
     },
@@ -27,6 +28,7 @@ pub struct ClassBuilder<'a> {
     ptr: &'a mut ClassEntry,
     extends: *mut ClassEntry,
     functions: Vec<FunctionEntry>,
+    object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
     properties: Vec<(&'a str, Zval, PropertyFlags)>,
     constants: Vec<(&'a str, Zval)>,
 }
@@ -47,6 +49,7 @@ impl<'a> ClassBuilder<'a> {
             ptr: unsafe { ptr.as_mut() }.unwrap(),
             extends: ptr::null_mut(),
             functions: vec![],
+            object_override: None,
             properties: vec![],
             constants: vec![],
         };
@@ -120,8 +123,13 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `flags` - Flags relating to the class. See [`ClassFlags`].
-    pub fn flags(self, flags: ClassFlags) -> Self {
+    pub fn flags(mut self, flags: ClassFlags) -> Self {
         self.ptr.ce_flags = flags.bits();
+        self
+    }
+
+    pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
+        self.object_override = Some(T::create_object);
         self
     }
 
@@ -151,6 +159,12 @@ impl<'a> ClassBuilder<'a> {
             let value = Box::into_raw(Box::new(value));
             unsafe { zend_declare_class_constant(class, c_str(name), name.len() as u64, value) };
         }
+
+        if let Some(object_override) = self.object_override {
+            unsafe { (*class).__bindgen_anon_2.create_object = Some(object_override) };
+        }
+
+        eprintln!("Hello");
 
         class
     }

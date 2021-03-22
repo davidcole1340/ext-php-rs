@@ -1,10 +1,9 @@
-use std::ffi::c_void;
-
 use php_rs::{
-    info_table_end, info_table_row, info_table_start,
+    info_table_end, info_table_row, info_table_start, object_handlers_init,
+    object_override_handler,
     php::{
         args::{Arg, ArgParser},
-        class::ClassBuilder,
+        class::{ClassBuilder, ClassEntry},
         enums::DataType,
         execution_data::ExecutionData,
         flags::{MethodFlags, PropertyFlags},
@@ -13,6 +12,7 @@ use php_rs::{
         types::{
             array::ZendHashTable,
             long::ZendLong,
+            object::ZendClassObject,
             zval::{SetZval, Zval},
         },
     },
@@ -25,24 +25,49 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_end!();
 }
 
-struct Test;
+#[derive(Debug)]
+struct Test {
+    a: u32,
+    b: u32,
+}
+object_override_handler!(Test);
+
+#[derive(Debug, Default)]
+struct AnotherTest {
+    x: u32,
+}
+object_override_handler!(AnotherTest);
 
 impl Test {
     pub extern "C" fn hello(execute_data: *mut ExecutionData, mut _retval: *mut Zval) {
-        _retval.set_string("Hello, world!").unwrap();
+        unsafe {
+            let ex = execute_data.as_ref().unwrap();
+            let x = ZendClassObject::<Test>::get(ex);
+            dbg!(x);
+            _retval.set_string("Hello, world!").unwrap();
+        }
+    }
+}
+
+impl Default for Test {
+    fn default() -> Self {
+        Self { a: 1, b: 2 }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
+    object_handlers_init!(Test);
+
     let hello = FunctionBuilder::new("hello", Test::hello)
         .returns(DataType::String, false, false)
         .build();
 
-    ClassBuilder::new("TestClass")
+    let test_class = ClassBuilder::new("TestClass")
         .function(hello, MethodFlags::Public)
         .property("value", 10, PropertyFlags::Public)
         .constant("TEST", "Hello world")
+        .object_override::<Test>()
         .build();
 
     0
