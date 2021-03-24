@@ -24,8 +24,10 @@ macro_rules! object_handlers_init {
     ($class: ident) => {{
         $crate::php::types::macros::paste! {
             let ptr = $crate::php::types::object::ZendObjectHandlers::init();
-            (*ptr).offset = ::std::mem::size_of::<$class>() as _;
-            unsafe { [<$class _OBJECT_HANDLERS>] = ptr };
+            unsafe {
+                (*ptr).offset = ::std::mem::size_of::<$class>() as _;
+                [<$class _OBJECT_HANDLERS>] = ptr;
+            };
         }
     }};
 }
