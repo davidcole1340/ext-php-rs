@@ -11,7 +11,7 @@ macro_rules! object_override_handler {
                     ce: *mut $crate::php::class::ClassEntry,
                 ) -> *mut $crate::php::types::object::ZendObject {
                     unsafe {
-                        $crate::php::types::object::ZendClassObject::<$class>::new(ce, [<$class _OBJECT_HANDLERS>])
+                        $crate::php::types::object::ZendClassObject::<$class>::new_ptr(ce, [<$class _OBJECT_HANDLERS>])
                     }
                 }
             }
@@ -24,7 +24,7 @@ macro_rules! object_handlers_init {
     ($class: ident) => {{
         $crate::php::types::macros::paste! {
             let ptr = $crate::php::types::object::ZendObjectHandlers::init();
-            (*ptr).offset = ::std::mem::size_of::<$class>();
+            (*ptr).offset = ::std::mem::size_of::<$class>() as _;
             unsafe { [<$class _OBJECT_HANDLERS>] = ptr };
         }
     }};

@@ -164,8 +164,6 @@ impl<'a> ClassBuilder<'a> {
             unsafe { (*class).__bindgen_anon_2.create_object = Some(object_override) };
         }
 
-        eprintln!("Hello");
-
         class
     }
 }
