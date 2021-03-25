@@ -17,7 +17,17 @@ use crate::{
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
 
+/// Implemented by the [`object_override_handler`] macro on a type T which is used as the T type
+/// for [`ZendClassObject`].
+/// Implements a function `create_object` which is passed to a PHP class entry to instantiate the
+/// object that will represent an object.
 pub trait ZendObjectOverride {
+    /// Creates a new Zend object. Also allocates space for type T on which the trait is
+    /// implemented on.
+    ///
+    /// # Parameters
+    ///
+    /// * `ce` - The class entry that we are creating an object for.
     extern "C" fn create_object(ce: *mut ClassEntry) -> *mut ZendObject;
 }
 
@@ -105,7 +115,12 @@ impl<T: Default> DerefMut for ZendClassObject<T> {
 }
 
 impl ZendObjectHandlers {
+    /// Creates a new set of object handlers from the standard object handlers, returning a pointer
+    /// to the handlers.
     pub fn init() -> *mut ZendObjectHandlers {
+        // SAFETY: We are allocating memory for the handlers ourselves, which ensures that
+        // we can copy to the allocated memory. We can also copy from the standard handlers
+        // as the `std_object_handlers` are not modified.
         unsafe {
             let s = mem::size_of::<Self>();
             let ptr = libc::malloc(s) as *mut Self;
