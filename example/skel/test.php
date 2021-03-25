@@ -1,6 +1,9 @@
 <?php
 
-var_dump(skel_test());
 $x = new TestClass();
 
-var_dump($x);
+$x->get();
+$x->set();
+$x->get();
+
+echo "Goodbye!" . PHP_EOL;

@@ -36,15 +36,23 @@ object_override_handler!(AnotherTest);
 impl Test {
     pub extern "C" fn constructor(execute_data: &mut ExecutionData, _retval: &mut Zval) {
         println!("Inside constructor");
-    }
-
-    pub extern "C" fn hello(execute_data: &mut ExecutionData, _retval: &mut Zval) {
         let x = ZendClassObject::<Test>::get(execute_data);
-        _retval.set_string("Hello, world!");
+        if x.is_none() {
+            eprintln!("Object was none");
+        } else {
+            let obj = x.unwrap();
+            println!("Object not none");
+        }
     }
 
-    pub extern "C" fn test_test(execute_data: &mut ExecutionData, _retval: &mut Zval) {
-        _retval.set_long(420);
+    pub extern "C" fn set(execute_data: &mut ExecutionData, _retval: &mut Zval) {
+        let x = ZendClassObject::<Test>::get(execute_data).unwrap();
+        x.a = 100;
+    }
+
+    pub extern "C" fn get(execute_data: &mut ExecutionData, _retval: &mut Zval) {
+        let x = ZendClassObject::<Test>::get(execute_data).unwrap();
+        dbg!(x.a);
     }
 }
 
@@ -58,16 +66,19 @@ impl Default for Test {
 pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
     object_handlers_init!(Test);
 
-    let hello = FunctionBuilder::new("hello", Test::hello)
-        .returns(DataType::String, false, false)
-        .build();
-
     let test_class = ClassBuilder::new("TestClass")
         .function(
             FunctionBuilder::constructor(Test::constructor).build(),
             MethodFlags::Public,
         )
-        .function(hello, MethodFlags::Public)
+        .function(
+            FunctionBuilder::new("set", Test::set).build(),
+            MethodFlags::Public,
+        )
+        .function(
+            FunctionBuilder::new("get", Test::get).build(),
+            MethodFlags::Public,
+        )
         .property("value", "world", PropertyFlags::Public)
         .constant("TEST", "Hello world")
         .object_override::<Test>()
@@ -90,16 +101,11 @@ pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
         .arg(Arg::new("arr", DataType::Array))
         .build();
 
-    let test = FunctionBuilder::new("skel_test", Test::test_test)
-        .returns(DataType::Long, false, false)
-        .build();
-
     ModuleBuilder::new("ext-skel", "0.1.0")
         .info_function(php_module_info)
         .startup_function(module_init)
         .function(funct)
         .function(array)
-        .function(test)
         .build()
         .into_raw()
 }
