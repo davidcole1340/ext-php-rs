@@ -176,21 +176,20 @@ impl<'a> Zval {
     pub fn is_reference(&self) -> bool {
         unsafe { self.u1.v.type_ == DataType::Reference as u8 }
     }
-}
 
-/// Used to set the value of the zval.
-///
-/// This needs to be a trait to be implemented on a pointer that
-/// points to a zval.
-pub trait SetZval {
     /// Sets the value of the zval as a string.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_string<S>(&mut self, val: S) -> Result<(), String>
+    pub fn set_string<S>(&mut self, val: S)
     where
-        S: AsRef<str>;
+        S: AsRef<str>,
+    {
+        let zend_str = ZendString::new(val, false);
+        self.value.str = zend_str;
+        self.u1.type_info = IS_STRING_EX;
+    }
 
     /// Sets the value of the zval as a persistent string.
     /// This means that the zend string will persist between
@@ -199,50 +198,77 @@ pub trait SetZval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_persistent_string<S>(&mut self, val: S) -> Result<(), String>
+    pub fn set_persistent_string<S>(&mut self, val: S)
     where
-        S: AsRef<str>;
+        S: AsRef<str>,
+    {
+        let zend_str = ZendString::new(val, true);
+        self.value.str = zend_str;
+        self.u1.type_info = IS_STRING_EX;
+    }
 
     /// Sets the value of the zval as a interned string.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_interned_string<S>(&mut self, val: S) -> Result<(), String>
+    pub fn set_interned_string<S>(&mut self, val: S)
     where
-        S: AsRef<str>;
+        S: AsRef<str>,
+    {
+        let zend_str = ZendString::new_interned(val);
+        self.value.str = zend_str;
+        self.u1.type_info = IS_INTERNED_STRING_EX;
+    }
 
     /// Sets the value of the zval as a long.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_long(&mut self, val: ZendLong) -> Result<(), String>;
+    pub fn set_long(&mut self, val: ZendLong) {
+        self.value.lval = val;
+        self.u1.type_info = DataType::Long as u32;
+    }
 
     /// Sets the value of the zval as a double.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_double(&mut self, val: f64) -> Result<(), String>;
+    pub fn set_double(&mut self, val: f64) {
+        self.value.dval = val;
+        self.u1.type_info = DataType::Double as u32;
+    }
 
     /// Sets the value of the zval as a boolean.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_bool(&mut self, val: bool) -> Result<(), String>;
+    pub fn set_bool(&mut self, val: bool) {
+        self.u1.type_info = if val {
+            DataType::True as u32
+        } else {
+            DataType::False as u32
+        };
+    }
 
     /// Sets the value of the zval as null.
     /// This is the default of a zval.
-    fn set_null(&mut self) -> Result<(), String>;
+    pub fn set_null(&mut self) {
+        self.u1.type_info = DataType::Null as u32;
+    }
 
     /// Sets the value of the zval as a resource.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_resource(&mut self, val: *mut zend_resource) -> Result<(), String>;
+    pub fn set_resource(&mut self, val: *mut zend_resource) {
+        self.u1.type_info = DataType::Resource as u32;
+        self.value.res = val;
+    }
 
     /// Sets the value of the zval as an object.
     ///
@@ -250,238 +276,22 @@ pub trait SetZval {
     ///
     /// * `val` - The value to set the zval as.
     /// * `copy` - Whether to copy the object or pass as a reference.
-    fn set_object(&mut self, val: *mut zend_object, copy: bool) -> Result<(), String>;
+    pub fn set_object(&mut self, val: *mut zend_object, _copy: bool) {
+        self.u1.type_info = DataType::Object as u32;
+        self.value.obj = val;
+    }
 
     /// Sets the value of the zval as an array.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    fn set_array<V>(&mut self, val: V) -> Result<(), String>
-    where
-        V: Into<ZendHashTable>;
-}
-
-impl SetZval for Zval {
-    fn set_string<S>(&mut self, val: S) -> Result<(), String>
-    where
-        S: AsRef<str>,
-    {
-        let zend_str = ZendString::new(val, false);
-        self.value.str = zend_str;
-        self.u1.type_info = IS_STRING_EX;
-        Ok(())
-    }
-
-    fn set_persistent_string<S>(&mut self, val: S) -> Result<(), String>
-    where
-        S: AsRef<str>,
-    {
-        let zend_str = ZendString::new(val, true);
-        self.value.str = zend_str;
-        self.u1.type_info = IS_STRING_EX;
-        Ok(())
-    }
-
-    fn set_interned_string<S>(&mut self, val: S) -> Result<(), String>
-    where
-        S: AsRef<str>,
-    {
-        let zend_str = ZendString::new_interned(val);
-        self.value.str = zend_str;
-        self.u1.type_info = IS_INTERNED_STRING_EX;
-        Ok(())
-    }
-
-    fn set_long(&mut self, val: ZendLong) -> Result<(), String> {
-        self.value.lval = val;
-        self.u1.type_info = DataType::Long as u32;
-        Ok(())
-    }
-
-    fn set_double(&mut self, val: f64) -> Result<(), String> {
-        self.value.dval = val;
-        self.u1.type_info = DataType::Double as u32;
-        Ok(())
-    }
-
-    fn set_bool(&mut self, val: bool) -> Result<(), String> {
-        self.u1.type_info = if val {
-            DataType::True as u32
-        } else {
-            DataType::False as u32
-        };
-        Ok(())
-    }
-
-    fn set_null(&mut self) -> Result<(), String> {
-        self.u1.type_info = DataType::Null as u32;
-        Ok(())
-    }
-
-    fn set_resource(&mut self, val: *mut zend_resource) -> Result<(), String> {
-        self.u1.type_info = DataType::Resource as u32;
-        self.value.res = val;
-        Ok(())
-    }
-
-    fn set_object(&mut self, val: *mut zend_object, _copy: bool) -> Result<(), String> {
-        self.u1.type_info = DataType::Object as u32;
-        self.value.obj = val;
-        Ok(())
-    }
-
-    fn set_array<V>(&mut self, val: V) -> Result<(), String>
+    pub fn set_array<V>(&mut self, val: V)
     where
         V: Into<ZendHashTable>,
     {
         self.u1.type_info = DataType::Array as u32;
         self.value.arr = val.into().into_ptr();
-        Ok(())
-    }
-}
-
-impl SetZval for *mut Zval {
-    fn set_string<S>(&mut self, val: S) -> Result<(), String>
-    where
-        S: AsRef<str>,
-    {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_string(val)
-    }
-
-    fn set_persistent_string<S>(&mut self, val: S) -> Result<(), String>
-    where
-        S: AsRef<str>,
-    {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_persistent_string(val)
-    }
-
-    fn set_interned_string<S>(&mut self, val: S) -> Result<(), String>
-    where
-        S: AsRef<str>,
-    {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_interned_string(val)
-    }
-
-    fn set_long(&mut self, val: ZendLong) -> Result<(), String> {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_long(val)
-    }
-
-    fn set_double(&mut self, val: f64) -> Result<(), String> {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_double(val)
-    }
-
-    fn set_bool(&mut self, val: bool) -> Result<(), String> {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_bool(val)
-    }
-
-    fn set_null(&mut self) -> Result<(), String> {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_null()
-    }
-
-    fn set_resource(&mut self, val: *mut zend_resource) -> Result<(), String> {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_resource(val)
-    }
-
-    fn set_object(&mut self, val: *mut zend_object, _copy: bool) -> Result<(), String> {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_object(val, _copy)
-    }
-
-    fn set_array<V>(&mut self, val: V) -> Result<(), String>
-    where
-        V: Into<ZendHashTable>,
-    {
-        let _self = match unsafe { self.as_mut() } {
-            Some(val) => val,
-            None => {
-                return Err(String::from(
-                    "Could not retrieve mutable reference of zend value.",
-                ))
-            }
-        };
-
-        _self.set_array(val)
     }
 }
 
@@ -538,7 +348,7 @@ impl<'a, 'b> TryFrom<&'b Zval> for ZendHashTable {
 impl From<ZendLong> for Zval {
     fn from(val: ZendLong) -> Self {
         let mut zv = Self::new();
-        zv.set_long(val).unwrap(); // this can never fail
+        zv.set_long(val);
         zv
     }
 }
@@ -546,14 +356,14 @@ impl From<ZendLong> for Zval {
 impl From<bool> for Zval {
     fn from(val: bool) -> Self {
         let mut zv = Self::new();
-        zv.set_bool(val).unwrap(); // this can never fail
+        zv.set_bool(val);
         zv
     }
 }
 impl From<f64> for Zval {
     fn from(val: f64) -> Self {
         let mut zv = Self::new();
-        zv.set_double(val).unwrap(); // this can never fail
+        zv.set_double(val);
         zv
     }
 }
@@ -561,7 +371,7 @@ impl From<f64> for Zval {
 impl From<String> for Zval {
     fn from(val: String) -> Self {
         let mut zv = Self::new();
-        zv.set_string(val).unwrap(); // this can never fail
+        zv.set_string(val);
         zv
     }
 }
@@ -569,7 +379,7 @@ impl From<String> for Zval {
 impl From<&str> for Zval {
     fn from(val: &str) -> Self {
         let mut zv = Self::new();
-        zv.set_string(val).unwrap(); // this can never fail
+        zv.set_string(val);
         zv
     }
 }

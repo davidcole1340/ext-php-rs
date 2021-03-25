@@ -8,8 +8,8 @@ use std::{
 
 use crate::{
     bindings::{
-        php_rs_zend_object_alloc, std_object_handlers, zend_object, zend_object_handlers,
-        zend_object_std_init,
+        php_rs_zend_object_alloc, php_rs_zend_object_std_init, std_object_handlers, zend_object,
+        zend_object_handlers,
     },
     php::{class::ClassEntry, execution_data::ExecutionData},
 };
@@ -36,10 +36,9 @@ pub trait ZendObjectOverride {
 /// handler when the user provides a type T of the struct
 /// they want to override with.
 #[repr(C)]
-#[derive(Debug)]
 pub struct ZendClassObject<T: Default> {
     obj: T,
-    std: *mut zend_object,
+    std: zend_object,
 }
 
 impl<T: Default> ZendClassObject<T> {
@@ -66,21 +65,20 @@ impl<T: Default> ZendClassObject<T> {
     /// in the same place.
     pub unsafe fn new_ptr(
         ce: *mut ClassEntry,
-        handlers: *const ZendObjectHandlers,
+        handlers: *mut ZendObjectHandlers,
     ) -> *mut zend_object {
         let obj = {
-            let obj = (php_rs_zend_object_alloc(std::mem::size_of::<Self>() as u64, ce)
-                as *mut Self)
+            let obj = (php_rs_zend_object_alloc(std::mem::size_of::<Self>() as _, ce) as *mut Self)
                 .as_mut()
                 .unwrap();
 
-            zend_object_std_init(obj.std, ce);
+            php_rs_zend_object_std_init(&mut obj.std, ce);
             obj
         };
 
         obj.obj = T::default();
-        (*obj.std).handlers = handlers;
-        obj.std
+        obj.std.handlers = handlers;
+        &mut obj.std
     }
 
     /// Attempts to retrieve the zend class object container from the
@@ -117,7 +115,7 @@ impl<T: Default> DerefMut for ZendClassObject<T> {
 impl ZendObjectHandlers {
     /// Creates a new set of object handlers from the standard object handlers, returning a pointer
     /// to the handlers.
-    pub fn init() -> *mut ZendObjectHandlers {
+    pub fn init<T>() -> *mut ZendObjectHandlers {
         // SAFETY: We are allocating memory for the handlers ourselves, which ensures that
         // we can copy to the allocated memory. We can also copy from the standard handlers
         // as the `std_object_handlers` are not modified.
@@ -129,6 +127,8 @@ impl ZendObjectHandlers {
                 (&std_object_handlers as *const Self) as *mut _,
                 s,
             );
+            let offset = mem::size_of::<T>();
+            (*ptr).offset = offset as i32;
             ptr
         }
     }

@@ -8,7 +8,7 @@ use crate::bindings::{
 use super::types::long::ZendLong;
 
 /// Valid data types for PHP.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum DataType {
     Undef = IS_UNDEF as isize,
 

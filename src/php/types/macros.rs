@@ -23,11 +23,8 @@ macro_rules! object_override_handler {
 macro_rules! object_handlers_init {
     ($class: ident) => {{
         $crate::php::types::macros::paste! {
-            let ptr = $crate::php::types::object::ZendObjectHandlers::init();
-            unsafe {
-                (*ptr).offset = ::std::mem::size_of::<$class>() as _;
-                [<$class _OBJECT_HANDLERS>] = ptr;
-            };
+            let ptr = $crate::php::types::object::ZendObjectHandlers::init::<$class>();
+            unsafe { [<$class _OBJECT_HANDLERS>] = ptr; };
         }
     }};
 }

@@ -1,6 +1,6 @@
 //! Builder and objects used to create functions and methods in PHP.
 
-use std::{os::raw::c_char, ptr};
+use std::{mem, os::raw::c_char, ptr};
 
 use crate::{bindings::zend_function_entry, functions::c_str};
 
@@ -34,7 +34,10 @@ impl FunctionEntry {
 }
 
 /// Function representation in Rust.
-pub type FunctionHandler = extern "C" fn(execute_data: *mut ExecutionData, retval: *mut Zval);
+pub type FunctionHandler = extern "C" fn(execute_data: &mut ExecutionData, retval: &mut Zval);
+
+/// Function representation in Rust using pointers.
+type FunctionPointerHandler = extern "C" fn(execute_data: *mut ExecutionData, retval: *mut Zval);
 
 /// Builds a function to be exported as a PHP function.
 pub struct FunctionBuilder<'a> {
@@ -61,7 +64,9 @@ impl<'a> FunctionBuilder<'a> {
         Self {
             function: FunctionEntry {
                 fname: c_str(name),
-                handler: Some(handler),
+                handler: Some(unsafe {
+                    mem::transmute::<FunctionHandler, FunctionPointerHandler>(handler)
+                }),
                 arg_info: ptr::null(),
                 num_args: 0,
                 flags: 0, // TBD?
@@ -72,6 +77,16 @@ impl<'a> FunctionBuilder<'a> {
             ret_as_ref: false,
             ret_as_null: false,
         }
+    }
+
+    /// Creates a constructor builder, used to build the constructor
+    /// for classes.
+    ///
+    /// # Parameters
+    ///
+    /// * `handler` - The handler to be called when the function is invoked from PHP.
+    pub fn constructor(handler: FunctionHandler) -> Self {
+        Self::new("__construct", handler)
     }
 
     /// Adds an argument to the function.
@@ -110,13 +125,10 @@ impl<'a> FunctionBuilder<'a> {
 
         // argument header, retval etc
         args.push(ArgInfo {
-            name: c_str(
-                (match self.n_req {
-                    Some(req) => req,
-                    None => self.args.len(),
-                })
-                .to_string(),
-            ),
+            name: ((match self.n_req {
+                Some(req) => req,
+                None => self.args.len(),
+            }) as libc::uintptr_t) as *const i8,
             type_: match self.retval {
                 Some(retval) => {
                     ZendType::empty_from_type(retval, self.ret_as_ref, false, self.ret_as_null)

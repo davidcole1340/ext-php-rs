@@ -16,7 +16,7 @@ use super::{
     types::{
         object::{ZendObject, ZendObjectOverride},
         string::ZendString,
-        zval::{SetZval, Zval},
+        zval::Zval,
     },
 };
 
@@ -91,7 +91,15 @@ impl<'a> ClassBuilder<'a> {
     where
         T: Into<Zval>,
     {
-        self.properties.push((name, default.into(), flags));
+        let mut default = default.into();
+
+        if default.is_string() {
+            let val = default.string().unwrap();
+            unsafe { php_rs_zend_string_release(default.value.str) };
+            default.set_persistent_string(val);
+        }
+
+        self.properties.push((name, default, flags));
         self
     }
 
@@ -111,7 +119,7 @@ impl<'a> ClassBuilder<'a> {
         if value.is_string() {
             let val = value.string().unwrap();
             unsafe { php_rs_zend_string_release(value.value.str) };
-            value.set_persistent_string(val).unwrap();
+            value.set_persistent_string(val);
         }
 
         self.constants.push((name, value));
@@ -128,6 +136,13 @@ impl<'a> ClassBuilder<'a> {
         self
     }
 
+    /// Overrides the creation of the Zend object which will represent an instance
+    /// of this class.
+    ///
+    /// # Parameters
+    ///
+    /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
+    /// which can be implemented through the [`object_override_handler`] macro.
     pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
         self.object_override = Some(T::create_object);
         self
@@ -142,14 +157,13 @@ impl<'a> ClassBuilder<'a> {
         let class = unsafe { zend_register_internal_class_ex(self.ptr, self.extends) };
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
 
-        for (name, default, flags) in self.properties {
-            let default = Box::into_raw(Box::new(default));
+        for (name, mut default, flags) in self.properties {
             unsafe {
                 zend_declare_property(
                     class,
                     c_str(name),
                     name.len() as u64,
-                    default,
+                    &mut default,
                     flags.bits() as i32,
                 );
             }
