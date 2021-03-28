@@ -66,20 +66,20 @@ impl Default for Test {
 pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
     object_handlers_init!(Test);
 
-    let test_class = ClassBuilder::new("TestClass")
-        .function(
+    ClassBuilder::new("TestClass")
+        .method(
             FunctionBuilder::constructor(Test::constructor).build(),
             MethodFlags::Public,
         )
-        .function(
+        .method(
             FunctionBuilder::new("set", Test::set).build(),
             MethodFlags::Public,
         )
-        .function(
+        .method(
             FunctionBuilder::new("get", Test::get).build(),
             MethodFlags::Public,
         )
-        .property("value", "world", PropertyFlags::Public)
+        .property("value", "world", PropertyFlags::Protected)
         .constant("TEST", "Hello world")
         .object_override::<Test>()
         .build();

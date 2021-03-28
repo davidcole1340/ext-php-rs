@@ -5,7 +5,7 @@ use std::{mem, ptr};
 use crate::{
     bindings::{
         php_rs_zend_string_release, zend_class_entry, zend_declare_class_constant,
-        zend_declare_property, zend_register_internal_class_ex,
+        zend_declare_property, zend_declare_property_long, zend_register_internal_class_ex,
     },
     functions::c_str,
 };
@@ -27,7 +27,7 @@ pub type ClassEntry = zend_class_entry;
 pub struct ClassBuilder<'a> {
     ptr: &'a mut ClassEntry,
     extends: *mut ClassEntry,
-    functions: Vec<FunctionEntry>,
+    methods: Vec<FunctionEntry>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
     properties: Vec<(&'a str, Zval, PropertyFlags)>,
     constants: Vec<(&'a str, Zval)>,
@@ -44,11 +44,11 @@ impl<'a> ClassBuilder<'a> {
     where
         N: AsRef<str>,
     {
-        let ptr = unsafe { libc::malloc(mem::size_of::<ClassEntry>()) } as *mut ClassEntry;
+        let ptr = unsafe { libc::calloc(1, mem::size_of::<ClassEntry>()) } as *mut ClassEntry;
         let self_ = Self {
             ptr: unsafe { ptr.as_mut() }.unwrap(),
             extends: ptr::null_mut(),
-            functions: vec![],
+            methods: vec![],
             object_override: None,
             properties: vec![],
             constants: vec![],
@@ -73,9 +73,9 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `func` - The function entry to add to the class.
     /// * `flags` - Flags relating to the function. See [`MethodFlags`].
-    pub fn function(mut self, mut func: FunctionEntry, flags: MethodFlags) -> Self {
+    pub fn method(mut self, mut func: FunctionEntry, flags: MethodFlags) -> Self {
         func.flags = flags.bits();
-        self.functions.push(func);
+        self.methods.push(func);
         self
     }
 
@@ -150,24 +150,33 @@ impl<'a> ClassBuilder<'a> {
 
     /// Builds the class, returning a pointer to the class entry.
     pub fn build(mut self) -> *mut ClassEntry {
-        self.functions.push(FunctionEntry::end());
-        let func = Box::into_raw(self.functions.into_boxed_slice()) as *const FunctionEntry;
+        self.methods.push(FunctionEntry::end());
+        let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
         self.ptr.info.internal.builtin_functions = func;
 
         let class = unsafe { zend_register_internal_class_ex(self.ptr, self.extends) };
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
-
-        for (name, mut default, flags) in self.properties {
-            unsafe {
-                zend_declare_property(
-                    class,
-                    c_str(name),
-                    name.len() as u64,
-                    &mut default,
-                    flags.bits() as i32,
-                );
-            }
-        }
+        unsafe {
+            zend_declare_property_long(
+                class,
+                c_str("hello"),
+                5,
+                100,
+                PropertyFlags::Public.bits() as _,
+            )
+        };
+        // for (name, mut default, flags) in self.properties {
+        //     eprintln!("Declaring property {}", name);
+        //     unsafe {
+        //         zend_declare_property(
+        //             class,
+        //             c_str(name),
+        //             name.len() as u64,
+        //             &mut default,
+        //             flags.bits() as i32,
+        //         );
+        //     }
+        // }
 
         for (name, value) in self.constants {
             let value = Box::into_raw(Box::new(value));

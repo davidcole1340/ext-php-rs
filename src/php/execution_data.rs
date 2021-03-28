@@ -3,7 +3,10 @@
 
 use std::{convert::TryFrom, mem};
 
-use crate::bindings::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
+use crate::{
+    bindings::{zend_execute_data, zend_read_property, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK},
+    functions::c_str,
+};
 
 use super::types::zval::Zval;
 
@@ -11,6 +14,26 @@ use super::types::zval::Zval;
 pub type ExecutionData = zend_execute_data;
 
 impl ExecutionData {
+    pub fn get_parameter(&mut self, name: &str) -> Option<&'static mut Zval> {
+        let ce = unsafe { (*self.func).common.scope.as_mut() }?;
+        let mut rv = Zval::new();
+
+        let x = unsafe {
+            zend_read_property(
+                ce,
+                self.This.value.obj,
+                c_str(name),
+                (name.len() + 1) as _,
+                false,
+                &mut rv,
+            )
+            .as_mut()
+        };
+
+        println!("done");
+        x
+    }
+
     /// Retrieves an argument from the execution data at a given offset.
     /// Offsets start at zero. Make sure to never attempt to retrieve an
     /// argument that may not exist (greater offset than arg_len - 1).

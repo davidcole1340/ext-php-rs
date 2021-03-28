@@ -25,7 +25,7 @@ use std::ffi::CString;
 ///     assert_eq!(b'\0', *ptr.offset(5) as u8);
 ///
 ///     // reclaim string and release memory
-///     let _ = CString::from_raw(ptr);
+///     let _ = CString::from_raw(ptr as *mut i8);
 /// }
 /// ```
 pub fn c_str<S>(s: S) -> *const i8
