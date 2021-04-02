@@ -103,13 +103,10 @@ impl<'a> Arg<'a> {
     ///
     /// # Returns
     ///
-    /// * `Ok(Zval)` - The result of the function call.
-    /// * `Err(())` - The argument was empty, the argument was not callable or the call failed.
-    pub fn try_call(&self, params: Vec<Zval>) -> Result<Zval, ()> {
-        match self.zval() {
-            Some(zval) => zval.try_call(params),
-            None => Err(()),
-        }
+    /// * `Some(Zval)` - The result of the function call.
+    /// * `None` - The argument was empty, the argument was not callable or the call failed.
+    pub fn try_call(&self, params: Vec<Zval>) -> Option<Zval> {
+        self.zval()?.try_call(params)
     }
 }
 

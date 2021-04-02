@@ -65,7 +65,7 @@ impl Test {
 
         let result = call_user_func!(_fn, "Hello", 5);
 
-        if let Ok(r) = result {
+        if let Some(r) = result {
             println!("{}", r.string().unwrap());
         }
 

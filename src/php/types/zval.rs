@@ -135,16 +135,16 @@ impl<'a> Zval {
     ///
     /// # Returns
     ///
-    /// * `Ok(Zval)` - The result of the function call.
-    /// * `Err(())` - The zval was not callable or the call failed.
-    pub fn try_call(&self, params: Vec<Zval>) -> Result<Zval, ()> {
+    /// * `Some(Zval)` - The result of the function call.
+    /// * `None` - The zval was not callable or the call failed.
+    pub fn try_call(&self, params: Vec<Zval>) -> Option<Zval> {
         let mut retval = Zval::new();
         let len = params.len();
         let packed = Box::into_raw(params.into_boxed_slice()) as *mut Self;
         let ptr: *const Self = self;
 
         if !self.is_callable() {
-            return Err(());
+            return None;
         }
 
         let result = unsafe {
@@ -172,9 +172,9 @@ impl<'a> Zval {
         };
 
         if result < 0 {
-            Err(())
+            None
         } else {
-            Ok(retval)
+            Some(retval)
         }
     }
 
