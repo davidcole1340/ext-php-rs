@@ -5,8 +5,9 @@ use core::slice;
 use std::{convert::TryFrom, ptr};
 
 use crate::bindings::{
-    _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_object, zend_resource, zend_value,
-    zval, IS_INTERNED_STRING_EX, IS_STRING_EX,
+    _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
+    php_rs_zend_string_release, zend_is_callable, zend_object, zend_resource, zend_value, zval,
+    IS_INTERNED_STRING_EX, IS_STRING_EX,
 };
 
 use crate::php::{
@@ -122,6 +123,61 @@ impl<'a> Zval {
         }
     }
 
+    /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
+    /// Note that a thrown exception inside the callable is not detectable, therefore you should
+    /// check if the return value is valid rather than unwrapping.
+    ///
+    /// You should not call this function directly, rather through the [`call_user_func`] macro.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - A list of parameters to call the function with.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Zval)` - The result of the function call.
+    /// * `Err(())` - The zval was not callable or the call failed.
+    pub fn try_call(&self, params: Vec<Zval>) -> Result<Zval, ()> {
+        let mut retval = Zval::new();
+        let len = params.len();
+        let packed = Box::into_raw(params.into_boxed_slice()) as *mut Self;
+        let ptr: *const Self = self;
+
+        if !self.is_callable() {
+            return Err(());
+        }
+
+        let result = unsafe {
+            _call_user_function_impl(
+                std::ptr::null_mut(),
+                ptr as *mut Self,
+                &mut retval,
+                len as _,
+                packed,
+                std::ptr::null_mut(),
+            )
+        };
+
+        // SAFETY: We just boxed this vector, and the `_call_user_function_impl` does not modify the parameters.
+        // We can safely reclaim the memory knowing it will have the same length and size.
+        // If any parameters are zend strings, they must be released.
+        unsafe {
+            let params = Vec::from_raw_parts(packed, len, len);
+
+            for param in params {
+                if param.is_string() {
+                    php_rs_zend_string_release(param.value.str);
+                }
+            }
+        };
+
+        if result < 0 {
+            Err(())
+        } else {
+            Ok(retval)
+        }
+    }
+
     /// Returns true if the zval is a long, false otherwise.
     pub fn is_long(&self) -> bool {
         unsafe { self.u1.v.type_ == DataType::Long as u8 }
@@ -175,6 +231,12 @@ impl<'a> Zval {
     /// Returns true if the zval is a reference, false otherwise.
     pub fn is_reference(&self) -> bool {
         unsafe { self.u1.v.type_ == DataType::Reference as u8 }
+    }
+
+    /// Returns true if the zval is callable, false otherwise.
+    pub fn is_callable(&self) -> bool {
+        let ptr: *const Self = self;
+        unsafe { zend_is_callable(ptr as *mut Self, 0, std::ptr::null_mut()) }
     }
 
     /// Sets the value of the zval as a string.

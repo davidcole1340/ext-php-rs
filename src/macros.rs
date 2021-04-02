@@ -46,3 +46,16 @@ macro_rules! _info_table_row {
     };
     (@SUBST; $_: expr) => { () };
 }
+
+/// Attempts to call a given PHP callable.
+///
+/// # Parameters
+///
+/// * `$fn` - The 'function' to call. Can be an [`Arg`] or a [`Zval`].
+/// * ...`$param` - The parameters to pass to the function. Must be able to be converted into a [`Zval`].
+#[macro_export]
+macro_rules! call_user_func {
+    ($fn: expr, $($param: expr),*) => {
+        $fn.try_call(vec![$($param.into()),*])
+    };
+}

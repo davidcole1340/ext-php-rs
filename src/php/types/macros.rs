@@ -1,5 +1,12 @@
 pub use paste::paste;
 
+/// Implements the [`ZendObjectOverride`] trait for the given type.
+/// Also defines the static mutable object handlers for the type.
+/// **MUST** be called in conjunction with the [`object_handlers_init`] macro.
+///
+/// # Parameters
+///
+/// * `$class` - The type to implement the trait for.
 #[macro_export]
 macro_rules! object_override_handler {
     ($class: ident) => {
@@ -19,6 +26,12 @@ macro_rules! object_override_handler {
     };
 }
 
+/// Initializes a types object handlers. This should be called at the start of
+/// the module startup function which is defined by the user.
+///
+/// # Parameters
+///
+/// * `$class` - The type to initialize the handlers for.
 #[macro_export]
 macro_rules! object_handlers_init {
     ($class: ident) => {{

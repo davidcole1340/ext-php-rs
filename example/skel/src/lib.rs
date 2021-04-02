@@ -1,5 +1,5 @@
 use php_rs::{
-    info_table_end, info_table_row, info_table_start, object_handlers_init,
+    call_user_func, info_table_end, info_table_row, info_table_start, object_handlers_init,
     object_override_handler,
     php::{
         args::{Arg, ArgParser},
@@ -54,6 +54,23 @@ impl Test {
         let x = ZendClassObject::<Test>::get(execute_data).unwrap();
         dbg!(x.a);
     }
+
+    pub extern "C" fn call(execute_data: &mut ExecutionData, _retval: &mut Zval) {
+        let mut _fn = Arg::new("fn", DataType::Callable);
+        let result = ArgParser::new(execute_data).arg(&mut _fn).parse();
+
+        if result.is_err() {
+            return;
+        }
+
+        let result = call_user_func!(_fn, "Hello", 5);
+
+        if let Ok(r) = result {
+            println!("{}", r.string().unwrap());
+        }
+
+        println!("Ready for call!");
+    }
 }
 
 impl Default for Test {
@@ -77,6 +94,12 @@ pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
         )
         .method(
             FunctionBuilder::new("get", Test::get).build(),
+            MethodFlags::Public,
+        )
+        .method(
+            FunctionBuilder::new("call", Test::call)
+                .arg(Arg::new("fn", DataType::Callable))
+                .build(),
             MethodFlags::Public,
         )
         // .property("value", "world", PropertyFlags::Protected)

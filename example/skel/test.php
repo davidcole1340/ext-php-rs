@@ -2,8 +2,9 @@
 
 $x = new TestClass();
 
-// var_dump($x);
-// var_dump($x->hello);
-// var_dump($x->value);
-print_r($x);
-echo "Goodbye!" . PHP_EOL;
+var_dump($x->call(function ($v1, $v2) {
+    // var_dump($v1, $v2);
+    // echo "Hello, world! I'm a callable.".PHP_EOL;
+    // return "Ok rust";
+    return 0;
+}));
