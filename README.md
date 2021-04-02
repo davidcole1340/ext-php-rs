@@ -17,6 +17,8 @@ This is not a set feature list, but these are the features on my roadmap. Create
 
 ## Requirements
 
+- PHP 8.0 or later
+     - No support is planned for lower versions.
 - Rust - no idea which version
 
 See the following links for the dependency crate requirements:
