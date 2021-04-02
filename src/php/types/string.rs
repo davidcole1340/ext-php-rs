@@ -4,7 +4,7 @@
 use core::slice;
 
 use crate::{
-    bindings::{php_rs_zend_string_init, zend_string, zend_string_init_interned},
+    bindings::{ext_php_rs_zend_string_init, zend_string, zend_string_init_interned},
     functions::c_str,
 };
 
@@ -29,7 +29,7 @@ impl ZendString {
         S: AsRef<str>,
     {
         let str_ = str_.as_ref();
-        unsafe { php_rs_zend_string_init(c_str(str_), str_.len() as u64, persistent) }
+        unsafe { ext_php_rs_zend_string_init(c_str(str_), str_.len() as u64, persistent) }
     }
 
     /// Creates a new interned Zend string.

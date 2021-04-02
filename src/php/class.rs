@@ -4,7 +4,7 @@ use std::{mem, ptr};
 
 use crate::{
     bindings::{
-        php_rs_zend_string_release, zend_class_entry, zend_declare_class_constant,
+        ext_php_rs_zend_string_release, zend_class_entry, zend_declare_class_constant,
         zend_register_internal_class_ex,
     },
     functions::c_str,
@@ -97,7 +97,7 @@ impl<'a> ClassBuilder<'a> {
 
         // if default.is_string() {
         //     let val = default.string().unwrap();
-        //     unsafe { php_rs_zend_string_release(default.value.str) };
+        //     unsafe { ext_php_rs_zend_string_release(default.value.str) };
         //     default.set_persistent_string(val);
         // }
 
@@ -120,7 +120,7 @@ impl<'a> ClassBuilder<'a> {
 
         if value.is_string() {
             let val = value.string().unwrap();
-            unsafe { php_rs_zend_string_release(value.value.str) };
+            unsafe { ext_php_rs_zend_string_release(value.value.str) };
             value.set_persistent_string(val);
         }
 

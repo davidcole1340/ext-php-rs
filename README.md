@@ -1,8 +1,8 @@
-# php-rs
+# ext-php-rs
 
 Bindings for the Zend API to build PHP extensions natively in Rust. Inspired by [killertux/solder](https://github.com/killertux/solder) and its predecessors.
 
-Very much a work-in-progress. The library will likely have to change name before being published on `crates.io`, as `php-rs` is already taken.
+Very much a work-in-progress. The library will likely have to change name before being published on `crates.io`, as `ext-php-rs` is already taken.
 
 ## Requirements
 

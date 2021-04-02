@@ -12,7 +12,7 @@ use std::ffi::CString;
 ///
 /// ```
 /// use std::ffi::CString;
-/// use php_rs::functions::c_str;
+/// use ext_php_rs::functions::c_str;
 ///
 /// let mut ptr = c_str("Hello");
 ///

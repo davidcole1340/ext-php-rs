@@ -6,7 +6,7 @@ use std::{convert::TryFrom, ptr};
 
 use crate::bindings::{
     _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
-    php_rs_zend_string_release, zend_is_callable, zend_object, zend_resource, zend_value, zval,
+    ext_php_rs_zend_string_release, zend_is_callable, zend_object, zend_resource, zend_value, zval,
     IS_INTERNED_STRING_EX, IS_STRING_EX,
 };
 
@@ -166,7 +166,7 @@ impl<'a> Zval {
 
             for param in params {
                 if param.is_string() {
-                    php_rs_zend_string_release(param.value.str);
+                    ext_php_rs_zend_string_release(param.value.str);
                 }
             }
         };

@@ -1,4 +1,4 @@
-use php_rs::{
+use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start, object_handlers_init,
     object_override_handler,
     php::{
@@ -111,7 +111,7 @@ pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn get_module() -> *mut php_rs::php::module::ModuleEntry {
+pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
     let funct = FunctionBuilder::new("skeleton_version", skeleton_version)
         .arg(Arg::new("a", DataType::Long))
         .arg(Arg::new("b", DataType::Double))

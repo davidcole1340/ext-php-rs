@@ -8,8 +8,8 @@ use std::{
 
 use crate::{
     bindings::{
-        php_rs_zend_object_alloc, php_rs_zend_object_std_init, std_object_handlers, zend_object,
-        zend_object_handlers,
+        ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_std_init, std_object_handlers,
+        zend_object, zend_object_handlers,
     },
     php::{class::ClassEntry, execution_data::ExecutionData},
 };
@@ -68,11 +68,12 @@ impl<T: Default> ZendClassObject<T> {
         handlers: *mut ZendObjectHandlers,
     ) -> *mut zend_object {
         let obj = {
-            let obj = (php_rs_zend_object_alloc(std::mem::size_of::<Self>() as _, ce) as *mut Self)
+            let obj = (ext_php_rs_zend_object_alloc(std::mem::size_of::<Self>() as _, ce)
+                as *mut Self)
                 .as_mut()
                 .unwrap();
 
-            php_rs_zend_object_std_init(&mut obj.std, ce);
+            ext_php_rs_zend_object_std_init(&mut obj.std, ce);
             obj
         };
 
