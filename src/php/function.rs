@@ -121,7 +121,7 @@ impl<'a> FunctionBuilder<'a> {
 
     /// Builds the function converting it into a Zend function entry.
     pub fn build(mut self) -> FunctionEntry {
-        let mut args: Vec<ArgInfo> = vec![];
+        let mut args = Vec::with_capacity(self.args.len() + 1);
 
         // argument header, retval etc
         args.push(ArgInfo {
