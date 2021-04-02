@@ -80,6 +80,34 @@ impl<'a> Arg<'a> {
             None => None,
         }
     }
+
+    /// Attempts to return a reference to the arguments internal Zval.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&Zval)` - The internal zval.
+    /// * `None` - The argument was empty.
+    pub fn zval(&self) -> Option<&'a Zval> {
+        self.zval
+    }
+
+    /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
+    /// Note that a thrown exception inside the callable is not detectable, therefore you should
+    /// check if the return value is valid rather than unwrapping.
+    ///
+    /// You should not call this function directly, rather through the [`call_user_func`] macro.
+    ///
+    /// # Parameters
+    ///
+    /// * `params` - A list of parameters to call the function with.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Zval)` - The result of the function call.
+    /// * `None` - The argument was empty, the argument was not callable or the call failed.
+    pub fn try_call(&self, params: Vec<Zval>) -> Option<Zval> {
+        self.zval()?.try_call(params)
+    }
 }
 
 impl From<Arg<'_>> for _zend_expected_type {

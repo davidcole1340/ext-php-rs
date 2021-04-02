@@ -1,30 +1,32 @@
 //! Wrapper for enums introduced in C.
 
 use crate::bindings::{
-    IS_ARRAY, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_OBJECT, IS_REFERENCE,
-    IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
+    IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_OBJECT,
+    IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
 };
 
 use super::types::long::ZendLong;
 
 /// Valid data types for PHP.
 #[derive(Clone, Copy, Debug)]
+#[repr(u32)]
 pub enum DataType {
-    Undef = IS_UNDEF as isize,
+    Undef = IS_UNDEF,
 
-    Null = IS_NULL as isize,
-    False = IS_FALSE as isize,
-    True = IS_TRUE as isize,
-    Long = IS_LONG as isize,
-    Double = IS_DOUBLE as isize,
-    String = IS_STRING as isize,
-    Array = IS_ARRAY as isize,
-    Object = IS_OBJECT as isize,
-    Resource = IS_RESOURCE as isize,
-    Reference = IS_REFERENCE as isize,
+    Null = IS_NULL,
+    False = IS_FALSE,
+    True = IS_TRUE,
+    Long = IS_LONG,
+    Double = IS_DOUBLE,
+    String = IS_STRING,
+    Array = IS_ARRAY,
+    Object = IS_OBJECT,
+    Resource = IS_RESOURCE,
+    Reference = IS_REFERENCE,
+    Callable = IS_CALLABLE,
 
-    ConstantExpression = IS_CONSTANT_AST as isize,
-    Void = IS_VOID as isize,
+    ConstantExpression = IS_CONSTANT_AST,
+    Void = IS_VOID,
 }
 
 impl From<ZendLong> for DataType {
