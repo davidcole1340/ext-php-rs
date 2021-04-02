@@ -2,11 +2,13 @@
 name = "ext-php-rs"
 description = "Bindings for the Zend API to build PHP extensions natively in Rust."
 repository = "https://github.com/davidcole1340/ext-php-rs"
+homepage = "https://github.com/davidcole1340/ext-php-rs"
 license = "MIT"
-keywords = ["php"]
-version = "0.1.0"
+keywords = ["php", "ffi", "zend"]
+version = "0.0.1"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
+categories = ["api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
