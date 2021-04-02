@@ -6,7 +6,7 @@ use php_rs::{
         class::ClassBuilder,
         enums::DataType,
         execution_data::ExecutionData,
-        flags::{MethodFlags, PropertyFlags},
+        flags::MethodFlags,
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::{array::ZendHashTable, long::ZendLong, object::ZendClassObject, zval::Zval},
@@ -79,7 +79,7 @@ pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
             FunctionBuilder::new("get", Test::get).build(),
             MethodFlags::Public,
         )
-        .property("value", "world", PropertyFlags::Protected)
+        // .property("value", "world", PropertyFlags::Protected)
         .constant("TEST", "Hello world")
         .object_override::<Test>()
         .build();

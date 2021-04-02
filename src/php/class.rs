@@ -5,7 +5,7 @@ use std::{mem, ptr};
 use crate::{
     bindings::{
         php_rs_zend_string_release, zend_class_entry, zend_declare_class_constant,
-        zend_declare_property, zend_declare_property_long, zend_register_internal_class_ex,
+        zend_register_internal_class_ex,
     },
     functions::c_str,
 };
@@ -29,7 +29,7 @@ pub struct ClassBuilder<'a> {
     extends: *mut ClassEntry,
     methods: Vec<FunctionEntry>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
-    properties: Vec<(&'a str, Zval, PropertyFlags)>,
+    // properties: Vec<(&'a str, Zval, PropertyFlags)>,
     constants: Vec<(&'a str, Zval)>,
 }
 
@@ -50,7 +50,7 @@ impl<'a> ClassBuilder<'a> {
             extends: ptr::null_mut(),
             methods: vec![],
             object_override: None,
-            properties: vec![],
+            // properties: vec![],
             constants: vec![],
         };
         self_.ptr.name = ZendString::new_interned(name);
@@ -87,20 +87,22 @@ impl<'a> ClassBuilder<'a> {
     /// * `name` - The name of the property to add to the class.
     /// * `default` - The default value of the property.
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
+    #[allow(unused_mut, unused_variables)]
     pub fn property<T>(mut self, name: &'a str, default: T, flags: PropertyFlags) -> Self
     where
         T: Into<Zval>,
     {
-        let mut default = default.into();
+        panic!("Properties are currently not supported. See #16");
+        // let mut default = default.into();
 
-        if default.is_string() {
-            let val = default.string().unwrap();
-            unsafe { php_rs_zend_string_release(default.value.str) };
-            default.set_persistent_string(val);
-        }
+        // if default.is_string() {
+        //     let val = default.string().unwrap();
+        //     unsafe { php_rs_zend_string_release(default.value.str) };
+        //     default.set_persistent_string(val);
+        // }
 
-        self.properties.push((name, default, flags));
-        self
+        // self.properties.push((name, default, flags));
+        // self
     }
 
     /// Adds a constant to the class.
@@ -154,19 +156,16 @@ impl<'a> ClassBuilder<'a> {
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
         self.ptr.info.internal.builtin_functions = func;
 
-        let class = unsafe { zend_register_internal_class_ex(self.ptr, self.extends) };
-        unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
-        unsafe {
-            zend_declare_property_long(
-                class,
-                c_str("hello"),
-                5,
-                100,
-                PropertyFlags::Public.bits() as _,
-            )
+        let class = unsafe {
+            zend_register_internal_class_ex(self.ptr, self.extends)
+                .as_mut()
+                .unwrap()
         };
+
+        unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
+
+        // DC: Commented out for now. Bug with properties.
         // for (name, mut default, flags) in self.properties {
-        //     eprintln!("Declaring property {}", name);
         //     unsafe {
         //         zend_declare_property(
         //             class,
@@ -184,7 +183,7 @@ impl<'a> ClassBuilder<'a> {
         }
 
         if let Some(object_override) = self.object_override {
-            unsafe { (*class).__bindgen_anon_2.create_object = Some(object_override) };
+            class.__bindgen_anon_2.create_object = Some(object_override);
         }
 
         class
