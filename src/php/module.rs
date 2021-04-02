@@ -1,8 +1,10 @@
-use std::{ffi::c_void, mem, os::raw::c_int, ptr};
+//! Builder and objects for creating modules in PHP. A module is the base of a PHP extension.
+
+use std::{ffi::c_void, mem, ptr};
 
 use crate::{
-    bindings::{zend_module_entry, zend_result, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO},
-    functions::{build_id, c_str},
+    bindings::{php_rs_php_build_id, zend_module_entry, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO},
+    functions::c_str,
 };
 
 use super::function::FunctionEntry;
@@ -10,7 +12,7 @@ use super::function::FunctionEntry;
 /// A Zend module entry. Alias.
 pub type ModuleEntry = zend_module_entry;
 /// A function to be called when the extension is starting up or shutting down.
-pub type StartupShutdownFunc = extern "C" fn(type_: c_int, module_number: c_int) -> zend_result;
+pub type StartupShutdownFunc = extern "C" fn(_type: i32, _module_number: i32) -> i32;
 /// A function to be called when `phpinfo();` is called.
 pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);
 
@@ -75,7 +77,7 @@ impl ModuleBuilder {
                 type_: 0,
                 handle: ptr::null::<c_void>() as *mut c_void,
                 module_number: 0,
-                build_id: c_str(build_id()),
+                build_id: unsafe { php_rs_php_build_id() },
             },
             functions: vec![],
         }

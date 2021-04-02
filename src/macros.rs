@@ -1,9 +1,13 @@
+//! Macros for interacting with PHP, mainly when the function takes variadic arguments.
+//! Unforutunately, this is the best way to handle these.
+//! Note that most of these will introduce unsafe into your code base.
+
 /// Starts the PHP extension information table displayed when running `phpinfo();`
 /// Must be run *before* rows are inserted into the table.
 #[macro_export]
 macro_rules! info_table_start {
     () => {
-        unsafe { $crate::php_info_print_table_start() };
+        unsafe { $crate::bindings::php_info_print_table_start() };
     };
 }
 
@@ -11,7 +15,7 @@ macro_rules! info_table_start {
 #[macro_export]
 macro_rules! info_table_end {
     () => {
-        unsafe { $crate::php_info_print_table_end() }
+        unsafe { $crate::bindings::php_info_print_table_end() }
     };
 }
 
@@ -33,7 +37,7 @@ macro_rules! info_table_row {
 macro_rules! _info_table_row {
     ($fn: ident, $($element: expr),*) => {
         unsafe {
-            $crate::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $($crate::functions::c_str($element)),*);
+            $crate::bindings::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $($crate::functions::c_str($element)),*);
         }
     };
 

@@ -1,3 +1,6 @@
+//! Represents an array in PHP. As all arrays in PHP are associative arrays, they are represented
+//! by hash tables.
+
 use std::{collections::HashMap, u64};
 
 use crate::{
@@ -69,8 +72,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Some(&Zval)` - A reference to the zval at the position in the hash table.
-    /// `None` - No value at the given position was found.
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// * `None` - No value at the given position was found.
     pub fn get<K>(&self, key: K) -> Option<&Zval>
     where
         K: Into<String>,
@@ -88,8 +91,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Some(&Zval)` - A reference to the zval at the position in the hash table.
-    /// `None` - No value at the given position was found.
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// * `None` - No value at the given position was found.
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self.ptr, key).as_ref() }
     }
@@ -102,8 +105,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Ok(())` - Key was successfully removed.
-    /// `Err(())` - No key was removed, did not exist.
+    /// * `Ok(())` - Key was successfully removed.
+    /// * `Err(())` - No key was removed, did not exist.
     pub fn remove<K>(&self, key: K) -> Option<()>
     where
         K: Into<String>,
@@ -127,8 +130,8 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// `Ok(())` - Key was successfully removed.
-    /// `Err(())` - No key was removed, did not exist.
+    /// * `Ok(())` - Key was successfully removed.
+    /// * `Err(())` - No key was removed, did not exist.
     pub fn remove_index(&self, key: u64) -> Option<()> {
         let result = unsafe { zend_hash_index_del(self.ptr, key) };
 
@@ -310,7 +313,7 @@ where
     V: Into<Zval>,
 {
     fn from(hm: HashMap<K, V>) -> Self {
-        let mut ht = ZendHashTable::new();
+        let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
 
         for (k, v) in hm {
             ht.insert(k.into(), v.into());
@@ -326,7 +329,7 @@ where
     V: Into<Zval>,
 {
     fn from(vec: Vec<V>) -> Self {
-        let mut ht = ZendHashTable::new();
+        let mut ht = ZendHashTable::with_capacity(vec.len() as u32);
 
         for v in vec {
             ht.push(v);

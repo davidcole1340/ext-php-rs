@@ -1,5 +1,10 @@
+//! Contains all the different types that are introduced into PHP.
+//! Introduces functions for converting between Zend values and Rust values.
+
 pub mod array;
 pub mod long;
+pub mod macros;
+pub mod object;
 pub mod string;
 pub mod zval;
 

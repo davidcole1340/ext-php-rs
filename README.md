@@ -4,6 +4,16 @@ Bindings for the Zend API to build PHP extensions natively in Rust. Inspired by 
 
 Very much a work-in-progress. The library will likely have to change name before being published on `crates.io`, as `php-rs` is already taken.
 
+## Requirements
+
+- Rust - no idea which version
+
+See the following links for the dependency crate requirements:
+
+- [`cc`](https://github.com/alexcrichton/cc-rs#compile-time-requirements)
+- [`bindgen`](https://rust-lang.github.io/rust-bindgen/requirements.html)
+
+
 ## Usage
 
 This project only works for PHP >= 8.0 (for now). Due to the fact that the PHP extension system relies heavily on C macros (which cannot be exported to Rust easily), structs have to be hard coded in.
