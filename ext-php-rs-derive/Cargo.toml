@@ -1,0 +1,17 @@
+[package]
+name = "ext-php-rs-derive"
+description = "Derive macros for ext-php-rs."
+repository = "https://github.com/davidcole1340/ext-php-rs"
+homepage = "https://github.com/davidcole1340/ext-php-rs"
+license = "MIT"
+version = "0.0.2"
+authors = ["David Cole <david.cole1340@gmail.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0.68"
+quote = "1.0.9"
+proc-macro2 = "1.0.26"

@@ -7,3 +7,5 @@ pub mod macros;
 pub mod bindings;
 pub mod functions;
 pub mod php;
+
+pub use ext_php_rs_derive::ZendObjectHandler;
