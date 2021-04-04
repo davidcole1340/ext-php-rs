@@ -3,7 +3,6 @@
 
 pub mod array;
 pub mod long;
-pub mod macros;
 pub mod object;
 pub mod string;
 pub mod zval;

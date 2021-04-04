@@ -1,6 +1,5 @@
 use ext_php_rs::{
-    call_user_func, info_table_end, info_table_row, info_table_start, object_handlers_init,
-    object_override_handler,
+    call_user_func, info_table_end, info_table_row, info_table_start,
     php::{
         args::{Arg, ArgParser},
         class::ClassBuilder,
@@ -11,6 +10,7 @@ use ext_php_rs::{
         module::{ModuleBuilder, ModuleEntry},
         types::{array::ZendHashTable, long::ZendLong, object::ZendClassObject, zval::Zval},
     },
+    ZendObjectHandler,
 };
 
 #[no_mangle]
@@ -20,18 +20,16 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_end!();
 }
 
-#[derive(Debug)]
+#[derive(Debug, ZendObjectHandler)]
 struct Test {
     a: u32,
     b: u32,
 }
-object_override_handler!(Test);
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, ZendObjectHandler)]
 struct AnotherTest {
     x: u32,
 }
-object_override_handler!(AnotherTest);
 
 impl Test {
     pub extern "C" fn constructor(execute_data: &mut ExecutionData, _retval: &mut Zval) {
@@ -40,7 +38,7 @@ impl Test {
         if x.is_none() {
             eprintln!("Object was none");
         } else {
-            let obj = x.unwrap();
+            // let obj = x.unwrap();
             println!("Object not none");
         }
     }
