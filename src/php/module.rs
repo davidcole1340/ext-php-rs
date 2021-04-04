@@ -3,7 +3,9 @@
 use std::{ffi::c_void, mem, ptr};
 
 use crate::{
-    bindings::{php_rs_php_build_id, zend_module_entry, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO},
+    bindings::{
+        ext_php_rs_php_build_id, zend_module_entry, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO,
+    },
     functions::c_str,
 };
 
@@ -77,7 +79,7 @@ impl ModuleBuilder {
                 type_: 0,
                 handle: ptr::null::<c_void>() as *mut c_void,
                 module_number: 0,
-                build_id: unsafe { php_rs_php_build_id() },
+                build_id: unsafe { ext_php_rs_php_build_id() },
             },
             functions: vec![],
         }

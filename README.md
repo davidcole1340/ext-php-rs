@@ -1,11 +1,24 @@
-# php-rs
+# ext-php-rs
 
 Bindings for the Zend API to build PHP extensions natively in Rust. Inspired by [killertux/solder](https://github.com/killertux/solder) and its predecessors.
 
-Very much a work-in-progress. The library will likely have to change name before being published on `crates.io`, as `php-rs` is already taken.
+## Features
+
+This is not a set feature list, but these are the features on my roadmap. Create an issue if there's something you'd like to see!
+
+- [x] Module definitions
+- [x] Function implementation
+- [x] Class implementation
+    - [x] Class methods
+    - [ ] Class properties
+    - [x] Class constants
+- [ ] Module constants
+- [x] Calling PHP functions
 
 ## Requirements
 
+- PHP 8.0 or later
+     - No support is planned for lower versions.
 - Rust - no idea which version
 
 See the following links for the dependency crate requirements:
