@@ -81,7 +81,7 @@ impl Default for Test {
 
 #[no_mangle]
 pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
-    object_handlers_init!(Test);
+    // object_handlers_init!(Test);
 
     ClassBuilder::new("TestClass")
         .method(

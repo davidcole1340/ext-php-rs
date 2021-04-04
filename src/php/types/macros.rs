@@ -11,14 +11,18 @@ pub use paste::paste;
 macro_rules! object_override_handler {
     ($class: ident) => {
         $crate::php::types::macros::paste! {
-            static mut [<$class _OBJECT_HANDLERS>]: *mut $crate::php::types::object::ZendObjectHandlers = ::std::ptr::null_mut();
+            static mut [<$class _OBJECT_HANDLERS>]: Option<*mut $crate::php::types::object::ZendObjectHandlers> = None;
 
             impl $crate::php::types::object::ZendObjectOverride for $class {
                 extern "C" fn create_object(
                     ce: *mut $crate::php::class::ClassEntry,
                 ) -> *mut $crate::php::types::object::ZendObject {
                     unsafe {
-                        $crate::php::types::object::ZendClassObject::<$class>::new_ptr(ce, [<$class _OBJECT_HANDLERS>])
+                        if [<$class _OBJECT_HANDLERS>].is_none() {
+                            [<$class _OBJECT_HANDLERS>] = Some($crate::php::types::object::ZendObjectHandlers::init::<$class>());
+                        }
+
+                        $crate::php::types::object::ZendClassObject::<$class>::new_ptr(ce, [<$class _OBJECT_HANDLERS>].unwrap())
                     }
                 }
             }
