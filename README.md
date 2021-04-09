@@ -2,6 +2,8 @@
 
 Bindings for the Zend API to build PHP extensions natively in Rust. Inspired by [killertux/solder](https://github.com/killertux/solder) and its predecessors.
 
+[![PHP Discorders](https://discord.com/api/guilds/115233111977099271/widget.png?style=banner1)](https://discord.gg/0duG4FF1ElFGUFVq)
+
 ## Features
 
 This is not a set feature list, but these are the features on my roadmap. Create an issue if there's something you'd like to see!
