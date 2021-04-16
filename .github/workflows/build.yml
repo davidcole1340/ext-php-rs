@@ -33,12 +33,12 @@ jobs:
       - name: Setup LLVM & Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: ${{ matrix.clang }}
-          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          version: ${{ matrix.llvm }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Build
         uses: actions-rs/cargo@v1
         env:
-          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang }}/lib
+          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
         with:
           command: build
           args: --release
@@ -63,11 +63,11 @@ jobs:
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: ${{ matrix.clang }}
-          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         env:
-          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang }}/lib
+          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
         with:
           command: fmt
           args: --all -- --check
