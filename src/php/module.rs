@@ -21,20 +21,27 @@ pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);
 /// Builds a Zend extension. Must be called from within an external function called `get_module`,
 /// returning a mutable pointer to a `ModuleEntry`.
 ///
-// #[no_mangle]
-// pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
-//     print_table_start();
-//     print_table_row("column 1", "column 2");
-//     print_table_end();
-// }
-//
-// #[no_mangle]
-// pub extern "C" fn get_module() -> *mut ModuleEntry {
-//     ModuleBuilder::new("ext-name", "ext-version")
-//         .info_function(php_module_info)
-//         .build()
-//         .into_raw()
-// }
+/// ```
+/// use ext_php_rs::{
+///     php::module::{ModuleEntry, ModuleBuilder},
+///     info_table_start, info_table_end, info_table_row
+/// };
+///
+/// #[no_mangle]
+/// pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
+///     info_table_start!();
+///     info_table_row!("column 1", "column 2");
+///     info_table_end!();
+/// }
+///
+/// #[no_mangle]
+/// pub extern "C" fn get_module() -> *mut ModuleEntry {
+///     ModuleBuilder::new("ext-name", "ext-version")
+///         .info_function(php_module_info)
+///         .build()
+///         .into_raw()
+/// }
+/// ```
 
 pub struct ModuleBuilder {
     module: ModuleEntry,
