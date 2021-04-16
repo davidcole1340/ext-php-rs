@@ -97,7 +97,7 @@ impl<'a> ClassBuilder<'a> {
 
         // if default.is_string() {
         //     let val = default.string().unwrap();
-        //     unsafe { ext_php_rs_zend_string_release(default.value.str) };
+        //     unsafe { ext_php_rs_zend_string_release(default.value.str_) };
         //     default.set_persistent_string(val);
         // }
 
@@ -120,7 +120,7 @@ impl<'a> ClassBuilder<'a> {
 
         if value.is_string() {
             let val = value.string().unwrap();
-            unsafe { ext_php_rs_zend_string_release(value.value.str) };
+            unsafe { ext_php_rs_zend_string_release(value.value.str_) };
             value.set_persistent_string(val);
         }
 

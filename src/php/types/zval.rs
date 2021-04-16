@@ -72,8 +72,8 @@ impl<'a> Zval {
             // We can safely cast our *const c_char into a *const u8 as both
             // only occupy one byte.
             unsafe {
-                let len = (*self.value.str).len;
-                let ptr = (*self.value.str).val.as_ptr() as *const u8;
+                let len = (*self.value.str_).len;
+                let ptr = (*self.value.str_).val.as_ptr() as *const u8;
                 let _str = std::str::from_utf8(slice::from_raw_parts(ptr, len as usize)).unwrap();
 
                 Some(_str.to_string())
@@ -166,7 +166,7 @@ impl<'a> Zval {
 
             for param in params {
                 if param.is_string() {
-                    ext_php_rs_zend_string_release(param.value.str);
+                    ext_php_rs_zend_string_release(param.value.str_);
                 }
             }
         };
@@ -249,7 +249,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new(val, false);
-        self.value.str = zend_str;
+        self.value.str_ = zend_str;
         self.u1.type_info = IS_STRING_EX;
     }
 
@@ -265,7 +265,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new(val, true);
-        self.value.str = zend_str;
+        self.value.str_ = zend_str;
         self.u1.type_info = IS_STRING_EX;
     }
 
@@ -279,7 +279,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new_interned(val);
-        self.value.str = zend_str;
+        self.value.str_ = zend_str;
         self.u1.type_info = IS_INTERNED_STRING_EX;
     }
 
