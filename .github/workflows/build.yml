@@ -17,6 +17,8 @@ jobs:
           - nightly
         php:
           - '8.0'
+        llvm:
+          - '11.0'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -28,17 +30,25 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust-toolchain }}
+      - name: Setup LLVM & Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: ${{ matrix.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
       - name: Build
         uses: actions-rs/cargo@v1
         env:
-          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang[0] }}/lib
-          LLVM_CONFIG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang[0] }}/bin/llvm-config
+          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang }}/lib
         with:
           command: build
           args: --release
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        llvm:
+          - '11.0'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -49,13 +59,22 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy
+      - name: Setup LLVM & Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: ${{ matrix.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
+        env:
+          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang }}/lib
         with:
           command: fmt
           args: --all -- --check
       - name: Run clippy
         uses: actions-rs/cargo@v1
+        env:
+          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang }}/lib
         with:
           command: clippy
           args: -- -D warnings
