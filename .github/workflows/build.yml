@@ -30,6 +30,9 @@ jobs:
           toolchain: ${{ matrix.rust-toolchain }}
       - name: Build
         uses: actions-rs/cargo@v1
+        env:
+          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang[0] }}/lib
+          LLVM_CONFIG_PATH: ${{ runner.temp }}/llvm-${{ matrix.clang[0] }}/bin/llvm-config
         with:
           command: build
           args: --release
