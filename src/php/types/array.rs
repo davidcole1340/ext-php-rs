@@ -1,7 +1,11 @@
 //! Represents an array in PHP. As all arrays in PHP are associative arrays, they are represented
 //! by hash tables.
 
-use std::{collections::HashMap, u64};
+use std::{
+    collections::HashMap,
+    convert::{TryFrom, TryInto},
+    u64,
+};
 
 use crate::{
     bindings::{
@@ -324,12 +328,19 @@ where
 }
 
 /// Implementation for converting a `ZendHashTable` into a `Vec` of given type.
+/// If the contents of the hash table cannot be turned into a type `T`, it wil skip over the item
+/// and return a `Vec` consisting of only elements that could be converted.
 impl<'a, V> From<ZendHashTable> for Vec<V>
 where
-    V: From<Zval>,
+    V: TryFrom<Zval>,
 {
     fn from(ht: ZendHashTable) -> Self {
-        ht.into_iter().map(|(_, _, v)| v.into()).collect()
+        ht.into_iter()
+            .filter_map(|(_, _, v)| match v.try_into() {
+                Ok(v) => Some(v),
+                Err(_) => None,
+            })
+            .collect()
     }
 }
 
