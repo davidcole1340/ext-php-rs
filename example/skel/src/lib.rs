@@ -2,8 +2,9 @@ use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start, parse_args,
     php::{
         args::{Arg, ArgParser},
-        class::ClassBuilder,
+        class::{ClassBuilder, ClassEntry},
         enums::DataType,
+        exceptions::throw,
         execution_data::ExecutionData,
         flags::MethodFlags,
         function::FunctionBuilder,
@@ -147,6 +148,8 @@ pub extern "C" fn skeleton_version(execute_data: &mut ExecutionData, _retval: &m
     if result.is_err() {
         return;
     }
+
+    throw(ClassEntry::exception(), "Hello!");
 
     let result = format!(
         "x: {}, y: {}, z: {}",
