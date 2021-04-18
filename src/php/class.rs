@@ -144,7 +144,8 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
-    /// which can be implemented through the [`object_override_handler`] macro.
+    /// which can be derived through the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler)
+    /// derive macro.
     pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
         self.object_override = Some(T::create_object);
         self

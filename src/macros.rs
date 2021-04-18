@@ -51,10 +51,10 @@ macro_rules! _info_table_row {
 ///
 /// # Parameters
 ///
-/// * `$fn` - The 'function' to call. Can be an [Arg](crate::php::args::Arg) or a
-/// [Zval](crate::php::types::zval::Zval).
+/// * `$fn` - The 'function' to call. Can be an [`Arg`](crate::php::args::Arg) or a
+/// [`Zval`](crate::php::types::zval::Zval).
 /// * ...`$param` - The parameters to pass to the function. Must be able to be converted into a
-/// (crate::php::types::zval::Zval).
+/// [`Zval`](crate::php::types::zval::Zval).
 #[macro_export]
 macro_rules! call_user_func {
     ($fn: expr, $($param: expr),*) => {
@@ -62,7 +62,7 @@ macro_rules! call_user_func {
     };
 }
 
-/// Parses a given list of arguments using the [ArgParser](crate::php::args::ArgParser) class.
+/// Parses a given list of arguments using the [`ArgParser`](crate::php::args::ArgParser) class.
 ///
 /// # Examples
 ///
