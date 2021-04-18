@@ -1,6 +1,7 @@
 <?php
 
 var_dump(SKEL_TEST_CONST, SKEL_TEST_LONG_CONST);
+var_dump(test_array());
 die;
 
 $x = new TestClass();
