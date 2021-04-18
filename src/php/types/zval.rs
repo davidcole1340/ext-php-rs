@@ -288,8 +288,8 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_long(&mut self, val: ZendLong) {
-        self.value.lval = val;
+    pub fn set_long<T: Into<ZendLong>>(&mut self, val: T) {
+        self.value.lval = val.into();
         self.u1.type_info = DataType::Long as u32;
     }
 
@@ -298,8 +298,8 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_double(&mut self, val: f64) {
-        self.value.dval = val;
+    pub fn set_double<T: Into<libc::c_double>>(&mut self, val: T) {
+        self.value.dval = val.into();
         self.u1.type_info = DataType::Double as u32;
     }
 
@@ -308,8 +308,8 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_bool(&mut self, val: bool) {
-        self.u1.type_info = if val {
+    pub fn set_bool<T: Into<bool>>(&mut self, val: T) {
+        self.u1.type_info = if val.into() {
             DataType::True as u32
         } else {
             DataType::False as u32
@@ -407,41 +407,34 @@ impl<'a, 'b> TryFrom<&'b Zval> for ZendHashTable {
     }
 }
 
-impl From<ZendLong> for Zval {
-    fn from(val: ZendLong) -> Self {
-        let mut zv = Self::new();
-        zv.set_long(val);
-        zv
-    }
+/// Implements the trait `Into<T>` on Zval for a given type.
+#[macro_use]
+macro_rules! into_zval {
+    ($type: ty, $fn: ident) => {
+        impl From<$type> for Zval {
+            fn from(val: $type) -> Self {
+                let mut zv = Self::new();
+                zv.$fn(val);
+                zv
+            }
+        }
+    };
 }
 
-impl From<bool> for Zval {
-    fn from(val: bool) -> Self {
-        let mut zv = Self::new();
-        zv.set_bool(val);
-        zv
-    }
-}
-impl From<f64> for Zval {
-    fn from(val: f64) -> Self {
-        let mut zv = Self::new();
-        zv.set_double(val);
-        zv
-    }
-}
+into_zval!(i8, set_long);
+into_zval!(i16, set_long);
+into_zval!(i32, set_long);
+into_zval!(i64, set_long);
 
-impl From<String> for Zval {
-    fn from(val: String) -> Self {
-        let mut zv = Self::new();
-        zv.set_string(val);
-        zv
-    }
-}
+into_zval!(u8, set_long);
+into_zval!(u16, set_long);
+into_zval!(u32, set_long);
 
-impl From<&str> for Zval {
-    fn from(val: &str) -> Self {
-        let mut zv = Self::new();
-        zv.set_string(val);
-        zv
-    }
-}
+into_zval!(f32, set_double);
+into_zval!(f64, set_double);
+
+into_zval!(bool, set_bool);
+
+into_zval!(String, set_string);
+into_zval!(&String, set_string);
+into_zval!(&str, set_string);
