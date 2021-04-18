@@ -386,10 +386,9 @@ try_from_zval!(usize, long);
 try_from_zval!(isize, long);
 
 try_from_zval!(f64, double);
-
 try_from_zval!(bool, bool);
-
 try_from_zval!(String, string);
+try_from_zval!(ZendHashTable, array);
 
 /// Implements the trait `Into<T>` on Zval for a given type.
 #[macro_use]
