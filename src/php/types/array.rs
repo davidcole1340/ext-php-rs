@@ -241,9 +241,9 @@ impl Drop for ZendHashTable {
     }
 }
 
-impl IntoIterator for ZendHashTable {
-    type Item = (u64, Option<String>, Zval);
-    type IntoIter = Iter;
+impl<'a> IntoIterator for &'a ZendHashTable {
+    type Item = (u64, Option<String>, &'a Zval);
+    type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         Self::IntoIter::new(self)
@@ -251,14 +251,14 @@ impl IntoIterator for ZendHashTable {
 }
 
 /// Iterator for a Zend hashtable/array.
-pub struct Iter {
-    ht: ZendHashTable,
+pub struct Iter<'a> {
+    ht: &'a ZendHashTable,
     pos: *mut _Bucket,
     end: *mut _Bucket,
 }
 
-impl Iter {
-    pub fn new(ht: ZendHashTable) -> Self {
+impl<'a> Iter<'a> {
+    pub fn new(ht: &'a ZendHashTable) -> Self {
         let ptr = unsafe { *ht.ptr };
         let pos = ptr.arData;
         let end = unsafe { ptr.arData.offset(ptr.nNumUsed as isize) };
@@ -266,8 +266,8 @@ impl Iter {
     }
 }
 
-impl Iterator for Iter {
-    type Item = (u64, Option<String>, Zval);
+impl<'a> Iterator for Iter<'a> {
+    type Item = (u64, Option<String>, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         // iterator complete
@@ -280,7 +280,7 @@ impl Iterator for Iter {
             // converting it to a reference (val.key.as_ref() returns None if ptr == null)
             let str_key: Option<String> = unsafe { val.key.as_ref() }.map(|key| key.into());
 
-            Some((val.h, str_key, val.val))
+            Some((val.h, str_key, &val.val))
         } else {
             None
         };
@@ -298,8 +298,8 @@ impl Iterator for Iter {
 }
 
 /// Implementation converting a ZendHashTable into a Rust HashTable.
-impl<'a> From<ZendHashTable> for HashMap<String, Zval> {
-    fn from(zht: ZendHashTable) -> Self {
+impl<'a> From<&'a ZendHashTable> for HashMap<String, &'a Zval> {
+    fn from(zht: &'a ZendHashTable) -> Self {
         let mut hm = HashMap::new();
 
         for (idx, key, val) in zht.into_iter() {
@@ -311,16 +311,16 @@ impl<'a> From<ZendHashTable> for HashMap<String, Zval> {
 }
 
 /// Implementation converting a Rust HashTable into a ZendHashTable.
-impl<'a, K, V> From<HashMap<K, V>> for ZendHashTable
+impl<'a, K, V> From<&'a HashMap<K, V>> for ZendHashTable
 where
-    K: Into<String>,
-    V: Into<Zval>,
+    K: Into<String> + Copy,
+    V: Into<Zval> + Copy,
 {
-    fn from(hm: HashMap<K, V>) -> Self {
+    fn from(hm: &'a HashMap<K, V>) -> Self {
         let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
 
-        for (k, v) in hm {
-            ht.insert(k.into(), v.into());
+        for (k, v) in hm.iter() {
+            ht.insert(*k, *v);
         }
 
         ht
@@ -330,16 +330,13 @@ where
 /// Implementation for converting a `ZendHashTable` into a `Vec` of given type.
 /// If the contents of the hash table cannot be turned into a type `T`, it wil skip over the item
 /// and return a `Vec` consisting of only elements that could be converted.
-impl<'a, V> From<ZendHashTable> for Vec<V>
+impl<'a, V> From<&'a ZendHashTable> for Vec<V>
 where
-    V: TryFrom<Zval>,
+    V: TryFrom<&'a Zval>,
 {
-    fn from(ht: ZendHashTable) -> Self {
+    fn from(ht: &'a ZendHashTable) -> Self {
         ht.into_iter()
-            .filter_map(|(_, _, v)| match v.try_into() {
-                Ok(v) => Some(v),
-                Err(_) => None,
-            })
+            .filter_map(|(_, _, v)| v.try_into().ok())
             .collect()
     }
 }

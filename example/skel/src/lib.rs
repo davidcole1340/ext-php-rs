@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start, parse_args,
     php::{
@@ -45,7 +47,7 @@ impl Test {
         }
     }
 
-    pub extern "C" fn set(execute_data: &mut ExecutionData, _retval: &mut Zval) {
+    pub extern "C" fn set(execute_data: &mut ExecutionData, retval: &mut Zval) {
         let x = ZendClassObject::<Test>::get(execute_data).unwrap();
         x.a = 100;
     }
@@ -127,11 +129,16 @@ pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
         .arg(Arg::new("arr", DataType::Array))
         .build();
 
+    let t = FunctionBuilder::new("test_array", test_array)
+        .returns(DataType::Array, false, false)
+        .build();
+
     ModuleBuilder::new("ext-skel", "0.1.0")
         .info_function(php_module_info)
         .startup_function(module_init)
         .function(funct)
         .function(array)
+        .function(t)
         .build()
         .into_raw()
 }
@@ -176,11 +183,22 @@ pub extern "C" fn skeleton_array(execute_data: &mut ExecutionData, _retval: &mut
 
     let ht: ZendHashTable = arr.val().unwrap();
 
-    for (k, x, y) in ht {
+    for (k, x, y) in ht.into_iter() {
         println!("{:?} {:?} {:?}", k, x, y.string());
     }
 
     let mut new = ZendHashTable::new();
     new.insert("Hello", "WOrld");
     let _ = _retval.set_array(new);
+}
+
+#[no_mangle]
+pub extern "C" fn test_array(execute_data: &mut ExecutionData, retval: &mut Zval) {
+    let mut hm = HashMap::new();
+    hm.insert("Hello", 123);
+    hm.insert("World", 456);
+    hm.insert("Asdf", 789);
+
+    let x: ZendHashTable = (&hm).into();
+    retval.set_array(x);
 }
