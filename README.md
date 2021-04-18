@@ -33,7 +33,12 @@ See the following links for the dependency crate requirements:
 
 This project only works for PHP >= 8.0 (for now). Due to the fact that the PHP extension system relies heavily on C macros (which cannot be exported to Rust easily), structs have to be hard coded in.
 
-See the [example project](example/skel). There is inline documentation. Starting by creating a C extension is a good start as well.
+There is only inline documentation for the time being. Starting by creating a C extension is a good start as well.
+
+Check out one of the example projects:
+
+- [ext-skel](example/skel) - Testbed for testing the library. Check out previous commits as well to see what else is possible.
+- [opus-php](https://github.com/davidcole1340/opus-php/tree/rewrite_rs) - Work-in-progress extension to use the Opus library in PHP.
 
 ## Contributions
 
