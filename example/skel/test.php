@@ -1,5 +1,8 @@
 <?php
 
+var_dump(SKEL_TEST_CONST, SKEL_TEST_LONG_CONST);
+die;
+
 $x = new TestClass();
 
 skeleton_version(1, 2);

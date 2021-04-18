@@ -3,6 +3,7 @@ use ext_php_rs::{
     php::{
         args::{Arg, ArgParser},
         class::{ClassBuilder, ClassEntry},
+        constants::IntoConst,
         enums::DataType,
         exceptions::throw,
         execution_data::ExecutionData,
@@ -79,7 +80,7 @@ impl Default for Test {
 }
 
 #[no_mangle]
-pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
+pub extern "C" fn module_init(_type: i32, module_number: i32) -> i32 {
     // object_handlers_init!(Test);
 
     ClassBuilder::new("TestClass")
@@ -105,6 +106,9 @@ pub extern "C" fn module_init(_type: i32, _module_number: i32) -> i32 {
         .constant("TEST", "Hello world")
         .object_override::<Test>()
         .build();
+
+    "Test constant".register_constant("SKEL_TEST_CONST", module_number);
+    1234.register_constant("SKEL_TEST_LONG_CONST", module_number);
 
     0
 }
