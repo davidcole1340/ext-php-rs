@@ -357,55 +357,39 @@ impl<'a> Zval {
     }
 }
 
-impl TryFrom<&Zval> for ZendLong {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.long() {
-            Some(val) => Ok(val),
-            _ => Err(()),
+#[macro_use]
+macro_rules! try_from_zval {
+    ($type: ty, $fn: ident) => {
+        impl TryFrom<&Zval> for $type {
+            type Error = ();
+            fn try_from(value: &Zval) -> Result<Self, Self::Error> {
+                match value.$fn() {
+                    Some(v) => <$type>::try_from(v).map_err(|_| ()),
+                    _ => Err(()),
+                }
+            }
         }
-    }
+    };
 }
 
-impl TryFrom<&Zval> for bool {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.bool() {
-            Some(val) => Ok(val),
-            _ => Err(()),
-        }
-    }
-}
+try_from_zval!(i8, long);
+try_from_zval!(i16, long);
+try_from_zval!(i32, long);
+try_from_zval!(i64, long);
 
-impl TryFrom<&Zval> for f64 {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.double() {
-            Some(val) => Ok(val),
-            _ => Err(()),
-        }
-    }
-}
+try_from_zval!(u8, long);
+try_from_zval!(u16, long);
+try_from_zval!(u32, long);
+try_from_zval!(u64, long);
 
-impl TryFrom<&Zval> for String {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.string() {
-            Some(val) => Ok(val),
-            _ => Err(()),
-        }
-    }
-}
+try_from_zval!(usize, long);
+try_from_zval!(isize, long);
 
-impl<'a, 'b> TryFrom<&'b Zval> for ZendHashTable {
-    type Error = ();
-    fn try_from(value: &'b Zval) -> Result<Self, Self::Error> {
-        match value.array() {
-            Some(val) => Ok(val),
-            _ => Err(()),
-        }
-    }
-}
+try_from_zval!(f64, double);
+
+try_from_zval!(bool, bool);
+
+try_from_zval!(String, string);
 
 /// Implements the trait `Into<T>` on Zval for a given type.
 #[macro_use]
