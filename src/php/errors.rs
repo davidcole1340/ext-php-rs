@@ -10,57 +10,57 @@ use crate::bindings::{
 
 impl ClassEntry {
     /// Returns the base `Throwable` class.
-    pub fn throwable<'a>() -> Option<&'a Self> {
+    pub fn throwable() -> Option<&'static Self> {
         unsafe { zend_ce_throwable.as_ref() }
     }
 
     /// Returns the base `Exception` class.
-    pub fn exception<'a>() -> Option<&'a Self> {
+    pub fn exception() -> Option<&'static Self> {
         unsafe { zend_ce_exception.as_ref() }
     }
 
     /// Returns the base `ErrorException` class.
-    pub fn error_exception<'a>() -> Option<&'a Self> {
+    pub fn error_exception() -> Option<&'static Self> {
         unsafe { zend_ce_error_exception.as_ref() }
     }
 
     /// Returns the base `CompileError` class.
-    pub fn compile_error<'a>() -> Option<&'a Self> {
+    pub fn compile_error() -> Option<&'static Self> {
         unsafe { zend_ce_compile_error.as_ref() }
     }
 
     /// Returns the base `ParseError` class.
-    pub fn parse_error<'a>() -> Option<&'a Self> {
+    pub fn parse_error() -> Option<&'static Self> {
         unsafe { zend_ce_parse_error.as_ref() }
     }
 
     /// Returns the base `TypeError` class.
-    pub fn type_error<'a>() -> Option<&'a Self> {
+    pub fn type_error() -> Option<&'static Self> {
         unsafe { zend_ce_type_error.as_ref() }
     }
 
     /// Returns the base `ArgumentCountError` class.
-    pub fn argument_count_error<'a>() -> Option<&'a Self> {
+    pub fn argument_count_error() -> Option<&'static Self> {
         unsafe { zend_ce_argument_count_error.as_ref() }
     }
 
     /// Returns the base `ValueError` class.
-    pub fn value_error<'a>() -> Option<&'a Self> {
+    pub fn value_error() -> Option<&'static Self> {
         unsafe { zend_ce_value_error.as_ref() }
     }
 
     /// Returns the base `ArithmeticError` class.
-    pub fn arithmetic_error<'a>() -> Option<&'a Self> {
+    pub fn arithmetic_error() -> Option<&'static Self> {
         unsafe { zend_ce_arithmetic_error.as_ref() }
     }
 
     /// Returns the base `DivisionByZeroError` class.
-    pub fn division_by_zero_error<'a>() -> Option<&'a Self> {
+    pub fn division_by_zero_error() -> Option<&'static Self> {
         unsafe { zend_ce_division_by_zero_error.as_ref() }
     }
 
     /// Returns the base `UnhandledMatchError` class.
-    pub fn unhandled_match_error<'a>() -> Option<&'a Self> {
+    pub fn unhandled_match_error() -> Option<&'static Self> {
         unsafe { zend_ce_unhandled_match_error.as_ref() }
     }
 }
