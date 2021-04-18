@@ -288,8 +288,8 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_long(&mut self, val: ZendLong) {
-        self.value.lval = val;
+    pub fn set_long<T: Into<ZendLong>>(&mut self, val: T) {
+        self.value.lval = val.into();
         self.u1.type_info = DataType::Long as u32;
     }
 
@@ -298,8 +298,8 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_double(&mut self, val: f64) {
-        self.value.dval = val;
+    pub fn set_double<T: Into<libc::c_double>>(&mut self, val: T) {
+        self.value.dval = val.into();
         self.u1.type_info = DataType::Double as u32;
     }
 
@@ -308,8 +308,8 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_bool(&mut self, val: bool) {
-        self.u1.type_info = if val {
+    pub fn set_bool<T: Into<bool>>(&mut self, val: T) {
+        self.u1.type_info = if val.into() {
             DataType::True as u32
         } else {
             DataType::False as u32
@@ -357,91 +357,68 @@ impl<'a> Zval {
     }
 }
 
-impl TryFrom<&Zval> for ZendLong {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.long() {
-            Some(val) => Ok(val),
-            _ => Err(()),
+#[macro_use]
+macro_rules! try_from_zval {
+    ($type: ty, $fn: ident) => {
+        impl TryFrom<&Zval> for $type {
+            type Error = ();
+            fn try_from(value: &Zval) -> Result<Self, Self::Error> {
+                match value.$fn() {
+                    Some(v) => <$type>::try_from(v).map_err(|_| ()),
+                    _ => Err(()),
+                }
+            }
         }
-    }
+    };
 }
 
-impl TryFrom<&Zval> for bool {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.bool() {
-            Some(val) => Ok(val),
-            _ => Err(()),
+try_from_zval!(i8, long);
+try_from_zval!(i16, long);
+try_from_zval!(i32, long);
+try_from_zval!(i64, long);
+
+try_from_zval!(u8, long);
+try_from_zval!(u16, long);
+try_from_zval!(u32, long);
+try_from_zval!(u64, long);
+
+try_from_zval!(usize, long);
+try_from_zval!(isize, long);
+
+try_from_zval!(f64, double);
+
+try_from_zval!(bool, bool);
+
+try_from_zval!(String, string);
+
+/// Implements the trait `Into<T>` on Zval for a given type.
+#[macro_use]
+macro_rules! into_zval {
+    ($type: ty, $fn: ident) => {
+        impl From<$type> for Zval {
+            fn from(val: $type) -> Self {
+                let mut zv = Self::new();
+                zv.$fn(val);
+                zv
+            }
         }
-    }
+    };
 }
 
-impl TryFrom<&Zval> for f64 {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.double() {
-            Some(val) => Ok(val),
-            _ => Err(()),
-        }
-    }
-}
+into_zval!(i8, set_long);
+into_zval!(i16, set_long);
+into_zval!(i32, set_long);
+into_zval!(i64, set_long);
 
-impl TryFrom<&Zval> for String {
-    type Error = ();
-    fn try_from(value: &Zval) -> Result<Self, Self::Error> {
-        match value.string() {
-            Some(val) => Ok(val),
-            _ => Err(()),
-        }
-    }
-}
+into_zval!(u8, set_long);
+into_zval!(u16, set_long);
+into_zval!(u32, set_long);
 
-impl<'a, 'b> TryFrom<&'b Zval> for ZendHashTable {
-    type Error = ();
-    fn try_from(value: &'b Zval) -> Result<Self, Self::Error> {
-        match value.array() {
-            Some(val) => Ok(val),
-            _ => Err(()),
-        }
-    }
-}
+into_zval!(f32, set_double);
+into_zval!(f64, set_double);
 
-impl From<ZendLong> for Zval {
-    fn from(val: ZendLong) -> Self {
-        let mut zv = Self::new();
-        zv.set_long(val);
-        zv
-    }
-}
+into_zval!(bool, set_bool);
 
-impl From<bool> for Zval {
-    fn from(val: bool) -> Self {
-        let mut zv = Self::new();
-        zv.set_bool(val);
-        zv
-    }
-}
-impl From<f64> for Zval {
-    fn from(val: f64) -> Self {
-        let mut zv = Self::new();
-        zv.set_double(val);
-        zv
-    }
-}
-
-impl From<String> for Zval {
-    fn from(val: String) -> Self {
-        let mut zv = Self::new();
-        zv.set_string(val);
-        zv
-    }
-}
-
-impl From<&str> for Zval {
-    fn from(val: &str) -> Self {
-        let mut zv = Self::new();
-        zv.set_string(val);
-        zv
-    }
-}
+into_zval!(String, set_string);
+into_zval!(&String, set_string);
+into_zval!(&str, set_string);
