@@ -51,11 +51,83 @@ macro_rules! _info_table_row {
 ///
 /// # Parameters
 ///
-/// * `$fn` - The 'function' to call. Can be an [`Arg`] or a [`Zval`].
-/// * ...`$param` - The parameters to pass to the function. Must be able to be converted into a [`Zval`].
+/// * `$fn` - The 'function' to call. Can be an [Arg](crate::php::args::Arg) or a
+/// [Zval](crate::php::types::zval::Zval).
+/// * ...`$param` - The parameters to pass to the function. Must be able to be converted into a
+/// (crate::php::types::zval::Zval).
 #[macro_export]
 macro_rules! call_user_func {
     ($fn: expr, $($param: expr),*) => {
         $fn.try_call(vec![$($param.into()),*])
     };
+}
+
+/// Parses a given list of arguments using the [ArgParser](crate::php::args::ArgParser) class.
+///
+/// # Examples
+///
+/// This example parses all of the arguments. If one is invalid, execution of the function will
+/// stop at the `parse_args!` macro invocation. The user is notified via PHP's argument parsing
+/// system.
+///
+/// In this case, all of the arguments are required.
+///
+/// ```
+/// # #[macro_use] extern crate ext_php_rs;
+/// use ext_php_rs::{
+///    parse_args,
+///    php::{args::Arg, enums::DataType, execution_data::ExecutionData, types::zval::Zval},
+/// };
+///
+/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+///     let mut x = Arg::new("x", DataType::Long);
+///     let mut y = Arg::new("y", DataType::Long);
+///     let mut z = Arg::new("z", DataType::Long);
+///
+///     parse_args!(execute_data, x, y, z);
+/// }
+/// ```
+///
+/// This example is similar to the one above, apart from the fact that the `z` argument is not
+/// required. Note the semicolon seperating the first two arguments from the second.
+///
+/// ```
+/// use ext_php_rs::{
+///    parse_args,
+///    php::{args::Arg, enums::DataType, execution_data::ExecutionData, types::zval::Zval},
+/// };
+///
+/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+///     let mut x = Arg::new("x", DataType::Long);
+///     let mut y = Arg::new("y", DataType::Long);
+///     let mut z = Arg::new("z", DataType::Long);
+///
+///     parse_args!(execute_data, x, y; z);
+/// }
+/// ```
+#[macro_export]
+macro_rules! parse_args {
+    ($ed: expr, $($arg: expr),*) => {{
+        use $crate::php::args::ArgParser;
+
+        let parser = ArgParser::new($ed)
+            $(.arg(&mut $arg))*
+            .parse();
+        if parser.is_err() {
+            return;
+        }
+    }};
+
+    ($ed: expr, $($arg: expr),* ; $($opt: expr),*) => {{
+        use $crate::php::args::ArgParser;
+
+        let parser = ArgParser::new($ed)
+            $(.arg(&mut $arg))*
+            .not_required()
+            $(.arg(&mut $opt))*
+            .parse();
+        if parser.is_err() {
+            return;
+        }
+    }};
 }

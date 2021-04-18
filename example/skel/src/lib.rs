@@ -1,5 +1,5 @@
 use ext_php_rs::{
-    call_user_func, info_table_end, info_table_row, info_table_start,
+    call_user_func, info_table_end, info_table_row, info_table_start, parse_args,
     php::{
         args::{Arg, ArgParser},
         class::ClassBuilder,
@@ -161,11 +161,11 @@ pub extern "C" fn skeleton_version(execute_data: &mut ExecutionData, _retval: &m
 #[no_mangle]
 pub extern "C" fn skeleton_array(execute_data: &mut ExecutionData, _retval: &mut Zval) {
     let mut arr = Arg::new("arr", DataType::Array);
+    let mut x = Arg::new("x", DataType::Long);
+    let mut y = Arg::new("y", DataType::Double);
+    let mut z = Arg::new("z", DataType::Double);
 
-    let result = ArgParser::new(execute_data).arg(&mut arr).parse();
-    if result.is_err() {
-        return;
-    }
+    parse_args!(execute_data, arr, x, y; z);
 
     let ht: ZendHashTable = arr.val().unwrap();
 
