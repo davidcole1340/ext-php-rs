@@ -323,6 +323,16 @@ where
     }
 }
 
+/// Implementation for converting a `ZendHashTable` into a `Vec` of given type.
+impl<'a, V> From<ZendHashTable> for Vec<V>
+where
+    V: From<Zval>,
+{
+    fn from(ht: ZendHashTable) -> Self {
+        ht.into_iter().map(|(_, _, v)| v.into()).collect()
+    }
+}
+
 /// Implementation for converting a Rust Vec into a ZendHashTable.
 impl<'a, V> From<Vec<V>> for ZendHashTable
 where
