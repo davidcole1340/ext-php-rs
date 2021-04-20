@@ -21,7 +21,9 @@ This is not a set feature list, but these are the features on my roadmap. Create
 
 - PHP 8.0 or later
      - No support is planned for lower versions.
+- Linux or Darwin-based OS
 - Rust - no idea which version
+- Clang 3.9 or greater
 
 See the following links for the dependency crate requirements:
 
