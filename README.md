@@ -52,6 +52,18 @@ Contributions are very much welcome. I am a novice Rust developer and any sugges
 
 ## License
 
-This software is dual-licensed under the MIT license and the Apache license (Version 2.0) at your preference.
+Licensed under either of
 
-See [LICENSE_MIT](LICENSE_MIT) and [LICENSE_APACHE](LICENCE_APACHE) for details.
+ * Apache License, Version 2.0
+   ([LICENSE_APACHE](LICENSE_APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license
+   ([LICENSE_MIT](LICENSE_MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+## Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+
