@@ -4,10 +4,13 @@
 use core::slice;
 use std::{convert::TryFrom, ptr};
 
-use crate::bindings::{
-    _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
-    ext_php_rs_zend_string_release, zend_is_callable, zend_object, zend_resource, zend_value, zval,
-    IS_INTERNED_STRING_EX, IS_STRING_EX,
+use crate::{
+    bindings::{
+        _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
+        ext_php_rs_zend_string_release, zend_is_callable, zend_object, zend_resource, zend_value,
+        zval, IS_INTERNED_STRING_EX, IS_STRING_EX,
+    },
+    errors::{Error, Result},
 };
 
 use crate::php::{
@@ -176,6 +179,11 @@ impl<'a> Zval {
         } else {
             Some(retval)
         }
+    }
+
+    /// Returns the type of the Zval.
+    pub fn get_type(&self) -> Result<DataType> {
+        DataType::try_from(unsafe { self.u1.v.type_ })
     }
 
     /// Returns true if the zval is a long, false otherwise.
@@ -361,11 +369,11 @@ impl<'a> Zval {
 macro_rules! try_from_zval {
     ($type: ty, $fn: ident) => {
         impl TryFrom<&Zval> for $type {
-            type Error = ();
-            fn try_from(value: &Zval) -> Result<Self, Self::Error> {
+            type Error = Error;
+            fn try_from(value: &Zval) -> Result<Self> {
                 match value.$fn() {
-                    Some(v) => <$type>::try_from(v).map_err(|_| ()),
-                    _ => Err(()),
+                    Some(v) => <$type>::try_from(v).map_err(|_| Error::ZvalConversionError),
+                    _ => Err(Error::ZvalConversionError),
                 }
             }
         }

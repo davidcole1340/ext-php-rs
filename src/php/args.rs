@@ -4,12 +4,15 @@ use std::convert::{TryFrom, TryInto};
 
 use super::{enums::DataType, execution_data::ExecutionData, types::zval::Zval};
 
-use crate::bindings::{
-    _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY, _zend_expected_type_Z_EXPECTED_BOOL,
-    _zend_expected_type_Z_EXPECTED_DOUBLE, _zend_expected_type_Z_EXPECTED_LONG,
-    _zend_expected_type_Z_EXPECTED_OBJECT, _zend_expected_type_Z_EXPECTED_RESOURCE,
-    _zend_expected_type_Z_EXPECTED_STRING, zend_internal_arg_info,
-    zend_wrong_parameters_count_error,
+use crate::{
+    bindings::{
+        _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY,
+        _zend_expected_type_Z_EXPECTED_BOOL, _zend_expected_type_Z_EXPECTED_DOUBLE,
+        _zend_expected_type_Z_EXPECTED_LONG, _zend_expected_type_Z_EXPECTED_OBJECT,
+        _zend_expected_type_Z_EXPECTED_RESOURCE, _zend_expected_type_Z_EXPECTED_STRING,
+        zend_internal_arg_info, zend_wrong_parameters_count_error,
+    },
+    errors::{Error, Result},
 };
 
 /// Represents an argument to a function.
@@ -180,7 +183,7 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     /// * `Err(String)` - There were too many or too little arguments
     /// passed to the function. The user has already been notified so you
     /// can discard and return from the function if an `Err` is received.
-    pub fn parse(mut self) -> Result<(), String> {
+    pub fn parse(mut self) -> Result<()> {
         let execute_data = unsafe { self.execute_data.as_ref() }.unwrap();
         let num_args = unsafe { execute_data.This.u2.num_args };
         let max_num_args = self.args.len() as u32;
@@ -192,10 +195,7 @@ impl<'a, 'b> ArgParser<'a, 'b> {
         if num_args < min_num_args || num_args > max_num_args {
             unsafe { zend_wrong_parameters_count_error(min_num_args, max_num_args) };
 
-            return Err(format!(
-                "Expected at least {} arguments, got {} arguments.",
-                min_num_args, num_args,
-            ));
+            return Err(Error::IncorrectArguments(num_args, min_num_args));
         }
 
         for (i, arg) in self.args.iter_mut().enumerate() {

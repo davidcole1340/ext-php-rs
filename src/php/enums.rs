@@ -1,11 +1,14 @@
 //! Wrapper for enums introduced in C.
 
-use crate::bindings::{
-    IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_OBJECT,
-    IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
-};
+use std::convert::TryFrom;
 
-use super::types::long::ZendLong;
+use crate::{
+    bindings::{
+        IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_OBJECT,
+        IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
+    },
+    errors::{Error, Result},
+};
 
 /// Valid data types for PHP.
 #[derive(Clone, Copy, Debug)]
@@ -29,30 +32,27 @@ pub enum DataType {
     Void = IS_VOID,
 }
 
-impl From<ZendLong> for DataType {
-    fn from(_: ZendLong) -> Self {
-        Self::Long
-    }
-}
+impl TryFrom<u8> for DataType {
+    type Error = Error;
 
-impl From<bool> for DataType {
-    fn from(x: bool) -> Self {
-        if x {
-            Self::True
-        } else {
-            Self::False
+    fn try_from(value: u32) -> Result<Self> {
+        match value {
+            IS_UNDEF => Ok(DataType::Undef),
+            IS_NULL => Ok(DataType::Null),
+            IS_FALSE => Ok(DataType::False),
+            IS_TRUE => Ok(DataType::True),
+            IS_LONG => Ok(DataType::Long),
+            IS_DOUBLE => Ok(DataType::Double),
+            IS_STRING => Ok(DataType::String),
+            IS_ARRAY => Ok(DataType::Array),
+            IS_OBJECT => Ok(DataType::Object),
+            IS_RESOURCE => Ok(DataType::Resource),
+            IS_REFERENCE => Ok(DataType::Reference),
+            IS_CALLABLE => Ok(DataType::Callable),
+            IS_CONSTANT_AST => Ok(DataType::ConstantExpression),
+            IS_VOID => Ok(DataType::Void),
+
+            _ => Err(Error::UnknownDatatype(value)),
         }
-    }
-}
-
-impl From<f64> for DataType {
-    fn from(_: f64) -> Self {
-        Self::Double
-    }
-}
-
-impl From<String> for DataType {
-    fn from(_: String) -> Self {
-        Self::String
     }
 }
