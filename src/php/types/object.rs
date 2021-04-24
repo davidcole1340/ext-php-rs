@@ -2,6 +2,7 @@
 //! allowing users to store Rust data inside a PHP object.
 
 use std::{
+    fmt::Debug,
     mem,
     ops::{Deref, DerefMut},
 };
@@ -92,6 +93,12 @@ impl<T: Default> ZendClassObject<T> {
             let ptr = ptr.offset(0 - offset as isize);
             (ptr as *mut Self).as_mut()
         }
+    }
+}
+
+impl<T: Default + Debug> Debug for ZendClassObject<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.obj.fmt(f)
     }
 }
 

@@ -1,5 +1,8 @@
 <?php
 
+var_dump(skeleton_version(['world' => 'hello', 1, 3],2.1123));
+die;
+
 var_dump(SKEL_TEST_CONST, SKEL_TEST_LONG_CONST);
 var_dump(test_array());
 die;

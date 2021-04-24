@@ -16,6 +16,7 @@ use crate::{
 };
 
 /// Represents an argument to a function.
+#[derive(Debug, Clone)]
 pub struct Arg<'a> {
     pub(crate) name: String,
     pub(crate) _type: DataType,

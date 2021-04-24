@@ -4,6 +4,7 @@
 use std::{
     collections::HashMap,
     convert::{TryFrom, TryInto},
+    fmt::Debug,
     u64,
 };
 
@@ -224,6 +225,17 @@ impl ZendHashTable {
     pub(crate) fn into_ptr(mut self) -> *mut HashTable {
         self.free = false;
         self.ptr
+    }
+}
+
+impl Debug for ZendHashTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_map()
+            .entries(
+                self.into_iter()
+                    .map(|(k, k2, v)| (k2.unwrap_or_else(|| k.to_string()), v)),
+            )
+            .finish()
     }
 }
 
