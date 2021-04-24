@@ -131,3 +131,31 @@ macro_rules! parse_args {
         }
     }};
 }
+
+/// Throws an exception and returns from the current function.
+///
+/// Wraps the [`throw`] function by inserting a `return` statement after throwing the exception.
+///
+/// [`throw`]: crate::php::exceptions::throw
+///
+/// # Examples
+///
+/// ```
+/// use ext_php_rs::{throw, php::{class::ClassEntry, execution_data::ExecutionData, types::zval::Zval}};
+///
+/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+///     let something_wrong = true;
+///     if something_wrong {
+///         throw!(ClassEntry::exception(), "Something is wrong!");
+///     }
+///
+///     assert!(false); // This will not run.
+/// }
+/// ```
+#[macro_export]
+macro_rules! throw {
+    ($ex: expr, $reason: expr) => {
+        $crate::php::exceptions::throw($ex, $reason);
+        return;
+    };
+}
