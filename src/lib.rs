@@ -5,6 +5,7 @@
 #[macro_use]
 pub mod macros;
 pub mod bindings;
+pub mod errors;
 pub mod functions;
 pub mod php;
 

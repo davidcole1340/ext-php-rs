@@ -135,7 +135,7 @@ impl ZendHashTable {
     /// # Returns
     ///
     /// * `Ok(())` - Key was successfully removed.
-    /// * `Err(())` - No key was removed, did not exist.
+    /// * `None` - No key was removed, did not exist.
     pub fn remove_index(&self, key: u64) -> Option<()> {
         let result = unsafe { zend_hash_index_del(self.ptr, key) };
 
@@ -191,7 +191,7 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// * `Some(Zval)` - The existing value in the hash table that was overriden.
+    /// * `Some(&Zval)` - The existing value in the hash table that was overriden.
     /// * `None` - The element was inserted.
     pub fn insert_at_index<V>(&mut self, key: u64, val: V) -> Option<&Zval>
     where
