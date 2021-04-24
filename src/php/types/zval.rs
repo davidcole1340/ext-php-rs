@@ -2,7 +2,7 @@
 //! determined by a property inside the struct. The content of the Zval is stored in a union.
 
 use core::slice;
-use std::{convert::TryFrom, ptr};
+use std::{convert::TryFrom, fmt::Debug, ptr};
 
 use crate::{
     bindings::{
@@ -362,6 +362,41 @@ impl<'a> Zval {
     {
         self.u1.type_info = DataType::Array as u32;
         self.value.arr = val.into().into_ptr();
+    }
+}
+
+impl Debug for Zval {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut dbg = f.debug_struct("Zval");
+        let ty = self.get_type();
+        dbg.field("type", &ty);
+
+        if let Ok(ty) = ty {
+            macro_rules! field {
+                ($value: expr) => {
+                    dbg.field("val", &$value)
+                };
+            }
+
+            match ty {
+                DataType::Undef => field!("Undefined"),
+                DataType::Null => field!("Null"),
+                DataType::False => field!(false),
+                DataType::True => field!(true),
+                DataType::Long => field!(self.long()),
+                DataType::Double => field!(self.double()),
+                DataType::String => field!(self.string()),
+                DataType::Array => field!(self.array()),
+                DataType::Object => field!(self.object()),
+                DataType::Resource => field!(self.resource()),
+                DataType::Reference => field!(self.reference()),
+                DataType::Callable => field!(self.string()),
+                DataType::ConstantExpression => field!("Constant Expression"),
+                DataType::Void => field!("Void"),
+            };
+        }
+
+        dbg.finish()
     }
 }
 

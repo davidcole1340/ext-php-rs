@@ -118,7 +118,7 @@ pub extern "C" fn module_init(_type: i32, module_number: i32) -> i32 {
 #[no_mangle]
 pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
     let funct = FunctionBuilder::new("skeleton_version", skeleton_version)
-        .arg(Arg::new("a", DataType::Long))
+        .arg(Arg::new("a", DataType::Array))
         .arg(Arg::new("b", DataType::Double))
         .not_required()
         .arg(Arg::new("c", DataType::Double))
@@ -144,32 +144,14 @@ pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
 }
 
 #[no_mangle]
-pub extern "C" fn skeleton_version(execute_data: &mut ExecutionData, _retval: &mut Zval) {
-    let mut x = Arg::new("x", DataType::Long);
+pub extern "C" fn skeleton_version(execute_data: &mut ExecutionData, retval: &mut Zval) {
+    let mut x = Arg::new("x", DataType::Array);
     let mut y = Arg::new("y", DataType::Double);
     let mut z = Arg::new("z", DataType::Double);
 
-    let result = ArgParser::new(execute_data)
-        .arg(&mut x)
-        .arg(&mut y)
-        .not_required()
-        .arg(&mut z)
-        .parse();
-
-    if result.is_err() {
-        return;
-    }
-
-    throw(ClassEntry::exception(), "Hello!");
-
-    let result = format!(
-        "x: {}, y: {}, z: {}",
-        x.val::<ZendLong>().unwrap_or_default(),
-        y.val::<f64>().unwrap_or_default(),
-        z.val::<f64>().unwrap_or_default()
-    );
-
-    _retval.set_string(result);
+    parse_args!(execute_data, x, y; z);
+    dbg!(x);
+    retval.set_string("Hello");
 }
 
 #[no_mangle]

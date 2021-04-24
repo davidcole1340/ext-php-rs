@@ -40,6 +40,7 @@ pub type FunctionHandler = extern "C" fn(execute_data: &mut ExecutionData, retva
 type FunctionPointerHandler = extern "C" fn(execute_data: *mut ExecutionData, retval: *mut Zval);
 
 /// Builds a function to be exported as a PHP function.
+#[derive(Debug, Clone)]
 pub struct FunctionBuilder<'a> {
     function: FunctionEntry,
     args: Vec<Arg<'a>>,

@@ -42,6 +42,7 @@ pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);
 ///         .into_raw()
 /// }
 /// ```
+#[derive(Debug, Clone)]
 pub struct ModuleBuilder {
     module: ModuleEntry,
     functions: Vec<FunctionEntry>,
