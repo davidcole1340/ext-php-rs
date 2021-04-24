@@ -1,6 +1,6 @@
 //! Wrapper for enums introduced in C.
 
-use std::convert::TryFrom;
+use std::{convert::TryFrom, fmt::Display};
 
 use crate::{
     bindings::{
@@ -35,8 +35,8 @@ pub enum DataType {
 impl TryFrom<u8> for DataType {
     type Error = Error;
 
-    fn try_from(value: u32) -> Result<Self> {
-        match value {
+    fn try_from(value: u8) -> Result<Self> {
+        match value as u32 {
             IS_UNDEF => Ok(DataType::Undef),
             IS_NULL => Ok(DataType::Null),
             IS_FALSE => Ok(DataType::False),
@@ -53,6 +53,27 @@ impl TryFrom<u8> for DataType {
             IS_VOID => Ok(DataType::Void),
 
             _ => Err(Error::UnknownDatatype(value)),
+        }
+    }
+}
+
+impl Display for DataType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DataType::Undef => write!(f, "Undefined"),
+            DataType::Null => write!(f, "Null"),
+            DataType::False => write!(f, "False"),
+            DataType::True => write!(f, "True"),
+            DataType::Long => write!(f, "Long"),
+            DataType::Double => write!(f, "Double"),
+            DataType::String => write!(f, "String"),
+            DataType::Array => write!(f, "Array"),
+            DataType::Object => write!(f, "Object"),
+            DataType::Resource => write!(f, "Resource"),
+            DataType::Reference => write!(f, "Reference"),
+            DataType::Callable => write!(f, "Callable"),
+            DataType::ConstantExpression => write!(f, "Constant Expression"),
+            DataType::Void => write!(f, "Void"),
         }
     }
 }

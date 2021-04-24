@@ -372,8 +372,11 @@ macro_rules! try_from_zval {
             type Error = Error;
             fn try_from(value: &Zval) -> Result<Self> {
                 match value.$fn() {
-                    Some(v) => <$type>::try_from(v).map_err(|_| Error::ZvalConversionError),
-                    _ => Err(Error::ZvalConversionError),
+                    Some(v) => match <$type>::try_from(v) {
+                        Ok(v) => Ok(v),
+                        Err(_) => Err(Error::ZvalConversion(value.get_type()?)),
+                    },
+                    _ => Err(Error::ZvalConversion(value.get_type()?)),
                 }
             }
         }
