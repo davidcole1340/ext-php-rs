@@ -77,7 +77,7 @@ impl<'a> Zval {
             unsafe {
                 let len = (*self.value.str_).len;
                 let ptr = (*self.value.str_).val.as_ptr() as *const u8;
-                let _str = std::str::from_utf8(slice::from_raw_parts(ptr, len as usize)).unwrap();
+                let _str = std::str::from_utf8(slice::from_raw_parts(ptr, len as usize)).ok()?;
 
                 Some(_str.to_string())
             }
