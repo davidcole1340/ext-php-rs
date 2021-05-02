@@ -18,9 +18,20 @@ use crate::bindings::ext_php_rs_zend_string_init;
 /// [`pack`]: https://www.php.net/manual/en/function.pack.php
 /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
 pub unsafe trait Pack: Sized {
-    fn pack_into(vec: Vec<Self>) -> *mut ZendString; //{
-                                                     //     unsafe { ext_php_rs_zend_string_init(ptr as *mut i8, vec.len() as _, false) }
-                                                     // }
+    /// Packs a given vector into a Zend binary string. Can be passed to PHP and then unpacked
+    /// using the [`unpack`] function. Note you should probably use the [`set_binary`] method on the
+    /// [`Zval`] struct instead of this function directly, as there is currently no way to set a
+    /// [`ZendString`] on a [`Zval`] directly.
+    ///
+    /// # Parameters
+    ///
+    /// * `vec` - The vector to pack into a binary string.
+    ///
+    /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
+    /// [`Zval`]: crate::php::types::zval::Zval
+    /// [`ZendString`]: crate::php::types::string::ZendString
+    /// [`set_binary`]: crate::php::types::zval::Zval#method.set_binary
+    fn pack_into(vec: Vec<Self>) -> *mut ZendString;
 
     /// Unpacks a given Zend binary string into a Rust vector. Can be used to pass data from `pack`
     /// in PHP to Rust without encoding into another format. Note that the data *must* be all one
