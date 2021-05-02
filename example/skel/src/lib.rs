@@ -12,7 +12,10 @@ use ext_php_rs::{
         flags::MethodFlags,
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
-        types::{array::ZendHashTable, long::ZendLong, object::ZendClassObject, zval::Zval},
+        types::{
+            array::ZendHashTable, long::ZendLong, object::ZendClassObject, string::ZendString,
+            zval::Zval,
+        },
     },
     ZendObjectHandler,
 };
@@ -133,12 +136,18 @@ pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
         .returns(DataType::Array, false, false)
         .build();
 
+    let iter = FunctionBuilder::new("skel_unpack", skel_unpack)
+        .arg(Arg::new("arr", DataType::String))
+        .returns(DataType::String, false, false)
+        .build();
+
     ModuleBuilder::new("ext-skel", "0.1.0")
         .info_function(php_module_info)
         .startup_function(module_init)
         .function(funct)
         .function(array)
         .function(t)
+        .function(iter)
         .build()
         .into_raw()
 }
@@ -177,4 +186,15 @@ pub extern "C" fn skeleton_array(execute_data: &mut ExecutionData, _retval: &mut
 #[no_mangle]
 pub extern "C" fn test_array(_execute_data: &mut ExecutionData, retval: &mut Zval) {
     retval.set_array(vec![1, 2, 3, 4]);
+}
+
+pub extern "C" fn skel_unpack(execute_data: &mut ExecutionData, retval: &mut Zval) {
+    let mut packed = Arg::new("arr", DataType::String);
+    parse_args!(execute_data, packed);
+
+    let zv = packed.zval().unwrap();
+    let val = unsafe { zv.binary::<f32>() };
+    dbg!(val);
+    let v = vec![1u8, 2, 4, 8];
+    retval.set_binary(v);
 }
