@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Iter","Iterator for a Zend hashtable/array."],["ZendHashTable","A PHP array, which internally is a hash table."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"derive":[["ZendObjectHandler","Derives the implementation of `ZendObjectOverride` for the given structure."]]});

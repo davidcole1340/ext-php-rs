@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error","The main error type which is passed by the library inside the custom [`Result`] type."]],"type":[["Result","The main result type which is passed by the library."]]});

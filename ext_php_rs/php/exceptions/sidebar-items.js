@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["throw","Throws an exception with a given message. See [`ClassEntry`] for some built-in exception types."],["throw_with_code","Throws an exception with a given message and status code. See [`ClassEntry`] for some built-in exception types."]]});

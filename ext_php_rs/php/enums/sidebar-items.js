@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["DataType","Valid data types for PHP."]]});

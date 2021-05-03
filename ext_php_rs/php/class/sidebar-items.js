@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ClassBuilder","Builds a class to be exported as a PHP class."]],"type":[["ClassEntry","A Zend class entry. Alias."]]});
