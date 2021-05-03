@@ -1,0 +1,51 @@
+name: Deploy documentation
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  docs:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust-toolchain:
+          - nightly
+        php:
+          - '8.0'
+        llvm:
+          - '11.0'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust-toolchain }}
+      - name: Setup LLVM & Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: ${{ matrix.llvm }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
+      - name: Build docs
+        uses: actions-rs/cargo@v1
+        env:
+          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
+        with:
+          command: doc
+          args: --release
+      - name: Create index redirect
+        run: |
+          echo '<meta http-equiv=refresh content=0;url=/ext-php-rs/ext_php_rs>' > target/doc/index.html
+      - name: Publish docs
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: target/doc
+          CLEAN: true

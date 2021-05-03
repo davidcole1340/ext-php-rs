@@ -4,6 +4,12 @@ Bindings for the Zend API to build PHP extensions natively in Rust. Inspired by 
 
 [![PHP Discorders](https://discord.com/api/guilds/115233111977099271/widget.png?style=banner1)](https://discord.gg/dphp)
 
+## Documentation
+
+We are currently unable to deploy our documentation to `docs.rs` due to the crate requiring PHP 8.0, which is unavailable in the default Ubuntu repositories.
+Documentation can be viewed [here](https://davidcole1340.github.io/ext-php-rs/). It is generated from the latest `master` branch. Documentation will be moved to `docs.rs` when Ubuntu updates its repositories
+to PHP 8.0.
+
 ## Features
 
 This is not a set feature list, but these are the features on my roadmap. Create an issue if there's something you'd like to see!
