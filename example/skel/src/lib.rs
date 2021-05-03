@@ -175,12 +175,6 @@ pub extern "C" fn skeleton_array(execute_data: &mut ExecutionData, _retval: &mut
 }
 
 #[no_mangle]
-pub extern "C" fn test_array(execute_data: &mut ExecutionData, retval: &mut Zval) {
-    let mut hm = HashMap::new();
-    hm.insert("Hello", 123);
-    hm.insert("World", 456);
-    hm.insert("Asdf", 789);
-
-    let x: ZendHashTable = (&hm).into();
-    retval.set_array(x);
+pub extern "C" fn test_array(_execute_data: &mut ExecutionData, retval: &mut Zval) {
+    retval.set_array(vec![1, 2, 3, 4]);
 }
