@@ -288,8 +288,8 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_binary<T: Pack>(&mut self, val: Vec<T>) {
-        let ptr = T::pack_into(val);
+    pub fn set_binary<T: Pack, U: AsRef<[T]>>(&mut self, val: U) {
+        let ptr = T::pack_into(val.as_ref().to_vec());
         self.value.str_ = ptr;
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }

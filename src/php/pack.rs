@@ -17,7 +17,7 @@ use crate::bindings::ext_php_rs_zend_string_init;
 ///
 /// [`pack`]: https://www.php.net/manual/en/function.pack.php
 /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
-pub unsafe trait Pack: Sized {
+pub unsafe trait Pack: Clone {
     /// Packs a given vector into a Zend binary string. Can be passed to PHP and then unpacked
     /// using the [`unpack`] function. Note you should probably use the [`set_binary`] method on the
     /// [`Zval`] struct instead of this function directly, as there is currently no way to set a
