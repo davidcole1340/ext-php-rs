@@ -1,9 +1,8 @@
 name: Deploy documentation
-# on:
-#   push:
-#     branches:
-#       - master
-on: push
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   docs:
@@ -42,7 +41,7 @@ jobs:
           args: --release
       - name: Create index redirect
         run: |
-          echo '<meta http-equiv=refresh content=0;url=YOURLIBNAME/index.html>' > target/doc/index.html
+          echo '<meta http-equiv=refresh content=0;url=/ext-php-rs/ext_php_rs>' > target/doc/index.html
       - name: Publish docs
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
