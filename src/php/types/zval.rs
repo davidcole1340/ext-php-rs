@@ -8,13 +8,14 @@ use crate::{
     bindings::{
         _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
         ext_php_rs_zend_string_release, zend_is_callable, zend_object, zend_resource, zend_value,
-        zval, IS_INTERNED_STRING_EX, IS_STRING_EX,
+        zval,
     },
     errors::{Error, Result},
 };
 
 use crate::php::{
     enums::DataType,
+    flags::ZvalTypeFlags,
     types::{long::ZendLong, string::ZendString},
 };
 
@@ -258,7 +259,7 @@ impl<'a> Zval {
     {
         let zend_str = ZendString::new(val, false);
         self.value.str_ = zend_str;
-        self.u1.type_info = IS_STRING_EX;
+        self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
     /// Sets the value of the zval as a persistent string.
@@ -274,7 +275,7 @@ impl<'a> Zval {
     {
         let zend_str = ZendString::new(val, true);
         self.value.str_ = zend_str;
-        self.u1.type_info = IS_STRING_EX;
+        self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
     /// Sets the value of the zval as a interned string.
@@ -288,7 +289,7 @@ impl<'a> Zval {
     {
         let zend_str = ZendString::new_interned(val);
         self.value.str_ = zend_str;
-        self.u1.type_info = IS_INTERNED_STRING_EX;
+        self.u1.type_info = ZvalTypeFlags::InternedStringEx.bits();
     }
 
     /// Sets the value of the zval as a long.
@@ -298,7 +299,7 @@ impl<'a> Zval {
     /// * `val` - The value to set the zval as.
     pub fn set_long<T: Into<ZendLong>>(&mut self, val: T) {
         self.value.lval = val.into();
-        self.u1.type_info = DataType::Long as u32;
+        self.u1.type_info = ZvalTypeFlags::Long.bits();
     }
 
     /// Sets the value of the zval as a double.
@@ -308,7 +309,7 @@ impl<'a> Zval {
     /// * `val` - The value to set the zval as.
     pub fn set_double<T: Into<libc::c_double>>(&mut self, val: T) {
         self.value.dval = val.into();
-        self.u1.type_info = DataType::Double as u32;
+        self.u1.type_info = ZvalTypeFlags::Double.bits();
     }
 
     /// Sets the value of the zval as a boolean.
@@ -327,7 +328,7 @@ impl<'a> Zval {
     /// Sets the value of the zval as null.
     /// This is the default of a zval.
     pub fn set_null(&mut self) {
-        self.u1.type_info = DataType::Null as u32;
+        self.u1.type_info = ZvalTypeFlags::Null.bits();
     }
 
     /// Sets the value of the zval as a resource.
@@ -336,7 +337,7 @@ impl<'a> Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_resource(&mut self, val: *mut zend_resource) {
-        self.u1.type_info = DataType::Resource as u32;
+        self.u1.type_info = ZvalTypeFlags::ResourceEx.bits();
         self.value.res = val;
     }
 
@@ -347,7 +348,7 @@ impl<'a> Zval {
     /// * `val` - The value to set the zval as.
     /// * `copy` - Whether to copy the object or pass as a reference.
     pub fn set_object(&mut self, val: *mut zend_object, _copy: bool) {
-        self.u1.type_info = DataType::Object as u32;
+        self.u1.type_info = ZvalTypeFlags::ObjectEx.bits();
         self.value.obj = val;
     }
 
@@ -360,7 +361,7 @@ impl<'a> Zval {
     where
         V: Into<ZendHashTable>,
     {
-        self.u1.type_info = DataType::Array as u32;
+        self.u1.type_info = ZvalTypeFlags::ArrayEx.bits();
         self.value.arr = val.into().into_ptr();
     }
 }

@@ -8,6 +8,7 @@ use crate::{
         IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
     },
     errors::{Error, Result},
+    php::flags::ZvalTypeFlags,
 };
 
 /// Valid data types for PHP.
@@ -32,28 +33,43 @@ pub enum DataType {
     Void = IS_VOID,
 }
 
+impl TryFrom<ZvalTypeFlags> for DataType {
+    type Error = Error;
+
+    fn try_from(value: ZvalTypeFlags) -> Result<Self> {
+        macro_rules! contains {
+            ($t: ident) => {
+                if value.contains(ZvalTypeFlags::$t) {
+                    return Ok(DataType::$t);
+                }
+            };
+        }
+
+        contains!(Undef);
+        contains!(Null);
+        contains!(False);
+        contains!(True);
+        contains!(False);
+        contains!(Long);
+        contains!(Double);
+        contains!(String);
+        contains!(Array);
+        contains!(Object);
+        contains!(Resource);
+        contains!(Callable);
+        contains!(ConstantExpression);
+        contains!(Void);
+
+        Err(Error::UnknownDatatype(0))
+    }
+}
+
 impl TryFrom<u8> for DataType {
     type Error = Error;
 
     fn try_from(value: u8) -> Result<Self> {
-        match value as u32 {
-            IS_UNDEF => Ok(DataType::Undef),
-            IS_NULL => Ok(DataType::Null),
-            IS_FALSE => Ok(DataType::False),
-            IS_TRUE => Ok(DataType::True),
-            IS_LONG => Ok(DataType::Long),
-            IS_DOUBLE => Ok(DataType::Double),
-            IS_STRING => Ok(DataType::String),
-            IS_ARRAY => Ok(DataType::Array),
-            IS_OBJECT => Ok(DataType::Object),
-            IS_RESOURCE => Ok(DataType::Resource),
-            IS_REFERENCE => Ok(DataType::Reference),
-            IS_CALLABLE => Ok(DataType::Callable),
-            IS_CONSTANT_AST => Ok(DataType::ConstantExpression),
-            IS_VOID => Ok(DataType::Void),
-
-            _ => Err(Error::UnknownDatatype(value)),
-        }
+        let flags = ZvalTypeFlags::from_bits(value.into()).ok_or(Error::UnknownDatatype(value))?;
+        DataType::try_from(flags)
     }
 }
 
