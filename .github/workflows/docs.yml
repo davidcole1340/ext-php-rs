@@ -40,6 +40,9 @@ jobs:
         with:
           command: doc
           args: --release
+      - name: Create index redirect
+        run: |
+          echo '<meta http-equiv=refresh content=0;url=YOURLIBNAME/index.html>' > target/doc/index.html
       - name: Publish docs
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
