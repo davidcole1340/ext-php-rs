@@ -291,7 +291,7 @@ impl<'a> Zval {
     pub fn set_binary<T: Pack>(&mut self, val: Vec<T>) {
         let ptr = T::pack_into(val);
         self.value.str_ = ptr;
-        self.u1.type_info = IS_STRING_EX;
+        self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
     /// Sets the value of the zval as a persistent string.

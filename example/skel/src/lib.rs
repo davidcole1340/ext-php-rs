@@ -195,6 +195,6 @@ pub extern "C" fn skel_unpack(execute_data: &mut ExecutionData, retval: &mut Zva
     let zv = packed.zval().unwrap();
     let val = unsafe { zv.binary::<f32>() };
     dbg!(val);
-    let v = vec![1u8, 2, 4, 8];
+    let v = vec![1i32, 2, 4, 8];
     retval.set_binary(v);
 }
