@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["Pack","Used to convert between Zend binary strings and vectors. Useful in conjunction with the `pack` and `unpack` functions built-in to PHP."]]});
