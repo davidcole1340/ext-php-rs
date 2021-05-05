@@ -11,6 +11,7 @@ use crate::{
         zval,
     },
     errors::{Error, Result},
+    php::pack::Pack,
 };
 
 use crate::php::{
@@ -76,14 +77,34 @@ impl<'a> Zval {
             // We can safely cast our *const c_char into a *const u8 as both
             // only occupy one byte.
             unsafe {
-                let len = (*self.value.str_).len;
-                let ptr = (*self.value.str_).val.as_ptr() as *const u8;
-                let _str = std::str::from_utf8(slice::from_raw_parts(ptr, len as usize)).ok()?;
+                let _str = std::str::from_utf8(slice::from_raw_parts(
+                    (*self.value.str_).val.as_ptr() as *const u8,
+                    (*self.value.str_).len as usize,
+                ))
+                .ok()?;
 
                 Some(_str.to_string())
             }
         } else {
             self.double().map(|x| x.to_string())
+        }
+    }
+
+    /// Returns the value of the zval if it is a string and can be unpacked into a vector of a
+    /// given type. Similar to the [`unpack`](https://www.php.net/manual/en/function.unpack.php)
+    /// in PHP, except you can only unpack one type.
+    ///
+    /// # Safety
+    ///
+    /// There is no way to tell if the data stored in the string is actually of the given type.
+    /// The results of this function can also differ from platform-to-platform due to the different
+    /// representation of some types on different platforms. Consult the [`pack`](https://www.php.net/manual/en/function.pack.php)
+    /// function documentation for more details.
+    pub unsafe fn binary<T: Pack>(&self) -> Option<Vec<T>> {
+        if self.is_string() {
+            Some(T::unpack_into(self.value.str_.as_ref()?))
+        } else {
+            None
         }
     }
 
@@ -259,6 +280,17 @@ impl<'a> Zval {
     {
         let zend_str = ZendString::new(val, false);
         self.value.str_ = zend_str;
+        self.u1.type_info = ZvalTypeFlags::StringEx.bits();
+    }
+
+    /// Sets the value of the zval as a binary string.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to set the zval as.
+    pub fn set_binary<T: Pack, U: AsRef<[T]>>(&mut self, val: U) {
+        let ptr = T::pack_into(val.as_ref().to_vec());
+        self.value.str_ = ptr;
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 

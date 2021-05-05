@@ -2,3 +2,5 @@
 Cargo.lock
 /.vscode
 expand.rs
+vendor
+composer.lock

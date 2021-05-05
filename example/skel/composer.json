@@ -1,0 +1,13 @@
+{
+    "name": "rust/skel",
+    "license": "MIT OR Apache-2.0",
+    "authors": [
+        {
+            "name": "David Cole",
+            "email": "david.cole1340@gmail.com"
+        }
+    ],
+    "require": {
+        "psy/psysh": "^0.10.8"
+    }
+}
