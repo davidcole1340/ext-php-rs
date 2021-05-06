@@ -16,6 +16,6 @@ bitflags = "1.2.1"
 ext-php-rs-derive = { version = "=0.0.5", path = "./ext-php-rs-derive" }
 
 [build-dependencies]
-bindgen = { version = ">= 0.57.0, < 0.58.1", default-features = false }
+bindgen = { version = ">= 0.57.0, < 0.58.1" }
 regex = "1"
 cc = "1.0.67"
