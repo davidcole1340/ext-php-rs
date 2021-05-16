@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["bitflags","ext_php_rs","ext_php_rs_derive","libc","proc_macro2","quote","syn","unicode_xid"];
