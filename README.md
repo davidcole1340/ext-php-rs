@@ -52,6 +52,10 @@ Check out one of the example projects:
 
 Contributions are very much welcome. I am a novice Rust developer and any suggestions are wanted and welcome. Feel free to file issues and PRs through Github.
 
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+
 ## Resources
 
 - [PHP Internals Book](https://www.phpinternalsbook.com/)
@@ -66,10 +70,3 @@ Licensed under either of
    ([LICENSE_MIT](LICENSE_MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
-
-## Contribution
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
-
