@@ -77,7 +77,10 @@ impl ModuleBuilder {
                 info_func: None,
                 version: c_str(version),
                 globals_size: 0,
+                #[cfg(not(feature = "zts"))]
                 globals_ptr: ptr::null::<c_void>() as *mut c_void,
+                #[cfg(feature = "zts")]
+                globals_id_ptr: ptr::null::<c_void>() as *mut crate::bindings::ts_rsrc_id,
                 globals_ctor: None,
                 globals_dtor: None,
                 post_deactivate_func: None,

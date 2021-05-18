@@ -19,3 +19,6 @@ ext-php-rs-derive = { version = "=0.0.6", path = "./ext-php-rs-derive" }
 bindgen = { version = ">= 0.57.0, < 0.58.1" }
 regex = "1"
 cc = "1.0.67"
+
+[features]
+zts = []
