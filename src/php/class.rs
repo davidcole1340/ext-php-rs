@@ -1,6 +1,6 @@
 //! Builder and objects for creating classes in the PHP world.
 
-use std::{convert::TryInto, mem, ptr};
+use std::{mem, ptr};
 
 use crate::{
     bindings::{
