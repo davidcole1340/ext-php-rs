@@ -58,7 +58,7 @@ fn main() {
         panic!("Error running `php -i`: {}", stderr);
     }
 
-    let php_i = String::from_utf8(php_i_cmd.stdout).expect("unabel to parse `php -i` stdout");
+    let php_i = String::from_utf8(php_i_cmd.stdout).expect("unable to parse `php -i` stdout");
     let php_api_regex = Regex::new(r"PHP API => ([0-9]+)").unwrap();
     let api_ver: Vec<Captures> = php_api_regex.captures_iter(php_i.as_ref()).collect();
 
@@ -119,4 +119,26 @@ fn main() {
         .expect("Unable to generate bindings for PHP")
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Unable to write bindings file.");
+
+    if has_zts() {
+        println!("cargo:rustc-cfg=feature=\"zts\"");
+    }
+}
+
+/// Checks if ZTS is enabled.
+fn has_zts() -> bool {
+    let cmd = Command::new("php-config")
+        .arg("--configure-options")
+        .output()
+        .expect("Unable to run `php-config --configure-options`. Please ensure it is visible in your PATH.");
+
+    if !cmd.status.success() {
+        let stderr =
+            String::from_utf8(cmd.stderr).unwrap_or_else(|_| String::from("Unable to read stderr"));
+        panic!("Error running `php -i`: {}", stderr);
+    }
+
+    // check for the ZTS feature flag in configure
+    let stdout = String::from_utf8(cmd.stdout).expect("Unable to read stdout from `php-config`.");
+    stdout.contains("--enable-zts")
 }

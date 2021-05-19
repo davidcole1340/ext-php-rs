@@ -1,0 +1,5 @@
+name: 'PHP ZTS and Rust'
+description: 'Builds the crate after installing the latest PHP with ZTS and stable Rust.'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

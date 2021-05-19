@@ -44,6 +44,14 @@ jobs:
         with:
           command: build
           args: --release
+  build-zts:
+    name: Build with ZTS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build
+        uses: ./.github/actions/zts
   lint:
     name: Lint
     runs-on: ubuntu-latest
