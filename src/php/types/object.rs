@@ -9,8 +9,8 @@ use std::{
 
 use crate::{
     bindings::{
-        ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_std_init, std_object_handlers,
-        zend_object, zend_object_handlers,
+        ext_php_rs_zend_object_alloc, object_properties_init, std_object_handlers, zend_object,
+        zend_object_handlers, zend_object_std_init,
     },
     php::{class::ClassEntry, execution_data::ExecutionData},
 };
@@ -70,7 +70,8 @@ impl<T: Default> ZendClassObject<T> {
                 .as_mut()
                 .unwrap();
 
-            ext_php_rs_zend_object_std_init(&mut obj.std, ce);
+            zend_object_std_init(&mut obj.std, ce);
+            object_properties_init(&mut obj.std, ce);
             obj
         };
 

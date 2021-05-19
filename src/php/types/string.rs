@@ -2,7 +2,7 @@
 //! contains the length of the string, meaning the string can contain the NUL character.
 
 use core::slice;
-use std::fmt::Debug;
+use std::{convert::TryInto, fmt::Debug};
 
 use crate::{
     bindings::{ext_php_rs_zend_string_init, zend_string, zend_string_init_interned},
@@ -46,7 +46,9 @@ impl ZendString {
         S: AsRef<str>,
     {
         let str_ = str_.as_ref();
-        unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as u64, true) }
+        unsafe {
+            zend_string_init_interned.unwrap()(c_str(str_), str_.len().try_into().unwrap(), true)
+        }
     }
 }
 

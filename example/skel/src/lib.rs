@@ -9,7 +9,7 @@ use ext_php_rs::{
         enums::DataType,
         exceptions::throw,
         execution_data::ExecutionData,
-        flags::MethodFlags,
+        flags::{MethodFlags, PropertyFlags},
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::{
@@ -107,7 +107,7 @@ pub extern "C" fn module_init(_type: i32, module_number: i32) -> i32 {
                 .build(),
             MethodFlags::Public,
         )
-        // .property("value", "world", PropertyFlags::Protected)
+        .property("value", "world", PropertyFlags::Protected)
         .constant("TEST", "Hello world")
         .object_override::<Test>()
         .build();
