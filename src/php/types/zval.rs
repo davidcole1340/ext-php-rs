@@ -433,7 +433,6 @@ impl Debug for Zval {
     }
 }
 
-#[macro_use]
 macro_rules! try_from_zval {
     ($type: ty, $fn: ident) => {
         impl TryFrom<&Zval> for $type {
@@ -470,7 +469,6 @@ try_from_zval!(String, string);
 try_from_zval!(ZendHashTable, array);
 
 /// Implements the trait `Into<T>` on Zval for a given type.
-#[macro_use]
 macro_rules! into_zval {
     ($type: ty, $fn: ident) => {
         impl From<$type> for Zval {

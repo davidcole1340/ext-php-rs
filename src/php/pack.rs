@@ -54,7 +54,6 @@ pub unsafe trait Pack: Clone {
 /// Implements the [`Pack`] trait for a given type.
 /// The first argument is the type and the second argument is the factor of size difference between
 /// the given type and an 8-bit integer e.g. impl Unpack for i32, factor = 4 => 4 * 8 = 32
-#[macro_use]
 macro_rules! pack_impl {
     ($t: ty, $d: expr) => {
         unsafe impl Pack for $t {
