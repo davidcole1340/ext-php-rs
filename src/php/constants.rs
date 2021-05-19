@@ -122,7 +122,6 @@ impl IntoConst for bool {
 }
 
 /// Implements the `IntoConst` trait for a given number type using a given function.
-#[macro_use]
 macro_rules! into_const_num {
     ($type: ty, $fn: expr) => {
         impl IntoConst for $type {
