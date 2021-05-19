@@ -170,6 +170,9 @@
 <span id="167">167</span>
 <span id="168">168</span>
 <span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Builder and objects for creating modules in PHP. A module is the base of a PHP extension.</span>
 
@@ -250,7 +253,10 @@
                 <span class="ident">info_func</span>: <span class="prelude-val">None</span>,
                 <span class="ident">version</span>: <span class="ident">c_str</span>(<span class="ident">version</span>),
                 <span class="ident">globals_size</span>: <span class="number">0</span>,
+                <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;zts&quot;</span>))]</span>
                 <span class="ident">globals_ptr</span>: <span class="ident">ptr</span>::<span class="ident">null</span>::<span class="op">&lt;</span><span class="ident">c_void</span><span class="op">&gt;</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>,
+                <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;zts&quot;</span>)]</span>
+                <span class="ident">globals_id_ptr</span>: <span class="ident">ptr</span>::<span class="ident">null</span>::<span class="op">&lt;</span><span class="ident">c_void</span><span class="op">&gt;</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">crate</span>::<span class="ident">bindings</span>::<span class="ident">ts_rsrc_id</span>,
                 <span class="ident">globals_ctor</span>: <span class="prelude-val">None</span>,
                 <span class="ident">globals_dtor</span>: <span class="prelude-val">None</span>,
                 <span class="ident">post_deactivate_func</span>: <span class="prelude-val">None</span>,
