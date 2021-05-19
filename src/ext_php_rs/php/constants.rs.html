@@ -155,7 +155,6 @@
 <span id="152">152</span>
 <span id="153">153</span>
 <span id="154">154</span>
-<span id="155">155</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="kw">use</span> <span class="kw">super</span>::<span class="ident">flags</span>::<span class="ident">GlobalConstantFlags</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::{
@@ -281,7 +280,6 @@
 }
 
 <span class="doccomment">/// Implements the `IntoConst` trait for a given number type using a given function.</span>
-<span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">into_const_num</span> {
     (<span class="macro-nonterminal">$</span><span class="kw">type</span>: <span class="macro-nonterminal">ty</span>, <span class="macro-nonterminal">$</span><span class="kw">fn</span>: <span class="macro-nonterminal">expr</span>) <span class="op">=</span><span class="op">&gt;</span> {
         <span class="kw">impl</span> <span class="ident">IntoConst</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="kw">type</span> {
