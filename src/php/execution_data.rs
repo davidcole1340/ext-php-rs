@@ -1,71 +1,21 @@
 //! Functions for interacting with the execution data passed to PHP functions\
 //! introduced in Rust.
 
-use std::{convert::TryFrom, mem};
-
 use crate::{
-    bindings::{zend_execute_data, zend_read_property, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK},
-    functions::c_str,
+    bindings::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK},
+    errors::{Error, Result},
 };
 
-use super::types::zval::Zval;
+use super::types::{object::ZendObject, zval::Zval};
 
 /// Execution data passed when a function is called from Zend.
 pub type ExecutionData = zend_execute_data;
 
 impl ExecutionData {
-    pub fn get_parameter(&mut self, name: &str) -> Option<&'static mut Zval> {
-        let ce = unsafe { (*self.func).common.scope.as_mut() }?;
-        let mut rv = Zval::new();
-
-        let x = unsafe {
-            zend_read_property(
-                ce,
-                self.This.value.obj,
-                c_str(name),
-                (name.len() + 1) as _,
-                false,
-                &mut rv,
-            )
-            .as_mut()
-        };
-
-        println!("done");
-        x
-    }
-
-    /// Retrieves an argument from the execution data at a given offset.
-    /// Offsets start at zero. Make sure to never attempt to retrieve an
-    /// argument that may not exist (greater offset than arg_len - 1).
-    ///
-    /// Marked as unsafe.
-    ///
-    /// # Parameters
-    ///
-    /// * `offset` - The offset of the argument to read, where the first
-    /// argument is at offset 0.
-    ///
-    /// # Generics
-    ///
-    /// * `T` - The type to attempt to retrieve the argument as.
-    ///
-    /// # Returns
-    ///
-    /// * `Some()` - The argument was successfully read and parsed.
-    /// * `None` - The argument was not present or the type of the
-    /// argument was wrong.
-    #[allow(dead_code)]
-    pub(crate) unsafe fn get_arg<T>(&self, offset: usize) -> Option<T>
-    where
-        T: TryFrom<&'static Zval>,
-    {
-        match self.zend_call_arg(offset) {
-            Some(zval) => match T::try_from(zval) {
-                Ok(res) => Some(res),
-                Err(_) => None,
-            },
-            None => None,
-        }
+    /// Attempts to retrieve the 'this' object, which can be used in class methods
+    /// to retrieve the underlying Zend object.
+    pub fn get_self<'a>(&self) -> Result<&'a mut ZendObject> {
+        unsafe { self.This.value.obj.as_mut() }.ok_or(Error::InvalidScope)
     }
 
     /// Translation of macro `ZEND_CALL_ARG(call, n)`
@@ -96,7 +46,7 @@ impl ExecutionData {
     /// zend_alloc.h:41
     #[doc(hidden)]
     fn zend_mm_aligned_size<T>() -> isize {
-        let size = mem::size_of::<T>();
+        let size = std::mem::size_of::<T>();
         ((size as isize) + ZEND_MM_ALIGNMENT as isize - 1) & ZEND_MM_ALIGNMENT_MASK as isize
     }
 }

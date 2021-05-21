@@ -205,7 +205,7 @@ impl<'a> Zval {
 
     /// Returns the type of the Zval.
     pub fn get_type(&self) -> Result<DataType> {
-        DataType::try_from(unsafe { self.u1.v.type_ })
+        DataType::try_from(unsafe { self.u1.v.type_ } as u32)
     }
 
     /// Returns true if the zval is a long, false otherwise.
@@ -412,8 +412,8 @@ impl Debug for Zval {
             }
 
             match ty {
-                DataType::Undef => field!("Undefined"),
-                DataType::Null => field!("Null"),
+                DataType::Undef => field!(Option::<()>::None),
+                DataType::Null => field!(Option::<()>::None),
                 DataType::False => field!(false),
                 DataType::True => field!(true),
                 DataType::Long => field!(self.long()),
@@ -424,8 +424,8 @@ impl Debug for Zval {
                 DataType::Resource => field!(self.resource()),
                 DataType::Reference => field!(self.reference()),
                 DataType::Callable => field!(self.string()),
-                DataType::ConstantExpression => field!("Constant Expression"),
-                DataType::Void => field!("Void"),
+                DataType::ConstantExpression => field!(Option::<()>::None),
+                DataType::Void => field!(Option::<()>::None),
             };
         }
 

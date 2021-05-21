@@ -12,11 +12,88 @@ use crate::{
         ext_php_rs_zend_object_alloc, object_properties_init, std_object_handlers, zend_object,
         zend_object_handlers, zend_object_std_init,
     },
-    php::{class::ClassEntry, execution_data::ExecutionData},
+    errors::{Error, Result},
+    php::{class::ClassEntry, execution_data::ExecutionData, types::string::ZendString},
 };
+
+use super::zval::Zval;
 
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
+
+impl ZendObject {
+    /// Attempts to read a property from the Object, returning an immutable reference
+    /// to the [`Zval`] if the property can be read.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the property.
+    pub fn get_property<'a>(&self, name: impl AsRef<str>) -> Result<&'a Zval> {
+        let name = ZendString::new(name, false);
+        let mut rv = Zval::new();
+
+        // TODO: Check if property exists, returning an `Err` if it doesn't.
+
+        let result = unsafe {
+            self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
+                self.mut_ptr(),
+                name,
+                1,
+                std::ptr::null_mut(),
+                &mut rv,
+            )
+            .as_ref()
+        }
+        .ok_or(Error::InvalidScope);
+
+        unsafe { ZendString::drop(name) };
+        result
+    }
+
+    /// Attempts to set a property on the object, returning an immutable reference to
+    /// the [`Zval`] if the property can be set.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the property.
+    /// * `value` - The value to set the property to.
+    pub fn set_property<'a>(
+        &mut self,
+        name: impl AsRef<str>,
+        value: impl Into<Zval>,
+    ) -> Result<&'a Zval> {
+        let name = ZendString::new(name, false);
+        let mut value = value.into();
+
+        let result = unsafe {
+            self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
+                self,
+                name,
+                &mut value,
+                std::ptr::null_mut(),
+            )
+            .as_ref()
+        }
+        .ok_or(Error::InvalidScope);
+
+        unsafe { ZendString::drop(name) };
+        result
+    }
+
+    /// Attempts to retrieve a reference to the object handlers.
+    #[inline]
+    unsafe fn handlers<'a>(&self) -> Result<&'a ZendObjectHandlers> {
+        self.handlers.as_ref().ok_or(Error::InvalidScope)
+    }
+
+    /// Returns a mutable pointer to `self`, regardless of the type of reference.
+    /// Only to be used in situations where a C function requires a mutable pointer
+    /// but does not modify the underlying data.
+    #[inline]
+    fn mut_ptr(&self) -> *mut Self {
+        (self as *const Self) as *mut Self
+    }
+}
 
 /// Implemented by the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler) macro on a type T
 /// which is used as the T type for [`ZendClassObject`].

@@ -7,5 +7,5 @@ include __DIR__.'/vendor/autoload.php';
 
 $x = new TestClass();
 var_dump($x);
-$x->prop = 150;
+$x->get();
 var_dump($x);

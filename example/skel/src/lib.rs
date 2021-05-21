@@ -57,7 +57,14 @@ impl Test {
 
     pub extern "C" fn get(execute_data: &mut ExecutionData, _retval: &mut Zval) {
         let x = ZendClassObject::<Test>::get(execute_data).unwrap();
-        dbg!(x.a);
+        //let param = execute_data.get_property("value");
+        let obj = execute_data.get_self().unwrap();
+        dbg!(obj.get_property("value"));
+        obj.set_property("value", 125);
+        // dbg!(param);
+        //execute_data.set_property("new_value", "New value...");
+        //execute_data.set_property("value", "Hello, world!");
+        // dbg!(execute_data.set_property("value", "Hello, world!"));
     }
 
     pub extern "C" fn call(execute_data: &mut ExecutionData, _retval: &mut Zval) {
@@ -107,7 +114,7 @@ pub extern "C" fn module_init(_type: i32, module_number: i32) -> i32 {
                 .build(),
             MethodFlags::Public,
         )
-        .property("value", "world", PropertyFlags::Protected)
+        .property("value", "world", PropertyFlags::Public)
         .constant("TEST", "Hello world")
         .object_override::<Test>()
         .build();
