@@ -15,6 +15,7 @@ use crate::{
         zend_hash_next_index_insert, zend_hash_str_del, zend_hash_str_find, zend_hash_str_update,
         HT_MIN_SIZE,
     },
+    errors::{Error, Result},
     functions::c_str,
 };
 
@@ -50,8 +51,19 @@ impl ZendHashTable {
     /// # Parameters
     ///
     /// * `ptr` - The pointer of the actual hash table.
-    pub(crate) fn from_ptr(ptr: *mut HashTable) -> Self {
-        Self { ptr, free: false }
+    /// * `free` - Whether the pointer should be freed when the resulting [`ZendHashTable`]
+    /// goes out of scope.
+    ///
+    /// # Safety
+    ///
+    /// As a raw pointer is given this function is unsafe, you must ensure that the pointer is valid when calling
+    /// the function. A simple null check is done but this is not sufficient in most cases.
+    pub unsafe fn from_ptr(ptr: *mut HashTable, free: bool) -> Result<Self> {
+        if ptr.is_null() {
+            return Err(Error::InvalidPointer);
+        }
+
+        Ok(Self { ptr, free })
     }
 
     /// Returns the current number of elements in the array.
@@ -290,8 +302,9 @@ impl<'a> Iterator for Iter<'a> {
         let result = if let Some(val) = unsafe { self.pos.as_ref() } {
             // SAFETY: We can ensure safety further by checking if it is null before
             // converting it to a reference (val.key.as_ref() returns None if ptr == null)
-            let str_key =
-                unsafe { ZendString::from_ptr(val.key, false) }.and_then(|s| s.try_into().ok());
+            let str_key = unsafe { ZendString::from_ptr(val.key, false) }
+                .and_then(|s| s.try_into())
+                .ok();
 
             Some((val.h, str_key, &val.val))
         } else {
