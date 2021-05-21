@@ -10,7 +10,8 @@ use std::{
 use crate::{
     bindings::{
         ext_php_rs_zend_object_alloc, object_properties_init, std_object_handlers, zend_object,
-        zend_object_handlers, zend_object_std_init,
+        zend_object_handlers, zend_object_std_init, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS,
+        ZEND_PROPERTY_ISSET,
     },
     errors::{Error, Result},
     php::{class::ClassEntry, execution_data::ExecutionData, types::string::ZendString},
@@ -21,18 +22,36 @@ use super::zval::Zval;
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
 
+/// Different ways to query if a property exists.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum PropertyQuery {
+    /// Property exists and is not NULL.
+    Isset = ZEND_PROPERTY_ISSET,
+    /// Property is not empty.
+    NotEmpty = ZEND_ISEMPTY,
+    /// Property exists.
+    Exists = ZEND_PROPERTY_EXISTS,
+}
+
 impl ZendObject {
-    /// Attempts to read a property from the Object, returning an immutable reference
-    /// to the [`Zval`] if the property can be read.
+    /// Attempts to read a property from the Object. Returns a result returning an
+    /// immutable reference to the [`Zval`] if the property exists and can be read,
+    /// and an [`Error`] otherwise.
     ///
     /// # Parameters
     ///
     /// * `name` - The name of the property.
-    pub fn get_property<'a>(&self, name: impl AsRef<str>) -> Result<&'a Zval> {
+    /// * `query` - The type of query to use when attempting to get a property.
+    pub fn get_property<'a>(&'a self, name: impl AsRef<str>) -> Result<&'a Zval> {
+        let name = name.as_ref();
+
+        if !self.has_property(name, PropertyQuery::Exists)? {
+            return Err(Error::InvalidProperty);
+        }
+
         let name = ZendString::new(name, false);
         let mut rv = Zval::new();
-
-        // TODO: Check if property exists, returning an `Err` if it doesn't.
 
         unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
@@ -55,7 +74,7 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
     pub fn set_property<'a>(
-        &mut self,
+        &'a mut self,
         name: impl AsRef<str>,
         value: impl Into<Zval>,
     ) -> Result<&'a Zval> {
@@ -78,9 +97,32 @@ impl ZendObject {
         .ok_or(Error::InvalidScope)
     }
 
+    /// Checks if a property exists on an object. Takes a property name and query parameter,
+    /// which defines what classifies if a property exists or not. See [`PropertyQuery`] for
+    /// more information.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the property.
+    /// * `query` - The 'query' to classify if a property exists.
+    pub fn has_property(&self, name: impl AsRef<str>, query: PropertyQuery) -> Result<bool> {
+        let name = ZendString::new(name.as_ref(), false);
+
+        let x = unsafe {
+            self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
+                self.mut_ptr(),
+                name.borrow_ptr(),
+                query as _,
+                std::ptr::null_mut(),
+            )
+        };
+
+        Ok(x > 0)
+    }
+
     /// Attempts to retrieve a reference to the object handlers.
     #[inline]
-    unsafe fn handlers<'a>(&self) -> Result<&'a ZendObjectHandlers> {
+    unsafe fn handlers<'a>(&'a self) -> Result<&'a ZendObjectHandlers> {
         self.handlers.as_ref().ok_or(Error::InvalidScope)
     }
 

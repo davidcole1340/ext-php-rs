@@ -13,7 +13,10 @@ use ext_php_rs::{
         function::FunctionBuilder,
         module::{ModuleBuilder, ModuleEntry},
         types::{
-            array::ZendHashTable, long::ZendLong, object::ZendClassObject, string::ZendString,
+            array::ZendHashTable,
+            long::ZendLong,
+            object::{PropertyQuery, ZendClassObject},
+            string::ZendString,
             zval::Zval,
         },
     },

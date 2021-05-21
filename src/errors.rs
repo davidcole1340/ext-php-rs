@@ -34,6 +34,8 @@ pub enum Error {
     InvalidScope,
     /// The pointer inside a given type was invalid, either null or pointing to garbage.
     InvalidPointer,
+    /// The given property name does not exist.
+    InvalidProperty,
 }
 
 impl Display for Error {
@@ -55,6 +57,7 @@ impl Display for Error {
             }
             Error::InvalidScope => write!(f, "Invalid scope."),
             Error::InvalidPointer => write!(f, "Invalid pointer."),
+            Error::InvalidProperty => write!(f, "Property does not exist on object."),
         }
     }
 }

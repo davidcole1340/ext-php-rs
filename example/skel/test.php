@@ -9,3 +9,5 @@ $x = new TestClass();
 var_dump($x);
 $x->get();
 var_dump($x);
+$x->value = null;
+$x->get();
