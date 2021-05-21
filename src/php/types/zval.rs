@@ -396,6 +396,11 @@ impl<'a> Zval {
         self.u1.type_info = ZvalTypeFlags::ArrayEx.bits();
         self.value.arr = val.into().into_ptr();
     }
+
+    /// Sets the reference count of the Zval.
+    pub(crate) fn set_refcount(&mut self, rc: u32) {
+        unsafe { (*self.value.counted).gc.refcount = rc }
+    }
 }
 
 impl Debug for Zval {

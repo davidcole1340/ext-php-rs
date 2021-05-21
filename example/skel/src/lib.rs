@@ -60,7 +60,7 @@ impl Test {
         //let param = execute_data.get_property("value");
         let obj = execute_data.get_self().unwrap();
         dbg!(obj.get_property("value"));
-        obj.set_property("value", 125);
+        obj.set_property("value", "Hello");
         // dbg!(param);
         //execute_data.set_property("new_value", "New value...");
         //execute_data.set_property("value", "Hello, world!");

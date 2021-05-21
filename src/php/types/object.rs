@@ -62,6 +62,10 @@ impl ZendObject {
         let name = ZendString::new(name, false);
         let mut value = value.into();
 
+        if value.is_string() {
+            value.set_refcount(0);
+        }
+
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
