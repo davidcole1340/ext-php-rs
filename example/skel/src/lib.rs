@@ -87,7 +87,8 @@ impl Test {
         let mut val = Arg::new("val", DataType::Object);
 
         parse_args!(execute_data, val);
-
+        let obj = val.zval().unwrap().object().unwrap();
+        obj.set_property("hello", "not irigianl");
         dbg!(val.zval().map(|zv| zv.object()));
     }
 }

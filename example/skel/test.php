@@ -18,4 +18,5 @@ $y->hello = 'world';
 $y->world = 'hello';
 
 $x->debug($y);
+var_dump($y);
 

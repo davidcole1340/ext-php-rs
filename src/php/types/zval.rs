@@ -128,9 +128,9 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is an object.
-    pub fn object(&self) -> Option<&ZendObject> {
+    pub fn object(&self) -> Option<&mut ZendObject> {
         if self.is_object() {
-            unsafe { self.value.obj.as_ref() }
+            unsafe { self.value.obj.as_mut() }
         } else {
             None
         }
