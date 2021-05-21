@@ -18,7 +18,7 @@ This is not a set feature list, but these are the features on my roadmap. Create
 - [x] Function implementation
 - [x] Class implementation
     - [x] Class methods
-    - [ ] Class properties
+    - [x] Class properties
     - [x] Class constants
 - [x] Module constants
 - [x] Calling PHP functions
