@@ -140,6 +140,120 @@
 <span id="137">137</span>
 <span id="138">138</span>
 <span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Represents an object in PHP. Allows for overriding the internal object used by classes,</span>
 <span class="doccomment">//! allowing users to store Rust data inside a PHP object.</span>
@@ -152,14 +266,127 @@
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
-        <span class="ident">ext_php_rs_zend_object_alloc</span>, <span class="ident">ext_php_rs_zend_object_std_init</span>, <span class="ident">std_object_handlers</span>,
-        <span class="ident">zend_object</span>, <span class="ident">zend_object_handlers</span>,
+        <span class="ident">ext_php_rs_zend_object_alloc</span>, <span class="ident">object_properties_init</span>, <span class="ident">std_object_handlers</span>, <span class="ident">zend_object</span>,
+        <span class="ident">zend_object_handlers</span>, <span class="ident">zend_object_std_init</span>, <span class="ident">ZEND_ISEMPTY</span>, <span class="ident">ZEND_PROPERTY_EXISTS</span>,
+        <span class="ident">ZEND_PROPERTY_ISSET</span>,
     },
-    <span class="ident">php</span>::{<span class="ident">class</span>::<span class="ident">ClassEntry</span>, <span class="ident">execution_data</span>::<span class="ident">ExecutionData</span>},
+    <span class="ident">errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>},
+    <span class="ident">php</span>::{<span class="ident">class</span>::<span class="ident">ClassEntry</span>, <span class="ident">execution_data</span>::<span class="ident">ExecutionData</span>, <span class="ident">types</span>::<span class="ident">string</span>::<span class="ident">ZendString</span>},
 };
+
+<span class="kw">use</span> <span class="kw">super</span>::<span class="ident">zval</span>::<span class="ident">Zval</span>;
 
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ZendObject</span> <span class="op">=</span> <span class="ident">zend_object</span>;
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ZendObjectHandlers</span> <span class="op">=</span> <span class="ident">zend_object_handlers</span>;
+
+<span class="doccomment">/// Different ways to query if a property exists.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">PartialOrd</span>, <span class="ident">Ord</span>)]</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u32</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">PropertyQuery</span> {
+    <span class="doccomment">/// Property exists and is not NULL.</span>
+    <span class="ident">Isset</span> <span class="op">=</span> <span class="ident">ZEND_PROPERTY_ISSET</span>,
+    <span class="doccomment">/// Property is not empty.</span>
+    <span class="ident">NotEmpty</span> <span class="op">=</span> <span class="ident">ZEND_ISEMPTY</span>,
+    <span class="doccomment">/// Property exists.</span>
+    <span class="ident">Exists</span> <span class="op">=</span> <span class="ident">ZEND_PROPERTY_EXISTS</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">ZendObject</span> {
+    <span class="doccomment">/// Attempts to read a property from the Object. Returns a result returning an</span>
+    <span class="doccomment">/// immutable reference to the [`Zval`] if the property exists and can be read,</span>
+    <span class="doccomment">/// and an [`Error`] otherwise.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `name` - The name of the property.</span>
+    <span class="doccomment">/// * `query` - The type of query to use when attempting to get a property.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_property</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">name</span>.<span class="ident">as_ref</span>();
+
+        <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">has_property</span>(<span class="ident">name</span>, <span class="ident">PropertyQuery</span>::<span class="ident">Exists</span>)<span class="question-mark">?</span> {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">InvalidProperty</span>);
+        }
+
+        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString</span>::<span class="ident">new</span>(<span class="ident">name</span>, <span class="bool-val">false</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rv</span> <span class="op">=</span> <span class="ident">Zval</span>::<span class="ident">new</span>();
+
+        <span class="kw">unsafe</span> {
+            <span class="self">self</span>.<span class="ident">handlers</span>()<span class="question-mark">?</span>.<span class="ident">read_property</span>.<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">InvalidScope</span>)<span class="question-mark">?</span>(
+                <span class="self">self</span>.<span class="ident">mut_ptr</span>(),
+                <span class="ident">name</span>.<span class="ident">borrow_ptr</span>(),
+                <span class="number">1</span>,
+                <span class="ident">std</span>::<span class="ident">ptr</span>::<span class="ident">null_mut</span>(),
+                <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">rv</span>,
+            )
+            .<span class="ident">as_ref</span>()
+        }
+        .<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">InvalidScope</span>)
+    }
+
+    <span class="doccomment">/// Attempts to set a property on the object, returning an immutable reference to</span>
+    <span class="doccomment">/// the [`Zval`] if the property can be set.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `name` - The name of the property.</span>
+    <span class="doccomment">/// * `value` - The value to set the property to.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_property</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">value</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString</span>::<span class="ident">new</span>(<span class="ident">name</span>, <span class="bool-val">false</span>);
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">into</span>();
+
+        <span class="kw">if</span> <span class="ident">value</span>.<span class="ident">is_string</span>() {
+            <span class="ident">value</span>.<span class="ident">set_refcount</span>(<span class="number">0</span>);
+        }
+
+        <span class="kw">unsafe</span> {
+            <span class="self">self</span>.<span class="ident">handlers</span>()<span class="question-mark">?</span>.<span class="ident">write_property</span>.<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">InvalidScope</span>)<span class="question-mark">?</span>(
+                <span class="self">self</span>,
+                <span class="ident">name</span>.<span class="ident">borrow_ptr</span>(),
+                <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">value</span>,
+                <span class="ident">std</span>::<span class="ident">ptr</span>::<span class="ident">null_mut</span>(),
+            )
+            .<span class="ident">as_ref</span>()
+        }
+        .<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">InvalidScope</span>)
+    }
+
+    <span class="doccomment">/// Checks if a property exists on an object. Takes a property name and query parameter,</span>
+    <span class="doccomment">/// which defines what classifies if a property exists or not. See [`PropertyQuery`] for</span>
+    <span class="doccomment">/// more information.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `name` - The name of the property.</span>
+    <span class="doccomment">/// * `query` - The &#39;query&#39; to classify if a property exists.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_property</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">query</span>: <span class="ident">PropertyQuery</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString</span>::<span class="ident">new</span>(<span class="ident">name</span>.<span class="ident">as_ref</span>(), <span class="bool-val">false</span>);
+
+        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+            <span class="self">self</span>.<span class="ident">handlers</span>()<span class="question-mark">?</span>.<span class="ident">has_property</span>.<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">InvalidScope</span>)<span class="question-mark">?</span>(
+                <span class="self">self</span>.<span class="ident">mut_ptr</span>(),
+                <span class="ident">name</span>.<span class="ident">borrow_ptr</span>(),
+                <span class="ident">query</span> <span class="kw">as</span> <span class="kw">_</span>,
+                <span class="ident">std</span>::<span class="ident">ptr</span>::<span class="ident">null_mut</span>(),
+            )
+        };
+
+        <span class="prelude-val">Ok</span>(<span class="ident">x</span> <span class="op">&gt;</span> <span class="number">0</span>)
+    }
+
+    <span class="doccomment">/// Attempts to retrieve a reference to the object handlers.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">handlers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">ZendObjectHandlers</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">as_ref</span>().<span class="ident">ok_or</span>(<span class="ident">Error</span>::<span class="ident">InvalidScope</span>)
+    }
+
+    <span class="doccomment">/// Returns a mutable pointer to `self`, regardless of the type of reference.</span>
+    <span class="doccomment">/// Only to be used in situations where a C function requires a mutable pointer</span>
+    <span class="doccomment">/// but does not modify the underlying data.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">fn</span> <span class="ident">mut_ptr</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span> {
+        (<span class="self">self</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="self">Self</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span>
+    }
+}
 
 <span class="doccomment">/// Implemented by the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler) macro on a type T</span>
 <span class="doccomment">/// which is used as the T type for [`ZendClassObject`].</span>
@@ -213,7 +440,8 @@
                 .<span class="ident">as_mut</span>()
                 .<span class="ident">unwrap</span>();
 
-            <span class="ident">ext_php_rs_zend_object_std_init</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">obj</span>.<span class="ident">std</span>, <span class="ident">ce</span>);
+            <span class="ident">zend_object_std_init</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">obj</span>.<span class="ident">std</span>, <span class="ident">ce</span>);
+            <span class="ident">object_properties_init</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">obj</span>.<span class="ident">std</span>, <span class="ident">ce</span>);
             <span class="ident">obj</span>
         };
 

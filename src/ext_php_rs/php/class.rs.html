@@ -193,6 +193,11 @@
 <span id="190">190</span>
 <span id="191">191</span>
 <span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Builder and objects for creating classes in the PHP world.</span>
 
@@ -201,7 +206,7 @@
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
         <span class="ident">ext_php_rs_zend_string_release</span>, <span class="ident">zend_class_entry</span>, <span class="ident">zend_declare_class_constant</span>,
-        <span class="ident">zend_register_internal_class_ex</span>,
+        <span class="ident">zend_declare_property</span>, <span class="ident">zend_register_internal_class_ex</span>,
     },
     <span class="ident">functions</span>::<span class="ident">c_str</span>,
 };
@@ -225,7 +230,7 @@
     <span class="ident">extends</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>,
     <span class="ident">methods</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">FunctionEntry</span><span class="op">&gt;</span>,
     <span class="ident">object_override</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span>(<span class="ident">class_type</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ZendObject</span><span class="op">&gt;</span>,
-    <span class="comment">// properties: Vec&lt;(&amp;&#39;a str, Zval, PropertyFlags)&gt;,</span>
+    <span class="ident">properties</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>, <span class="ident">Zval</span>, <span class="ident">PropertyFlags</span>)<span class="op">&gt;</span>,
     <span class="ident">constants</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>, <span class="ident">Zval</span>)<span class="op">&gt;</span>,
 }
 
@@ -240,17 +245,21 @@
     <span class="kw">where</span>
         <span class="ident">N</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
     {
-        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">libc</span>::<span class="ident">calloc</span>(<span class="number">1</span>, <span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span>()) } <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>;
-        <span class="kw">let</span> <span class="ident">self_</span> <span class="op">=</span> <span class="self">Self</span> {
-            <span class="ident">ptr</span>: <span class="kw">unsafe</span> { <span class="ident">ptr</span>.<span class="ident">as_mut</span>() }.<span class="ident">unwrap</span>(),
+        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+            (<span class="ident">libc</span>::<span class="ident">calloc</span>(<span class="number">1</span>, <span class="ident">mem</span>::<span class="ident">size_of</span>::<span class="op">&lt;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span>()) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>)
+                .<span class="ident">as_mut</span>()
+                .<span class="ident">unwrap</span>()
+        };
+        <span class="ident">ptr</span>.<span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString</span>::<span class="ident">new_interned</span>(<span class="ident">name</span>).<span class="ident">release</span>();
+
+        <span class="self">Self</span> {
+            <span class="ident">ptr</span>,
             <span class="ident">extends</span>: <span class="ident">ptr</span>::<span class="ident">null_mut</span>(),
             <span class="ident">methods</span>: <span class="macro">vec</span><span class="macro">!</span>[],
             <span class="ident">object_override</span>: <span class="prelude-val">None</span>,
-            <span class="comment">// properties: vec![],</span>
+            <span class="ident">properties</span>: <span class="macro">vec</span><span class="macro">!</span>[],
             <span class="ident">constants</span>: <span class="macro">vec</span><span class="macro">!</span>[],
-        };
-        <span class="ident">self_</span>.<span class="ident">ptr</span>.<span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString</span>::<span class="ident">new_interned</span>(<span class="ident">name</span>);
-        <span class="ident">self_</span>
+        }
     }
 
     <span class="doccomment">/// Sets the class builder to extend another class.</span>
@@ -275,8 +284,8 @@
         <span class="self">self</span>
     }
 
-    <span class="doccomment">/// Adds a property to the class.</span>
-    <span class="doccomment">/// The type of the property is defined by the type of the given default.</span>
+    <span class="doccomment">/// Adds a property to the class. The initial type of the property is given by the type</span>
+    <span class="doccomment">/// of the given default. Note that the user can change the type.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
@@ -288,17 +297,16 @@
     <span class="kw">where</span>
         <span class="ident">T</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span>,
     {
-        <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Properties are currently not supported. See #16&quot;</span>);
-        <span class="comment">// let mut default = default.into();</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">default</span> <span class="op">=</span> <span class="ident">default</span>.<span class="ident">into</span>();
 
-        <span class="comment">// if default.is_string() {</span>
-        <span class="comment">//     let val = default.string().unwrap();</span>
-        <span class="comment">//     unsafe { ext_php_rs_zend_string_release(default.value.str_) };</span>
-        <span class="comment">//     default.set_persistent_string(val);</span>
-        <span class="comment">// }</span>
+        <span class="kw">if</span> <span class="ident">default</span>.<span class="ident">is_string</span>() {
+            <span class="kw">let</span> <span class="ident">val</span> <span class="op">=</span> <span class="ident">default</span>.<span class="ident">string</span>().<span class="ident">unwrap</span>();
+            <span class="kw">unsafe</span> { <span class="ident">ext_php_rs_zend_string_release</span>(<span class="ident">default</span>.<span class="ident">value</span>.<span class="ident">str_</span>) };
+            <span class="ident">default</span>.<span class="ident">set_persistent_string</span>(<span class="ident">val</span>);
+        }
 
-        <span class="comment">// self.properties.push((name, default, flags));</span>
-        <span class="comment">// self</span>
+        <span class="self">self</span>.<span class="ident">properties</span>.<span class="ident">push</span>((<span class="ident">name</span>, <span class="ident">default</span>, <span class="ident">flags</span>));
+        <span class="self">self</span>
     }
 
     <span class="doccomment">/// Adds a constant to the class.</span>
@@ -342,7 +350,10 @@
     <span class="doccomment">/// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]</span>
     <span class="doccomment">/// which can be derived through the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler)</span>
     <span class="doccomment">/// derive macro.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">object_override</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">ZendObjectOverride</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">object_override</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>
+    <span class="kw">where</span>
+        <span class="ident">T</span>: <span class="ident">ZendObjectOverride</span>,
+    {
         <span class="self">self</span>.<span class="ident">object_override</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">T</span>::<span class="ident">create_object</span>);
         <span class="self">self</span>
     }
@@ -361,18 +372,17 @@
 
         <span class="kw">unsafe</span> { <span class="ident">libc</span>::<span class="ident">free</span>((<span class="self">self</span>.<span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc</span>::<span class="ident">c_void</span>) };
 
-        <span class="comment">// DC: Commented out for now. Bug with properties.</span>
-        <span class="comment">// for (name, mut default, flags) in self.properties {</span>
-        <span class="comment">//     unsafe {</span>
-        <span class="comment">//         zend_declare_property(</span>
-        <span class="comment">//             class,</span>
-        <span class="comment">//             c_str(name),</span>
-        <span class="comment">//             name.len() as u64,</span>
-        <span class="comment">//             &amp;mut default,</span>
-        <span class="comment">//             flags.bits() as i32,</span>
-        <span class="comment">//         );</span>
-        <span class="comment">//     }</span>
-        <span class="comment">// }</span>
+        <span class="kw">for</span> (<span class="ident">name</span>, <span class="kw-2">mut</span> <span class="ident">default</span>, <span class="ident">flags</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">properties</span> {
+            <span class="kw">unsafe</span> {
+                <span class="ident">zend_declare_property</span>(
+                    <span class="ident">class</span>,
+                    <span class="ident">c_str</span>(<span class="ident">name</span>),
+                    <span class="ident">name</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="kw">_</span>,
+                    <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">default</span>,
+                    <span class="ident">flags</span>.<span class="ident">bits</span>() <span class="kw">as</span> <span class="kw">_</span>,
+                );
+            }
+        }
 
         <span class="kw">for</span> (<span class="ident">name</span>, <span class="ident">value</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">constants</span> {
             <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">Box</span>::<span class="ident">into_raw</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">value</span>));
