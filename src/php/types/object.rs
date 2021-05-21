@@ -156,13 +156,13 @@ impl Debug for ZendObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut dbg = f.debug_struct(
             self.get_class_name()
-                .unwrap_or("ZendObject".to_string())
+                .unwrap_or_else(|_| "ZendObject".to_string())
                 .as_str(),
         );
 
         if let Ok(props) = self.get_properties() {
             for (id, key, val) in props.into_iter() {
-                dbg.field(key.unwrap_or(id.to_string()).as_str(), val);
+                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
             }
         }
 
