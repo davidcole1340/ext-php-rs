@@ -16,167 +16,117 @@ use crate::{
     functions::c_str,
 };
 
-/// String type used in the Zend internals.
-/// The actual size of the 'string' differs, as the
-/// end of this struct is only 1 char long, but the length
-/// inside the struct defines how many characters are in the string.
-pub type ZendString = zend_string;
-
-// TODO: Encapsulate `zend_string` inside an object `ZendString`:
-// pub struct ZendString {
-//     ptr: *mut zend_string,
-// }
-// impl Drop for ZendString { ... }
-
-// pub struct NewZendString {
-//     pub(crate) ptr: *mut zend_string,
-//     drop: bool,
-// }
-
-// impl NewZendString {
-//     /// Creates a new Zend string.
-//     ///
-//     /// # Parameters
-//     ///
-//     /// * `str_` - The string to create a Zend string from.
-//     /// * `persistent` - Whether the request should relive the request boundary.
-//     pub fn new(str_: impl AsRef<str>, persistent: bool) -> Self {
-//         let str_ = str_.as_ref();
-
-//         Self {
-//             ptr: unsafe { ext_php_rs_zend_string_init(c_str(str_), str_.len() as _, persistent) },
-//             drop: true,
-//         }
-//     }
-
-//     /// Creates a new interned Zend string.
-//     ///
-//     /// # Parameters
-//     ///
-//     /// * `str_` - The string to create a Zend string from.
-//     pub fn new_interned(str_: impl AsRef<str>) -> Self {
-//         let str_ = str_.as_ref();
-
-//         Self {
-//             ptr: unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as _, true) },
-//             drop: true,
-//         }
-//     }
-
-//     /// Releases the Zend string, returning the raw pointer to the `zend_string` object
-//     /// and consuming the internal Rust [`NewZendString`] container.
-//     pub fn release(mut self) -> *mut zend_string {
-//         self.drop = false;
-//         self.ptr
-//     }
-// }
-
-// impl Drop for NewZendString {
-//     fn drop(&mut self) {
-//         if self.drop && !self.ptr.is_null() {
-//             unsafe { ext_php_rs_zend_string_release(self.ptr) };
-//         }
-//     }
-// }
-
-// impl TryFrom<&NewZendString> for String {
-//     type Error = Error;
-
-//     fn try_from(s: &NewZendString) -> Result<Self> {
-//         let zs = unsafe { s.ptr.as_ref() }.ok_or(Error::InvalidPointer)?;
-
-//         // SAFETY: Zend strings have a length that we know we can read.
-//         // By reading this many bytes we will not run into any issues.
-//         //
-//         // We can safely cast our *const c_char into a *const u8 as both
-//         // only occupy one byte.
-//         std::str::from_utf8(unsafe {
-//             slice::from_raw_parts(zs.val.as_ptr() as *const u8, zs.len as _)
-//         })
-//         .map(|s| s.to_string())
-//         .map_err(|_| Error::InvalidPointer)
-//     }
-// }
-
-// impl Debug for NewZendString {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let s: Result<String> = self.try_into();
-//         match s {
-//             Ok(s) => s.fmt(f),
-//             Err(_) => Option::<()>::None.fmt(f),
-//         }
-//     }
-// }
+/// A wrapper around the [`zend_string`] used within the Zend API. Essentially a C string, except
+/// that the structure contains the length of the string as well as the string being refcounted.
+pub struct ZendString {
+    ptr: *mut zend_string,
+    free: bool,
+}
 
 impl ZendString {
     /// Creates a new Zend string.
     ///
-    /// Note that this returns a raw pointer, and will not be freed by
-    /// Rust.
-    ///
     /// # Parameters
     ///
     /// * `str_` - The string to create a Zend string from.
-    /// * `peresistent` - Whether the request should relive the request boundary.
-    pub fn new<S>(str_: S, persistent: bool) -> *mut Self
-    where
-        S: AsRef<str>,
-    {
+    /// * `persistent` - Whether the request should relive the request boundary.
+    pub fn new(str_: impl AsRef<str>, persistent: bool) -> Self {
         let str_ = str_.as_ref();
-        unsafe { ext_php_rs_zend_string_init(c_str(str_), str_.len() as u64, persistent) }
+
+        Self {
+            ptr: unsafe { ext_php_rs_zend_string_init(c_str(str_), str_.len() as _, persistent) },
+            free: true,
+        }
     }
 
     /// Creates a new interned Zend string.
     ///
-    /// Note that this returns a raw pointer, and will not be freed by
-    /// Rust.
-    ///
     /// # Parameters
     ///
     /// * `str_` - The string to create a Zend string from.
-    pub fn new_interned<S>(str_: S) -> *mut Self
-    where
-        S: AsRef<str>,
-    {
+    pub fn new_interned(str_: impl AsRef<str>) -> Self {
         let str_ = str_.as_ref();
-        unsafe {
-            zend_string_init_interned.unwrap()(c_str(str_), str_.len().try_into().unwrap(), true)
+
+        Self {
+            ptr: unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as _, true) },
+            free: true,
         }
     }
 
-    /// Drops a Zend string, releasing its memory.
+    /// Creates a new [`ZendString`] wrapper from a raw pointer to a [`zend_string`].
     ///
     /// # Parameters
     ///
-    /// * `ptr` - A pointer to the Zend string to drop.
-    pub unsafe fn drop(ptr: *mut Self) {
+    /// * `ptr` - A raw pointer to a [`zend_string`].
+    /// * `free` - Whether the pointer should be freed when the resulting [`ZendString`] goes
+    /// out of scope.
+    ///
+    /// # Safety
+    ///
+    /// As a raw pointer is given this function is unsafe, you must ensure the pointer is valid when calling
+    /// the function. A simple null check is done but this is not sufficient in most places.
+    pub unsafe fn from_ptr(ptr: *mut zend_string, free: bool) -> Option<Self> {
         if ptr.is_null() {
-            return;
+            return None;
         }
 
-        ext_php_rs_zend_string_release(ptr);
+        Some(Self { ptr, free })
+    }
+
+    /// Releases the Zend string, returning the raw pointer to the `zend_string` object
+    /// and consuming the internal Rust [`NewZendString`] container.
+    pub fn release(mut self) -> *mut zend_string {
+        self.free = false;
+        self.ptr
+    }
+
+    /// Borrows the underlying internal pointer of the Zend string.
+    pub(crate) fn borrow_ptr(&self) -> *mut zend_string {
+        self.ptr
     }
 }
 
-impl Debug for ZendString {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s: String = self.into();
-        s.fmt(f)
+impl Drop for ZendString {
+    fn drop(&mut self) {
+        if self.free && !self.ptr.is_null() {
+            unsafe { ext_php_rs_zend_string_release(self.ptr) };
+        }
     }
 }
 
-impl From<&ZendString> for String {
-    fn from(zs: &ZendString) -> Self {
-        let len = zs.len;
-        let ptr = zs.val.as_ptr() as *const u8;
+impl TryFrom<ZendString> for String {
+    type Error = Error;
+
+    fn try_from(value: ZendString) -> Result<Self> {
+        <String as TryFrom<&ZendString>>::try_from(&value)
+    }
+}
+
+impl TryFrom<&ZendString> for String {
+    type Error = Error;
+
+    fn try_from(s: &ZendString) -> Result<Self> {
+        let zs = unsafe { s.ptr.as_ref() }.ok_or(Error::InvalidPointer)?;
 
         // SAFETY: Zend strings have a length that we know we can read.
         // By reading this many bytes we will not run into any issues.
         //
         // We can safely cast our *const c_char into a *const u8 as both
         // only occupy one byte.
-        std::str::from_utf8(unsafe { slice::from_raw_parts(ptr, len as usize) })
-            .unwrap()
-            .to_string()
+        std::str::from_utf8(unsafe {
+            slice::from_raw_parts(zs.val.as_ptr() as *const u8, zs.len as _)
+        })
+        .map(|s| s.to_string())
+        .map_err(|_| Error::InvalidPointer)
+    }
+}
+
+impl Debug for ZendString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s: Result<String> = self.try_into();
+        match s {
+            Ok(s) => s.fmt(f),
+            Err(_) => Option::<()>::None.fmt(f),
+        }
     }
 }

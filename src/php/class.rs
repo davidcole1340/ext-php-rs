@@ -49,7 +49,7 @@ impl<'a> ClassBuilder<'a> {
                 .as_mut()
                 .unwrap()
         };
-        ptr.name = ZendString::new_interned(name);
+        ptr.name = ZendString::new_interned(name).release();
 
         Self {
             ptr,

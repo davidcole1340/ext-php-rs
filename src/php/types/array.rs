@@ -18,7 +18,7 @@ use crate::{
     functions::c_str,
 };
 
-use super::zval::Zval;
+use super::{string::ZendString, zval::Zval};
 
 /// A PHP array, which internally is a hash table.
 pub struct ZendHashTable {
@@ -290,7 +290,8 @@ impl<'a> Iterator for Iter<'a> {
         let result = if let Some(val) = unsafe { self.pos.as_ref() } {
             // SAFETY: We can ensure safety further by checking if it is null before
             // converting it to a reference (val.key.as_ref() returns None if ptr == null)
-            let str_key: Option<String> = unsafe { val.key.as_ref() }.map(|key| key.into());
+            let str_key =
+                unsafe { ZendString::from_ptr(val.key, false) }.and_then(|s| s.try_into().ok());
 
             Some((val.h, str_key, &val.val))
         } else {

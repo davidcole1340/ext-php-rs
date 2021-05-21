@@ -4,8 +4,7 @@
 //! [`pack`]: https://www.php.net/manual/en/function.pack.php
 //! [`unpack`]: https://www.php.net/manual/en/function.unpack.php
 
-use super::types::string::ZendString;
-use crate::bindings::ext_php_rs_zend_string_init;
+use crate::bindings::{ext_php_rs_zend_string_init, zend_string};
 
 /// Used to convert between Zend binary strings and vectors. Useful in conjunction with the
 /// [`pack`] and [`unpack`] functions built-in to PHP.
@@ -31,7 +30,7 @@ pub unsafe trait Pack: Clone {
     /// [`Zval`]: crate::php::types::zval::Zval
     /// [`ZendString`]: crate::php::types::string::ZendString
     /// [`set_binary`]: crate::php::types::zval::Zval#method.set_binary
-    fn pack_into(vec: Vec<Self>) -> *mut ZendString;
+    fn pack_into(vec: Vec<Self>) -> *mut zend_string;
 
     /// Unpacks a given Zend binary string into a Rust vector. Can be used to pass data from `pack`
     /// in PHP to Rust without encoding into another format. Note that the data *must* be all one
@@ -48,7 +47,7 @@ pub unsafe trait Pack: Clone {
     /// # Parameters
     ///
     /// * `s` - The Zend string containing the binary data.
-    unsafe fn unpack_into(s: &ZendString) -> Vec<Self>;
+    unsafe fn unpack_into(s: &zend_string) -> Vec<Self>;
 }
 
 /// Implements the [`Pack`] trait for a given type.
@@ -57,13 +56,13 @@ pub unsafe trait Pack: Clone {
 macro_rules! pack_impl {
     ($t: ty, $d: expr) => {
         unsafe impl Pack for $t {
-            fn pack_into(vec: Vec<Self>) -> *mut ZendString {
+            fn pack_into(vec: Vec<Self>) -> *mut zend_string {
                 let len = vec.len() * $d;
                 let ptr = Box::into_raw(vec.into_boxed_slice());
                 unsafe { ext_php_rs_zend_string_init(ptr as *mut i8, len as _, false) }
             }
 
-            unsafe fn unpack_into(s: &ZendString) -> Vec<Self> {
+            unsafe fn unpack_into(s: &zend_string) -> Vec<Self> {
                 let len = s.len / $d;
                 let mut result = Vec::with_capacity(len as _);
                 let ptr = s.val.as_ptr() as *const $t;

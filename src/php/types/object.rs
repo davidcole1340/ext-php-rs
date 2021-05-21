@@ -34,20 +34,17 @@ impl ZendObject {
 
         // TODO: Check if property exists, returning an `Err` if it doesn't.
 
-        let result = unsafe {
+        unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name,
+                name.borrow_ptr(),
                 1,
                 std::ptr::null_mut(),
                 &mut rv,
             )
             .as_ref()
         }
-        .ok_or(Error::InvalidScope);
-
-        unsafe { ZendString::drop(name) };
-        result
+        .ok_or(Error::InvalidScope)
     }
 
     /// Attempts to set a property on the object, returning an immutable reference to
@@ -65,19 +62,16 @@ impl ZendObject {
         let name = ZendString::new(name, false);
         let mut value = value.into();
 
-        let result = unsafe {
+        unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                name,
+                name.borrow_ptr(),
                 &mut value,
                 std::ptr::null_mut(),
             )
             .as_ref()
         }
-        .ok_or(Error::InvalidScope);
-
-        unsafe { ZendString::drop(name) };
-        result
+        .ok_or(Error::InvalidScope)
     }
 
     /// Attempts to retrieve a reference to the object handlers.

@@ -279,7 +279,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new(val, false);
-        self.value.str_ = zend_str;
+        self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
@@ -306,7 +306,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new(val, true);
-        self.value.str_ = zend_str;
+        self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
@@ -320,7 +320,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new_interned(val);
-        self.value.str_ = zend_str;
+        self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::InternedStringEx.bits();
     }
 
