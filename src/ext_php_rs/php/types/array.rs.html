@@ -372,6 +372,19 @@
 <span id="369">369</span>
 <span id="370">370</span>
 <span id="371">371</span>
+<span id="372">372</span>
+<span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Represents an array in PHP. As all arrays in PHP are associative arrays, they are represented</span>
 <span class="doccomment">//! by hash tables.</span>
@@ -390,6 +403,7 @@
         <span class="ident">zend_hash_next_index_insert</span>, <span class="ident">zend_hash_str_del</span>, <span class="ident">zend_hash_str_find</span>, <span class="ident">zend_hash_str_update</span>,
         <span class="ident">HT_MIN_SIZE</span>,
     },
+    <span class="ident">errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>},
     <span class="ident">functions</span>::<span class="ident">c_str</span>,
 };
 
@@ -425,8 +439,19 @@
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `ptr` - The pointer of the actual hash table.</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">from_ptr</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">HashTable</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="self">Self</span> { <span class="ident">ptr</span>, <span class="ident">free</span>: <span class="bool-val">false</span> }
+    <span class="doccomment">/// * `free` - Whether the pointer should be freed when the resulting [`ZendHashTable`]</span>
+    <span class="doccomment">/// goes out of scope.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Safety</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// As a raw pointer is given this function is unsafe, you must ensure that the pointer is valid when calling</span>
+    <span class="doccomment">/// the function. A simple null check is done but this is not sufficient in most cases.</span>
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">from_ptr</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">HashTable</span>, <span class="ident">free</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="ident">ptr</span>.<span class="ident">is_null</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">InvalidPointer</span>);
+        }
+
+        <span class="prelude-val">Ok</span>(<span class="self">Self</span> { <span class="ident">ptr</span>, <span class="ident">free</span> })
     }
 
     <span class="doccomment">/// Returns the current number of elements in the array.</span>
@@ -665,8 +690,9 @@
         <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=</span> <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">pos</span>.<span class="ident">as_ref</span>() } {
             <span class="comment">// SAFETY: We can ensure safety further by checking if it is null before</span>
             <span class="comment">// converting it to a reference (val.key.as_ref() returns None if ptr == null)</span>
-            <span class="kw">let</span> <span class="ident">str_key</span> <span class="op">=</span>
-                <span class="kw">unsafe</span> { <span class="ident">ZendString</span>::<span class="ident">from_ptr</span>(<span class="ident">val</span>.<span class="ident">key</span>, <span class="bool-val">false</span>) }.<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">try_into</span>().<span class="ident">ok</span>());
+            <span class="kw">let</span> <span class="ident">str_key</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">ZendString</span>::<span class="ident">from_ptr</span>(<span class="ident">val</span>.<span class="ident">key</span>, <span class="bool-val">false</span>) }
+                .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">try_into</span>())
+                .<span class="ident">ok</span>();
 
             <span class="prelude-val">Some</span>((<span class="ident">val</span>.<span class="ident">h</span>, <span class="ident">str_key</span>, <span class="kw-2">&amp;</span><span class="ident">val</span>.<span class="ident">val</span>))
         } <span class="kw">else</span> {

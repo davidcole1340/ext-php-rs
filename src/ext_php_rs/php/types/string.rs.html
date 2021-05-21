@@ -201,12 +201,12 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// As a raw pointer is given this function is unsafe, you must ensure the pointer is valid when calling</span>
     <span class="doccomment">/// the function. A simple null check is done but this is not sufficient in most places.</span>
-    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">from_ptr</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">zend_string</span>, <span class="ident">free</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">from_ptr</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">zend_string</span>, <span class="ident">free</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="ident">ptr</span>.<span class="ident">is_null</span>() {
-            <span class="kw">return</span> <span class="prelude-val">None</span>;
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error</span>::<span class="ident">InvalidPointer</span>);
         }
 
-        <span class="prelude-val">Some</span>(<span class="self">Self</span> { <span class="ident">ptr</span>, <span class="ident">free</span> })
+        <span class="prelude-val">Ok</span>(<span class="self">Self</span> { <span class="ident">ptr</span>, <span class="ident">free</span> })
     }
 
     <span class="doccomment">/// Releases the Zend string, returning the raw pointer to the `zend_string` object</span>
