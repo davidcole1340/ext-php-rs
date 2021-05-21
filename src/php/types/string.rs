@@ -74,7 +74,7 @@ impl ZendString {
     }
 
     /// Releases the Zend string, returning the raw pointer to the `zend_string` object
-    /// and consuming the internal Rust [`NewZendString`] container.
+    /// and consuming the internal Rust [`ZendString`] container.
     pub fn release(mut self) -> *mut zend_string {
         self.free = false;
         self.ptr
