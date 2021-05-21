@@ -62,12 +62,8 @@ impl Test {
         let x = ZendClassObject::<Test>::get(execute_data).unwrap();
         //let param = execute_data.get_property("value");
         let obj = execute_data.get_self().unwrap();
-        dbg!(obj.get_property("value"));
-        obj.set_property("value", "Hello");
-        // dbg!(param);
-        //execute_data.set_property("new_value", "New value...");
-        //execute_data.set_property("value", "Hello, world!");
-        // dbg!(execute_data.set_property("value", "Hello, world!"));
+        obj.set_property("hello", "world");
+        dbg!(obj);
     }
 
     pub extern "C" fn call(execute_data: &mut ExecutionData, _retval: &mut Zval) {
@@ -85,6 +81,15 @@ impl Test {
         }
 
         println!("Ready for call!");
+    }
+
+    pub extern "C" fn debug(execute_data: &mut ExecutionData, _retval: &mut Zval) {
+        let mut val = Arg::new("val", DataType::Object);
+
+        parse_args!(execute_data, val);
+        let obj = val.zval().unwrap().object().unwrap();
+        obj.set_property("hello", "not irigianl");
+        dbg!(val.zval().map(|zv| zv.object()));
     }
 }
 
@@ -112,12 +117,19 @@ pub extern "C" fn module_init(_type: i32, module_number: i32) -> i32 {
             MethodFlags::Public,
         )
         .method(
+            FunctionBuilder::new("debug", Test::debug)
+                .arg(Arg::new("val", DataType::Object))
+                .build(),
+            MethodFlags::Public,
+        )
+        .method(
             FunctionBuilder::new("call", Test::call)
                 .arg(Arg::new("fn", DataType::Callable))
                 .build(),
             MethodFlags::Public,
         )
-        .property("value", "world", PropertyFlags::Public)
+        .property("asdf", "world", PropertyFlags::Public)
+        .property("jhki", 12345, PropertyFlags::Public)
         .constant("TEST", "Hello world")
         .object_override::<Test>()
         .build();

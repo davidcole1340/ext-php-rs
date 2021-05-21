@@ -29,8 +29,8 @@ pub struct ClassBuilder<'a> {
     extends: *mut ClassEntry,
     methods: Vec<FunctionEntry>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
-    properties: Vec<(&'a str, Zval, PropertyFlags)>,
-    constants: Vec<(&'a str, Zval)>,
+    properties: Vec<(String, Zval, PropertyFlags)>,
+    constants: Vec<(String, Zval)>,
 }
 
 impl<'a> ClassBuilder<'a> {
@@ -91,11 +91,12 @@ impl<'a> ClassBuilder<'a> {
     /// * `name` - The name of the property to add to the class.
     /// * `default` - The default value of the property.
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
-    #[allow(unused_mut, unused_variables)]
-    pub fn property<T>(mut self, name: &'a str, default: T, flags: PropertyFlags) -> Self
-    where
-        T: Into<Zval>,
-    {
+    pub fn property(
+        mut self,
+        name: impl AsRef<str>,
+        default: impl Into<Zval>,
+        flags: PropertyFlags,
+    ) -> Self {
         let mut default = default.into();
 
         if default.is_string() {
@@ -104,7 +105,8 @@ impl<'a> ClassBuilder<'a> {
             default.set_persistent_string(val);
         }
 
-        self.properties.push((name, default, flags));
+        self.properties
+            .push((name.as_ref().to_string(), default, flags));
         self
     }
 
@@ -115,10 +117,7 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
-    pub fn constant<T>(mut self, name: &'a str, value: T) -> Self
-    where
-        T: Into<Zval>,
-    {
+    pub fn constant(mut self, name: impl AsRef<str>, value: impl Into<Zval>) -> Self {
         let mut value = value.into();
 
         if value.is_string() {
@@ -127,7 +126,7 @@ impl<'a> ClassBuilder<'a> {
             value.set_persistent_string(val);
         }
 
-        self.constants.push((name, value));
+        self.constants.push((name.as_ref().to_string(), value));
         self
     }
 
@@ -175,7 +174,7 @@ impl<'a> ClassBuilder<'a> {
             unsafe {
                 zend_declare_property(
                     class,
-                    c_str(name),
+                    c_str(&name),
                     name.len() as _,
                     &mut default,
                     flags.bits() as _,
@@ -185,7 +184,7 @@ impl<'a> ClassBuilder<'a> {
 
         for (name, value) in self.constants {
             let value = Box::into_raw(Box::new(value));
-            unsafe { zend_declare_class_constant(class, c_str(name), name.len() as u64, value) };
+            unsafe { zend_declare_class_constant(class, c_str(&name), name.len() as u64, value) };
         }
 
         if let Some(object_override) = self.object_override {

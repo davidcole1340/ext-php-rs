@@ -65,12 +65,12 @@ impl ZendString {
     ///
     /// As a raw pointer is given this function is unsafe, you must ensure the pointer is valid when calling
     /// the function. A simple null check is done but this is not sufficient in most places.
-    pub unsafe fn from_ptr(ptr: *mut zend_string, free: bool) -> Option<Self> {
+    pub unsafe fn from_ptr(ptr: *mut zend_string, free: bool) -> Result<Self> {
         if ptr.is_null() {
-            return None;
+            return Err(Error::InvalidPointer);
         }
 
-        Some(Self { ptr, free })
+        Ok(Self { ptr, free })
     }
 
     /// Releases the Zend string, returning the raw pointer to the `zend_string` object

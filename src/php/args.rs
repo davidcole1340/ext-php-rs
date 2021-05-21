@@ -200,27 +200,7 @@ impl<'a, 'b> ArgParser<'a, 'b> {
         }
 
         for (i, arg) in self.args.iter_mut().enumerate() {
-            let zval = unsafe { execute_data.zend_call_arg(i) };
-
-            if let Some(zval) = zval {
-                // if !arg.allow_null && zval.is_null() {
-                //     unsafe {
-                //         zend_wrong_parameter_error(
-                //             ZPP_ERROR_WRONG_CLASS_OR_NULL as i32,
-                //             i as u32,
-                //             c_str(arg.name) as *mut i8,
-                //             _zend_expected_type::from(**arg),
-                //             &mut *zval,
-                //         );
-                //     }
-                //     return Err(format!(
-                //         "Argument at index {} was null but is non-nullable.",
-                //         i
-                //     ));
-                // }
-
-                arg.zval = Some(zval);
-            }
+            arg.zval = unsafe { execute_data.zend_call_arg(i) };
         }
 
         Ok(())

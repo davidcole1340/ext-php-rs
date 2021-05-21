@@ -7,8 +7,7 @@ use std::{convert::TryFrom, fmt::Debug, ptr};
 use crate::{
     bindings::{
         _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
-        ext_php_rs_zend_string_release, zend_is_callable, zend_object, zend_resource, zend_value,
-        zval,
+        ext_php_rs_zend_string_release, zend_is_callable, zend_resource, zend_value, zval,
     },
     errors::{Error, Result},
     php::pack::Pack,
@@ -20,7 +19,7 @@ use crate::php::{
     types::{long::ZendLong, string::ZendString},
 };
 
-use super::array::ZendHashTable;
+use super::{array::ZendHashTable, object::ZendObject};
 
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
@@ -122,18 +121,16 @@ impl<'a> Zval {
     /// Returns the value of the zval if it is an array.
     pub fn array(&self) -> Option<ZendHashTable> {
         if self.is_array() {
-            Some(ZendHashTable::from_ptr(unsafe { self.value.arr }))
+            unsafe { ZendHashTable::from_ptr(self.value.arr, false) }.ok()
         } else {
             None
         }
     }
 
     /// Returns the value of the zval if it is an object.
-    pub fn object(&self) -> Option<*mut zend_object> {
-        // TODO: Can we improve this function? I haven't done much research into
-        // objects so I don't know if this is the optimal way to return this.
+    pub fn object(&self) -> Option<&mut ZendObject> {
         if self.is_object() {
-            Some(unsafe { self.value.obj })
+            unsafe { self.value.obj.as_mut() }
         } else {
             None
         }
@@ -379,9 +376,9 @@ impl<'a> Zval {
     ///
     /// * `val` - The value to set the zval as.
     /// * `copy` - Whether to copy the object or pass as a reference.
-    pub fn set_object(&mut self, val: *mut zend_object, _copy: bool) {
+    pub fn set_object(&mut self, val: &ZendObject, _copy: bool) {
         self.u1.type_info = ZvalTypeFlags::ObjectEx.bits();
-        self.value.obj = val;
+        self.value.obj = (val as *const ZendObject) as *mut ZendObject;
     }
 
     /// Sets the value of the zval as an array.

@@ -2,6 +2,7 @@
 //! allowing users to store Rust data inside a PHP object.
 
 use std::{
+    convert::TryInto,
     fmt::Debug,
     mem,
     ops::{Deref, DerefMut},
@@ -17,7 +18,7 @@ use crate::{
     php::{class::ClassEntry, execution_data::ExecutionData, types::string::ZendString},
 };
 
-use super::zval::Zval;
+use super::{array::ZendHashTable, zval::Zval};
 
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
@@ -35,6 +36,18 @@ pub enum PropertyQuery {
 }
 
 impl ZendObject {
+    /// Attempts to retrieve the class name of the object.
+    pub fn get_class_name(&self) -> Result<String> {
+        let name = unsafe {
+            ZendString::from_ptr(
+                self.handlers()?.get_class_name.ok_or(Error::InvalidScope)?(self),
+                false,
+            )
+        }?;
+
+        name.try_into()
+    }
+
     /// Attempts to read a property from the Object. Returns a result returning an
     /// immutable reference to the [`Zval`] if the property exists and can be read,
     /// and an [`Error`] otherwise.
@@ -104,16 +117,24 @@ impl ZendObject {
     pub fn has_property(&self, name: impl AsRef<str>, query: PropertyQuery) -> Result<bool> {
         let name = ZendString::new(name.as_ref(), false);
 
-        let x = unsafe {
+        Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
                 name.borrow_ptr(),
                 query as _,
                 std::ptr::null_mut(),
             )
-        };
+        } > 0)
+    }
 
-        Ok(x > 0)
+    /// Attempts to retrieve the properties of the object. Returned inside a Zend Hashtable.
+    pub fn get_properties(&self) -> Result<ZendHashTable> {
+        unsafe {
+            ZendHashTable::from_ptr(
+                self.handlers()?.get_properties.ok_or(Error::InvalidScope)?(self.mut_ptr()),
+                false,
+            )
+        }
     }
 
     /// Attempts to retrieve a reference to the object handlers.
@@ -128,6 +149,24 @@ impl ZendObject {
     #[inline]
     fn mut_ptr(&self) -> *mut Self {
         (self as *const Self) as *mut Self
+    }
+}
+
+impl Debug for ZendObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut dbg = f.debug_struct(
+            self.get_class_name()
+                .unwrap_or_else(|_| "ZendObject".to_string())
+                .as_str(),
+        );
+
+        if let Ok(props) = self.get_properties() {
+            for (id, key, val) in props.into_iter() {
+                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
+            }
+        }
+
+        dbg.finish()
     }
 }
 
@@ -193,7 +232,7 @@ impl<T: Default> ZendClassObject<T> {
         &mut obj.std
     }
 
-    /// Attempts to retrieve the zend class object container from the
+    /// Attempts to retrieve the Zend class object container from the
     /// zend object contained in the execution data of a function.
     ///
     /// # Parameters
@@ -201,7 +240,7 @@ impl<T: Default> ZendClassObject<T> {
     /// * `ex` - The execution data of the function.
     pub fn get(ex: &ExecutionData) -> Option<&'static mut Self> {
         // cast to u8 to work in terms of bytes
-        let ptr = ex.This.object()? as *mut u8;
+        let ptr = (ex.This.object()? as *const ZendObject) as *mut u8;
         let offset = std::mem::size_of::<T>();
         unsafe {
             let ptr = ptr.offset(0 - offset as isize);
