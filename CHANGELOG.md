@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 0.0.7
+
+- Added support for thread-safe PHP (@davidcole1340) #37
+- Added ability to add properties to classes (@davidcole1340) #39
+- Added better interactions with objects (@davidcole1340) #41
+
 ## Version 0.0.6
 
 - Fixed `panic!` when a PHP binary string was given to a function (@davidcole1340) [c:d73788e]
