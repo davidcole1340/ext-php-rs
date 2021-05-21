@@ -43,7 +43,7 @@ impl ZendObject {
     ///
     /// * `name` - The name of the property.
     /// * `query` - The type of query to use when attempting to get a property.
-    pub fn get_property<'a>(&'a self, name: impl AsRef<str>) -> Result<&'a Zval> {
+    pub fn get_property(&self, name: impl AsRef<str>) -> Result<&Zval> {
         let name = name.as_ref();
 
         if !self.has_property(name, PropertyQuery::Exists)? {
@@ -73,11 +73,7 @@ impl ZendObject {
     ///
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
-    pub fn set_property<'a>(
-        &'a mut self,
-        name: impl AsRef<str>,
-        value: impl Into<Zval>,
-    ) -> Result<&'a Zval> {
+    pub fn set_property(&mut self, name: impl AsRef<str>, value: impl Into<Zval>) -> Result<&Zval> {
         let name = ZendString::new(name, false);
         let mut value = value.into();
 
@@ -122,7 +118,7 @@ impl ZendObject {
 
     /// Attempts to retrieve a reference to the object handlers.
     #[inline]
-    unsafe fn handlers<'a>(&'a self) -> Result<&'a ZendObjectHandlers> {
+    unsafe fn handlers(&self) -> Result<&ZendObjectHandlers> {
         self.handlers.as_ref().ok_or(Error::InvalidScope)
     }
 

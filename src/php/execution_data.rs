@@ -14,7 +14,7 @@ pub type ExecutionData = zend_execute_data;
 impl ExecutionData {
     /// Attempts to retrieve the 'this' object, which can be used in class methods
     /// to retrieve the underlying Zend object.
-    pub fn get_self<'a>(&'a self) -> Result<&'a mut ZendObject> {
+    pub fn get_self(&self) -> Result<&mut ZendObject> {
         unsafe { self.This.value.obj.as_mut() }.ok_or(Error::InvalidScope)
     }
 
