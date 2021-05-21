@@ -210,7 +210,7 @@
     }
 
     <span class="doccomment">/// Releases the Zend string, returning the raw pointer to the `zend_string` object</span>
-    <span class="doccomment">/// and consuming the internal Rust [`NewZendString`] container.</span>
+    <span class="doccomment">/// and consuming the internal Rust [`ZendString`] container.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">release</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">zend_string</span> {
         <span class="self">self</span>.<span class="ident">free</span> <span class="op">=</span> <span class="bool-val">false</span>;
         <span class="self">self</span>.<span class="ident">ptr</span>
