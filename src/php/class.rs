@@ -5,7 +5,7 @@ use std::{mem, ptr};
 use crate::{
     bindings::{
         ext_php_rs_zend_string_release, zend_class_entry, zend_declare_class_constant,
-        zend_register_internal_class_ex,
+        zend_declare_property, zend_register_internal_class_ex,
     },
     functions::c_str,
 };
@@ -29,7 +29,7 @@ pub struct ClassBuilder<'a> {
     extends: *mut ClassEntry,
     methods: Vec<FunctionEntry>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
-    // properties: Vec<(&'a str, Zval, PropertyFlags)>,
+    properties: Vec<(&'a str, Zval, PropertyFlags)>,
     constants: Vec<(&'a str, Zval)>,
 }
 
@@ -44,17 +44,21 @@ impl<'a> ClassBuilder<'a> {
     where
         N: AsRef<str>,
     {
-        let ptr = unsafe { libc::calloc(1, mem::size_of::<ClassEntry>()) } as *mut ClassEntry;
-        let self_ = Self {
-            ptr: unsafe { ptr.as_mut() }.unwrap(),
+        let ptr = unsafe {
+            (libc::calloc(1, mem::size_of::<ClassEntry>()) as *mut ClassEntry)
+                .as_mut()
+                .unwrap()
+        };
+        ptr.name = ZendString::new_interned(name).release();
+
+        Self {
+            ptr,
             extends: ptr::null_mut(),
             methods: vec![],
             object_override: None,
-            // properties: vec![],
+            properties: vec![],
             constants: vec![],
-        };
-        self_.ptr.name = ZendString::new_interned(name);
-        self_
+        }
     }
 
     /// Sets the class builder to extend another class.
@@ -79,8 +83,8 @@ impl<'a> ClassBuilder<'a> {
         self
     }
 
-    /// Adds a property to the class.
-    /// The type of the property is defined by the type of the given default.
+    /// Adds a property to the class. The initial type of the property is given by the type
+    /// of the given default. Note that the user can change the type.
     ///
     /// # Parameters
     ///
@@ -92,17 +96,16 @@ impl<'a> ClassBuilder<'a> {
     where
         T: Into<Zval>,
     {
-        panic!("Properties are currently not supported. See #16");
-        // let mut default = default.into();
+        let mut default = default.into();
 
-        // if default.is_string() {
-        //     let val = default.string().unwrap();
-        //     unsafe { ext_php_rs_zend_string_release(default.value.str_) };
-        //     default.set_persistent_string(val);
-        // }
+        if default.is_string() {
+            let val = default.string().unwrap();
+            unsafe { ext_php_rs_zend_string_release(default.value.str_) };
+            default.set_persistent_string(val);
+        }
 
-        // self.properties.push((name, default, flags));
-        // self
+        self.properties.push((name, default, flags));
+        self
     }
 
     /// Adds a constant to the class.
@@ -146,7 +149,10 @@ impl<'a> ClassBuilder<'a> {
     /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
     /// which can be derived through the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler)
     /// derive macro.
-    pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
+    pub fn object_override<T>(mut self) -> Self
+    where
+        T: ZendObjectOverride,
+    {
         self.object_override = Some(T::create_object);
         self
     }
@@ -165,18 +171,17 @@ impl<'a> ClassBuilder<'a> {
 
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
 
-        // DC: Commented out for now. Bug with properties.
-        // for (name, mut default, flags) in self.properties {
-        //     unsafe {
-        //         zend_declare_property(
-        //             class,
-        //             c_str(name),
-        //             name.len() as u64,
-        //             &mut default,
-        //             flags.bits() as i32,
-        //         );
-        //     }
-        // }
+        for (name, mut default, flags) in self.properties {
+            unsafe {
+                zend_declare_property(
+                    class,
+                    c_str(name),
+                    name.len() as _,
+                    &mut default,
+                    flags.bits() as _,
+                );
+            }
+        }
 
         for (name, value) in self.constants {
             let value = Box::into_raw(Box::new(value));

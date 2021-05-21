@@ -19,8 +19,3 @@ void *ext_php_rs_zend_object_alloc(size_t obj_size, zend_class_entry *ce)
 {
     return zend_object_alloc(obj_size, ce);
 }
-
-void ext_php_rs_zend_object_std_init(zend_object *object, zend_class_entry *ce)
-{
-    zend_object_std_init(object, ce);
-}

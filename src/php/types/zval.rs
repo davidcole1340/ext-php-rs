@@ -205,7 +205,7 @@ impl<'a> Zval {
 
     /// Returns the type of the Zval.
     pub fn get_type(&self) -> Result<DataType> {
-        DataType::try_from(unsafe { self.u1.v.type_ })
+        DataType::try_from(unsafe { self.u1.v.type_ } as u32)
     }
 
     /// Returns true if the zval is a long, false otherwise.
@@ -279,7 +279,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new(val, false);
-        self.value.str_ = zend_str;
+        self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
@@ -306,7 +306,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new(val, true);
-        self.value.str_ = zend_str;
+        self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
@@ -320,7 +320,7 @@ impl<'a> Zval {
         S: AsRef<str>,
     {
         let zend_str = ZendString::new_interned(val);
-        self.value.str_ = zend_str;
+        self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::InternedStringEx.bits();
     }
 
@@ -396,6 +396,11 @@ impl<'a> Zval {
         self.u1.type_info = ZvalTypeFlags::ArrayEx.bits();
         self.value.arr = val.into().into_ptr();
     }
+
+    /// Sets the reference count of the Zval.
+    pub(crate) fn set_refcount(&mut self, rc: u32) {
+        unsafe { (*self.value.counted).gc.refcount = rc }
+    }
 }
 
 impl Debug for Zval {
@@ -412,8 +417,8 @@ impl Debug for Zval {
             }
 
             match ty {
-                DataType::Undef => field!("Undefined"),
-                DataType::Null => field!("Null"),
+                DataType::Undef => field!(Option::<()>::None),
+                DataType::Null => field!(Option::<()>::None),
                 DataType::False => field!(false),
                 DataType::True => field!(true),
                 DataType::Long => field!(self.long()),
@@ -424,8 +429,8 @@ impl Debug for Zval {
                 DataType::Resource => field!(self.resource()),
                 DataType::Reference => field!(self.reference()),
                 DataType::Callable => field!(self.string()),
-                DataType::ConstantExpression => field!("Constant Expression"),
-                DataType::Void => field!("Void"),
+                DataType::ConstantExpression => field!(Option::<()>::None),
+                DataType::Void => field!(Option::<()>::None),
             };
         }
 

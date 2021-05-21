@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Valid data types for PHP.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum DataType {
     Undef = IS_UNDEF,
@@ -32,6 +32,17 @@ pub enum DataType {
     ConstantExpression = IS_CONSTANT_AST,
     Void = IS_VOID,
 }
+
+// TODO: Ideally want something like this
+// pub struct Type {
+//     data_type: DataType,
+//     is_refcounted: bool,
+//     is_collectable: bool,
+//     is_immutable: bool,
+//     is_persistent: bool,
+// }
+//
+// impl From<u32> for Type { ... }
 
 impl TryFrom<ZvalTypeFlags> for DataType {
     type Error = Error;
@@ -64,12 +75,37 @@ impl TryFrom<ZvalTypeFlags> for DataType {
     }
 }
 
-impl TryFrom<u8> for DataType {
+impl TryFrom<u32> for DataType {
     type Error = Error;
 
-    fn try_from(value: u8) -> Result<Self> {
-        let flags = ZvalTypeFlags::from_bits(value.into()).ok_or(Error::UnknownDatatype(value))?;
-        DataType::try_from(flags)
+    #[allow(clippy::bad_bit_mask)]
+    fn try_from(value: u32) -> Result<Self> {
+        macro_rules! contains {
+            ($c: ident, $t: ident) => {
+                if (value & $c) == $c {
+                    return Ok(DataType::$t);
+                }
+            };
+        }
+
+        contains!(IS_VOID, Void);
+        contains!(IS_CALLABLE, Callable);
+        contains!(IS_CONSTANT_AST, ConstantExpression);
+        contains!(IS_CONSTANT_AST, ConstantExpression);
+        contains!(IS_CONSTANT_AST, ConstantExpression);
+        contains!(IS_REFERENCE, Reference);
+        contains!(IS_RESOURCE, Resource);
+        contains!(IS_OBJECT, Object);
+        contains!(IS_ARRAY, Array);
+        contains!(IS_STRING, String);
+        contains!(IS_DOUBLE, Double);
+        contains!(IS_LONG, Long);
+        contains!(IS_TRUE, True);
+        contains!(IS_FALSE, False);
+        contains!(IS_NULL, Null);
+        contains!(IS_UNDEF, Undef);
+
+        Err(Error::UnknownDatatype(value))
     }
 }
 
@@ -91,5 +127,49 @@ impl Display for DataType {
             DataType::ConstantExpression => write!(f, "Constant Expression"),
             DataType::Void => write!(f, "Void"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DataType;
+    use crate::bindings::{
+        IS_ARRAY, IS_ARRAY_EX, IS_CALLABLE, IS_CONSTANT_AST, IS_CONSTANT_AST_EX, IS_DOUBLE,
+        IS_FALSE, IS_INTERNED_STRING_EX, IS_LONG, IS_NULL, IS_OBJECT, IS_OBJECT_EX, IS_REFERENCE,
+        IS_REFERENCE_EX, IS_RESOURCE, IS_RESOURCE_EX, IS_STRING, IS_STRING_EX, IS_TRUE, IS_UNDEF,
+        IS_VOID,
+    };
+    use std::convert::TryFrom;
+
+    #[test]
+    fn test_datatype() {
+        macro_rules! test {
+            ($c: ident, $t: ident) => {
+                assert_eq!(DataType::try_from($c), Ok(DataType::$t));
+            };
+        }
+
+        test!(IS_UNDEF, Undef);
+        test!(IS_NULL, Null);
+        test!(IS_FALSE, False);
+        test!(IS_TRUE, True);
+        test!(IS_LONG, Long);
+        test!(IS_DOUBLE, Double);
+        test!(IS_STRING, String);
+        test!(IS_ARRAY, Array);
+        test!(IS_OBJECT, Object);
+        test!(IS_RESOURCE, Resource);
+        test!(IS_REFERENCE, Reference);
+        test!(IS_CONSTANT_AST, ConstantExpression);
+        test!(IS_CALLABLE, Callable);
+        test!(IS_VOID, Void);
+
+        test!(IS_INTERNED_STRING_EX, String);
+        test!(IS_STRING_EX, String);
+        test!(IS_ARRAY_EX, Array);
+        test!(IS_OBJECT_EX, Object);
+        test!(IS_RESOURCE_EX, Resource);
+        test!(IS_REFERENCE_EX, Reference);
+        test!(IS_CONSTANT_AST_EX, ConstantExpression);
     }
 }
