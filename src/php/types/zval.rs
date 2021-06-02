@@ -137,9 +137,9 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is a reference.
-    pub fn reference(&self) -> Option<Zval> {
+    pub fn reference(&self) -> Option<&mut Zval> {
         if self.is_reference() {
-            Some(unsafe { (*self.value.ref_).val })
+            Some(&mut unsafe { self.value.ref_.as_mut() }?.val)
         } else {
             None
         }
