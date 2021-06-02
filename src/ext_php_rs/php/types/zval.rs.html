@@ -643,9 +643,9 @@
     }
 
     <span class="doccomment">/// Returns the value of the zval if it is a reference.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">reference</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">reference</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Zval</span><span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">is_reference</span>() {
-            <span class="prelude-val">Some</span>(<span class="kw">unsafe</span> { (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">value</span>.<span class="ident">ref_</span>).<span class="ident">val</span> })
+            <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">value</span>.<span class="ident">ref_</span>.<span class="ident">as_mut</span>() }<span class="question-mark">?</span>.<span class="ident">val</span>)
         } <span class="kw">else</span> {
             <span class="prelude-val">None</span>
         }
