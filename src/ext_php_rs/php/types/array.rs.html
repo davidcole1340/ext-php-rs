@@ -385,6 +385,12 @@
 <span id="382">382</span>
 <span id="383">383</span>
 <span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Represents an array in PHP. As all arrays in PHP are associative arrays, they are represented</span>
 <span class="doccomment">//! by hash tables.</span>
@@ -619,6 +625,12 @@
         <span class="kw">let</span> <span class="ident">val</span>: <span class="ident">Zval</span> <span class="op">=</span> <span class="ident">val</span>.<span class="ident">into</span>();
 
         <span class="kw">unsafe</span> { <span class="ident">zend_hash_next_index_insert</span>(<span class="self">self</span>.<span class="ident">ptr</span>, <span class="ident">Box</span>::<span class="ident">into_raw</span>(<span class="ident">Box</span>::<span class="ident">new</span>(<span class="ident">val</span>))) };
+    }
+
+    <span class="doccomment">/// Returns an iterator over the hash table.</span>
+    <span class="attribute">#[<span class="ident">inline</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">iter</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Iter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">into_iter</span>()
     }
 
     <span class="doccomment">/// Converts the hash table into a raw pointer to be passed to Zend.</span>
