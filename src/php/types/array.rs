@@ -233,6 +233,12 @@ impl ZendHashTable {
         unsafe { zend_hash_next_index_insert(self.ptr, Box::into_raw(Box::new(val))) };
     }
 
+    /// Returns an iterator over the hash table.
+    #[inline]
+    pub fn iter(&self) -> Iter<'_> {
+        self.into_iter()
+    }
+
     /// Converts the hash table into a raw pointer to be passed to Zend.
     pub(crate) fn into_ptr(mut self) -> *mut HashTable {
         self.free = false;
