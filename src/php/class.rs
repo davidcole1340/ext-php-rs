@@ -66,8 +66,8 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `parent` - The parent class to extend.
-    pub fn extends(mut self, parent: *mut ClassEntry) -> Self {
-        self.extends = parent;
+    pub fn extends(mut self, parent: &ClassEntry) -> Self {
+        self.extends = (parent as *const _) as *mut _;
         self
     }
 
