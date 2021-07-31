@@ -66,7 +66,7 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `parent` - The parent class to extend.
-    pub fn extends(mut self, parent: &ClassEntry) -> Self {
+    pub fn extends(mut self, parent: &'static ClassEntry) -> Self {
         self.extends = (parent as *const _) as *mut _;
         self
     }
@@ -156,17 +156,17 @@ impl<'a> ClassBuilder<'a> {
         self
     }
 
-    /// Builds the class, returning a pointer to the class entry.
-    pub fn build(mut self) -> *mut ClassEntry {
+    /// Builds the class, returning a reference to the class entry.
+    ///
+    /// # Errors
+    ///
+    /// Returns `None` if the class could not be built.
+    pub fn build(mut self) -> Option<&'static mut ClassEntry> {
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
         self.ptr.info.internal.builtin_functions = func;
 
-        let class = unsafe {
-            zend_register_internal_class_ex(self.ptr, self.extends)
-                .as_mut()
-                .unwrap()
-        };
+        let class = unsafe { zend_register_internal_class_ex(self.ptr, self.extends).as_mut()? };
 
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
 
@@ -191,6 +191,6 @@ impl<'a> ClassBuilder<'a> {
             class.__bindgen_anon_2.create_object = Some(object_override);
         }
 
-        class
+        Some(class)
     }
 }
