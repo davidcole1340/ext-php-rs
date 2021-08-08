@@ -369,7 +369,7 @@ impl<'a> Zval {
         self.value.obj = (val as *const ZendObject) as *mut ZendObject;
     }
 
-    /// Sets the value of the zval as an array.
+    /// Sets the value of the zval as an array. Returns nothng in a result on success.
     ///
     /// # Parameters
     ///
