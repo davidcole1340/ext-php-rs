@@ -19,7 +19,19 @@ use crate::{
     functions::c_str,
 };
 
-use super::{string::ZendString, zval::Zval};
+use super::{
+    string::ZendString,
+    zval::{IntoZval, Zval},
+};
+
+/// Result type returned after attempting to insert an element into a hash table.
+#[derive(Debug)]
+pub enum HashTableInsertResult<'a> {
+    /// The element was inserted into the hash table successfully.
+    Ok,
+    /// The element was inserted into the hash table successfully, over-writing an existing element.
+    OkWithOverwrite(&'a Zval),
+}
 
 /// A PHP array, which internally is a hash table.
 pub struct ZendHashTable {
@@ -97,7 +109,7 @@ impl ZendHashTable {
     {
         let _key = key.into();
         let len = _key.len();
-        unsafe { zend_hash_str_find(self.ptr, c_str(_key), len as u64).as_ref() }
+        unsafe { zend_hash_str_find(self.ptr, c_str(_key).ok()?, len as u64).as_ref() }
     }
 
     /// Attempts to retrieve a value from the hash table with an index.
@@ -122,15 +134,15 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// * `Ok(())` - Key was successfully removed.
-    /// * `Err(())` - No key was removed, did not exist.
+    /// * `Some(())` - Key was successfully removed.
+    /// * `None` - No key was removed, did not exist.
     pub fn remove<K>(&self, key: K) -> Option<()>
     where
         K: Into<String>,
     {
         let _key = key.into();
         let len = _key.len();
-        let result = unsafe { zend_hash_str_del(self.ptr, c_str(_key), len as u64) };
+        let result = unsafe { zend_hash_str_del(self.ptr, c_str(_key).ok()?, len as u64) };
 
         if result < 0 {
             None
@@ -160,29 +172,26 @@ impl ZendHashTable {
     }
 
     /// Attempts to insert an item into the hash table, or update if the key already exists.
+    /// Returns a result containing a [`HashTableInsertResult`], which will indicate a successful
+    /// insert, with the insert result variants either containing the overwritten value or nothing.
     ///
     /// # Parameters
     ///
     /// * `key` - The key to insert the value at in the hash table.
     /// * `value` - The value to insert into the hash table.
-    ///
-    /// # Returns
-    ///
-    /// * `Some(Zval)` - The existing value in the hash table that was overriden.
-    /// * `None` - The element was inserted.
-    pub fn insert<K, V>(&mut self, key: K, val: V) -> Option<&Zval>
+    pub fn insert<K, V>(&mut self, key: K, val: V) -> Result<HashTableInsertResult>
     where
         K: Into<String>,
-        V: Into<Zval>,
+        V: IntoZval,
     {
         let key: String = key.into();
         let len = key.len();
-        let val: Zval = val.into();
+        let val = val.as_zval(false)?;
 
         let existing_ptr = unsafe {
             zend_hash_str_update(
                 self.ptr,
-                c_str(key),
+                c_str(key)?,
                 len as u64,
                 Box::into_raw(Box::new(val)), // Do we really want to allocate the value on the heap?
                                               // I read somewhere that zvals are't usually (or never) allocated on the heap.
@@ -191,7 +200,13 @@ impl ZendHashTable {
 
         // Should we be claiming this Zval into rust?
         // I'm not sure if the PHP GC will collect this.
-        unsafe { existing_ptr.as_ref() }
+
+        // SAFETY: The `zend_hash_str_update` function will either return a valid pointer or a null pointer.
+        // In the latter case, `as_ref()` will return `None`.
+        Ok(match unsafe { existing_ptr.as_ref() } {
+            Some(ptr) => HashTableInsertResult::OkWithOverwrite(ptr),
+            None => HashTableInsertResult::Ok,
+        })
     }
 
     /// Inserts an item into the hash table at a specified index,
@@ -206,31 +221,37 @@ impl ZendHashTable {
     ///
     /// * `Some(&Zval)` - The existing value in the hash table that was overriden.
     /// * `None` - The element was inserted.
-    pub fn insert_at_index<V>(&mut self, key: u64, val: V) -> Option<&Zval>
+    pub fn insert_at_index<V>(&mut self, key: u64, val: V) -> Result<HashTableInsertResult>
     where
-        V: Into<Zval>,
+        V: IntoZval,
     {
-        let val: Zval = val.into();
+        let val = val.as_zval(false)?;
 
         let existing_ptr =
             unsafe { zend_hash_index_update(self.ptr, key, Box::into_raw(Box::new(val))) };
 
-        // See `insert` function comment.
-        unsafe { existing_ptr.as_ref() }
+        // SAFETY: The `zend_hash_str_update` function will either return a valid pointer or a null pointer.
+        // In the latter case, `as_ref()` will return `None`.
+        Ok(match unsafe { existing_ptr.as_ref() } {
+            Some(ptr) => HashTableInsertResult::OkWithOverwrite(ptr),
+            None => HashTableInsertResult::Ok,
+        })
     }
 
-    /// Pushes an item onto the end of the hash table.
+    /// Pushes an item onto the end of the hash table. Returns a result containing nothing if the
+    /// element was sucessfully inserted.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to insert into the hash table.
-    pub fn push<V>(&mut self, val: V)
+    pub fn push<V>(&mut self, val: V) -> Result<()>
     where
-        V: Into<Zval>,
+        V: IntoZval,
     {
-        let val: Zval = val.into();
+        let val = val.as_zval(false)?;
 
         unsafe { zend_hash_next_index_insert(self.ptr, Box::into_raw(Box::new(val))) };
+        Ok(())
     }
 
     /// Returns an iterator over the hash table.
@@ -343,19 +364,21 @@ impl<'a> From<&'a ZendHashTable> for HashMap<String, &'a Zval> {
 }
 
 /// Implementation converting a Rust HashTable into a ZendHashTable.
-impl<'a, K, V> From<&'a HashMap<K, V>> for ZendHashTable
+impl<'a, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable
 where
     K: Into<String> + Copy,
-    V: Into<Zval> + Copy,
+    V: IntoZval + Copy,
 {
-    fn from(hm: &'a HashMap<K, V>) -> Self {
+    type Error = Error;
+
+    fn try_from(hm: &'a HashMap<K, V>) -> Result<Self> {
         let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
 
         for (k, v) in hm.iter() {
-            ht.insert(*k, *v);
+            ht.insert(*k, *v)?;
         }
 
-        ht
+        Ok(ht)
     }
 }
 
@@ -374,17 +397,19 @@ where
 }
 
 /// Implementation for converting a Rust Vec into a ZendHashTable.
-impl<'a, V> From<Vec<V>> for ZendHashTable
+impl<'a, V> TryFrom<Vec<V>> for ZendHashTable
 where
-    V: Into<Zval>,
+    V: IntoZval,
 {
-    fn from(vec: Vec<V>) -> Self {
+    type Error = Error;
+
+    fn try_from(vec: Vec<V>) -> Result<Self> {
         let mut ht = ZendHashTable::with_capacity(vec.len() as u32);
 
         for v in vec {
-            ht.push(v);
+            ht.push(v)?;
         }
 
-        ht
+        Ok(ht)
     }
 }

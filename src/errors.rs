@@ -36,6 +36,10 @@ pub enum Error {
     InvalidPointer,
     /// The given property name does not exist.
     InvalidProperty,
+    /// The string could not be converted into a C-string due to the presence of a NUL character.
+    InvalidCString,
+    /// Could not call the given function.
+    Callable,
 }
 
 impl Display for Error {
@@ -58,6 +62,11 @@ impl Display for Error {
             Error::InvalidScope => write!(f, "Invalid scope."),
             Error::InvalidPointer => write!(f, "Invalid pointer."),
             Error::InvalidProperty => write!(f, "Property does not exist on object."),
+            Error::InvalidCString => write!(
+                f,
+                "String given contains NUL-bytes which cannot be present in a C string."
+            ),
+            Error::Callable => write!(f, "Could not call given function."),
         }
     }
 }

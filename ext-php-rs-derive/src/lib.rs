@@ -32,10 +32,12 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
                         #handlers = Some(::ext_php_rs::php::types::object::ZendObjectHandlers::init::<#name>());
                     }
 
+                    // The handlers unwrap can never fail - we check that it is none above.
+                    // Unwrapping the result from `new_ptr` is nessacary as C cannot handle results.
                     ::ext_php_rs::php::types::object::ZendClassObject::<#name>::new_ptr(
                         ce,
                         #handlers.unwrap()
-                    )
+                    ).expect("Failed to allocate memory for new Zend object.")
                 }
             }
         }

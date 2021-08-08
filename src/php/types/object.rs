@@ -18,7 +18,10 @@ use crate::{
     php::{class::ClassEntry, execution_data::ExecutionData, types::string::ZendString},
 };
 
-use super::{array::ZendHashTable, zval::Zval};
+use super::{
+    array::ZendHashTable,
+    zval::{IntoZval, Zval},
+};
 
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
@@ -63,7 +66,7 @@ impl ZendObject {
             return Err(Error::InvalidProperty);
         }
 
-        let name = ZendString::new(name, false);
+        let name = ZendString::new(name, false)?;
         let mut rv = Zval::new();
 
         unsafe {
@@ -86,9 +89,9 @@ impl ZendObject {
     ///
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
-    pub fn set_property(&mut self, name: impl AsRef<str>, value: impl Into<Zval>) -> Result<&Zval> {
-        let name = ZendString::new(name, false);
-        let mut value = value.into();
+    pub fn set_property(&mut self, name: impl AsRef<str>, value: impl IntoZval) -> Result<&Zval> {
+        let name = ZendString::new(name, false)?;
+        let mut value = value.as_zval(false)?;
 
         if value.is_string() {
             value.set_refcount(0);
@@ -115,7 +118,7 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `query` - The 'query' to classify if a property exists.
     pub fn has_property(&self, name: impl AsRef<str>, query: PropertyQuery) -> Result<bool> {
-        let name = ZendString::new(name.as_ref(), false);
+        let name = ZendString::new(name.as_ref(), false)?;
 
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
@@ -215,12 +218,12 @@ impl<T: Default> ZendClassObject<T> {
     pub unsafe fn new_ptr(
         ce: *mut ClassEntry,
         handlers: *mut ZendObjectHandlers,
-    ) -> *mut zend_object {
+    ) -> Result<*mut zend_object> {
         let obj = {
             let obj = (ext_php_rs_zend_object_alloc(std::mem::size_of::<Self>() as _, ce)
                 as *mut Self)
                 .as_mut()
-                .unwrap();
+                .ok_or(Error::InvalidPointer)?;
 
             zend_object_std_init(&mut obj.std, ce);
             object_properties_init(&mut obj.std, ce);
@@ -229,7 +232,7 @@ impl<T: Default> ZendClassObject<T> {
 
         obj.obj = T::default();
         obj.std.handlers = handlers;
-        &mut obj.std
+        Ok(&mut obj.std)
     }
 
     /// Attempts to retrieve the Zend class object container from the

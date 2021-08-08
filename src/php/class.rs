@@ -1,11 +1,12 @@
 //! Builder and objects for creating classes in the PHP world.
 
+use crate::errors::{Error, Result};
 use std::{mem, ptr};
 
 use crate::{
     bindings::{
-        ext_php_rs_zend_string_release, zend_class_entry, zend_declare_class_constant,
-        zend_declare_property, zend_register_internal_class_ex,
+        zend_class_entry, zend_declare_class_constant, zend_declare_property,
+        zend_register_internal_class_ex,
     },
     functions::c_str,
 };
@@ -16,7 +17,7 @@ use super::{
     types::{
         object::{ZendObject, ZendObjectOverride},
         string::ZendString,
-        zval::Zval,
+        zval::{IntoZval, Zval},
     },
 };
 
@@ -25,8 +26,9 @@ pub type ClassEntry = zend_class_entry;
 
 /// Builds a class to be exported as a PHP class.
 pub struct ClassBuilder<'a> {
+    name: String,
     ptr: &'a mut ClassEntry,
-    extends: *mut ClassEntry,
+    extends: Option<&'static ClassEntry>,
     methods: Vec<FunctionEntry>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
     properties: Vec<(String, Zval, PropertyFlags)>,
@@ -40,20 +42,24 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `name` - The name of the class.
+    #[allow(clippy::unwrap_used)]
     pub fn new<N>(name: N) -> Self
     where
         N: AsRef<str>,
     {
+        // SAFETY: Allocating temporary class entry. Will return a null-ptr if allocation fails,
+        // which will cause the program to panic (standard in Rust). Unwrapping is OK - the ptr
+        // will either be valid or null.
         let ptr = unsafe {
             (libc::calloc(1, mem::size_of::<ClassEntry>()) as *mut ClassEntry)
                 .as_mut()
                 .unwrap()
         };
-        ptr.name = ZendString::new_interned(name).release();
 
         Self {
+            name: name.as_ref().to_string(),
             ptr,
-            extends: ptr::null_mut(),
+            extends: None,
             methods: vec![],
             object_override: None,
             properties: vec![],
@@ -67,7 +73,7 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `parent` - The parent class to extend.
     pub fn extends(mut self, parent: &'static ClassEntry) -> Self {
-        self.extends = (parent as *const _) as *mut _;
+        self.extends = Some(parent);
         self
     }
 
@@ -86,6 +92,8 @@ impl<'a> ClassBuilder<'a> {
     /// Adds a property to the class. The initial type of the property is given by the type
     /// of the given default. Note that the user can change the type.
     ///
+    /// Returns a result containing the class builder if the property was successfully added.
+    ///
     /// # Parameters
     ///
     /// * `name` - The name of the property to add to the class.
@@ -94,40 +102,30 @@ impl<'a> ClassBuilder<'a> {
     pub fn property(
         mut self,
         name: impl AsRef<str>,
-        default: impl Into<Zval>,
+        default: impl IntoZval,
         flags: PropertyFlags,
-    ) -> Self {
-        let mut default = default.into();
-
-        if default.is_string() {
-            let val = default.string().unwrap();
-            unsafe { ext_php_rs_zend_string_release(default.value.str_) };
-            default.set_persistent_string(val);
-        }
+    ) -> Result<Self> {
+        let default = default.as_zval(true)?;
 
         self.properties
             .push((name.as_ref().to_string(), default, flags));
-        self
+        Ok(self)
     }
 
-    /// Adds a constant to the class.
-    /// The type of the constant is defined by the type of the given default.
+    /// Adds a constant to the class. The type of the constant is defined by the type of the given
+    /// default.
+    ///
+    /// Returns a result containing the class builder if the constant was successfully added.
     ///
     /// # Parameters
     ///
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
-    pub fn constant(mut self, name: impl AsRef<str>, value: impl Into<Zval>) -> Self {
-        let mut value = value.into();
-
-        if value.is_string() {
-            let val = value.string().unwrap();
-            unsafe { ext_php_rs_zend_string_release(value.value.str_) };
-            value.set_persistent_string(val);
-        }
+    pub fn constant(mut self, name: impl AsRef<str>, value: impl IntoZval) -> Result<Self> {
+        let value = value.as_zval(true)?;
 
         self.constants.push((name.as_ref().to_string(), value));
-        self
+        Ok(self)
     }
 
     /// Sets the flags for the class.
@@ -160,21 +158,34 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// # Errors
     ///
-    /// Returns `None` if the class could not be built.
-    pub fn build(mut self) -> Option<&'static mut ClassEntry> {
+    /// Returns an [`Error`] variant if the class could not be registered.
+    pub fn build(mut self) -> Result<&'static mut ClassEntry> {
+        self.ptr.name = ZendString::new_interned(self.name)?.release();
+
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
         self.ptr.info.internal.builtin_functions = func;
 
-        let class = unsafe { zend_register_internal_class_ex(self.ptr, self.extends).as_mut()? };
+        let class = unsafe {
+            zend_register_internal_class_ex(
+                self.ptr,
+                match self.extends {
+                    Some(ptr) => (ptr as *const _) as *mut _,
+                    None => ptr::null_mut(),
+                },
+            )
+            .as_mut()
+            .ok_or(Error::InvalidPointer)?
+        };
 
+        // SAFETY: We allocated memory for this pointer in `new`, so it is our job to free it when the builder has finished.
         unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
 
         for (name, mut default, flags) in self.properties {
             unsafe {
                 zend_declare_property(
                     class,
-                    c_str(&name),
+                    c_str(&name)?,
                     name.len() as _,
                     &mut default,
                     flags.bits() as _,
@@ -184,13 +195,13 @@ impl<'a> ClassBuilder<'a> {
 
         for (name, value) in self.constants {
             let value = Box::into_raw(Box::new(value));
-            unsafe { zend_declare_class_constant(class, c_str(&name), name.len() as u64, value) };
+            unsafe { zend_declare_class_constant(class, c_str(&name)?, name.len() as u64, value) };
         }
 
         if let Some(object_override) = self.object_override {
             class.__bindgen_anon_2.create_object = Some(object_override);
         }
 
-        Some(class)
+        Ok(class)
     }
 }
