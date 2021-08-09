@@ -64,7 +64,15 @@ pub fn php_function(_attr: TokenStream, item: TokenStream) -> TokenStream {
     for i in inputs.iter() {
         args.push(match i {
             syn::FnArg::Receiver(_) => todo!(),
-            syn::FnArg::Typed(i) => pat_type_to_arg(i),
+            syn::FnArg::Typed(i) => {
+                let name = match &*i.pat {
+                    syn::Pat::Ident(id) => id.ident.to_string(),
+                    _ => panic!(
+                        "Invalid parameter type. Function cannot accept `self` as an argument."
+                    ),
+                };
+                pat_type_to_arg(name, &i.ty)
+            }
         });
     }
 
@@ -122,17 +130,13 @@ pub fn php_function(_attr: TokenStream, item: TokenStream) -> TokenStream {
     })
 }
 
-fn pat_type_to_arg(pt: &PatType) -> Type {
-    let tp = if let syn::Type::Path(path) = &*pt.ty {
+fn pat_type_to_arg(name: String, ty: &syn::Type) -> Type {
+    let tp = if let syn::Type::Path(path) = ty {
         path
     } else {
         panic!("unsupported parameter type");
     };
 
-    let name = match &*pt.pat {
-        syn::Pat::Ident(id) => id.ident.to_string(),
-        _ => panic!("Invalid parameter type. Function cannot accept `self` as an argument."),
-    };
     let seg = tp
         .path
         .segments
@@ -140,20 +144,24 @@ fn pat_type_to_arg(pt: &PatType) -> Type {
         .expect(format!("Invalid parameter type for parameter `{}`.", name).as_ref());
 
     match seg.ident.to_string().as_ref() {
-        "Vec" => Type {
+        "Vec" | "HashMap" | "ZendHashTable" => Type {
             name,
             ty: DataType::Array,
             nullable: false,
         },
-        // "Option" => match &seg.arguments {
-        //     syn::PathArguments::AngleBracketed(t) => {
-        //         match t.args.first().expect("unsupported parameter type") {
-        //             syn::GenericArgument::Type(ty) => ty,
-        //             _ => panic!("unsupported parameter type"),
-        //         }
-        //     }
-        //     _ => panic!("unsupported parameter type"),
-        // },
+        "Option" => match &seg.arguments {
+            syn::PathArguments::AngleBracketed(t) => {
+                match t.args.first().expect("unsupported parameter type") {
+                    syn::GenericArgument::Type(ty) => {
+                        let mut ty = pat_type_to_arg(name, ty);
+                        ty.nullable = true;
+                        ty
+                    }
+                    _ => panic!("unsupported parameter type"),
+                }
+            }
+            _ => panic!("unsupported parameter type"),
+        },
         "String" => Type {
             name,
             ty: DataType::String,
@@ -170,7 +178,7 @@ fn pat_type_to_arg(pt: &PatType) -> Type {
             nullable: false,
         },
         // "bool" => "Bool",
-        _ => panic!("Invalid parameter type for parameter `{}`.", name),
+        v => panic!("Invalid parameter type for parameter `{}`: `{}`.", name, v),
     }
 }
 
