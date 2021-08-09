@@ -1,9 +1,13 @@
+use darling::FromMeta;
 use std::error::Error;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Attribute, DeriveInput, ItemFn, PatType, PathSegment, Signature};
+use syn::{
+    parse::Parse, parse_macro_input, punctuated::Punctuated, Attribute, AttributeArgs, DeriveInput,
+    ItemFn, PatType, PathSegment, Signature, Token,
+};
 
 extern crate proc_macro;
 
@@ -48,9 +52,23 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
     TokenStream::from(output)
 }
 
+#[derive(Debug, FromMeta)]
+struct PhpFunctionArgs {
+    #[darling(default)]
+    optional: Option<String>,
+}
+
 #[proc_macro_attribute]
-pub fn php_function(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn php_function(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
+    let macro_args = {
+        let attr = parse_macro_input!(attr as AttributeArgs);
+        match PhpFunctionArgs::from_list(&attr) {
+            Ok(v) => v,
+            Err(e) => return TokenStream::from(e.write_errors()),
+        }
+    };
+
     let ItemFn { sig, block, .. } = func;
     let Signature {
         ident,
@@ -77,11 +95,29 @@ pub fn php_function(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let arg_def = args.iter().map(|a| a.to_arg()).collect::<Vec<_>>();
+    let mut rest_optional = false;
     let arg_parse = args
         .iter()
         .map(|a| {
             let name = Ident::new(&a.name, Span::call_site());
+            let pre = if let Some(optional) = &macro_args.optional {
+                if *optional == a.name {
+                    rest_optional = true;
+                    quote! { .not_required() }
+                } else {
+                    quote! {}
+                }
+            } else {
+                quote! {}
+            };
+            if rest_optional && !a.nullable {
+                panic!(
+                    "Parameter `{}` must be a variant of `Option` as it is optional.",
+                    a.name
+                );
+            }
             quote! {
+                #pre
                 .arg(&mut #name)
             }
         })
