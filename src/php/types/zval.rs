@@ -451,6 +451,21 @@ pub trait IntoZval {
     fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
+impl<T> IntoZval for Option<T>
+where
+    T: IntoZval,
+{
+    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
+        match self {
+            Some(val) => val.set_zval(zv, persistent),
+            None => {
+                zv.set_null();
+                Ok(())
+            }
+        }
+    }
+}
+
 macro_rules! try_from_zval {
     ($type: ty, $fn: ident) => {
         impl TryFrom<&Zval> for $type {
