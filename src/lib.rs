@@ -10,4 +10,5 @@ pub mod errors;
 pub mod functions;
 pub mod php;
 
+pub use ext_php_rs_derive::php_function;
 pub use ext_php_rs_derive::ZendObjectHandler;

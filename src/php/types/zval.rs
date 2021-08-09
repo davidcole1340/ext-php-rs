@@ -430,7 +430,20 @@ pub trait IntoZval {
     /// # Parameters
     ///
     /// * `persistent` - Whether the contents of the Zval will persist between requests.
-    fn as_zval(&self, persistent: bool) -> Result<Zval>;
+    fn as_zval(&self, persistent: bool) -> Result<Zval> {
+        let mut zval = Zval::new();
+        self.set_zval(&mut zval, persistent)?;
+        Ok(zval)
+    }
+
+    /// Sets the content of a pre-existing zval. Returns a result containing nothing if setting
+    /// the content was successful.
+    ///
+    /// # Parameters
+    ///
+    /// * `zv` - The Zval to set the content of.
+    /// * `persistent` - Whether the contents of the Zval will persist between requests.
+    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
 macro_rules! try_from_zval {
@@ -481,10 +494,9 @@ macro_rules! into_zval {
         }
 
         impl IntoZval for $type {
-            fn as_zval(&self, _: bool) -> Result<Zval> {
-                let mut zv = Zval::new();
+            fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
                 zv.$fn(*self);
-                Ok(zv)
+                Ok(())
             }
         }
     };
@@ -517,10 +529,8 @@ macro_rules! try_into_zval_str {
         }
 
         impl IntoZval for $type {
-            fn as_zval(&self, persistent: bool) -> Result<Zval> {
-                let mut zv = Zval::new();
-                zv.set_string(self, persistent)?;
-                Ok(zv)
+            fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
+                zv.set_string(self, persistent)
             }
         }
     };

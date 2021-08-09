@@ -1,7 +1,9 @@
+use std::error::Error;
+
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span};
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
+use quote::{quote, ToTokens};
+use syn::{parse_macro_input, Attribute, DeriveInput, ItemFn, PatType, PathSegment, Signature};
 
 extern crate proc_macro;
 
@@ -44,4 +46,197 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(output)
+}
+
+#[proc_macro_attribute]
+pub fn php_function(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let func = parse_macro_input!(item as ItemFn);
+    let ItemFn { sig, block, .. } = func;
+    let Signature {
+        ident,
+        output,
+        inputs,
+        ..
+    } = sig;
+    let stmts = &block.stmts;
+
+    let mut args = vec![];
+    for i in inputs.iter() {
+        args.push(match i {
+            syn::FnArg::Receiver(_) => todo!(),
+            syn::FnArg::Typed(i) => pat_type_to_arg(i),
+        });
+    }
+
+    let arg_def = args.iter().map(|a| a.to_arg()).collect::<Vec<_>>();
+    let arg_parse = args
+        .iter()
+        .map(|a| {
+            let name = Ident::new(&a.name, Span::call_site());
+            quote! {
+                .arg(&mut #name)
+            }
+        })
+        .collect::<Vec<_>>();
+    let arg_get = args
+        .iter()
+        .map(|a| a.get_zval_conversion_fn(false))
+        .collect::<Vec<_>>();
+
+    TokenStream::from(quote! {
+        pub extern "C" fn #ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
+            use ::ext_php_rs::php::types::zval::IntoZval;
+
+            fn internal(#inputs) #output {
+                #(#stmts)*
+            }
+
+            #(#arg_def)*
+
+            let parser = ::ext_php_rs::php::args::ArgParser::new(ex)
+                #(#arg_parse)*
+                .parse();
+
+            if parser.is_err() {
+                return;
+            }
+
+            match internal(#(#arg_get, )*) {
+                Ok(r) => match r.set_zval(retval, false) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        ::ext_php_rs::php::exceptions::throw(
+                            ::ext_php_rs::php::class::ClassEntry::exception(),
+                            e.to_string().as_ref()
+                        ).expect("Failed to throw exception: Failed to set return value.");
+                    },
+                },
+                Err(e) => {
+                    ::ext_php_rs::php::exceptions::throw(
+                        ::ext_php_rs::php::class::ClassEntry::exception(),
+                        e.to_string().as_ref()
+                    ).expect("Failed to throw exception: Error type returned from internal function.");
+                }
+            };
+        }
+    })
+}
+
+fn pat_type_to_arg(pt: &PatType) -> Type {
+    let tp = if let syn::Type::Path(path) = &*pt.ty {
+        path
+    } else {
+        panic!("unsupported parameter type");
+    };
+
+    let name = match &*pt.pat {
+        syn::Pat::Ident(id) => id.ident.to_string(),
+        _ => panic!("Invalid parameter type. Function cannot accept `self` as an argument."),
+    };
+    let seg = tp
+        .path
+        .segments
+        .last()
+        .expect(format!("Invalid parameter type for parameter `{}`.", name).as_ref());
+
+    match seg.ident.to_string().as_ref() {
+        // "Vec" => "Array",
+        // "Option" => match &seg.arguments {
+        //     syn::PathArguments::AngleBracketed(t) => {
+        //         match t.args.first().expect("unsupported parameter type") {
+        //             syn::GenericArgument::Type(ty) => ty,
+        //             _ => panic!("unsupported parameter type"),
+        //         }
+        //     }
+        //     _ => panic!("unsupported parameter type"),
+        // },
+        "String" => Type {
+            name,
+            ty: DataType::String,
+            nullable: false,
+        },
+        "i8" | "i16" | "i32" | "i64" => Type {
+            name,
+            ty: DataType::Long,
+            nullable: false,
+        },
+        "f32" | "f64" => Type {
+            name,
+            ty: DataType::Double,
+            nullable: false,
+        },
+        // "bool" => "Bool",
+        _ => panic!("Invalid parameter type for parameter `{}`.", name),
+    }
+}
+
+struct Type {
+    name: String,
+    ty: DataType,
+    nullable: bool,
+}
+
+enum DataType {
+    String,
+    Double,
+    Long,
+}
+
+impl Type {
+    fn get_data_type(&self) -> Ident {
+        Ident::new(
+            match self {
+                Type {
+                    ty: DataType::String,
+                    ..
+                } => "String",
+                Type {
+                    ty: DataType::Long, ..
+                } => "Long",
+                Type {
+                    ty: DataType::Double,
+                    ..
+                } => "Double",
+            },
+            Span::call_site(),
+        )
+    }
+
+    fn get_zval_conversion_fn(&self, optional: bool) -> TokenStream2 {
+        let name = &self.name;
+        let name_ident = Ident::new(&name, Span::call_site());
+
+        if self.nullable || optional {
+            quote! { #name_ident.val() }
+        } else {
+            quote! {
+                match #name_ident.val() {
+                    Some(v) => v,
+                    None => {
+                        ::ext_php_rs::php::exceptions::throw(
+                            ::ext_php_rs::php::class::ClassEntry::exception(),
+                            concat!("Unable to parse argument `", #name, "`.")
+                        ).expect(concat!("Failed to throw exception: Unable to parse argument `", #name, "`."));
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    fn to_arg(&self) -> TokenStream2 {
+        let name = &self.name;
+        let name_ident = Ident::new(&self.name, Span::call_site());
+        let ty = self.get_data_type();
+
+        let args = if self.nullable {
+            quote! { .allow_null() }
+        } else {
+            quote! {}
+        };
+
+        quote! {
+            let mut #name_ident = ::ext_php_rs::php::args::Arg::new(#name, ::ext_php_rs::php::enums::DataType::#ty) #args;
+        }
+    }
 }
