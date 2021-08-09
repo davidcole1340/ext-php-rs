@@ -5,6 +5,7 @@ use std::{
     collections::HashMap,
     convert::{TryFrom, TryInto},
     fmt::Debug,
+    marker::PhantomData,
     u64,
 };
 
@@ -34,12 +35,13 @@ pub enum HashTableInsertResult<'a> {
 }
 
 /// A PHP array, which internally is a hash table.
-pub struct ZendHashTable {
+pub struct ZendHashTable<'a> {
     ptr: *mut HashTable,
     free: bool,
+    phantom: PhantomData<&'a HashTable>,
 }
 
-impl ZendHashTable {
+impl<'a> ZendHashTable<'a> {
     /// Creates a new, empty, PHP associative array.
     pub fn new() -> Self {
         Self::with_capacity(HT_MIN_SIZE)
@@ -54,7 +56,11 @@ impl ZendHashTable {
         // SAFETY: PHP allocater handles the creation of the
         // array.
         let ptr = unsafe { _zend_new_array(size) };
-        Self { ptr, free: true }
+        Self {
+            ptr,
+            free: true,
+            phantom: PhantomData,
+        }
     }
 
     /// Creates a new hash table wrapper.
@@ -75,7 +81,11 @@ impl ZendHashTable {
             return Err(Error::InvalidPointer);
         }
 
-        Ok(Self { ptr, free })
+        Ok(Self {
+            ptr,
+            free,
+            phantom: PhantomData,
+        })
     }
 
     /// Returns the current number of elements in the array.
@@ -267,7 +277,7 @@ impl ZendHashTable {
     }
 }
 
-impl Debug for ZendHashTable {
+impl<'a> Debug for ZendHashTable<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
             .entries(
@@ -278,13 +288,13 @@ impl Debug for ZendHashTable {
     }
 }
 
-impl Default for ZendHashTable {
+impl<'a> Default for ZendHashTable<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Drop for ZendHashTable {
+impl<'a> Drop for ZendHashTable<'a> {
     fn drop(&mut self) {
         if self.free {
             unsafe { zend_array_destroy(self.ptr) };
@@ -292,7 +302,7 @@ impl Drop for ZendHashTable {
     }
 }
 
-impl<'a> IntoIterator for &'a ZendHashTable {
+impl<'a> IntoIterator for &'a ZendHashTable<'a> {
     type Item = (u64, Option<String>, &'a Zval);
     type IntoIter = Iter<'a>;
 
@@ -303,9 +313,10 @@ impl<'a> IntoIterator for &'a ZendHashTable {
 
 /// Iterator for a Zend hashtable/array.
 pub struct Iter<'a> {
-    ht: &'a ZendHashTable,
+    ht: &'a ZendHashTable<'a>,
     pos: *mut _Bucket,
     end: *mut _Bucket,
+    phantom: PhantomData<&'a _Bucket>,
 }
 
 impl<'a> Iter<'a> {
@@ -313,7 +324,12 @@ impl<'a> Iter<'a> {
         let ptr = unsafe { *ht.ptr };
         let pos = ptr.arData;
         let end = unsafe { ptr.arData.offset(ptr.nNumUsed as isize) };
-        Self { ht, pos, end }
+        Self {
+            ht,
+            pos,
+            end,
+            phantom: PhantomData,
+        }
     }
 }
 
@@ -351,7 +367,7 @@ impl<'a> Iterator for Iter<'a> {
 }
 
 /// Implementation converting a ZendHashTable into a Rust HashTable.
-impl<'a> From<&'a ZendHashTable> for HashMap<String, &'a Zval> {
+impl<'a> From<&'a ZendHashTable<'a>> for HashMap<String, &'a Zval> {
     fn from(zht: &'a ZendHashTable) -> Self {
         let mut hm = HashMap::new();
 
@@ -364,7 +380,7 @@ impl<'a> From<&'a ZendHashTable> for HashMap<String, &'a Zval> {
 }
 
 /// Implementation converting a Rust HashTable into a ZendHashTable.
-impl<'a, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable
+impl<'a, 'b, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable<'b>
 where
     K: Into<String> + Copy,
     V: IntoZval + Copy,
@@ -385,7 +401,7 @@ where
 /// Implementation for converting a `ZendHashTable` into a `Vec` of given type.
 /// If the contents of the hash table cannot be turned into a type `T`, it wil skip over the item
 /// and return a `Vec` consisting of only elements that could be converted.
-impl<'a, V> From<&'a ZendHashTable> for Vec<V>
+impl<'a, V> From<&'a ZendHashTable<'a>> for Vec<V>
 where
     V: TryFrom<&'a Zval>,
 {
@@ -397,7 +413,7 @@ where
 }
 
 /// Implementation for converting a Rust Vec into a ZendHashTable.
-impl<'a, V> TryFrom<Vec<V>> for ZendHashTable
+impl<'a, V> TryFrom<Vec<V>> for ZendHashTable<'a>
 where
     V: IntoZval,
 {

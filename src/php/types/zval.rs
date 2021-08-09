@@ -480,7 +480,16 @@ try_from_zval!(isize, long);
 try_from_zval!(f64, double);
 try_from_zval!(bool, bool);
 try_from_zval!(String, string);
-try_from_zval!(ZendHashTable, array);
+
+impl<'a> TryFrom<&'a Zval> for ZendHashTable<'a> {
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))
+    }
+}
 
 /// Implements the trait `Into<T>` on Zval for a given type.
 macro_rules! into_zval {
