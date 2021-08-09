@@ -1,13 +1,9 @@
 use darling::FromMeta;
-use std::error::Error;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
-use quote::{quote, ToTokens};
-use syn::{
-    parse::Parse, parse_macro_input, punctuated::Punctuated, Attribute, AttributeArgs, DeriveInput,
-    ItemFn, PatType, PathSegment, Signature, Token,
-};
+use quote::quote;
+use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn, ReturnType, Signature};
 
 extern crate proc_macro;
 
@@ -127,6 +123,8 @@ pub fn php_function(attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|a| a.get_zval_conversion_fn(false))
         .collect::<Vec<_>>();
 
+    let return_handler = build_return_handler(&output);
+
     TokenStream::from(quote! {
         pub extern "C" fn #ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
             use ::ext_php_rs::php::types::zval::IntoZval;
@@ -145,8 +143,66 @@ pub fn php_function(attr: TokenStream, item: TokenStream) -> TokenStream {
                 return;
             }
 
-            match internal(#(#arg_get, )*) {
-                Ok(r) => match r.set_zval(retval, false) {
+            let result = internal(#(#arg_get, )*);
+
+            #return_handler
+        }
+    })
+}
+
+fn build_return_handler(output: &ReturnType) -> TokenStream2 {
+    match output {
+        syn::ReturnType::Default => quote! {
+            retval.set_null();
+        },
+        syn::ReturnType::Type(_, ref ty) => {
+            if let syn::Type::Path(ref pat) = **ty {
+                if let Some(seg) = pat.path.segments.last() {
+                    match seg.ident.to_string().as_ref() {
+                        "Result" => {
+                            return quote! {
+                                match result {
+                                    Ok(r) => match r.set_zval(retval, false) {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            ::ext_php_rs::php::exceptions::throw(
+                                                ::ext_php_rs::php::class::ClassEntry::exception(),
+                                                e.to_string().as_ref()
+                                            ).expect("Failed to throw exception: Failed to set return value.");
+                                        },
+                                    },
+                                    Err(e) => {
+                                        ::ext_php_rs::php::exceptions::throw(
+                                            ::ext_php_rs::php::class::ClassEntry::exception(),
+                                            e.to_string().as_ref()
+                                        ).expect("Failed to throw exception: Error type returned from internal function.");
+                                    }
+                                };
+                            }
+                        }
+                        "Option" => {
+                            return quote! {
+                                match result {
+                                    Some(r) => match r.set_zval(retval, false) {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            ::ext_php_rs::php::exceptions::throw(
+                                                ::ext_php_rs::php::class::ClassEntry::exception(),
+                                                e.to_string().as_ref()
+                                            ).expect("Failed to throw exception: Failed to set return value.");
+                                        },
+                                    },
+                                    None => retval.set_null()
+                                };
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            quote! {
+                match result.set_zval(retval, false) {
                     Ok(_) => {}
                     Err(e) => {
                         ::ext_php_rs::php::exceptions::throw(
@@ -154,16 +210,10 @@ pub fn php_function(attr: TokenStream, item: TokenStream) -> TokenStream {
                             e.to_string().as_ref()
                         ).expect("Failed to throw exception: Failed to set return value.");
                     },
-                },
-                Err(e) => {
-                    ::ext_php_rs::php::exceptions::throw(
-                        ::ext_php_rs::php::class::ClassEntry::exception(),
-                        e.to_string().as_ref()
-                    ).expect("Failed to throw exception: Error type returned from internal function.");
                 }
-            };
+            }
         }
-    })
+    }
 }
 
 fn pat_type_to_arg(name: String, ty: &syn::Type) -> Type {
