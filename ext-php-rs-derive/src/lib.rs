@@ -140,7 +140,11 @@ fn pat_type_to_arg(pt: &PatType) -> Type {
         .expect(format!("Invalid parameter type for parameter `{}`.", name).as_ref());
 
     match seg.ident.to_string().as_ref() {
-        // "Vec" => "Array",
+        "Vec" => Type {
+            name,
+            ty: DataType::Array,
+            nullable: false,
+        },
         // "Option" => match &seg.arguments {
         //     syn::PathArguments::AngleBracketed(t) => {
         //         match t.args.first().expect("unsupported parameter type") {
@@ -155,7 +159,7 @@ fn pat_type_to_arg(pt: &PatType) -> Type {
             ty: DataType::String,
             nullable: false,
         },
-        "i8" | "i16" | "i32" | "i64" => Type {
+        "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" => Type {
             name,
             ty: DataType::Long,
             nullable: false,
@@ -180,6 +184,7 @@ enum DataType {
     String,
     Double,
     Long,
+    Array,
 }
 
 impl Type {
@@ -197,6 +202,10 @@ impl Type {
                     ty: DataType::Double,
                     ..
                 } => "Double",
+                Type {
+                    ty: DataType::Array,
+                    ..
+                } => "Array",
             },
             Span::call_site(),
         )
@@ -215,8 +224,8 @@ impl Type {
                     None => {
                         ::ext_php_rs::php::exceptions::throw(
                             ::ext_php_rs::php::class::ClassEntry::exception(),
-                            concat!("Unable to parse argument `", #name, "`.")
-                        ).expect(concat!("Failed to throw exception: Unable to parse argument `", #name, "`."));
+                            concat!("Invalid value given for argument `", #name, "`.")
+                        ).expect(concat!("Failed to throw exception: Invalid value given for argument `", #name, "`."));
                         return;
                     }
                 }

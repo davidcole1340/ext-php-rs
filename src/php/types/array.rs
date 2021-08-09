@@ -18,6 +18,7 @@ use crate::{
     },
     errors::{Error, Result},
     functions::c_str,
+    php::enums::DataType,
 };
 
 use super::{
@@ -267,7 +268,7 @@ impl<'a> ZendHashTable<'a> {
     /// Returns an iterator over the hash table.
     #[inline]
     pub fn iter(&self) -> Iter<'_> {
-        self.into_iter()
+        Iter::new(self)
     }
 
     /// Converts the hash table into a raw pointer to be passed to Zend.
@@ -281,7 +282,7 @@ impl<'a> Debug for ZendHashTable<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
             .entries(
-                self.into_iter()
+                self.iter()
                     .map(|(k, k2, v)| (k2.unwrap_or_else(|| k.to_string()), v)),
             )
             .finish()
@@ -302,80 +303,88 @@ impl<'a> Drop for ZendHashTable<'a> {
     }
 }
 
-impl<'a> IntoIterator for &'a ZendHashTable<'a> {
+impl<'a> IntoIterator for ZendHashTable<'a> {
     type Item = (u64, Option<String>, &'a Zval);
-    type IntoIter = Iter<'a>;
+    type IntoIter = IntoIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         Self::IntoIter::new(self)
     }
 }
 
-/// Iterator for a Zend hashtable/array.
-pub struct Iter<'a> {
-    ht: &'a ZendHashTable<'a>,
-    pos: *mut _Bucket,
-    end: *mut _Bucket,
-    phantom: PhantomData<&'a _Bucket>,
-}
-
-impl<'a> Iter<'a> {
-    pub fn new(ht: &'a ZendHashTable) -> Self {
-        let ptr = unsafe { *ht.ptr };
-        let pos = ptr.arData;
-        let end = unsafe { ptr.arData.offset(ptr.nNumUsed as isize) };
-        Self {
-            ht,
-            pos,
-            end,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<'a> Iterator for Iter<'a> {
-    type Item = (u64, Option<String>, &'a Zval);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // iterator complete
-        if self.pos == self.end {
-            return None;
+macro_rules! build_iter {
+    ($name: ident, $ht: ty) => {
+        pub struct $name<'a> {
+            ht: $ht,
+            pos: *mut _Bucket,
+            end: *mut _Bucket,
         }
 
-        let result = if let Some(val) = unsafe { self.pos.as_ref() } {
-            // SAFETY: We can ensure safety further by checking if it is null before
-            // converting it to a reference (val.key.as_ref() returns None if ptr == null)
-            let str_key = unsafe { ZendString::from_ptr(val.key, false) }
-                .and_then(|s| s.try_into())
-                .ok();
+        impl<'a> $name<'a> {
+            pub fn new(ht: $ht) -> Self {
+                let ptr = unsafe { *ht.ptr };
+                let pos = ptr.arData;
+                let end = unsafe { ptr.arData.offset(ptr.nNumUsed as isize) };
+                Self { ht, pos, end }
+            }
+        }
 
-            Some((val.h, str_key, &val.val))
-        } else {
-            None
-        };
+        impl<'a> Iterator for $name<'a> {
+            type Item = (u64, Option<String>, &'a Zval);
 
-        self.pos = unsafe { self.pos.offset(1) };
-        result
-    }
+            fn next(&mut self) -> Option<Self::Item> {
+                // iterator complete
+                if self.pos == self.end {
+                    return None;
+                }
 
-    fn count(self) -> usize
-    where
-        Self: Sized,
-    {
-        unsafe { *self.ht.ptr }.nNumOfElements as usize
-    }
+                let result = if let Some(val) = unsafe { self.pos.as_ref() } {
+                    // SAFETY: We can ensure safety further by checking if it is null before
+                    // converting it to a reference (val.key.as_ref() returns None if ptr == null)
+                    let str_key = unsafe { ZendString::from_ptr(val.key, false) }
+                        .and_then(|s| s.try_into())
+                        .ok();
+
+                    Some((val.h, str_key, &val.val))
+                } else {
+                    None
+                };
+
+                self.pos = unsafe { self.pos.offset(1) };
+                result
+            }
+
+            fn count(self) -> usize
+            where
+                Self: Sized,
+            {
+                unsafe { *self.ht.ptr }.nNumOfElements as usize
+            }
+        }
+    };
 }
 
-/// Implementation converting a ZendHashTable into a Rust HashTable.
-impl<'a> From<&'a ZendHashTable<'a>> for HashMap<String, &'a Zval> {
-    fn from(zht: &'a ZendHashTable) -> Self {
-        let mut hm = HashMap::new();
+build_iter!(Iter, &'a ZendHashTable<'a>);
+build_iter!(IntoIter, ZendHashTable<'a>);
+
+impl<'a, V> TryFrom<ZendHashTable<'a>> for HashMap<String, V>
+where
+    V: TryFrom<&'a Zval>,
+{
+    type Error = Error;
+
+    fn try_from(zht: ZendHashTable<'a>) -> Result<Self> {
+        let mut hm = HashMap::with_capacity(zht.len());
 
         for (idx, key, val) in zht.into_iter() {
-            hm.insert(key.unwrap_or_else(|| idx.to_string()), val);
+            hm.insert(
+                key.unwrap_or_else(|| idx.to_string()),
+                val.try_into()
+                    .map_err(|_| Error::ZvalConversion(DataType::Null))?,
+            );
         }
 
-        hm
+        Ok(hm)
     }
 }
 
@@ -398,17 +407,22 @@ where
     }
 }
 
-/// Implementation for converting a `ZendHashTable` into a `Vec` of given type.
-/// If the contents of the hash table cannot be turned into a type `T`, it wil skip over the item
-/// and return a `Vec` consisting of only elements that could be converted.
-impl<'a, V> From<&'a ZendHashTable<'a>> for Vec<V>
+/// Implementation for converting a reference to `ZendHashTable` into a `Vec` of given type.
+/// Will return an error type if one of the values inside the array cannot be converted into
+/// a type `T`.
+impl<'a, V> TryFrom<ZendHashTable<'a>> for Vec<V>
 where
     V: TryFrom<&'a Zval>,
 {
-    fn from(ht: &'a ZendHashTable) -> Self {
+    type Error = Error;
+
+    fn try_from(ht: ZendHashTable<'a>) -> Result<Self> {
         ht.into_iter()
-            .filter_map(|(_, _, v)| v.try_into().ok())
-            .collect()
+            .map(|(_, _, v)| {
+                v.try_into()
+                    .map_err(|_| Error::ZvalConversion(DataType::Null))
+            })
+            .collect::<Result<Vec<_>>>()
     }
 }
 

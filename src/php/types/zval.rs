@@ -2,7 +2,12 @@
 //! determined by a property inside the struct. The content of the Zval is stored in a union.
 
 use core::slice;
-use std::{convert::TryFrom, fmt::Debug, ptr};
+use std::{
+    collections::HashMap,
+    convert::{TryFrom, TryInto},
+    fmt::Debug,
+    ptr,
+};
 
 use crate::{
     bindings::{
@@ -119,7 +124,7 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is an array.
-    pub fn array(&self) -> Option<ZendHashTable> {
+    pub fn array(&self) -> Option<ZendHashTable<'a>> {
         if self.is_array() {
             unsafe { ZendHashTable::from_ptr(self.value.arr, false) }.ok()
         } else {
@@ -488,6 +493,34 @@ impl<'a> TryFrom<&'a Zval> for ZendHashTable<'a> {
         value
             .array()
             .ok_or(Error::ZvalConversion(value.get_type()?))
+    }
+}
+
+impl<'a, T> TryFrom<&'a Zval> for Vec<T>
+where
+    T: TryFrom<&'a Zval>,
+{
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))?
+            .try_into()
+    }
+}
+
+impl<'a, V> TryFrom<&'a Zval> for HashMap<String, V>
+where
+    V: TryFrom<&'a Zval>,
+{
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))?
+            .try_into()
     }
 }
 
