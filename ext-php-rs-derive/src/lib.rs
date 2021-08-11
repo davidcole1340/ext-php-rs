@@ -1,4 +1,5 @@
 mod function;
+mod method;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
@@ -6,6 +7,8 @@ use quote::quote;
 use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn};
 
 extern crate proc_macro;
+
+type Result<T> = std::result::Result<T, String>;
 
 /// Derives the implementation of `ZendObjectOverride` for the given structure.
 #[proc_macro_derive(ZendObjectHandler)]
@@ -48,8 +51,10 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
     TokenStream::from(output)
 }
 
-/// Function attribute used to modify the footprint of a tagged function to export it as a PHP
-/// function.
+/// Attribute used to declare a function as a PHP function.
+///
+/// Although this attribute exports the function to PHP-land, you *must* still register the
+/// function using the `FunctionBuilder` in your `get_module` function.
 ///
 /// Only types which can be converted to and from a `Zval` can be used as parameter and return
 /// types. These include but are not limited to:
@@ -64,7 +69,8 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
 ///
 /// Additionally, you are able to return a variant of [`Result<T, E>`]. `T` must be one of the
 /// above types and `E` must implement [`ToString`] (which is implemented through
-/// [`Display`](std::fmt::Display) in most cases).
+/// [`Display`](std::fmt::Display) in most cases). If an error variant is returned, a PHP
+/// `Exception` is thrown with the error type converted into a string.
 ///
 /// Parameters may be deemed optional by passing the parameter name into the attribute options.
 /// Note that all parameters that are optional (which includes the given optional parameter as well
@@ -72,13 +78,55 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
 ///
 /// Generics are *not* supported.
 ///
-/// # Example
+/// Behind the scenes, the function is 'wrapped' with an `extern "C"` function which is actually
+/// called by PHP. The first example function below would be converted into a function which looks
+/// like so:
+///
+/// ```ignore
+/// pub extern "C" fn hello(ex: &mut ExecutionData, retval: &mut Zval) {
+///     fn internal(name: String) -> String {
+///         format!("Hello, {}!", name)
+///     }
+///
+///     let mut name = Arg::new("name", DataType::String);
+///     let parser = ArgParser::new(ex)
+///         .arg(&mut name)
+///         .parse();
+///
+///     if parser.is_err() {
+///         return;
+///     }
+///
+///     let result = internal(match name.val() {
+///         Some(val) => val,
+///         None => {
+///             throw(
+///                 ClassEntry::exception(),
+///                 "Invalid value given for argument `name`."
+///             )
+///             .expect("Failed to throw exception: Invalid value given for argument `name`.");
+///             return;
+///         }
+///     });
+///
+///     match result.set_zval(retval, false) {
+///         Ok(_) => {},
+///         Err(e) => {
+///             throw(
+///                 ClassEntry::exception(),
+///                 e.to_string().as_ref()
+///             ).expect("Failed to throw exception: Failed to set return value.");
+///         }
+///     };
+/// }
+/// ```
+///
+/// # Examples
 ///
 /// Creating a simple function which will return a string. The function still must be declared in
 /// the PHP module to be able to call.
 ///
 /// ```ignore
-/// # use ext_php_rs::php_function;
 /// #[php_function]
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
@@ -90,7 +138,6 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
 /// and `age`).
 ///
 /// ```ignore
-/// # use ext_php_rs::php_function;
 /// #[php_function(optional = "description")]
 /// pub fn hello(name: String, description: Option<String>, age: Option<i32>) -> String {
 ///     let mut response = format!("Hello, {}!", name);
@@ -106,12 +153,95 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
 ///     response
 /// }
 /// ```
+///
+/// [`Result<T, E>`]: std::result::Result
 #[proc_macro_attribute]
 pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as AttributeArgs);
     let input = parse_macro_input!(input as ItemFn);
 
     match function::parser(args, input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+/// Attribute used to declare a function as a PHP method.
+///
+/// Although this attribute exports the function to PHP-land, you *must* still register the
+/// function using the `ClassBuilder` and `FunctionBuilder` in your `startup_function`.
+///
+/// This attribute should be used on functions implemented on `struct`s that also implements the
+/// `ZendClassObject`:trait.
+///
+/// See the documentation for the [`macro@php_function`] attribute for a deeper dive into the valid
+/// parameter and return types.
+///
+/// Behind the scenes, the function is renamed, and an `extern "C"` function is generated in its
+/// place, which is called from PHP. The first example below would be represented like so (only the
+/// `get_num` function is shown):
+///
+/// ```ignore
+/// impl TestClass {
+///     pub extern "C" fn get_num(ex: &mut ExecutionData, retval: &mut Zval) {
+///         let this = match Self::get() {
+///             Some(this) => this,
+///             None => {
+///                 throw(
+///                     ClassEntry::exception(),
+///                     "Failed to retrieve reference to object function was called on."
+///                 )
+///                 .unwrap();
+///                 return;
+///             }
+///         };
+///
+///         let result = this._internal_get_num();
+///         match result.set_zval(retval, false) {
+///             Ok(_) => {},
+///             Err(e) => {
+///                 throw(
+///                     ClassEntry::exception(),
+///                     e.to_string().as_ref(),
+///                 )
+///                 .unwrap();
+///             }
+///         };
+///     }
+///
+///     fn _internal_get_num(&self) -> i32 {
+///         self.num
+///     }
+/// }
+/// ```
+///
+/// # Examples
+///
+/// ```ignore
+/// #[derive(Debug, Default, ZendObjectHandler)]
+/// struct TestClass {
+///     num: i32
+/// }
+///
+/// impl TestClass {
+///     #[php_method]
+///     pub fn get_num(&self) -> i32 {
+///         self.num
+///     }
+///
+///     #[php_method]
+///     pub fn set_num(&mut self, num: i32) {
+///         self.num = num
+///     }
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn php_method(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
+    let input = parse_macro_input!(input as ItemFn);
+
+    match method::parser(args, input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }

@@ -1,3 +1,4 @@
+use crate::Result;
 use darling::FromMeta;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -6,16 +7,14 @@ use syn::{
     ReturnType, Signature, Token, Type,
 };
 
-type Result<T> = std::result::Result<T, String>;
-
-#[derive(Debug, FromMeta)]
-struct AttrArgs {
-    #[darling(default)]
+#[derive(Default, Debug, FromMeta)]
+#[darling(default)]
+pub struct AttrArgs {
     optional: Option<String>,
 }
 
 #[derive(Debug)]
-struct Arg {
+pub struct Arg {
     name: String,
     ty: String,
     nullable: bool,
@@ -38,7 +37,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
 
     let args = build_args(&inputs)?;
     let arg_definitions = build_arg_definitions(&args);
-    let arg_parser = build_arg_parser(&args, &attr_args.optional)?;
+    let arg_parser = build_arg_parser(args.iter(), &attr_args.optional)?;
     let arg_accessors = build_arg_accessors(&args);
 
     let return_handler = build_return_handler(&output);
@@ -65,7 +64,10 @@ fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
     inputs
         .iter()
         .map(|arg| match arg {
-            FnArg::Receiver(_) => Err("`self` is not permitted in PHP functions.".to_string()),
+            FnArg::Receiver(_) => Err(
+                "`self` is not permitted in PHP functions. See the `#[php_method]` attribute."
+                    .to_string(),
+            ),
             FnArg::Typed(ty) => {
                 let name = match &*ty.pat {
                     syn::Pat::Ident(pat) => pat.ident.to_string(),
@@ -81,11 +83,13 @@ fn build_arg_definitions(args: &[Arg]) -> Vec<TokenStream> {
     args.iter().map(|ty| ty.get_arg_definition()).collect()
 }
 
-fn build_arg_parser(args: &[Arg], optional: &Option<String>) -> Result<TokenStream> {
+pub fn build_arg_parser<'a>(
+    args: impl Iterator<Item = &'a Arg>,
+    optional: &Option<String>,
+) -> Result<TokenStream> {
     let mut rest_optional = false;
 
     let args = args
-        .iter()
         .map(|arg| {
             let name = arg.get_name_ident();
             let prelude = if let Some(optional) = optional {
@@ -128,7 +132,7 @@ fn build_arg_accessors(args: &[Arg]) -> Vec<TokenStream> {
     args.iter().map(|arg| arg.get_accessor()).collect()
 }
 
-fn build_return_handler(output_type: &ReturnType) -> TokenStream {
+pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
     let handler = match output_type {
         ReturnType::Default => Some(quote! { retval.set_null(); }),
         ReturnType::Type(_, ref ty) => match **ty {
@@ -196,7 +200,7 @@ fn build_return_handler(output_type: &ReturnType) -> TokenStream {
     }
 }
 
-fn syn_arg_to_arg(name: String, ty: &syn::Type) -> Result<Arg> {
+pub fn syn_arg_to_arg(name: String, ty: &syn::Type) -> Result<Arg> {
     let ty_path = match ty {
         Type::Path(path) => path,
         ty => {
@@ -234,7 +238,7 @@ fn syn_arg_to_arg(name: String, ty: &syn::Type) -> Result<Arg> {
 }
 
 impl Arg {
-    fn new(name: &str, ty: &str) -> Self {
+    pub fn new(name: &str, ty: &str) -> Self {
         Self {
             name: name.to_string(),
             ty: ty.to_string(),
@@ -243,17 +247,17 @@ impl Arg {
     }
 
     #[inline]
-    fn get_type_ident(&self) -> Ident {
+    pub fn get_type_ident(&self) -> Ident {
         Ident::new(&self.ty, Span::call_site())
     }
 
     #[inline]
-    fn get_name_ident(&self) -> Ident {
+    pub fn get_name_ident(&self) -> Ident {
         Ident::new(&self.name, Span::call_site())
     }
 
     /// Returns a [`TokenStream`] containing the line required to retrieve the value from the argument.
-    fn get_accessor(&self) -> TokenStream {
+    pub fn get_accessor(&self) -> TokenStream {
         let name = &self.name;
         let name_ident = self.get_name_ident();
 
@@ -277,7 +281,7 @@ impl Arg {
     }
 
     /// Returns a [`TokenStream`] containing the line required to instantiate the argument.
-    fn get_arg_definition(&self) -> TokenStream {
+    pub fn get_arg_definition(&self) -> TokenStream {
         let name = &self.name;
         let name_ident = self.get_name_ident();
         let ty = self.get_type_ident();
