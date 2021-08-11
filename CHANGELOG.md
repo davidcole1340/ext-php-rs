@@ -1,5 +1,33 @@
 # Changelog
 
+## Version 1.0.0
+
+- `Zval::reference()` returns a reference instead of a dereferenced pointer.
+- Added `ZendHashTable::iter()` - note this is changing in a future version.
+- `ClassBuilder::extends()` now takes a reference rather than a pointer to match the
+return type of `ClassEntry::exception()`.
+- `ClassEntry::build()` now returns a reference - same reason as above.
+- Improve library 'safety' by removing `unwrap` calls:
+    - `.build()` returns `Result` on `FunctionBuilder`, `ClassBuilder` and `ModuleBuilder`.
+    - `.property()` and `.constant()` return `Result` on `ClassBuilder`.
+    - `.register_constant()` returns `Result`.
+    - `.try_call()` on callables now return `Result` rather than `Option`.
+    - `throw()` and `throw_with_code()` now returns `Result`.
+    - `new()` and `new_interned()` on `ZendString` now returns a `Result`.
+    - For `ZendHashTable`:
+        - `insert()`, `insert_at_index()` now returns a `Result<HashTableInsertResult>`, where `Err` failed, 
+        `Ok(Ok)` inserts successfully without overwrite, and `Ok(OkWithOverwrite(&Zval))` inserts successfully
+        with overwrite.
+        - `push()` now returns a `Result`.
+        - Converting from a `Vec` or `HashMap` to a `ZendHashTable` is fallible, so it now implementes `TryFrom` as
+        opposed to `From`.
+    - For `Zval`:
+        - `set_string()` now returns a `Result`, and takes a second parameter (persistent).
+        - `set_persistent_string()` has now been removed in favour of `set_string()`.
+        - `set_interned_string()` also returns a `Result`.
+        - `set_array()` now only takes a `ZendHashTable`, you must convert your `Vec` or `HashMap`
+        by calling `try_into()` and handling the error.
+
 ## Version 0.0.7
 
 - Added support for thread-safe PHP (@davidcole1340) #37
