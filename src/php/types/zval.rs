@@ -102,11 +102,14 @@ impl<'a> Zval {
     ///
     /// There is no way to tell if the data stored in the string is actually of the given type.
     /// The results of this function can also differ from platform-to-platform due to the different
-    /// representation of some types on different platforms. Consult the [`pack`](https://www.php.net/manual/en/function.pack.php)
-    /// function documentation for more details.
-    pub unsafe fn binary<T: Pack>(&self) -> Option<Vec<T>> {
+    /// representation of some types on different platforms. Consult the [`pack`] function
+    /// documentation for more details.
+    ///
+    /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    pub fn binary<T: Pack>(&self) -> Option<Vec<T>> {
         if self.is_string() {
-            Some(T::unpack_into(self.value.str_.as_ref()?))
+            // SAFETY: Type is string therefore we are able to take a reference.
+            Some(T::unpack_into(unsafe { self.value.str_.as_ref() }?))
         } else {
             None
         }

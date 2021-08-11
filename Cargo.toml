@@ -22,3 +22,8 @@ cc = "1.0.67"
 
 [features]
 zts = []
+
+[workspace]
+members = [
+    "ext-php-rs-derive"
+]
