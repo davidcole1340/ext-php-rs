@@ -14,13 +14,14 @@ use ext_php_rs::{
         module::{ModuleBuilder, ModuleEntry},
         types::{
             array::ZendHashTable,
+            callable::Callable,
             long::ZendLong,
             object::{PropertyQuery, ZendClassObject},
             string::ZendString,
             zval::Zval,
         },
     },
-    ZendObjectHandler,
+    php_function, php_method, ZendObjectHandler,
 };
 
 #[no_mangle]
@@ -42,42 +43,36 @@ struct AnotherTest {
 }
 
 impl Test {
-    pub extern "C" fn constructor(execute_data: &mut ExecutionData, _retval: &mut Zval) {
+    #[php_method]
+    pub fn __construct(&self) {
+        dbg!(self);
         println!("Inside constructor");
-        let x = ZendClassObject::<Test>::get(execute_data);
-        if x.is_none() {
-            eprintln!("Object was none");
-        } else {
-            // let obj = x.unwrap();
-            println!("Object not none");
-        }
     }
 
-    pub extern "C" fn set(execute_data: &mut ExecutionData, retval: &mut Zval) {
-        let x = ZendClassObject::<Test>::get(execute_data).unwrap();
-        x.a = 100;
+    #[php_method]
+    pub fn set(&mut self) {
+        self.a = 100;
     }
 
-    pub extern "C" fn get(execute_data: &mut ExecutionData, _retval: &mut Zval) {
-        let x = ZendClassObject::<Test>::get(execute_data).unwrap();
-        //let param = execute_data.get_property("value");
-        let obj = execute_data.get_self().unwrap();
-        obj.set_property("hello", "world");
-        dbg!(obj);
+    #[php_method]
+    pub fn get(&mut self) -> u32 {
+        self.a
     }
 
-    pub extern "C" fn call(execute_data: &mut ExecutionData, _retval: &mut Zval) {
-        let mut _fn = Arg::new("fn", DataType::Callable);
-        let result = ArgParser::new(execute_data).arg(&mut _fn).parse();
+    // pub extern "C" fn get(execute_data: &mut ExecutionData, _retval: &mut Zval) {
+    //     let x = ZendClassObject::<Test>::get(execute_data).unwrap();
+    //     //let param = execute_data.get_property("value");
+    //     let obj = execute_data.get_self().unwrap();
+    //     obj.set_property("hello", "world");
+    //     dbg!(obj);
+    // }
 
-        if result.is_err() {
-            return;
-        }
-
-        let result = call_user_func!(_fn, "Hello", 5);
+    #[php_method]
+    pub fn call(&self, func: Callable) {
+        let result = call_user_func!(func);
 
         if let Ok(r) = result {
-            println!("{}", r.string().unwrap());
+            dbg!(r);
         }
 
         println!("Ready for call!");
@@ -105,7 +100,7 @@ pub extern "C" fn module_init(_type: i32, module_number: i32) -> i32 {
 
     ClassBuilder::new("TestClass")
         .method(
-            FunctionBuilder::constructor(Test::constructor)
+            FunctionBuilder::constructor(Test::__construct)
                 .build()
                 .expect("could not build constructor"),
             MethodFlags::Public,
@@ -194,16 +189,22 @@ pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
         .into_raw()
 }
 
-#[no_mangle]
-pub extern "C" fn skeleton_version(execute_data: &mut ExecutionData, retval: &mut Zval) {
-    let mut x = Arg::new("x", DataType::Array);
-    let mut y = Arg::new("y", DataType::Double);
-    let mut z = Arg::new("z", DataType::Double);
-
-    parse_args!(execute_data, x, y; z);
-    dbg!(x);
-    retval.set_string("Hello", false);
+#[php_function(optional = "z")]
+pub fn skeleton_version(x: ZendHashTable, y: f64, z: Option<f64>) -> String {
+    dbg!(x, y, z);
+    "Hello".into()
 }
+
+// #[no_mangle]
+// pub extern "C" fn skeleton_version(execute_data: &mut ExecutionData, retval: &mut Zval) {
+//     let mut x = Arg::new("x", DataType::Array);
+//     let mut y = Arg::new("y", DataType::Double);
+//     let mut z = Arg::new("z", DataType::Double);
+
+//     parse_args!(execute_data, x, y; z);
+//     dbg!(x);
+//     retval.set_string("Hello", false);
+// }
 
 #[no_mangle]
 pub extern "C" fn skeleton_array(execute_data: &mut ExecutionData, _retval: &mut Zval) {

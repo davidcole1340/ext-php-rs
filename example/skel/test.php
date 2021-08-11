@@ -6,6 +6,7 @@ include __DIR__.'/vendor/autoload.php';
 //$y->hello = 'asdf';
 
 $x = new TestClass();
+var_dump($x->call([$x, 'get']));
 var_dump($x);
 $x->get();
 $x->asdf = 10;
