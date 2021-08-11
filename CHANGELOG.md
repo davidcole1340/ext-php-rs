@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 1.0.0
+## Version 0.1.0
 
 - `Zval::reference()` returns a reference instead of a dereferenced pointer.
 - Added `ZendHashTable::iter()` - note this is changing in a future version.
