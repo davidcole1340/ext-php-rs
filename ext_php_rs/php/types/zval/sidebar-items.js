@@ -1,1 +1,1 @@
-initSidebarItems({"type":[["Zval","Zend value. Represents most data types that are in the Zend engine."]]});
+initSidebarItems({"trait":[["IntoZval","Provides implementations for converting Rust primitive types into PHP zvals. Alternative to the built-in Rust [`From`] and [`TryFrom`] implementations, allowing the caller to specify whether the Zval contents will persist between requests."]],"type":[["Zval","Zend value. Represents most data types that are in the Zend engine."]]});
