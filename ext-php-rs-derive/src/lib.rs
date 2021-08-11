@@ -1,5 +1,8 @@
 mod function;
 mod method;
+mod module;
+
+use std::sync::Mutex;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
@@ -9,6 +12,16 @@ use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn};
 extern crate proc_macro;
 
 type Result<T> = std::result::Result<T, String>;
+
+#[derive(Default, Debug)]
+struct State {
+    functions: Vec<module::Function>,
+    built_module: bool,
+}
+
+thread_local! {
+    pub(crate) static STATE: Mutex<State> = Mutex::new(Default::default());
+}
 
 /// Derives the implementation of `ZendObjectOverride` for the given structure.
 #[proc_macro_derive(ZendObjectHandler)]
@@ -242,6 +255,48 @@ pub fn php_method(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
     match method::parser(args, input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+/// Annotates a function that will be used by PHP to retrieve information about the module. In the
+/// process, the function is wrapped by an `extern "C"` function which is called from PHP, which
+/// then calls the given function.
+///
+/// As well as wrapping the function, the [`ModuleBuilder`] is initialized ans functions which have
+/// already been declared with the [`macro@php_function`] attribute will be registered with the
+/// module, so ideally you won't have to do anything inside the function.
+///
+/// The attribute must be called on a function *last*, i.e. the last proc-macro to be compiled, as
+/// the attribute relies on all other PHP attributes being compiled before the module. If another
+/// PHP attribute is compiled after the module attribute, an error will be thrown.
+///
+/// Note that if the function is not called `get_module`, it will be renamed.
+///
+/// # Example
+///
+/// The `get_module` function is required in every PHP extension. This is a bare minimum example,
+/// since the function is declared above the module it will automatically be registered when the
+/// module attribute is called.
+///
+/// ```ignore
+/// #[php_function]
+/// pub fn hello(name: String) -> String {
+///     format!("Hello, {}!", name)
+/// }
+///
+/// #[php_module]
+/// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+///     module
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn php_module(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemFn);
+
+    match module::parser(input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }

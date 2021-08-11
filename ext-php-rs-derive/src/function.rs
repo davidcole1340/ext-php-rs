@@ -1,19 +1,20 @@
-use crate::Result;
+use crate::{module::Function, Result};
 use darling::FromMeta;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
     punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, PathArguments,
-    ReturnType, Signature, Token, Type,
+    PathSegment, ReturnType, Signature, Token, Type,
 };
 
 #[derive(Default, Debug, FromMeta)]
 #[darling(default)]
 pub struct AttrArgs {
     optional: Option<String>,
+    ignore_module: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Arg {
     name: String,
     ty: String,
@@ -41,6 +42,8 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
     let arg_accessors = build_arg_accessors(&args);
 
     let return_handler = build_return_handler(&output);
+    let return_type = get_return_type(&output)?;
+
     let func = quote! {
         pub extern "C" fn #ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
             use ::ext_php_rs::php::types::zval::IntoZval;
@@ -57,7 +60,24 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
             #return_handler
         }
     };
-    Ok(func)
+
+    crate::STATE.with(|state| {
+        let mut state = state
+            .lock()
+            .map_err(|_| "Unable to lock `ext-php-rs-derive` state when evaluating macro.")?;
+
+        if state.built_module && !attr_args.ignore_module {
+            return Err("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`".into());
+        }
+
+        state.functions.push(Function {
+            name: ident.to_string(),
+            args,
+            output: return_type,
+        });
+
+        Ok(func)
+    })
 }
 
 fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
@@ -73,14 +93,22 @@ fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
                     syn::Pat::Ident(pat) => pat.ident.to_string(),
                     _ => return Err("Invalid parameter type.".to_string()),
                 };
-                syn_arg_to_arg(name, &ty.ty)
+                syn_arg_to_arg(&name, &ty.ty)
             }
         })
         .collect::<Result<Vec<_>>>()
 }
 
 fn build_arg_definitions(args: &[Arg]) -> Vec<TokenStream> {
-    args.iter().map(|ty| ty.get_arg_definition()).collect()
+    args.iter()
+        .map(|ty| {
+            let ident = ty.get_name_ident();
+            let definition = ty.get_arg_definition();
+            quote! {
+                let mut #ident = #definition;
+            }
+        })
+        .collect()
 }
 
 pub fn build_arg_parser<'a>(
@@ -168,12 +196,7 @@ pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
                                     ).expect("Failed to throw exception: Failed to set return value.");
                                 },
                             },
-                            Err(e) => {
-                                ::ext_php_rs::php::exceptions::throw(
-                                    ::ext_php_rs::php::class::ClassEntry::exception(),
-                                    e.to_string().as_ref()
-                                ).expect("Failed to throw exception: Error type returned from internal function.");
-                            }
+                            None => retval.set_null(),
                         };
                     }),
                     _ => None,
@@ -200,7 +223,20 @@ pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
     }
 }
 
-pub fn syn_arg_to_arg(name: String, ty: &syn::Type) -> Result<Arg> {
+pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)>> {
+    Ok(match output_type {
+        ReturnType::Default => None,
+        ReturnType::Type(_, ty) => match **ty {
+            Type::Path(ref path) => match path.path.segments.last() {
+                Some(seg) => path_seg_to_arg("", seg).map(|arg| (arg.ty, arg.nullable)),
+                None => return Err("Invalid return type.".into()),
+            },
+            _ => return Err("Invalid return type.".into()),
+        },
+    })
+}
+
+pub fn syn_arg_to_arg(name: &str, ty: &syn::Type) -> Result<Arg> {
     let ty_path = match ty {
         Type::Path(path) => path,
         ty => {
@@ -217,26 +253,30 @@ pub fn syn_arg_to_arg(name: String, ty: &syn::Type) -> Result<Arg> {
         .last()
         .ok_or(format!("Invalid parameter type for parameter `{}`.", name))?;
 
-    Ok(match ty_seg.ident.to_string().as_ref() {
-        "Vec" | "HashMap" | "ZendHashTable" => Arg::new(&name, "Array"),
-        "Callable" => Arg::new(&name, "Callable"),
-        "String" => Arg::new(&name, "String"),
-        "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" => Arg::new(&name, "Long"),
-        "f32" | "f64" => Arg::new(&name, "Double"),
-        "bool" => Arg::new(&name, "Bool"),
-        "Option" => match &ty_seg.arguments {
+    path_seg_to_arg(name, ty_seg).ok_or(format!("Invalid parameter type for parameter `{}`.", name))
+}
+
+pub fn path_seg_to_arg(name: &str, seg: &PathSegment) -> Option<Arg> {
+    match seg.ident.to_string().as_ref() {
+        "Vec" | "HashMap" | "ZendHashTable" => Some(Arg::new(name, "Array")),
+        "Callable" => Some(Arg::new(name, "Callable")),
+        "String" | "Binary" => Some(Arg::new(name, "String")),
+        "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" => Some(Arg::new(name, "Long")),
+        "f32" | "f64" => Some(Arg::new(name, "Double")),
+        "bool" => Some(Arg::new(name, "Bool")),
+        "Option" => match &seg.arguments {
             PathArguments::AngleBracketed(args) => match args.args.first() {
                 Some(GenericArgument::Type(ty)) => {
-                    let mut ty = syn_arg_to_arg(name, ty)?;
+                    let mut ty = syn_arg_to_arg(name, ty).ok()?;
                     ty.nullable = true;
-                    ty
+                    Some(ty)
                 }
-                _ => return Err(format!("Invalid parameter type for parameter `{}`.", name)),
+                _ => None,
             },
-            _ => return Err(format!("Invalid parameter type for parameter `{}`.", name)),
+            _ => None,
         },
-        _ => return Err(format!("Invalid parameter type for parameter `{}`.", name)),
-    })
+        _ => None,
+    }
 }
 
 impl Arg {
@@ -285,7 +325,6 @@ impl Arg {
     /// Returns a [`TokenStream`] containing the line required to instantiate the argument.
     pub fn get_arg_definition(&self) -> TokenStream {
         let name = &self.name;
-        let name_ident = self.get_name_ident();
         let ty = self.get_type_ident();
 
         let args = if self.nullable {
@@ -295,7 +334,7 @@ impl Arg {
         };
 
         quote! {
-            let mut #name_ident = ::ext_php_rs::php::args::Arg::new(#name, ::ext_php_rs::php::enums::DataType::#ty) #args;
+            ::ext_php_rs::php::args::Arg::new(#name, ::ext_php_rs::php::enums::DataType::#ty) #args
         }
     }
 }
