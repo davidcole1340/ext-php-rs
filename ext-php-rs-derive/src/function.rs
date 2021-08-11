@@ -223,6 +223,7 @@ pub fn syn_arg_to_arg(name: String, ty: &syn::Type) -> Result<Arg> {
         "String" => Arg::new(&name, "String"),
         "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" => Arg::new(&name, "Long"),
         "f32" | "f64" => Arg::new(&name, "Double"),
+        "bool" => Arg::new(&name, "Bool"),
         "Option" => match &ty_seg.arguments {
             PathArguments::AngleBracketed(args) => match args.args.first() {
                 Some(GenericArgument::Type(ty)) => {

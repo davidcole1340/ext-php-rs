@@ -383,6 +383,7 @@ impl Debug for Zval {
                 DataType::Callable => field!(self.string()),
                 DataType::ConstantExpression => field!(Option::<()>::None),
                 DataType::Void => field!(Option::<()>::None),
+                DataType::Bool => field!(self.bool()),
             };
         }
 
