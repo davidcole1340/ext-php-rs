@@ -115,6 +115,7 @@ fn main() {
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .parse_callbacks(Box::new(ignore_math_h_macros))
         .rustfmt_bindings(true)
+        .no_copy("_zend_value")
         .generate()
         .expect("Unable to generate bindings for PHP")
         .write_to_file(out_path.join("bindings.rs"))

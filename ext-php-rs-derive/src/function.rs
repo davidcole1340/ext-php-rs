@@ -219,6 +219,7 @@ pub fn syn_arg_to_arg(name: String, ty: &syn::Type) -> Result<Arg> {
 
     Ok(match ty_seg.ident.to_string().as_ref() {
         "Vec" | "HashMap" | "ZendHashTable" => Arg::new(&name, "Array"),
+        "Callable" => Arg::new(&name, "Callable"),
         "String" => Arg::new(&name, "String"),
         "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" => Arg::new(&name, "Long"),
         "f32" | "f64" => Arg::new(&name, "Double"),

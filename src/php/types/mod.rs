@@ -2,6 +2,7 @@
 //! Introduces functions for converting between Zend values and Rust values.
 
 pub mod array;
+pub mod callable;
 pub mod long;
 pub mod object;
 pub mod string;

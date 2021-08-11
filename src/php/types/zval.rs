@@ -11,8 +11,8 @@ use std::{
 
 use crate::{
     bindings::{
-        _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
-        ext_php_rs_zend_string_release, zend_is_callable, zend_resource, zend_value, zval,
+        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, ext_php_rs_zend_string_release,
+        zend_is_callable, zend_resource, zend_value, zval,
     },
     errors::{Error, Result},
     php::pack::Pack,
@@ -24,7 +24,7 @@ use crate::php::{
     types::{long::ZendLong, string::ZendString},
 };
 
-use super::{array::ZendHashTable, object::ZendObject};
+use super::{array::ZendHashTable, callable::Callable, object::ZendObject};
 
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
@@ -150,7 +150,13 @@ impl<'a> Zval {
         }
     }
 
-    /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
+    /// Returns the value of the zval if it is callable.
+    pub fn callable(&'a self) -> Option<Callable<'a>> {
+        // The Zval is checked if it is callable in the `new` function.
+        Callable::new(self).ok()
+    }
+
+    /// Attempts to call the zval as a callable with a list of arguments to pass to the function.
     /// Note that a thrown exception inside the callable is not detectable, therefore you should
     /// check if the return value is valid rather than unwrapping. Returns a result containing the
     /// return value of the function, or an error.
@@ -161,48 +167,7 @@ impl<'a> Zval {
     ///
     /// * `params` - A list of parameters to call the function with.
     pub fn try_call(&self, params: Vec<&dyn IntoZval>) -> Result<Zval> {
-        let mut retval = Zval::new();
-        let len = params.len();
-        let params = params
-            .into_iter()
-            .map(|val| val.as_zval(false))
-            .collect::<Result<Vec<_>>>()?;
-        let packed = Box::into_raw(params.into_boxed_slice()) as *mut Self;
-        let ptr: *const Self = self;
-
-        if !self.is_callable() {
-            return Err(Error::Callable);
-        }
-
-        let result = unsafe {
-            _call_user_function_impl(
-                std::ptr::null_mut(),
-                ptr as *mut Self,
-                &mut retval,
-                len as _,
-                packed,
-                std::ptr::null_mut(),
-            )
-        };
-
-        // SAFETY: We just boxed this vector, and the `_call_user_function_impl` does not modify the parameters.
-        // We can safely reclaim the memory knowing it will have the same length and size.
-        // If any parameters are zend strings, they must be released.
-        unsafe {
-            let params = Vec::from_raw_parts(packed, len, len);
-
-            for param in params {
-                if param.is_string() {
-                    ext_php_rs_zend_string_release(param.value.str_);
-                }
-            }
-        };
-
-        if result < 0 {
-            Err(Error::Callable)
-        } else {
-            Ok(retval)
-        }
+        self.callable().ok_or(Error::Callable)?.try_call(params)
     }
 
     /// Returns the type of the Zval.
@@ -425,6 +390,14 @@ impl Debug for Zval {
     }
 }
 
+impl Drop for Zval {
+    fn drop(&mut self) {
+        if self.is_string() {
+            unsafe { ext_php_rs_zend_string_release(self.value.str_) };
+        }
+    }
+}
+
 /// Provides implementations for converting Rust primitive types into PHP zvals. Alternative to the
 /// built-in Rust [`From`] and [`TryFrom`] implementations, allowing the caller to specify whether
 /// the Zval contents will persist between requests.
@@ -536,6 +509,14 @@ where
             .array()
             .ok_or(Error::ZvalConversion(value.get_type()?))?
             .try_into()
+    }
+}
+
+impl<'a> TryFrom<&'a Zval> for Callable<'a> {
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value.callable().ok_or(Error::Callable)
     }
 }
 
