@@ -13,7 +13,7 @@ categories = ["api-bindings"]
 [dependencies]
 libc = "0.2.88"
 bitflags = "1.2.1"
-ext-php-rs-derive = { version = "=0.0.7", path = "./ext-php-rs-derive" }
+ext-php-rs-derive = { version = "=0.1.0", path = "./ext-php-rs-derive" }
 
 [build-dependencies]
 bindgen = { version = ">= 0.57.0, < 0.58.1" }
