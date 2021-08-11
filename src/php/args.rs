@@ -2,7 +2,11 @@
 
 use std::convert::{TryFrom, TryInto};
 
-use super::{enums::DataType, execution_data::ExecutionData, types::zval::Zval};
+use super::{
+    enums::DataType,
+    execution_data::ExecutionData,
+    types::zval::{IntoZval, Zval},
+};
 
 use crate::{
     bindings::{
@@ -97,20 +101,16 @@ impl<'a> Arg<'a> {
 
     /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
     /// Note that a thrown exception inside the callable is not detectable, therefore you should
-    /// check if the return value is valid rather than unwrapping.
+    /// check if the return value is valid rather than unwrapping. Returns a result containing the
+    /// return value of the function, or an error.
     ///
     /// You should not call this function directly, rather through the [`call_user_func`] macro.
     ///
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
-    ///
-    /// # Returns
-    ///
-    /// * `Some(Zval)` - The result of the function call.
-    /// * `None` - The argument was empty, the argument was not callable or the call failed.
-    pub fn try_call(&self, params: Vec<Zval>) -> Option<Zval> {
-        self.zval()?.try_call(params)
+    pub fn try_call(&self, params: Vec<&dyn IntoZval>) -> Result<Zval> {
+        self.zval().ok_or(Error::Callable)?.try_call(params)
     }
 }
 
@@ -139,15 +139,15 @@ impl From<Arg<'_>> for _zend_expected_type {
 pub type ArgInfo = zend_internal_arg_info;
 
 /// Parses the arguments of a function.
-pub struct ArgParser<'a, 'b> {
-    args: Vec<&'a mut Arg<'b>>,
+pub struct ArgParser<'a, 'arg, 'zval> {
+    args: Vec<&'arg mut Arg<'zval>>,
     min_num_args: Option<u32>,
-    execute_data: *mut ExecutionData,
+    execute_data: &'a mut ExecutionData,
 }
 
-impl<'a, 'b> ArgParser<'a, 'b> {
+impl<'a, 'arg, 'zval> ArgParser<'a, 'arg, 'zval> {
     /// Builds a new function argument parser.
-    pub fn new(execute_data: *mut ExecutionData) -> Self {
+    pub fn new(execute_data: &'a mut ExecutionData) -> Self {
         ArgParser {
             args: vec![],
             min_num_args: None,
@@ -160,7 +160,7 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     /// # Parameters
     ///
     /// * `arg` - The argument to add to the parser.
-    pub fn arg(mut self, arg: &'a mut Arg<'b>) -> Self {
+    pub fn arg(mut self, arg: &'arg mut Arg<'zval>) -> Self {
         self.args.push(arg);
         self
     }
@@ -172,21 +172,21 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     }
 
     /// Uses the argument parser to parse the arguments contained in the given
-    /// `ExecutionData` object.
+    /// `ExecutionData` object. Returns successfully if the arguments were parsed.
+    ///
+    /// This function can only be safely called from within an exported PHP function.
     ///
     /// # Parameters
     ///
     /// * `execute_data` - The execution data from the function.
     ///
-    /// # Returns
+    /// # Errors
     ///
-    /// * `Ok(())` - The arguments were successfully parsed.
-    /// * `Err(String)` - There were too many or too little arguments
-    /// passed to the function. The user has already been notified so you
-    /// can discard and return from the function if an `Err` is received.
+    /// Returns an [`Error`] type if there were too many or too little arguments passed to the
+    /// function. The user has already been notified so you should break execution after seeing an
+    /// error type.
     pub fn parse(mut self) -> Result<()> {
-        let execute_data = unsafe { self.execute_data.as_ref() }.unwrap();
-        let num_args = unsafe { execute_data.This.u2.num_args };
+        let num_args = unsafe { self.execute_data.This.u2.num_args };
         let max_num_args = self.args.len() as u32;
         let min_num_args = match self.min_num_args {
             Some(n) => n,
@@ -194,13 +194,14 @@ impl<'a, 'b> ArgParser<'a, 'b> {
         };
 
         if num_args < min_num_args || num_args > max_num_args {
+            // SAFETY: Exported C function is safe, return value is unused and parameters are copied.
             unsafe { zend_wrong_parameters_count_error(min_num_args, max_num_args) };
 
             return Err(Error::IncorrectArguments(num_args, min_num_args));
         }
 
         for (i, arg) in self.args.iter_mut().enumerate() {
-            arg.zval = unsafe { execute_data.zend_call_arg(i) };
+            arg.zval = unsafe { self.execute_data.zend_call_arg(i) };
         }
 
         Ok(())

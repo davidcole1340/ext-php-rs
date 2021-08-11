@@ -24,33 +24,36 @@ pub struct ZendString {
 }
 
 impl ZendString {
-    /// Creates a new Zend string.
+    /// Creates a new Zend string. Returns a result containin the string.
     ///
     /// # Parameters
     ///
     /// * `str_` - The string to create a Zend string from.
     /// * `persistent` - Whether the request should relive the request boundary.
-    pub fn new(str_: impl AsRef<str>, persistent: bool) -> Self {
+    pub fn new(str_: impl AsRef<str>, persistent: bool) -> Result<Self> {
         let str_ = str_.as_ref();
 
-        Self {
-            ptr: unsafe { ext_php_rs_zend_string_init(c_str(str_), str_.len() as _, persistent) },
+        Ok(Self {
+            ptr: unsafe { ext_php_rs_zend_string_init(c_str(str_)?, str_.len() as _, persistent) },
             free: true,
-        }
+        })
     }
 
-    /// Creates a new interned Zend string.
+    /// Creates a new interned Zend string. Returns a result containing the interned string.
     ///
     /// # Parameters
     ///
     /// * `str_` - The string to create a Zend string from.
-    pub fn new_interned(str_: impl AsRef<str>) -> Self {
+    #[allow(clippy::unwrap_used)]
+    pub fn new_interned(str_: impl AsRef<str>) -> Result<Self> {
         let str_ = str_.as_ref();
 
-        Self {
-            ptr: unsafe { zend_string_init_interned.unwrap()(c_str(str_), str_.len() as _, true) },
+        // Unwrap is OK here - `zend_string_init_interned` will be a valid function ptr by the time
+        // our extension is loaded.
+        Ok(Self {
+            ptr: unsafe { zend_string_init_interned.unwrap()(c_str(str_)?, str_.len() as _, true) },
             free: true,
-        }
+        })
     }
 
     /// Creates a new [`ZendString`] wrapper from a raw pointer to a [`zend_string`].

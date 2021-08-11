@@ -8,11 +8,14 @@ use crate::{
         zend_ce_parse_error, zend_ce_throwable, zend_ce_type_error, zend_ce_unhandled_match_error,
         zend_ce_value_error, zend_throw_exception_ex,
     },
+    errors::Result,
     functions::c_str,
 };
 
 /// Throws an exception with a given message. See [`ClassEntry`] for some built-in exception
 /// types.
+///
+/// Returns a result containing nothing if the exception was successfully thown.
 ///
 /// # Parameters
 ///
@@ -26,12 +29,14 @@ use crate::{
 ///
 /// throw(ClassEntry::compile_error(), "This is a CompileError.");
 /// ```
-pub fn throw(ex: &ClassEntry, message: &str) {
-    throw_with_code(ex, 0, message);
+pub fn throw(ex: &ClassEntry, message: &str) -> Result<()> {
+    throw_with_code(ex, 0, message)
 }
 
 /// Throws an exception with a given message and status code. See [`ClassEntry`] for some built-in
 /// exception types.
+///
+/// Returns a result containing nothing if the exception was successfully thown.
 ///
 /// # Parameters
 ///
@@ -46,19 +51,23 @@ pub fn throw(ex: &ClassEntry, message: &str) {
 ///
 /// throw_with_code(ClassEntry::compile_error(), 123, "This is a CompileError.");
 /// ```
-pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) {
+pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> {
     // SAFETY: We are given a reference to a `ClassEntry` therefore when we cast it to a pointer it
     // will be valid.
     unsafe {
         zend_throw_exception_ex(
             (ex as *const _) as *mut _,
             code as _,
-            c_str("%s"),
-            c_str(message),
+            c_str("%s")?,
+            c_str(message)?,
         )
     };
+    Ok(())
 }
 
+// SAFETY: All default exceptions have been initialized by the time our extension has been loaded.
+// Due to this, we can safely unwrap the results.
+#[allow(clippy::unwrap_used)]
 impl ClassEntry {
     /// Returns the base `Throwable` class.
     pub fn throwable() -> &'static Self {

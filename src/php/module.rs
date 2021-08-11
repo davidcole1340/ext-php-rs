@@ -6,6 +6,7 @@ use crate::{
     bindings::{
         ext_php_rs_php_build_id, zend_module_entry, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO,
     },
+    errors::Result,
     functions::c_str,
 };
 
@@ -44,6 +45,8 @@ pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);
 /// ```
 #[derive(Debug, Clone)]
 pub struct ModuleBuilder {
+    name: String,
+    version: String,
     module: ModuleEntry,
     functions: Vec<FunctionEntry>,
 }
@@ -61,6 +64,8 @@ impl ModuleBuilder {
         V: AsRef<str>,
     {
         Self {
+            name: name.as_ref().to_string(),
+            version: version.as_ref().to_string(),
             module: ModuleEntry {
                 size: mem::size_of::<ModuleEntry>() as u16,
                 zend_api: ZEND_MODULE_API_NO,
@@ -68,14 +73,14 @@ impl ModuleBuilder {
                 zts: USING_ZTS as u8,
                 ini_entry: ptr::null(),
                 deps: ptr::null(),
-                name: c_str(name),
+                name: ptr::null(),
                 functions: ptr::null(),
                 module_startup_func: None,
                 module_shutdown_func: None,
                 request_startup_func: None,
                 request_shutdown_func: None,
                 info_func: None,
-                version: c_str(version),
+                version: ptr::null(),
                 globals_size: 0,
                 #[cfg(not(feature = "zts"))]
                 globals_ptr: ptr::null::<c_void>() as *mut c_void,
@@ -155,12 +160,16 @@ impl ModuleBuilder {
     }
 
     /// Builds the extension and returns a `ModuleEntry`.
-    pub fn build(mut self) -> ModuleEntry {
-        // TODO: move to seperate function
+    ///
+    /// Returns a result containing the module entry if successful.
+    pub fn build(mut self) -> Result<ModuleEntry> {
         self.functions.push(FunctionEntry::end());
         self.module.functions =
             Box::into_raw(self.functions.into_boxed_slice()) as *const FunctionEntry;
-        self.module
+        self.module.name = c_str(self.name)?;
+        self.module.version = c_str(self.version)?;
+
+        Ok(self.module)
     }
 }
 

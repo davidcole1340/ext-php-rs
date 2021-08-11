@@ -1,4 +1,5 @@
 use super::flags::GlobalConstantFlags;
+use crate::errors::Result;
 use crate::{
     bindings::{
         zend_register_bool_constant, zend_register_double_constant, zend_register_long_constant,
@@ -13,6 +14,8 @@ pub trait IntoConst: Sized {
     /// the module is initialized. The second parameter of the startup function will be the
     /// module number. By default, the case-insensitive and persistent flags are set when
     /// registering the constant.
+    ///
+    /// Returns a result containing nothing if the constant was successfully registered.
     ///
     /// # Parameters
     ///
@@ -30,7 +33,7 @@ pub trait IntoConst: Sized {
     ///     0
     /// }
     /// ```
-    fn register_constant<N: AsRef<str>>(&self, name: N, module_number: i32) {
+    fn register_constant<N: AsRef<str>>(&self, name: N, module_number: i32) -> Result<()> {
         self.register_constant_flags(
             name,
             module_number,
@@ -44,6 +47,8 @@ pub trait IntoConst: Sized {
     /// module number. This function allows you to pass any extra flags in if you require.
     /// Note that the case-sensitive and persistent flags *are not* set when you use this function,
     /// you must set these yourself.
+    ///
+    /// Returns a result containing nothing if the constant was successfully registered.
     ///
     /// # Parameters
     ///
@@ -66,7 +71,7 @@ pub trait IntoConst: Sized {
         name: N,
         module_number: i32,
         flags: GlobalConstantFlags,
-    );
+    ) -> Result<()>;
 }
 
 impl IntoConst for String {
@@ -75,9 +80,9 @@ impl IntoConst for String {
         name: N,
         module_number: i32,
         flags: GlobalConstantFlags,
-    ) {
+    ) -> Result<()> {
         self.as_str()
-            .register_constant_flags(name, module_number, flags);
+            .register_constant_flags(name, module_number, flags)
     }
 }
 
@@ -87,17 +92,18 @@ impl IntoConst for &str {
         name: N,
         module_number: i32,
         flags: GlobalConstantFlags,
-    ) {
+    ) -> Result<()> {
         let name = name.as_ref();
         unsafe {
             zend_register_string_constant(
-                c_str(name),
+                c_str(name)?,
                 name.len() as _,
-                c_str(self),
+                c_str(self)?,
                 flags.bits() as _,
                 module_number,
             )
         };
+        Ok(())
     }
 }
 
@@ -107,17 +113,18 @@ impl IntoConst for bool {
         name: N,
         module_number: i32,
         flags: GlobalConstantFlags,
-    ) {
+    ) -> Result<()> {
         let name = name.as_ref();
         unsafe {
             zend_register_bool_constant(
-                c_str(name),
+                c_str(name)?,
                 name.len() as _,
                 *self,
                 flags.bits() as _,
                 module_number,
             )
-        }
+        };
+        Ok(())
     }
 }
 
@@ -130,17 +137,17 @@ macro_rules! into_const_num {
                 name: N,
                 module_number: i32,
                 flags: GlobalConstantFlags,
-            ) {
+            ) -> Result<()> {
                 let name = name.as_ref();
-                unsafe {
+                Ok(unsafe {
                     $fn(
-                        c_str(name),
+                        c_str(name)?,
                         name.len() as _,
                         *self as _,
                         flags.bits() as _,
                         module_number,
                     )
-                };
+                })
             }
         }
     };

@@ -58,7 +58,7 @@ macro_rules! _info_table_row {
 #[macro_export]
 macro_rules! call_user_func {
     ($fn: expr, $($param: expr),*) => {
-        $fn.try_call(vec![$($param.into()),*])
+        $fn.try_call(vec![$(&$param),*])
     };
 }
 

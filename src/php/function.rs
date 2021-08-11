@@ -2,6 +2,7 @@
 
 use std::{mem, os::raw::c_char, ptr};
 
+use crate::errors::Result;
 use crate::{bindings::zend_function_entry, functions::c_str};
 
 use super::{
@@ -42,6 +43,7 @@ type FunctionPointerHandler = extern "C" fn(execute_data: *mut ExecutionData, re
 /// Builds a function to be exported as a PHP function.
 #[derive(Debug, Clone)]
 pub struct FunctionBuilder<'a> {
+    name: String,
     function: FunctionEntry,
     args: Vec<Arg<'a>>,
     n_req: Option<usize>,
@@ -63,8 +65,9 @@ impl<'a> FunctionBuilder<'a> {
         N: AsRef<str>,
     {
         Self {
+            name: name.as_ref().to_string(),
             function: FunctionEntry {
-                fname: c_str(name),
+                fname: ptr::null(),
                 handler: Some(unsafe {
                     mem::transmute::<FunctionHandler, FunctionPointerHandler>(handler)
                 }),
@@ -121,7 +124,9 @@ impl<'a> FunctionBuilder<'a> {
     }
 
     /// Builds the function converting it into a Zend function entry.
-    pub fn build(mut self) -> FunctionEntry {
+    ///
+    /// Returns a result containing the function entry if successful.
+    pub fn build(mut self) -> Result<FunctionEntry> {
         let mut args = Vec::with_capacity(self.args.len() + 1);
 
         // argument header, retval etc
@@ -142,17 +147,19 @@ impl<'a> FunctionBuilder<'a> {
         // arguments
         for arg in self.args.iter() {
             args.push(ArgInfo {
-                name: c_str(arg.name.clone()),
+                name: c_str(&arg.name)?,
                 type_: ZendType::empty_from_type(arg._type, arg.as_ref, false, arg.allow_null),
                 default_value: match &arg.default_value {
-                    Some(val) => c_str(val),
+                    Some(val) => c_str(val)?,
                     None => ptr::null(),
                 },
             });
         }
 
+        self.function.fname = c_str(self.name)?;
         self.function.num_args = (args.len() - 1) as u32;
         self.function.arg_info = Box::into_raw(args.into_boxed_slice()) as *const ArgInfo;
-        self.function
+
+        Ok(self.function)
     }
 }

@@ -147,26 +147,26 @@ impl<'a> Zval {
 
     /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
     /// Note that a thrown exception inside the callable is not detectable, therefore you should
-    /// check if the return value is valid rather than unwrapping.
+    /// check if the return value is valid rather than unwrapping. Returns a result containing the
+    /// return value of the function, or an error.
     ///
     /// You should not call this function directly, rather through the [`call_user_func`] macro.
     ///
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
-    ///
-    /// # Returns
-    ///
-    /// * `Some(Zval)` - The result of the function call.
-    /// * `None` - The zval was not callable or the call failed.
-    pub fn try_call(&self, params: Vec<Zval>) -> Option<Zval> {
+    pub fn try_call(&self, params: Vec<&dyn IntoZval>) -> Result<Zval> {
         let mut retval = Zval::new();
         let len = params.len();
+        let params = params
+            .into_iter()
+            .map(|val| val.as_zval(false))
+            .collect::<Result<Vec<_>>>()?;
         let packed = Box::into_raw(params.into_boxed_slice()) as *mut Self;
         let ptr: *const Self = self;
 
         if !self.is_callable() {
-            return None;
+            return Err(Error::Callable);
         }
 
         let result = unsafe {
@@ -194,9 +194,9 @@ impl<'a> Zval {
         };
 
         if result < 0 {
-            None
+            Err(Error::Callable)
         } else {
-            Some(retval)
+            Ok(retval)
         }
     }
 
@@ -266,18 +266,20 @@ impl<'a> Zval {
         unsafe { zend_is_callable(ptr as *mut Self, 0, std::ptr::null_mut()) }
     }
 
-    /// Sets the value of the zval as a string.
+    /// Sets the value of the zval as a string. Returns nothing in a result when successful.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_string<S>(&mut self, val: S)
+    /// * `persistent` - Whether the string should persist between requests.
+    pub fn set_string<S>(&mut self, val: S, persistent: bool) -> Result<()>
     where
         S: AsRef<str>,
     {
-        let zend_str = ZendString::new(val, false);
+        let zend_str = ZendString::new(val, persistent)?;
         self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
+        Ok(())
     }
 
     /// Sets the value of the zval as a binary string.
@@ -291,34 +293,19 @@ impl<'a> Zval {
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
-    /// Sets the value of the zval as a persistent string.
-    /// This means that the zend string will persist between
-    /// request lifetime.
+    /// Sets the value of the zval as a interned string. Returns nothing in a result when successful.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_persistent_string<S>(&mut self, val: S)
+    pub fn set_interned_string<S>(&mut self, val: S) -> Result<()>
     where
         S: AsRef<str>,
     {
-        let zend_str = ZendString::new(val, true);
-        self.value.str_ = zend_str.release();
-        self.u1.type_info = ZvalTypeFlags::StringEx.bits();
-    }
-
-    /// Sets the value of the zval as a interned string.
-    ///
-    /// # Parameters
-    ///
-    /// * `val` - The value to set the zval as.
-    pub fn set_interned_string<S>(&mut self, val: S)
-    where
-        S: AsRef<str>,
-    {
-        let zend_str = ZendString::new_interned(val);
+        let zend_str = ZendString::new_interned(val)?;
         self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::InternedStringEx.bits();
+        Ok(())
     }
 
     /// Sets the value of the zval as a long.
@@ -355,6 +342,7 @@ impl<'a> Zval {
     }
 
     /// Sets the value of the zval as null.
+    ///
     /// This is the default of a zval.
     pub fn set_null(&mut self) {
         self.u1.type_info = ZvalTypeFlags::Null.bits();
@@ -386,12 +374,9 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_array<V>(&mut self, val: V)
-    where
-        V: Into<ZendHashTable>,
-    {
+    pub fn set_array(&mut self, val: ZendHashTable) {
         self.u1.type_info = ZvalTypeFlags::ArrayEx.bits();
-        self.value.arr = val.into().into_ptr();
+        self.value.arr = val.into_ptr();
     }
 
     /// Sets the reference count of the Zval.
@@ -435,10 +420,24 @@ impl Debug for Zval {
     }
 }
 
+/// Provides implementations for converting Rust primitive types into PHP zvals. Alternative to the
+/// built-in Rust [`From`] and [`TryFrom`] implementations, allowing the caller to specify whether
+/// the Zval contents will persist between requests.
+pub trait IntoZval {
+    /// Converts a Rust primitive type into a Zval. Returns a result containing the Zval if
+    /// successful.
+    ///
+    /// # Parameters
+    ///
+    /// * `persistent` - Whether the contents of the Zval will persist between requests.
+    fn as_zval(&self, persistent: bool) -> Result<Zval>;
+}
+
 macro_rules! try_from_zval {
     ($type: ty, $fn: ident) => {
         impl TryFrom<&Zval> for $type {
             type Error = Error;
+
             fn try_from(value: &Zval) -> Result<Self> {
                 match value.$fn() {
                     Some(v) => match <$type>::try_from(v) {
@@ -480,6 +479,14 @@ macro_rules! into_zval {
                 zv
             }
         }
+
+        impl IntoZval for $type {
+            fn as_zval(&self, _: bool) -> Result<Zval> {
+                let mut zv = Zval::new();
+                zv.$fn(*self);
+                Ok(zv)
+            }
+        }
     };
 }
 
@@ -497,6 +504,28 @@ into_zval!(f64, set_double);
 
 into_zval!(bool, set_bool);
 
-into_zval!(String, set_string);
-into_zval!(&String, set_string);
-into_zval!(&str, set_string);
+macro_rules! try_into_zval_str {
+    ($type: ty) => {
+        impl TryFrom<$type> for Zval {
+            type Error = Error;
+
+            fn try_from(value: $type) -> Result<Self> {
+                let mut zv = Self::new();
+                zv.set_string(value, false)?;
+                Ok(zv)
+            }
+        }
+
+        impl IntoZval for $type {
+            fn as_zval(&self, persistent: bool) -> Result<Zval> {
+                let mut zv = Zval::new();
+                zv.set_string(self, persistent)?;
+                Ok(zv)
+            }
+        }
+    };
+}
+
+try_into_zval_str!(String);
+try_into_zval_str!(&String);
+try_into_zval_str!(&str);

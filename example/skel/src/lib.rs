@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryInto};
 
 use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start, parse_args,
@@ -76,7 +76,7 @@ impl Test {
 
         let result = call_user_func!(_fn, "Hello", 5);
 
-        if let Some(r) = result {
+        if let Ok(r) = result {
             println!("{}", r.string().unwrap());
         }
 
@@ -105,37 +105,52 @@ pub extern "C" fn module_init(_type: i32, module_number: i32) -> i32 {
 
     ClassBuilder::new("TestClass")
         .method(
-            FunctionBuilder::constructor(Test::constructor).build(),
+            FunctionBuilder::constructor(Test::constructor)
+                .build()
+                .expect("could not build constructor"),
             MethodFlags::Public,
         )
         .method(
-            FunctionBuilder::new("set", Test::set).build(),
+            FunctionBuilder::new("set", Test::set)
+                .build()
+                .expect("could not build set"),
             MethodFlags::Public,
         )
         .method(
-            FunctionBuilder::new("get", Test::get).build(),
+            FunctionBuilder::new("get", Test::get)
+                .build()
+                .expect("could not build get"),
             MethodFlags::Public,
         )
         .method(
             FunctionBuilder::new("debug", Test::debug)
                 .arg(Arg::new("val", DataType::Object))
-                .build(),
+                .build()
+                .expect("could not build debug"),
             MethodFlags::Public,
         )
         .method(
             FunctionBuilder::new("call", Test::call)
                 .arg(Arg::new("fn", DataType::Callable))
-                .build(),
+                .build()
+                .expect("could not build call"),
             MethodFlags::Public,
         )
         .property("asdf", "world", PropertyFlags::Public)
+        .expect("failed to add asdf property")
         .property("jhki", 12345, PropertyFlags::Public)
+        .expect("failed to add jhki property")
         .constant("TEST", "Hello world")
+        .expect("failed to add test constant")
         .object_override::<Test>()
-        .build();
+        .build()
+        .expect("failed to build TestClass");
 
-    "Test constant".register_constant("SKEL_TEST_CONST", module_number);
-    1234.register_constant("SKEL_TEST_LONG_CONST", module_number);
+    "Test constant"
+        .register_constant("SKEL_TEST_CONST", module_number)
+        .expect("failed to add skel test const");
+    1234.register_constant("SKEL_TEST_LONG_CONST", module_number)
+        .expect("failed to add skel test long const");
 
     0
 }
@@ -148,20 +163,24 @@ pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
         .not_required()
         .arg(Arg::new("c", DataType::Double))
         .returns(DataType::String, false, false)
-        .build();
+        .build()
+        .expect("failed to build sheleton_version");
 
     let array = FunctionBuilder::new("skel_array", skeleton_array)
         .arg(Arg::new("arr", DataType::Array))
-        .build();
+        .build()
+        .expect("failed to build skel_array");
 
     let t = FunctionBuilder::new("test_array", test_array)
         .returns(DataType::Array, false, false)
-        .build();
+        .build()
+        .expect("failed to build test_array");
 
     let iter = FunctionBuilder::new("skel_unpack", skel_unpack)
         .arg(Arg::new("arr", DataType::String))
         .returns(DataType::String, false, false)
-        .build();
+        .build()
+        .expect("failed to build skel_unpack");
 
     ModuleBuilder::new("ext-skel", "0.1.0")
         .info_function(php_module_info)
@@ -171,6 +190,7 @@ pub extern "C" fn get_module() -> *mut ext_php_rs::php::module::ModuleEntry {
         .function(t)
         .function(iter)
         .build()
+        .expect("failed to build module")
         .into_raw()
 }
 
@@ -182,7 +202,7 @@ pub extern "C" fn skeleton_version(execute_data: &mut ExecutionData, retval: &mu
 
     parse_args!(execute_data, x, y; z);
     dbg!(x);
-    retval.set_string("Hello");
+    retval.set_string("Hello", false);
 }
 
 #[no_mangle]
@@ -201,13 +221,18 @@ pub extern "C" fn skeleton_array(execute_data: &mut ExecutionData, _retval: &mut
     }
 
     let mut new = ZendHashTable::new();
-    new.insert("Hello", "WOrld");
+    new.insert("Hello", "WOrld")
+        .expect("couldnt insert into hashtable");
     let _ = _retval.set_array(new);
 }
 
 #[no_mangle]
 pub extern "C" fn test_array(_execute_data: &mut ExecutionData, retval: &mut Zval) {
-    retval.set_array(vec![1, 2, 3, 4]);
+    retval.set_array(
+        vec![1, 2, 3, 4]
+            .try_into()
+            .expect("failed to convert vec to hashtable"),
+    );
 }
 
 pub extern "C" fn skel_unpack(execute_data: &mut ExecutionData, retval: &mut Zval) {
