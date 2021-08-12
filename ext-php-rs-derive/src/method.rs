@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use crate::{function, Result};
 use darling::FromMeta;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{punctuated::Punctuated, AttributeArgs, FnArg, ItemFn, Pat, Signature, Token};
+use syn::{punctuated::Punctuated, AttributeArgs, FnArg, ItemFn, Lit, Pat, Signature, Token};
 
 enum Arg {
     Receiver(Option<Token![mut]>),
@@ -15,6 +17,7 @@ struct AttrArgs {
     optional: Option<String>,
     #[darling(rename = "static")]
     _static: bool,
+    defaults: HashMap<String, Lit>,
 }
 
 pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
@@ -37,7 +40,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
     let stmts = &block.stmts;
 
     let internal_ident = Ident::new(format!("_internal_{}", ident).as_ref(), Span::call_site());
-    let args = build_args(&inputs)?;
+    let args = build_args(&inputs, &attr_args.defaults)?;
     let arg_definitions = build_arg_definitions(&args);
     let arg_parser = build_arg_parser(args.iter(), &attr_args.optional)?;
     let arg_accessors = build_arg_accessors(&args);
@@ -63,7 +66,10 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
     Ok(func)
 }
 
-fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
+fn build_args(
+    inputs: &Punctuated<FnArg, Token![,]>,
+    defaults: &HashMap<String, Lit>,
+) -> Result<Vec<Arg>> {
     inputs
         .iter()
         .map(|arg| match arg {
@@ -79,7 +85,9 @@ fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
                     _ => return Err("Invalid parameter type.".into()),
                 };
                 Ok(Arg::Typed(crate::function::syn_arg_to_arg(
-                    &name, &ty.ty, None,
+                    &name,
+                    &ty.ty,
+                    defaults.get(&name),
                 )?)) // TODO defaults
             }
         })
@@ -100,7 +108,13 @@ fn build_arg_definitions(args: &[Arg]) -> Vec<TokenStream> {
                     };
                 }
             }
-            Arg::Typed(arg) => arg.get_arg_definition(),
+            Arg::Typed(arg) => {
+                let ident = arg.get_name_ident();
+                let definition = arg.get_arg_definition();
+                quote! { 
+                    let mut #ident = #definition;
+                }
+            },
         })
         .collect()
 }
