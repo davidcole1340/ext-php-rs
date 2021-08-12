@@ -78,7 +78,9 @@ fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
                     Pat::Ident(pat) => pat.ident.to_string(),
                     _ => return Err("Invalid parameter type.".into()),
                 };
-                Ok(Arg::Typed(crate::function::syn_arg_to_arg(&name, &ty.ty)?))
+                Ok(Arg::Typed(crate::function::syn_arg_to_arg(
+                    &name, &ty.ty, None,
+                )?)) // TODO defaults
             }
         })
         .collect()

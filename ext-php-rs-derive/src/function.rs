@@ -1,9 +1,11 @@
+use std::{collections::HashMap, str::FromStr};
+
 use crate::{module::Function, Result};
-use darling::FromMeta;
-use proc_macro2::{Ident, Span, TokenStream};
+use darling::{FromMeta, ToTokens};
+use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, PathArguments,
+    punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, Lit, PathArguments,
     PathSegment, ReturnType, Signature, Token, Type,
 };
 
@@ -12,13 +14,15 @@ use syn::{
 pub struct AttrArgs {
     optional: Option<String>,
     ignore_module: bool,
+    defaults: HashMap<String, Lit>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Arg {
-    name: String,
-    ty: String,
-    nullable: bool,
+    pub name: String,
+    pub ty: String,
+    pub nullable: bool,
+    pub default: Option<String>,
 }
 
 pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
@@ -36,7 +40,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
     } = sig;
     let stmts = &block.stmts;
 
-    let args = build_args(&inputs)?;
+    let args = build_args(&inputs, &attr_args.defaults)?;
     let arg_definitions = build_arg_definitions(&args);
     let arg_parser = build_arg_parser(args.iter(), &attr_args.optional)?;
     let arg_accessors = build_arg_accessors(&args);
@@ -73,6 +77,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
         state.functions.push(Function {
             name: ident.to_string(),
             args,
+            optional: attr_args.optional,
             output: return_type,
         });
 
@@ -80,7 +85,10 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
     })
 }
 
-fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
+fn build_args(
+    inputs: &Punctuated<FnArg, Token![,]>,
+    defaults: &HashMap<String, Lit>,
+) -> Result<Vec<Arg>> {
     inputs
         .iter()
         .map(|arg| match arg {
@@ -93,7 +101,7 @@ fn build_args(inputs: &Punctuated<FnArg, Token![,]>) -> Result<Vec<Arg>> {
                     syn::Pat::Ident(pat) => pat.ident.to_string(),
                     _ => return Err("Invalid parameter type.".to_string()),
                 };
-                syn_arg_to_arg(&name, &ty.ty)
+                syn_arg_to_arg(&name, &ty.ty, defaults.get(&name))
             }
         })
         .collect::<Result<Vec<_>>>()
@@ -131,7 +139,7 @@ pub fn build_arg_parser<'a>(
                 quote! {}
             };
 
-            if rest_optional && !arg.nullable {
+            if rest_optional && !arg.nullable && arg.default.is_none() {
                 Err(format!(
                     "Parameter `{}` must be a variant of `Option` as it is optional.",
                     arg.name
@@ -236,7 +244,7 @@ pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)
     })
 }
 
-pub fn syn_arg_to_arg(name: &str, ty: &syn::Type) -> Result<Arg> {
+pub fn syn_arg_to_arg(name: &str, ty: &syn::Type, default: Option<&Lit>) -> Result<Arg> {
     let ty_path = match ty {
         Type::Path(path) => path,
         ty => {
@@ -253,7 +261,12 @@ pub fn syn_arg_to_arg(name: &str, ty: &syn::Type) -> Result<Arg> {
         .last()
         .ok_or(format!("Invalid parameter type for parameter `{}`.", name))?;
 
-    path_seg_to_arg(name, ty_seg).ok_or(format!("Invalid parameter type for parameter `{}`.", name))
+    path_seg_to_arg(name, ty_seg)
+        .ok_or(format!("Invalid parameter type for parameter `{}`.", name))
+        .map(|mut arg| {
+            arg.default = default.map(|def| def.to_token_stream().to_string());
+            arg
+        })
 }
 
 pub fn path_seg_to_arg(name: &str, seg: &PathSegment) -> Option<Arg> {
@@ -267,7 +280,7 @@ pub fn path_seg_to_arg(name: &str, seg: &PathSegment) -> Option<Arg> {
         "Option" => match &seg.arguments {
             PathArguments::AngleBracketed(args) => match args.args.first() {
                 Some(GenericArgument::Type(ty)) => {
-                    let mut ty = syn_arg_to_arg(name, ty).ok()?;
+                    let mut ty = syn_arg_to_arg(name, ty, None).ok()?;
                     ty.nullable = true;
                     Some(ty)
                 }
@@ -285,6 +298,7 @@ impl Arg {
             name: name.to_string(),
             ty: ty.to_string(),
             nullable: false,
+            default: None,
         }
     }
 
@@ -303,7 +317,15 @@ impl Arg {
         let name = &self.name;
         let name_ident = self.get_name_ident();
 
-        if self.nullable {
+        if let Some(default) = self.default.as_ref() {
+            // `bool`s are not literals - need to use Ident.
+            let val = Literal::from_str(default)
+                .map(|lit| lit.to_token_stream())
+                .or_else(|_| Ident::from_string(default).map(|ident| ident.to_token_stream()))
+                .unwrap_or(quote! { Default::default() });
+
+            quote! { #name_ident.val().unwrap_or(#val.into()) }
+        } else if self.nullable {
             quote! { #name_ident.val() }
         } else {
             quote! {
@@ -327,14 +349,15 @@ impl Arg {
         let name = &self.name;
         let ty = self.get_type_ident();
 
-        let args = if self.nullable {
-            quote! { .allow_null() }
-        } else {
-            quote! {}
-        };
+        let null = self.nullable.then(|| quote! { .allow_null() });
+        let default = self.default.as_ref().map(|val| {
+            quote! {
+                .default(#val)
+            }
+        });
 
         quote! {
-            ::ext_php_rs::php::args::Arg::new(#name, ::ext_php_rs::php::enums::DataType::#ty) #args
+            ::ext_php_rs::php::args::Arg::new(#name, ::ext_php_rs::php::enums::DataType::#ty) #null #default
         }
     }
 }

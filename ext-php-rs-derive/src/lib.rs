@@ -76,6 +76,8 @@ pub fn object_handler_derive(input: TokenStream) -> TokenStream {
 /// - [`bool`]
 /// - [`String`]
 /// - [`Vec<T>`] and [`HashMap<String, T>`](std::collections::HashMap) containing the above types.
+/// - `Binary<T>` for passing binary data as a string.
+/// - `Callable` for receiving PHP callables, not applicable for return.
 /// - [`Option<T>`] containing the above types. When used as a parameter, the parameter will be
 /// deemed nullable, and will contain [`None`] when `null` is passed. Optional parameters *must* be
 /// of the type [`Option<T>`]. Returning [`None`] is the same as returning `null`.
@@ -265,7 +267,7 @@ pub fn php_method(args: TokenStream, input: TokenStream) -> TokenStream {
 /// process, the function is wrapped by an `extern "C"` function which is called from PHP, which
 /// then calls the given function.
 ///
-/// As well as wrapping the function, the [`ModuleBuilder`] is initialized ans functions which have
+/// As well as wrapping the function, the `ModuleBuilder` is initialized ans functions which have
 /// already been declared with the [`macro@php_function`] attribute will be registered with the
 /// module, so ideally you won't have to do anything inside the function.
 ///

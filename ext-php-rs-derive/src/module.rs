@@ -8,6 +8,7 @@ use crate::{function::Arg, Result};
 pub struct Function {
     pub name: String,
     pub args: Vec<Arg>,
+    pub optional: Option<String>,
     pub output: Option<(String, bool)>,
 }
 
@@ -69,7 +70,17 @@ impl Function {
         let args = self
             .args
             .iter()
-            .map(|arg| arg.get_arg_definition())
+            .map(|arg| {
+                let def = arg.get_arg_definition();
+                let prelude = self.optional.as_ref().and_then(|opt| {
+                    if opt.eq(&arg.name) {
+                        Some(quote! { .not_required() })
+                    } else {
+                        None
+                    }
+                });
+                quote! { #prelude.arg(#def) }
+            })
             .collect::<Vec<_>>();
         let output = self.output.as_ref().map(|(ty, nullable)| {
             let ty = Ident::new(ty, Span::call_site());
@@ -81,7 +92,7 @@ impl Function {
 
         quote! {
             ::ext_php_rs::php::function::FunctionBuilder::new(#name, #name_ident)
-                #(.arg(#args))*
+                #(#args)*
                 #output
                 .build()
         }
