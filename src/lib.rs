@@ -13,4 +13,14 @@ pub mod php;
 pub use ext_php_rs_derive::php_function;
 pub use ext_php_rs_derive::php_method;
 pub use ext_php_rs_derive::php_module;
+pub use ext_php_rs_derive::php_startup;
 pub use ext_php_rs_derive::ZendObjectHandler;
+
+pub mod prelude {
+    pub use crate::php::module::ModuleBuilder;
+    pub use crate::php_function;
+    pub use crate::php_method;
+    pub use crate::php_module;
+    pub use crate::php_startup;
+    pub use crate::ZendObjectHandler;
+}

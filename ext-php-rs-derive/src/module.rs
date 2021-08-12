@@ -17,7 +17,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let Signature { output, inputs, .. } = sig;
     let stmts = &block.stmts;
 
-    let builders = crate::STATE.with(|state| {
+    let (functions, startup) = crate::STATE.with(|state| {
         let mut state = state.lock().unwrap();
 
         if state.built_module {
@@ -25,11 +25,20 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         }
 
         state.built_module = true;
-        Ok(state
+
+        let functions = state
             .functions
             .iter()
             .map(|func| func.get_builder())
-            .collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+        let startup = state.startup_function.as_ref().map(|ident| {
+            let ident = Ident::new(ident, Span::call_site());
+            quote! {
+                .startup_function(#ident)
+            }
+        });
+
+        Ok((functions, startup))
     })?;
 
     let result = quote! {
@@ -43,7 +52,8 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
                 env!("CARGO_PKG_NAME"),
                 env!("CARGO_PKG_VERSION")
             )
-            #(.function(#builders.unwrap()))*
+            #startup
+            #(.function(#functions.unwrap()))*
             ;
 
             // TODO allow result return types
