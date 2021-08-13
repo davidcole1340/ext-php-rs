@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use crate::{module::Function, Result};
+use crate::{error::Result, STATE};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
@@ -25,10 +25,18 @@ pub struct Arg {
     pub default: Option<String>,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub name: String,
+    pub args: Vec<Arg>,
+    pub optional: Option<String>,
+    pub output: Option<(String, bool)>,
+}
+
+pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Function)> {
     let attr_args = match AttrArgs::from_list(&args) {
         Ok(args) => args,
-        Err(e) => return Err(format!("Unable to parse attribute arguments: {:?}", e)),
+        Err(e) => return Err(format!("Unable to parse attribute arguments: {:?}", e).into()),
     };
 
     let ItemFn { sig, block, .. } = input;
@@ -65,24 +73,22 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
         }
     };
 
-    crate::STATE.with(|state| {
-        let mut state = state
-            .lock()
-            .map_err(|_| "Unable to lock `ext-php-rs-derive` state when evaluating macro.")?;
+    let mut state = STATE.lock()?;
 
-        if state.built_module && !attr_args.ignore_module {
-            return Err("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`".into());
-        }
+    if state.built_module && !attr_args.ignore_module {
+        return Err("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`".into());
+    }
 
-        state.functions.push(Function {
-            name: ident.to_string(),
-            args,
-            optional: attr_args.optional,
-            output: return_type,
-        });
+    let function = Function {
+        name: ident.to_string(),
+        args,
+        optional: attr_args.optional,
+        output: return_type,
+    };
 
-        Ok(func)
-    })
+    state.functions.push(function.clone());
+
+    Ok((func, function))
 }
 
 fn build_args(
@@ -94,12 +100,12 @@ fn build_args(
         .map(|arg| match arg {
             FnArg::Receiver(_) => Err(
                 "`self` is not permitted in PHP functions. See the `#[php_method]` attribute."
-                    .to_string(),
+                    .into(),
             ),
             FnArg::Typed(ty) => {
                 let name = match &*ty.pat {
                     syn::Pat::Ident(pat) => pat.ident.to_string(),
-                    _ => return Err("Invalid parameter type.".to_string()),
+                    _ => return Err("Invalid parameter type.".into()),
                 };
                 syn_arg_to_arg(&name, &ty.ty, defaults.get(&name))
             }
@@ -141,9 +147,10 @@ pub fn build_arg_parser<'a>(
 
             if rest_optional && !arg.nullable && arg.default.is_none() {
                 Err(format!(
-                    "Parameter `{}` must be a variant of `Option` as it is optional.",
+                    "Parameter `{}` must be a variant of `Option` or have a default value as it is optional.",
                     arg.name
-                ))
+                )
+                .into())
             } else {
                 Ok(quote! {
                     #prelude
@@ -251,7 +258,8 @@ pub fn syn_arg_to_arg(name: &str, ty: &syn::Type, default: Option<&Lit>) -> Resu
             return Err(format!(
                 "Unsupported parameter type for parameter `{}`: {:?}",
                 name, ty
-            ))
+            )
+            .into())
         }
     };
 
@@ -262,7 +270,7 @@ pub fn syn_arg_to_arg(name: &str, ty: &syn::Type, default: Option<&Lit>) -> Resu
         .ok_or(format!("Invalid parameter type for parameter `{}`.", name))?;
 
     path_seg_to_arg(name, ty_seg)
-        .ok_or(format!("Invalid parameter type for parameter `{}`.", name))
+        .ok_or_else(|| format!("Invalid parameter type for parameter `{}`.", name).into())
         .map(|mut arg| {
             arg.default = default.map(|def| def.to_token_stream().to_string());
             arg
@@ -358,6 +366,47 @@ impl Arg {
 
         quote! {
             ::ext_php_rs::php::args::Arg::new(#name, ::ext_php_rs::php::enums::DataType::#ty) #null #default
+        }
+    }
+}
+
+impl Function {
+    #[inline]
+    pub fn get_name_ident(&self) -> Ident {
+        Ident::new(&self.name, Span::call_site())
+    }
+
+    pub fn get_builder(&self) -> TokenStream {
+        let name = &self.name;
+        let name_ident = self.get_name_ident();
+        let args = self
+            .args
+            .iter()
+            .map(|arg| {
+                let def = arg.get_arg_definition();
+                let prelude = self.optional.as_ref().and_then(|opt| {
+                    if opt.eq(&arg.name) {
+                        Some(quote! { .not_required() })
+                    } else {
+                        None
+                    }
+                });
+                quote! { #prelude.arg(#def) }
+            })
+            .collect::<Vec<_>>();
+        let output = self.output.as_ref().map(|(ty, nullable)| {
+            let ty = Ident::new(ty, Span::call_site());
+            // TODO allow reference returns?
+            quote! {
+                .returns(::ext_php_rs::php::enums::DataType::#ty, false, #nullable)
+            }
+        });
+
+        quote! {
+            ::ext_php_rs::php::function::FunctionBuilder::new(#name, #name_ident)
+                #(#args)*
+                #output
+                .build()
         }
     }
 }

@@ -4,7 +4,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{ItemFn, Signature};
 
-use crate::{class::Class, Result};
+use crate::{class::Class, error::Result, STATE};
 
 pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
@@ -16,14 +16,12 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     } = sig;
     let stmts = &block.stmts;
 
-    let classes = crate::STATE.with(|state| {
-        let mut state = state
-            .lock()
-            .expect("Unable to lock `ext-php-rs-derive` state mutex.");
+    let classes = {
+        let mut state = STATE.lock()?;
 
         state.startup_function = Some(ident.to_string());
         build_classes(&state.classes)
-    });
+    };
 
     let func = quote! {
         pub extern "C" fn #ident(ty: i32, module_number: i32) -> i32 {
@@ -49,8 +47,15 @@ fn build_classes(classes: &HashMap<String, Class>) -> Vec<TokenStream> {
         .iter()
         .map(|(name, class)| {
             let ident = Ident::new(name, Span::call_site());
+            let methods = class.methods.iter().map(|method| {
+                let builder = method.get_builder(&ident);
+                let flags = method.get_flags();
+                quote! { .method(#builder.unwrap(), #flags) }
+            });
+
             quote! {
                 ::ext_php_rs::php::class::ClassBuilder::new(#name)
+                    #(#methods)*
                     .object_override::<#ident>()
                     .build()
                     .unwrap();

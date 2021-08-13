@@ -1,11 +1,11 @@
-use crate::Result;
+use crate::{error::Result, STATE};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::DeriveInput;
 
 #[derive(Debug, Default)]
 pub struct Class {
-    methods: Vec<(crate::module::Function, bool)>,
+    pub methods: Vec<crate::method::Method>,
 }
 
 pub fn parser(input: DeriveInput) -> Result<TokenStream> {
@@ -44,21 +44,21 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
         }
     };
 
-    crate::STATE.with(|state| {
-        let mut state = state
-            .lock()
-            .map_err(|_| "Unable to lock `ext-php-rs-derive` state when defining PHP class.")?;
+    let mut state = STATE.lock()?;
 
-        if state.built_module {
-            return Err("The `#[php_module]` macro must be called last to ensure functions and classes are registered.".into());
-        }
+    if state.built_module {
+        return Err("The `#[php_module]` macro must be called last to ensure functions and classes are registered.".into());
+    }
 
-        if state.classes.contains_key(&class_name) {
-            return Err(format!("A class has already been registered with the name `{}`.", class_name));
-        }
+    if state.classes.contains_key(&class_name) {
+        return Err(format!(
+            "A class has already been registered with the name `{}`.",
+            class_name
+        )
+        .into());
+    }
 
-        state.classes.insert(class_name, Default::default());
+    state.classes.insert(class_name, Default::default());
 
-        Ok(output)
-    })
+    Ok(output)
 }

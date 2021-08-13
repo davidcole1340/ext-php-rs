@@ -1,5 +1,7 @@
 mod class;
+mod error;
 mod function;
+mod impl_;
 mod method;
 mod module;
 mod startup_function;
@@ -7,23 +9,21 @@ mod startup_function;
 use std::{collections::HashMap, sync::Mutex};
 
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span};
-use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn};
+use proc_macro2::Span;
+use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn, ItemImpl};
 
 extern crate proc_macro;
 
-type Result<T> = std::result::Result<T, String>;
-
 #[derive(Default, Debug)]
 struct State {
-    functions: Vec<module::Function>,
+    functions: Vec<function::Function>,
     classes: HashMap<String, class::Class>,
     startup_function: Option<String>,
     built_module: bool,
 }
 
-thread_local! {
-    pub(crate) static STATE: Mutex<State> = Mutex::new(Default::default());
+lazy_static::lazy_static! {
+    pub(crate) static ref STATE: Mutex<State> = Mutex::new(Default::default());
 }
 
 /// Derives the implementation of `ZendObjectOverride` for the given structure.
@@ -150,88 +150,7 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
     match function::parser(args, input) {
-        Ok(parsed) => parsed,
-        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
-    }
-    .into()
-}
-
-/// Attribute used to declare a function as a PHP method.
-///
-/// Although this attribute exports the function to PHP-land, you *must* still register the
-/// function using the `ClassBuilder` and `FunctionBuilder` in your `startup_function`.
-///
-/// This attribute should be used on functions implemented on `struct`s that also implements the
-/// `ZendClassObject`:trait.
-///
-/// See the documentation for the [`macro@php_function`] attribute for a deeper dive into the valid
-/// parameter and return types.
-///
-/// Behind the scenes, the function is renamed, and an `extern "C"` function is generated in its
-/// place, which is called from PHP. The first example below would be represented like so (only the
-/// `get_num` function is shown):
-///
-/// ```ignore
-/// impl TestClass {
-///     pub extern "C" fn get_num(ex: &mut ExecutionData, retval: &mut Zval) {
-///         let this = match Self::get() {
-///             Some(this) => this,
-///             None => {
-///                 throw(
-///                     ClassEntry::exception(),
-///                     "Failed to retrieve reference to object function was called on."
-///                 )
-///                 .unwrap();
-///                 return;
-///             }
-///         };
-///
-///         let result = this._internal_get_num();
-///         match result.set_zval(retval, false) {
-///             Ok(_) => {},
-///             Err(e) => {
-///                 throw(
-///                     ClassEntry::exception(),
-///                     e.to_string().as_ref(),
-///                 )
-///                 .unwrap();
-///             }
-///         };
-///     }
-///
-///     fn _internal_get_num(&self) -> i32 {
-///         self.num
-///     }
-/// }
-/// ```
-///
-/// # Examples
-///
-/// ```ignore
-/// #[derive(Debug, Default, ZendObjectHandler)]
-/// struct TestClass {
-///     num: i32
-/// }
-///
-/// impl TestClass {
-///     #[php_method]
-///     pub fn get_num(&self) -> i32 {
-///         self.num
-///     }
-///
-///     #[php_method]
-///     pub fn set_num(&mut self, num: i32) {
-///         self.num = num
-///     }
-/// }
-/// ```
-#[proc_macro_attribute]
-pub fn php_method(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
-    let input = parse_macro_input!(input as ItemFn);
-
-    match method::parser(args, input) {
-        Ok(parsed) => parsed,
+        Ok((parsed, _)) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }
     .into()
@@ -284,6 +203,17 @@ pub fn php_startup(_: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
     match startup_function::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn php_impl(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemImpl);
+
+    match impl_::parser(input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }
