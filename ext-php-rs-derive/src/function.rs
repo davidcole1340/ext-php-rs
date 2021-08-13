@@ -28,6 +28,7 @@ pub struct Arg {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
+    pub ident: String,
     pub args: Vec<Arg>,
     pub optional: Option<String>,
     pub output: Option<(String, bool)>,
@@ -39,35 +40,37 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         Err(e) => return Err(format!("Unable to parse attribute arguments: {:?}", e).into()),
     };
 
-    let ItemFn { sig, block, .. } = input;
+    let ItemFn { sig, .. } = &input;
     let Signature {
         ident,
         output,
         inputs,
         ..
-    } = sig;
-    let stmts = &block.stmts;
+    } = &sig;
 
-    let args = build_args(&inputs, &attr_args.defaults)?;
+    let internal_ident = Ident::new(
+        &format!("_internal_php_{}", ident.to_string()),
+        Span::call_site(),
+    );
+    let args = build_args(inputs, &attr_args.defaults)?;
     let arg_definitions = build_arg_definitions(&args);
     let arg_parser = build_arg_parser(args.iter(), &attr_args.optional)?;
     let arg_accessors = build_arg_accessors(&args);
 
-    let return_handler = build_return_handler(&output);
-    let return_type = get_return_type(&output)?;
+    let return_handler = build_return_handler(output);
+    let return_type = get_return_type(output)?;
 
     let func = quote! {
-        pub extern "C" fn #ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
-            use ::ext_php_rs::php::types::zval::IntoZval;
+        #input
 
-            fn internal(#inputs) #output {
-                #(#stmts)*
-            }
+        #[doc(hidden)]
+        pub extern "C" fn #internal_ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
+            use ::ext_php_rs::php::types::zval::IntoZval;
 
             #(#arg_definitions)*
             #arg_parser
 
-            let result = internal(#(#arg_accessors, )*);
+            let result = #ident(#(#arg_accessors, )*);
 
             #return_handler
         }
@@ -81,6 +84,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
 
     let function = Function {
         name: ident.to_string(),
+        ident: internal_ident.to_string(),
         args,
         optional: attr_args.optional,
         output: return_type,
@@ -373,7 +377,7 @@ impl Arg {
 impl Function {
     #[inline]
     pub fn get_name_ident(&self) -> Ident {
-        Ident::new(&self.name, Span::call_site())
+        Ident::new(&self.ident, Span::call_site())
     }
 
     pub fn get_builder(&self) -> TokenStream {

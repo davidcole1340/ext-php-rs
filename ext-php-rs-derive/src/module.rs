@@ -36,6 +36,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     };
 
     let result = quote! {
+        #[doc(hidden)]
         #[no_mangle]
         pub extern "C" fn get_module() -> *mut ::ext_php_rs::php::module::ModuleEntry {
             fn internal(#inputs) #output {

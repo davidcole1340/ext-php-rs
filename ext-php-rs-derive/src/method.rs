@@ -27,6 +27,7 @@ pub struct AttrArgs {
 #[derive(Debug, Clone)]
 pub struct Method {
     pub name: String,
+    pub ident: String,
     pub args: Vec<Arg>,
     pub optional: Option<String>,
     pub output: Option<(String, bool)>,
@@ -34,7 +35,7 @@ pub struct Method {
     pub visibility: Visibility,
 }
 
-pub fn parser(input: &ImplItemMethod) -> Result<(TokenStream, Method)> {
+pub fn parser(input: &mut ImplItemMethod) -> Result<(TokenStream, Method)> {
     let mut defaults = HashMap::new();
     let mut optional = None;
     let mut visibility = Visibility::Public;
@@ -47,16 +48,17 @@ pub fn parser(input: &ImplItemMethod) -> Result<(TokenStream, Method)> {
         }
     }
 
-    let ImplItemMethod { sig, block, .. } = input;
+    input.attrs.clear();
+
+    let ImplItemMethod { sig, .. } = &input;
     let Signature {
         ident,
         output,
         inputs,
         ..
-    } = sig;
-    let stmts = &block.stmts;
+    } = &sig;
 
-    let internal_ident = Ident::new(format!("_internal_{}", ident).as_ref(), Span::call_site());
+    let internal_ident = Ident::new(&format!("_internal_php_{}", ident), Span::call_site());
     let args = build_args(inputs, &defaults)?;
     let (arg_definitions, is_static) = build_arg_definitions(&args);
     let arg_parser = build_arg_parser(args.iter(), &optional)?;
@@ -69,18 +71,16 @@ pub fn parser(input: &ImplItemMethod) -> Result<(TokenStream, Method)> {
     };
 
     let func = quote! {
-        #[doc(hidden)]
-        fn #internal_ident(#inputs) #output {
-            #(#stmts)*
-        }
+        #input
 
-        pub extern "C" fn #ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
+        #[doc(hidden)]
+        pub extern "C" fn #internal_ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
             use ::ext_php_rs::php::types::zval::IntoZval;
 
             #(#arg_definitions)*
             #arg_parser
 
-            let result = #this #internal_ident(#(#arg_accessors, )*);
+            let result = #this #ident(#(#arg_accessors, )*);
 
             #return_handler
         }
@@ -88,6 +88,7 @@ pub fn parser(input: &ImplItemMethod) -> Result<(TokenStream, Method)> {
 
     let method = Method {
         name: ident.to_string(),
+        ident: internal_ident.to_string(),
         args,
         optional,
         output: crate::function::get_return_type(output)?,
@@ -181,7 +182,7 @@ fn build_arg_accessors(args: &[Arg]) -> Vec<TokenStream> {
 impl Method {
     #[inline]
     pub fn get_name_ident(&self) -> Ident {
-        Ident::new(&self.name, Span::call_site())
+        Ident::new(&self.ident, Span::call_site())
     }
 
     pub fn get_builder(&self, class_path: &Ident) -> TokenStream {

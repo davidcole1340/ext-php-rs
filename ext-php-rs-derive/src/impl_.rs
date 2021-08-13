@@ -39,12 +39,12 @@ pub fn parser(input: ItemImpl) -> Result<TokenStream> {
         .ok_or_else(|| Error::new("You must use `#[derive(ZendObjectHandler)]` on the struct before using this attribute on the impl."))?;
 
     let tokens = items
-        .iter()
+        .into_iter()
         .map(|item| {
             Ok(match item {
                 // syn::ImplItem::Const(c) => todo!("constant"),
-                syn::ImplItem::Method(method) => {
-                    let (sig, method) = method::parser(method)?;
+                syn::ImplItem::Method(mut method) => {
+                    let (sig, method) = method::parser(&mut method)?;
                     class.methods.push(method);
                     sig
                 }

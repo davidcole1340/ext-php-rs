@@ -24,6 +24,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     };
 
     let func = quote! {
+        #[doc(hidden)]
         pub extern "C" fn #ident(ty: i32, module_number: i32) -> i32 {
             fn internal() {
                 #(#stmts)*
