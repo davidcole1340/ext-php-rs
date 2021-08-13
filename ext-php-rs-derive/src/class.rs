@@ -6,6 +6,7 @@ use syn::DeriveInput;
 #[derive(Debug, Default)]
 pub struct Class {
     pub methods: Vec<crate::method::Method>,
+    pub constants: Vec<crate::constant::Constant>,
 }
 
 pub fn parser(input: DeriveInput) -> Result<TokenStream> {

@@ -1,4 +1,5 @@
 mod class;
+mod constant;
 mod error;
 mod function;
 mod impl_;
@@ -8,9 +9,10 @@ mod startup_function;
 
 use std::{collections::HashMap, sync::Mutex};
 
+use constant::Constant;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemFn, ItemImpl};
+use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemImpl};
 
 extern crate proc_macro;
 
@@ -18,6 +20,7 @@ extern crate proc_macro;
 struct State {
     functions: Vec<function::Function>,
     classes: HashMap<String, class::Class>,
+    constants: Vec<Constant>,
     startup_function: Option<String>,
     built_module: bool,
 }
@@ -214,6 +217,17 @@ pub fn php_impl(_: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemImpl);
 
     match impl_::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn php_const(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemConst);
+
+    match constant::parser(input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }

@@ -6,6 +6,7 @@ use quote::quote;
 use syn::{Attribute, ItemImpl, Lit, Meta, NestedMeta};
 
 use crate::{
+    constant::Constant,
     error::{Error, Result},
     method,
 };
@@ -42,7 +43,18 @@ pub fn parser(input: ItemImpl) -> Result<TokenStream> {
         .into_iter()
         .map(|item| {
             Ok(match item {
-                // syn::ImplItem::Const(c) => todo!("constant"),
+                syn::ImplItem::Const(constant) => {
+                    class.constants.push(Constant {
+                        name: constant.ident.to_string(),
+                        // visibility: Visibility::Public,
+                        value: constant.expr.to_token_stream().to_string(),
+                    });
+
+                    quote! {
+                        #[allow(dead_code)]
+                        #constant
+                    }
+                }
                 syn::ImplItem::Method(mut method) => {
                     let (sig, method) = method::parser(&mut method)?;
                     class.methods.push(method);

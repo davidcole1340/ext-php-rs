@@ -10,6 +10,7 @@ pub mod errors;
 pub mod functions;
 pub mod php;
 
+pub use ext_php_rs_derive::php_const;
 pub use ext_php_rs_derive::php_function;
 pub use ext_php_rs_derive::php_impl;
 pub use ext_php_rs_derive::php_module;
@@ -18,6 +19,7 @@ pub use ext_php_rs_derive::ZendObjectHandler;
 
 pub mod prelude {
     pub use crate::php::module::ModuleBuilder;
+    pub use crate::php_const;
     pub use crate::php_function;
     pub use crate::php_impl;
     pub use crate::php_module;

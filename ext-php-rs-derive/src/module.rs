@@ -18,7 +18,9 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     state.built_module = true;
 
     // Generate startup function if one hasn't already been tagged with the macro.
-    let startup_fn = if !state.classes.is_empty() && state.startup_function.is_none() {
+    let startup_fn = if (!state.classes.is_empty() || !state.constants.is_empty())
+        && state.startup_function.is_none()
+    {
         drop(state);
 
         let parsed = syn::parse2(quote! {
