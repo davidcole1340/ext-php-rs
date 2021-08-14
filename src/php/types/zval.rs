@@ -443,6 +443,38 @@ where
     }
 }
 
+impl<'a> IntoZval for ZendHashTable<'a> {
+    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+        zv.set_array(self.clone());
+        Ok(())
+    }
+}
+
+impl<T> IntoZval for Vec<T>
+where
+    T: IntoZval,
+{
+    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+        let hm = self
+            .try_into()
+            .map_err(|_| Error::ZvalConversion(DataType::Array))?;
+        zv.set_array(hm);
+        Ok(())
+    }
+}
+
+impl<K, V> IntoZval for HashMap<K, V>
+where
+    K: Into<String> + Copy,
+    V: IntoZval,
+{
+    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+        let hm = self.try_into()?;
+        zv.set_array(hm);
+        Ok(())
+    }
+}
+
 macro_rules! try_from_zval {
     ($type: ty, $fn: ident) => {
         impl TryFrom<&Zval> for $type {

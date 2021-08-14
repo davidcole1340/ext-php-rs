@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     bindings::{
-        HashTable, _Bucket, _zend_new_array, zend_array_destroy, zend_hash_clean,
+        HashTable, _Bucket, _zend_new_array, zend_array_destroy, zend_array_dup, zend_hash_clean,
         zend_hash_index_del, zend_hash_index_find, zend_hash_index_update,
         zend_hash_next_index_insert, zend_hash_str_del, zend_hash_str_find, zend_hash_str_update,
         HT_MIN_SIZE,
@@ -190,7 +190,7 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `key` - The key to insert the value at in the hash table.
     /// * `value` - The value to insert into the hash table.
-    pub fn insert<K, V>(&mut self, key: K, val: V) -> Result<HashTableInsertResult>
+    pub fn insert<K, V>(&mut self, key: K, val: &V) -> Result<HashTableInsertResult>
     where
         K: Into<String>,
         V: IntoZval,
@@ -255,7 +255,7 @@ impl<'a> ZendHashTable<'a> {
     /// # Parameters
     ///
     /// * `val` - The value to insert into the hash table.
-    pub fn push<V>(&mut self, val: V) -> Result<()>
+    pub fn push<V>(&mut self, val: &V) -> Result<()>
     where
         V: IntoZval,
     {
@@ -299,6 +299,17 @@ impl<'a> Drop for ZendHashTable<'a> {
     fn drop(&mut self) {
         if self.free {
             unsafe { zend_array_destroy(self.ptr) };
+        }
+    }
+}
+
+impl<'a> Clone for ZendHashTable<'a> {
+    fn clone(&self) -> Self {
+        // SAFETY: If this fails then `emalloc` failed - we are doomed anyway?
+        // `from_ptr()` checks if the ptr is null.
+        unsafe {
+            let ptr = zend_array_dup(self.ptr);
+            Self::from_ptr(ptr, true).expect("ZendHashTable cloning failed when duplicating array.")
         }
     }
 }
@@ -392,7 +403,7 @@ where
 impl<'a, 'b, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable<'b>
 where
     K: Into<String> + Copy,
-    V: IntoZval + Copy,
+    V: IntoZval,
 {
     type Error = Error;
 
@@ -400,7 +411,7 @@ where
         let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
 
         for (k, v) in hm.iter() {
-            ht.insert(*k, *v)?;
+            ht.insert(*k, v)?;
         }
 
         Ok(ht)
@@ -426,7 +437,23 @@ where
     }
 }
 
-/// Implementation for converting a Rust Vec into a ZendHashTable.
+impl<'a, V> TryFrom<&'_ Vec<V>> for ZendHashTable<'a>
+where
+    V: IntoZval,
+{
+    type Error = Error;
+
+    fn try_from(value: &'_ Vec<V>) -> Result<Self> {
+        let mut ht = ZendHashTable::with_capacity(value.len() as u32);
+
+        for v in value.iter() {
+            ht.push(v)?;
+        }
+
+        Ok(ht)
+    }
+}
+
 impl<'a, V> TryFrom<Vec<V>> for ZendHashTable<'a>
 where
     V: IntoZval,
@@ -434,12 +461,6 @@ where
     type Error = Error;
 
     fn try_from(vec: Vec<V>) -> Result<Self> {
-        let mut ht = ZendHashTable::with_capacity(vec.len() as u32);
-
-        for v in vec {
-            ht.push(v)?;
-        }
-
-        Ok(ht)
+        (&vec).try_into()
     }
 }

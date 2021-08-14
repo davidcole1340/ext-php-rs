@@ -25,5 +25,6 @@ zts = []
 
 [workspace]
 members = [
-    "ext-php-rs-derive"
+    "ext-php-rs-derive",
+    "example/skel"
 ]

@@ -23,6 +23,8 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
         > = None;
 
         impl ::ext_php_rs::php::types::object::ZendObjectOverride for #name {
+            // Allow clippy ptr-deref lint because PHP guarantees that we are passed a valid pointer.
+            #[allow(clippy::not_unsafe_ptr_arg_deref)]
             extern "C" fn create_object(
                 ce: *mut ::ext_php_rs::php::class::ClassEntry,
             ) -> *mut ::ext_php_rs::php::types::object::ZendObject {

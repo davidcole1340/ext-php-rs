@@ -1,5 +1,5 @@
 [package]
-name = "example"
+name = "skel"
 version = "0.1.0"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"

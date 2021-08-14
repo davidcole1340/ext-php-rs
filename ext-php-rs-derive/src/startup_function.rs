@@ -8,12 +8,7 @@ use crate::{class::Class, constant::Constant, error::Result, STATE};
 
 pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
-    let Signature {
-        ident,
-        // output,
-        // inputs,
-        ..
-    } = sig;
+    let Signature { ident, .. } = sig;
     let stmts = &block.stmts;
 
     let mut state = STATE.lock()?;
