@@ -5,6 +5,9 @@ include __DIR__.'/vendor/autoload.php';
 //$y = new \stdClass;
 //$y->hello = 'asdf';
 
+$x = ['hello' => 'world'];
+var_dump(skel_unpack($x));
+
 $x = new TestClass();
 var_dump($x->call([$x, 'get']));
 var_dump($x);

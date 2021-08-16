@@ -97,6 +97,14 @@ impl Drop for ZendString {
     }
 }
 
+impl TryFrom<String> for ZendString {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        ZendString::new(value, false)
+    }
+}
+
 impl TryFrom<ZendString> for String {
     type Error = Error;
 

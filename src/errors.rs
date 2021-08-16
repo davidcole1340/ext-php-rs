@@ -1,6 +1,9 @@
 use std::{error::Error as ErrorTrait, fmt::Display};
 
-use crate::php::{enums::DataType, flags::ZvalTypeFlags};
+use crate::php::{
+    enums::DataType,
+    flags::{ClassFlags, ZvalTypeFlags},
+};
 
 /// The main result type which is passed by the library.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -40,6 +43,8 @@ pub enum Error {
     InvalidCString,
     /// Could not call the given function.
     Callable,
+    /// An invalid exception type was thrown.
+    InvalidException(ClassFlags),
 }
 
 impl Display for Error {
@@ -67,6 +72,9 @@ impl Display for Error {
                 "String given contains NUL-bytes which cannot be present in a C string."
             ),
             Error::Callable => write!(f, "Could not call given function."),
+            Error::InvalidException(flags) => {
+                write!(f, "Invalid exception type was thrown: {:?}", flags)
+            }
         }
     }
 }

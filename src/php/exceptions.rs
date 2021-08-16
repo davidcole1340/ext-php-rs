@@ -8,9 +8,68 @@ use crate::{
         zend_ce_parse_error, zend_ce_throwable, zend_ce_type_error, zend_ce_unhandled_match_error,
         zend_ce_value_error, zend_throw_exception_ex,
     },
-    errors::Result,
+    errors::{Error, Result},
     functions::c_str,
+    php::flags::ClassFlags,
 };
+
+/// Represents a PHP exception which can be thrown using the `throw()` function. Primarily used to
+/// return from a [`Result<T, PhpException>`] which can immediately be thrown by the `ext-php-rs`
+/// macro API.
+///
+/// There are default [`From`] implementations for any type that implements [`ToString`], so these
+/// can also be returned from these functions. You can also implement [`From<T>`] for your custom
+/// error type.
+#[derive(Debug)]
+pub struct PhpException<'a> {
+    message: String,
+    code: i32,
+    ex: &'a ClassEntry,
+}
+
+impl<'a> PhpException<'a> {
+    /// Creates a new exception instance.
+    ///
+    /// # Parameters
+    ///
+    /// * `message` - Message to contain in the exception.
+    /// * `code` - Integer code to go inside the exception.
+    /// * `ex` - Exception type to throw.
+    pub fn new(message: String, code: i32, ex: &'a ClassEntry) -> Self {
+        Self { message, code, ex }
+    }
+
+    /// Creates a new default exception instance, using the default PHP `Exception` type as the
+    /// exception type, with an integer code of zero.
+    ///
+    /// # Parameters
+    ///
+    /// * `message` - Message to contain in the exception.
+    pub fn default(message: String) -> Self {
+        Self::new(message, 0, ClassEntry::exception())
+    }
+
+    /// Throws the exception, returning nothing inside a result if successful and an error
+    /// otherwise.
+    pub fn throw(self) -> Result<()> {
+        throw_with_code(self.ex, self.code, &self.message)
+    }
+}
+
+impl<'a, T> From<T> for PhpException<'a>
+where
+    T: Into<String>,
+{
+    fn from(str: T) -> Self {
+        Self::default(str.into())
+    }
+}
+
+impl<'a> From<Error> for PhpException<'a> {
+    fn from(err: Error) -> Self {
+        Self::default(err.to_string())
+    }
+}
 
 /// Throws an exception with a given message. See [`ClassEntry`] for some built-in exception
 /// types.
@@ -52,6 +111,13 @@ pub fn throw(ex: &ClassEntry, message: &str) -> Result<()> {
 /// throw_with_code(ClassEntry::compile_error(), 123, "This is a CompileError.");
 /// ```
 pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> {
+    let flags = ex.flags();
+
+    // Can't throw an interface or abstract class.
+    if flags.contains(ClassFlags::Interface) || flags.contains(ClassFlags::Abstract) {
+        return Err(Error::InvalidException(flags));
+    }
+
     // SAFETY: We are given a reference to a `ClassEntry` therefore when we cast it to a pointer it
     // will be valid.
     unsafe {
@@ -65,8 +131,9 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
     Ok(())
 }
 
-// SAFETY: All default exceptions have been initialized by the time our extension has been loaded.
-// Due to this, we can safely unwrap the results.
+// SAFETY: All default exceptions have been initialized by the time we should use these (in the module
+// startup function). Note that they are not valid during the module init function, but rather than
+// wrapping everything
 #[allow(clippy::unwrap_used)]
 impl ClassEntry {
     /// Returns the base `Throwable` class.

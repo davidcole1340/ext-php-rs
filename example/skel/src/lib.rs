@@ -1,11 +1,42 @@
 use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start,
     php::{
+        exceptions::PhpException,
         module::ModuleEntry,
-        types::{array::ZendHashTable, binary::Binary, callable::Callable},
+        types::{array::ZendHashTable, callable::Callable},
     },
     prelude::*,
 };
+
+#[derive(Debug, Default, ZendObjectHandler)]
+struct Human {
+    name: String,
+    age: i32,
+}
+
+#[php_impl]
+impl Human {
+    const AGE_LIMIT: i32 = 100;
+
+    #[optional(age)]
+    #[defaults(age = 10)]
+    pub fn __construct(&mut self, name: String, age: i32) {
+        self.name = name;
+        self.age = age;
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.to_string()
+    }
+
+    pub fn get_age(&self) -> i32 {
+        self.age
+    }
+
+    pub fn get_age_limit() -> i32 {
+        Self::AGE_LIMIT
+    }
+}
 
 #[derive(Debug, ZendObjectHandler)]
 struct Test {
@@ -15,6 +46,8 @@ struct Test {
 
 #[php_impl]
 impl Test {
+    const TEST: &'static str = "Hello, world!";
+
     pub fn __construct(&self) {
         dbg!(self);
         println!("Inside constructor");
@@ -22,9 +55,10 @@ impl Test {
 
     pub fn set(&mut self, a: u32) {
         self.a = a;
+        dbg!(self.get());
     }
 
-    pub fn get(&mut self) -> u32 {
+    pub fn get(&self) -> u32 {
         self.a
     }
 
@@ -81,9 +115,9 @@ pub fn test_array() -> Vec<i32> {
 }
 
 #[php_function]
-pub fn skel_unpack(arr: Binary<f32>) -> Binary<i32> {
-    dbg!(arr);
-    Binary::new(vec![1i32, 2, 4, 8])
+pub fn skel_unpack<'a>(mut arr: ZendHashTable) -> Result<ZendHashTable, PhpException<'a>> {
+    arr.insert("hello", &"not world");
+    Ok(arr)
 }
 
 #[no_mangle]
@@ -92,6 +126,9 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_row!("skeleton extension", "enabled");
     info_table_end!();
 }
+
+#[php_startup]
+pub fn startup() {}
 
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {

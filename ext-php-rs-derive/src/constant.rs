@@ -17,6 +17,10 @@ pub struct Constant {
 pub fn parser(input: ItemConst) -> Result<TokenStream> {
     let mut state = STATE.lock()?;
 
+    if state.startup_function.is_some() {
+        return Err("Constants must be declared before you declare your startup function and module function.".into());
+    }
+
     state.constants.push(Constant {
         name: input.ident.to_string(),
         value: input.expr.to_token_stream().to_string(),

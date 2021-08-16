@@ -34,6 +34,14 @@ pub fn parser(input: ItemImpl) -> Result<TokenStream> {
     }
 
     let mut state = crate::STATE.lock()?;
+
+    if state.startup_function.is_some() {
+        return Err(
+            "Impls must be declared before you declare your startup function and module function."
+                .into(),
+        );
+    }
+
     let class = state
         .classes
         .get_mut(&class_name)

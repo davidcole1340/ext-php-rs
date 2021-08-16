@@ -428,6 +428,62 @@ pub trait IntoZval {
     fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
+macro_rules! into_zval {
+    ($type: ty, $fn: ident) => {
+        impl From<$type> for Zval {
+            fn from(val: $type) -> Self {
+                let mut zv = Self::new();
+                zv.$fn(val);
+                zv
+            }
+        }
+
+        impl IntoZval for $type {
+            fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+                zv.$fn(*self);
+                Ok(())
+            }
+        }
+    };
+}
+
+into_zval!(i8, set_long);
+into_zval!(i16, set_long);
+into_zval!(i32, set_long);
+into_zval!(i64, set_long);
+
+into_zval!(u8, set_long);
+into_zval!(u16, set_long);
+into_zval!(u32, set_long);
+
+into_zval!(f32, set_double);
+into_zval!(f64, set_double);
+
+into_zval!(bool, set_bool);
+
+macro_rules! try_into_zval_str {
+    ($type: ty) => {
+        impl TryFrom<$type> for Zval {
+            type Error = Error;
+
+            fn try_from(value: $type) -> Result<Self> {
+                let mut zv = Self::new();
+                zv.set_string(value, false)?;
+                Ok(zv)
+            }
+        }
+
+        impl IntoZval for $type {
+            fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
+                zv.set_string(self, persistent)
+            }
+        }
+    };
+}
+
+try_into_zval_str!(String);
+try_into_zval_str!(&str);
+
 impl<T> IntoZval for Option<T>
 where
     T: IntoZval,
@@ -481,13 +537,10 @@ macro_rules! try_from_zval {
             type Error = Error;
 
             fn try_from(value: &Zval) -> Result<Self> {
-                match value.$fn() {
-                    Some(v) => match <$type>::try_from(v) {
-                        Ok(v) => Ok(v),
-                        Err(_) => Err(Error::ZvalConversion(value.get_type()?)),
-                    },
-                    _ => Err(Error::ZvalConversion(value.get_type()?)),
-                }
+                value
+                    .$fn()
+                    .and_then(|val| val.try_into().ok())
+                    .ok_or(Error::ZvalConversion(value.get_type()?))
             }
         }
     };
@@ -555,61 +608,3 @@ impl<'a> TryFrom<&'a Zval> for Callable<'a> {
         value.callable().ok_or(Error::Callable)
     }
 }
-
-/// Implements the trait `Into<T>` on Zval for a given type.
-macro_rules! into_zval {
-    ($type: ty, $fn: ident) => {
-        impl From<$type> for Zval {
-            fn from(val: $type) -> Self {
-                let mut zv = Self::new();
-                zv.$fn(val);
-                zv
-            }
-        }
-
-        impl IntoZval for $type {
-            fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
-                zv.$fn(*self);
-                Ok(())
-            }
-        }
-    };
-}
-
-into_zval!(i8, set_long);
-into_zval!(i16, set_long);
-into_zval!(i32, set_long);
-into_zval!(i64, set_long);
-
-into_zval!(u8, set_long);
-into_zval!(u16, set_long);
-into_zval!(u32, set_long);
-
-into_zval!(f32, set_double);
-into_zval!(f64, set_double);
-
-into_zval!(bool, set_bool);
-
-macro_rules! try_into_zval_str {
-    ($type: ty) => {
-        impl TryFrom<$type> for Zval {
-            type Error = Error;
-
-            fn try_from(value: $type) -> Result<Self> {
-                let mut zv = Self::new();
-                zv.set_string(value, false)?;
-                Ok(zv)
-            }
-        }
-
-        impl IntoZval for $type {
-            fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
-                zv.set_string(self, persistent)
-            }
-        }
-    };
-}
-
-try_into_zval_str!(String);
-try_into_zval_str!(&String);
-try_into_zval_str!(&str);

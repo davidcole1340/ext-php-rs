@@ -190,17 +190,13 @@ pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
                             Ok(result) => match result.set_zval(retval, false) {
                                 Ok(_) => {}
                                 Err(e) => {
-                                    ::ext_php_rs::php::exceptions::throw(
-                                        ::ext_php_rs::php::class::ClassEntry::exception(),
-                                        e.to_string().as_ref()
-                                    ).expect("Failed to throw exception: Failed to set return value.");
+                                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                                    e.throw().expect("Failed to throw exception: Failed to set return value.");
                                 },
                             },
                             Err(e) => {
-                                ::ext_php_rs::php::exceptions::throw(
-                                    ::ext_php_rs::php::class::ClassEntry::exception(),
-                                    e.to_string().as_ref()
-                                ).expect("Failed to throw exception: Error type returned from internal function.");
+                                let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                                e.throw().expect("Failed to throw exception: Error type returned from internal function.");
                             }
                         };
                     }),
@@ -209,10 +205,8 @@ pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
                             Some(result) => match result.set_zval(retval, false) {
                                 Ok(_) => {}
                                 Err(e) => {
-                                    ::ext_php_rs::php::exceptions::throw(
-                                        ::ext_php_rs::php::class::ClassEntry::exception(),
-                                        e.to_string().as_ref()
-                                    ).expect("Failed to throw exception: Failed to set return value.");
+                                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                                    e.throw().expect("Failed to throw exception: Failed to set return value.");
                                 },
                             },
                             None => retval.set_null(),
@@ -232,10 +226,8 @@ pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
             match result.set_zval(retval, false) {
                 Ok(_) => {},
                 Err(e) => {
-                    ::ext_php_rs::php::exceptions::throw(
-                        ::ext_php_rs::php::class::ClassEntry::exception(),
-                        e.to_string().as_ref()
-                    ).expect("Failed to throw exception: Failed to set return value.");
+                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                    e.throw().expect("Failed to throw exception: Failed to set return value.");
                 }
             }
         },
@@ -344,10 +336,10 @@ impl Arg {
                 match #name_ident.val() {
                     Some(val) => val,
                     None => {
-                        ::ext_php_rs::php::exceptions::throw(
-                            ::ext_php_rs::php::class::ClassEntry::exception(),
-                            concat!("Invalid value given for argument `", #name, "`.")
+                        ::ext_php_rs::php::exceptions::PhpException::default(
+                            concat!("Invalid value given for argument `", #name, "`.").into()
                         )
+                        .throw()
                         .expect(concat!("Failed to throw exception: Invalid value given for argument `", #name, "`."));
                         return;
                     }
