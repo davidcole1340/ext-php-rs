@@ -402,7 +402,7 @@ where
 /// Implementation converting a Rust HashTable into a ZendHashTable.
 impl<'a, 'b, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable<'b>
 where
-    K: Into<String> + Copy,
+    K: ToString,
     V: IntoZval,
 {
     type Error = Error;
@@ -411,7 +411,7 @@ where
         let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
 
         for (k, v) in hm.iter() {
-            ht.insert(*k, v)?;
+            ht.insert(k.to_string(), v)?;
         }
 
         Ok(ht)

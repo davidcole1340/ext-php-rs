@@ -1,3 +1,5 @@
+use std::{collections::HashMap};
+
 use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start,
     php::{
@@ -115,8 +117,10 @@ pub fn test_array() -> Vec<i32> {
 }
 
 #[php_function]
-pub fn skel_unpack<'a>(mut arr: ZendHashTable) -> Result<ZendHashTable, PhpException<'a>> {
-    arr.insert("hello", &"not world");
+pub fn skel_unpack<'a>(
+    mut arr: HashMap<String, String>,
+) -> Result<HashMap<String, String>, PhpException<'a>> {
+    arr.insert("hello".into(), "not world".into());
     Ok(arr)
 }
 

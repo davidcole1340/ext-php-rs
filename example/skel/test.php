@@ -2,10 +2,19 @@
 
 include __DIR__.'/vendor/autoload.php';
 
+function test(array $x)
+{
+    $x['hello'] = 'not world';
+    return $x;
+}
+
+$x = ['hello' => 'world'];
+var_dump(test($x));
+var_dump($x);
+
 //$y = new \stdClass;
 //$y->hello = 'asdf';
 
-$x = ['hello' => 'world'];
 var_dump(skel_unpack($x));
 
 $x = new TestClass();

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+case "$(uname)" in
+    Darwin) EXT="dylib" ;;
+    Linux) EXT="so" ;;
+    *) EXT="so" ;;
+esac
+
+php -dextension=$PWD/../../target/debug/libskel.$EXT "${@}"

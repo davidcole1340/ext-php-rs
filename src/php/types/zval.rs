@@ -521,7 +521,7 @@ where
 
 impl<K, V> IntoZval for HashMap<K, V>
 where
-    K: Into<String> + Copy,
+    K: ToString,
     V: IntoZval,
 {
     fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
