@@ -1,3 +1,5 @@
+//! Error and result types returned from the library functions.
+
 use std::{error::Error as ErrorTrait, fmt::Display};
 
 use crate::php::{

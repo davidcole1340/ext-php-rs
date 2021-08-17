@@ -1,3 +1,5 @@
+//! Types related to the PHP executor globals.
+
 use crate::bindings::{_zend_executor_globals, ext_php_rs_executor_globals};
 
 use super::types::array::ZendHashTable;

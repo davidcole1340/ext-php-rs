@@ -8,6 +8,8 @@ function test(array $x)
     return $x;
 }
 
+var_dump(hello_world("David"));
+
 $x = ['hello' => 'world'];
 var_dump(test($x));
 var_dump($x);

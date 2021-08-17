@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start,
@@ -9,6 +9,11 @@ use ext_php_rs::{
     },
     prelude::*,
 };
+
+#[php_function]
+pub fn hello_world(name: String) -> String {
+    format!("Hello, {}!", name)
+}
 
 #[derive(Debug, Default, ZendObjectHandler)]
 struct Human {

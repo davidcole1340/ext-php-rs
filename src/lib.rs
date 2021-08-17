@@ -1,3 +1,5 @@
+//! Bindings and abstractions for the Zend API to build PHP extensions natively in Rust.
+
 #![deny(clippy::unwrap_used)]
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
@@ -17,6 +19,7 @@ pub use ext_php_rs_derive::php_module;
 pub use ext_php_rs_derive::php_startup;
 pub use ext_php_rs_derive::ZendObjectHandler;
 
+/// A module typically glob-imported containing the typically required macros and imports.
 pub mod prelude {
     pub use crate::php::module::ModuleBuilder;
     pub use crate::php_const;
