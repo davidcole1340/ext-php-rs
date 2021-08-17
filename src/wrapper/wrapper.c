@@ -26,7 +26,7 @@ zend_executor_globals *ext_php_rs_executor_globals()
 # ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
     return TSRMG_FAST_BULK_STATIC(executor_globals_offset, zend_executor_globals);
 # else
-    return TSRMLS_CACHE_BULK(executor_globals_offset, zend_executor_globals *);
+    return TSRMG_FAST_BULK(executor_globals_offset, zend_executor_globals *);
 # endif
 #else
     return &executor_globals;
