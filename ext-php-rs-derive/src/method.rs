@@ -1,6 +1,5 @@
 use quote::ToTokens;
 use std::collections::HashMap;
-use std::iter::FromIterator;
 
 use crate::{
     error::Result,
@@ -234,13 +233,10 @@ impl Method {
             flags.push(quote! { Static });
         }
 
-        let mut stream = TokenStream::new();
-        Punctuated::<TokenStream, Token![|]>::from_iter(
-            flags
-                .iter()
-                .map(|flag| quote! { ::ext_php_rs::php::flags::MethodFlags::#flag }),
-        )
-        .to_tokens(&mut stream);
-        stream
+        flags
+            .iter()
+            .map(|flag| quote! { ::ext_php_rs::php::flags::MethodFlags::#flag })
+            .collect::<Punctuated<TokenStream, Token![|]>>()
+            .to_token_stream()
     }
 }

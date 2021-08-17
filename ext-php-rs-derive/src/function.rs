@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use crate::{error::Result, STATE};
 use darling::{FromMeta, ToTokens};
@@ -323,7 +323,7 @@ impl Arg {
 
         if let Some(default) = self.default.as_ref() {
             // `bool`s are not literals - need to use Ident.
-            let val = Literal::from_str(default)
+            let val = syn::parse_str::<Literal>(&default)
                 .map(|lit| lit.to_token_stream())
                 .or_else(|_| Ident::from_string(default).map(|ident| ident.to_token_stream()))
                 .unwrap_or(quote! { Default::default() });
