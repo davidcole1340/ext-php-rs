@@ -207,10 +207,11 @@ impl Method {
             })
             .collect::<Vec<_>>();
         let output = self.output.as_ref().map(|(ty, nullable)| {
-            let ty = Ident::new(ty, Span::call_site());
+            let ty = function::drop_path_lifetimes(syn::parse_str(ty).unwrap());
+
             // TODO allow reference returns?
             quote! {
-                .returns(::ext_php_rs::php::enums::DataType::#ty, false, #nullable)
+                .returns(<#ty as ::ext_php_rs::php::types::zval::FromZval>::TYPE, false, #nullable)
             }
         });
 

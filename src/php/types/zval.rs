@@ -531,8 +531,39 @@ where
     }
 }
 
+/// Allows zvals to be converted into Rust types in a fallible way. Reciprocal of the [`IntoZval`]
+/// trait.
+///
+/// This trait requires the [`TryFrom`] trait to be implemented. All this trait does is contain the
+/// type of data that is expected when parsing the value, which is used when parsing arguments.
+pub trait FromZval<'a>: TryFrom<&'a Zval> {
+    /// The corresponding type of the implemented value in PHP.
+    const TYPE: DataType;
+}
+
+impl<'a, T> FromZval<'a> for Option<T>
+where
+    T: FromZval<'a>,
+{
+    const TYPE: DataType = T::TYPE;
+}
+
+// Converting to an option is infallible.
+impl<'a, T> From<&'a Zval> for Option<T>
+where
+    T: FromZval<'a>,
+{
+    fn from(val: &'a Zval) -> Self {
+        val.try_into().ok()
+    }
+}
+
 macro_rules! try_from_zval {
-    ($type: ty, $fn: ident) => {
+    ($type: ty, $fn: ident, $dt: ident) => {
+        impl<'a> FromZval<'a> for $type {
+            const TYPE: DataType = DataType::$dt;
+        }
+
         impl TryFrom<&Zval> for $type {
             type Error = Error;
 
@@ -546,22 +577,26 @@ macro_rules! try_from_zval {
     };
 }
 
-try_from_zval!(i8, long);
-try_from_zval!(i16, long);
-try_from_zval!(i32, long);
-try_from_zval!(i64, long);
+try_from_zval!(i8, long, Long);
+try_from_zval!(i16, long, Long);
+try_from_zval!(i32, long, Long);
+try_from_zval!(i64, long, Long);
 
-try_from_zval!(u8, long);
-try_from_zval!(u16, long);
-try_from_zval!(u32, long);
-try_from_zval!(u64, long);
+try_from_zval!(u8, long, Long);
+try_from_zval!(u16, long, Long);
+try_from_zval!(u32, long, Long);
+try_from_zval!(u64, long, Long);
 
-try_from_zval!(usize, long);
-try_from_zval!(isize, long);
+try_from_zval!(usize, long, Long);
+try_from_zval!(isize, long, Long);
 
-try_from_zval!(f64, double);
-try_from_zval!(bool, bool);
-try_from_zval!(String, string);
+try_from_zval!(f64, double, Double);
+try_from_zval!(bool, bool, Bool);
+try_from_zval!(String, string, String);
+
+impl<'a> FromZval<'a> for ZendHashTable<'a> {
+    const TYPE: DataType = DataType::Array;
+}
 
 impl<'a> TryFrom<&'a Zval> for ZendHashTable<'a> {
     type Error = Error;
@@ -573,9 +608,16 @@ impl<'a> TryFrom<&'a Zval> for ZendHashTable<'a> {
     }
 }
 
+impl<'a, T> FromZval<'a> for Vec<T>
+where
+    T: FromZval<'a>,
+{
+    const TYPE: DataType = DataType::Array;
+}
+
 impl<'a, T> TryFrom<&'a Zval> for Vec<T>
 where
-    T: TryFrom<&'a Zval>,
+    T: FromZval<'a>,
 {
     type Error = Error;
 
@@ -587,9 +629,16 @@ where
     }
 }
 
-impl<'a, V> TryFrom<&'a Zval> for HashMap<String, V>
+impl<'a, T> FromZval<'a> for HashMap<String, T>
 where
-    V: TryFrom<&'a Zval>,
+    T: FromZval<'a>,
+{
+    const TYPE: DataType = DataType::Array;
+}
+
+impl<'a, T> TryFrom<&'a Zval> for HashMap<String, T>
+where
+    T: FromZval<'a>,
 {
     type Error = Error;
 
@@ -599,6 +648,10 @@ where
             .ok_or(Error::ZvalConversion(value.get_type()?))?
             .try_into()
     }
+}
+
+impl<'a> FromZval<'a> for Callable<'a> {
+    const TYPE: DataType = DataType::Callable;
 }
 
 impl<'a> TryFrom<&'a Zval> for Callable<'a> {

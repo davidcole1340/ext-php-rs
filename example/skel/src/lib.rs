@@ -11,7 +11,10 @@ use ext_php_rs::{
 };
 
 #[php_function]
-pub fn hello_world(name: String) -> String {
+pub fn hello_world(
+    name: std::string::String,
+    age: std::option::Option<std::string::String>,
+) -> String {
     format!("Hello, {}!", name)
 }
 

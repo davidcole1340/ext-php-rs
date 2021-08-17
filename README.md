@@ -33,7 +33,7 @@ var_dump(hello_world("David")); // string(13) "Hello, David!"
 
 - **Easy to use:** The built-in macros can abstract away the need to interact with the Zend API, such as Rust-type function parameter abstracting away interacting with Zend values.
 - **Lightweight:** You don't have to use the built-in helper macros. It's possible to write your own glue code around your own functions.
-- **Extensible:** Implement `IntoZval` and `TryFrom<&Zval>` for your own custom types, allowing the type to be used as function parameters and return types.
+- **Extensible:** Implement `IntoZval` and `FromZval` for your own custom types, allowing the type to be used as function parameters and return types.
 
 ## Goals
 

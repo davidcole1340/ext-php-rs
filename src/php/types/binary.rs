@@ -7,10 +7,10 @@ use std::{
 
 use crate::{
     errors::{Error, Result},
-    php::pack::Pack,
+    php::{enums::DataType, pack::Pack},
 };
 
-use super::zval::{IntoZval, Zval};
+use super::zval::{FromZval, IntoZval, Zval};
 
 /// Acts as a wrapper around [`Vec<T>`] where `T` implements [`Pack`]. Primarily used for passing
 /// binary data into Rust functions. Can be treated as a [`Vec`] in most situations, or can be
@@ -52,6 +52,10 @@ impl<T: Pack> TryFrom<&Zval> for Binary<T> {
             None => Err(Error::Callable),
         }
     }
+}
+
+impl<'a, T: Pack> FromZval<'a> for Binary<T> {
+    const TYPE: DataType = DataType::String;
 }
 
 impl<T: Pack> IntoZval for Binary<T> {

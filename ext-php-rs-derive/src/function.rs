@@ -5,8 +5,8 @@ use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, Lit, PathArguments,
-    PathSegment, ReturnType, Signature, Token, Type,
+    punctuated::Punctuated, AngleBracketedGenericArguments, AttributeArgs, FnArg, GenericArgument,
+    ItemFn, Lit, Path, PathArguments, PathSegment, ReturnType, Signature, Token, Type, TypePath,
 };
 
 #[derive(Default, Debug, FromMeta)]
@@ -238,10 +238,9 @@ pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)
     Ok(match output_type {
         ReturnType::Default => None,
         ReturnType::Type(_, ty) => match **ty {
-            Type::Path(ref path) => match path.path.segments.last() {
-                Some(seg) => path_seg_to_arg("", seg).map(|arg| (arg.ty, arg.nullable)),
-                None => return Err("Invalid return type.".into()),
-            },
+            Type::Path(ref path) => {
+                path_seg_to_arg("", &path.path, true).map(|arg| (arg.ty, arg.nullable))
+            }
             _ => return Err("Invalid return type.".into()),
         },
     })
@@ -259,13 +258,7 @@ pub fn syn_arg_to_arg(name: &str, ty: &syn::Type, default: Option<&Lit>) -> Resu
         }
     };
 
-    let ty_seg = ty_path
-        .path
-        .segments
-        .last()
-        .ok_or(format!("Invalid parameter type for parameter `{}`.", name))?;
-
-    path_seg_to_arg(name, ty_seg)
+    path_seg_to_arg(name, &ty_path.path, false)
         .ok_or_else(|| format!("Invalid parameter type for parameter `{}`.", name).into())
         .map(|mut arg| {
             arg.default = default.map(|def| def.to_token_stream().to_string());
@@ -273,27 +266,31 @@ pub fn syn_arg_to_arg(name: &str, ty: &syn::Type, default: Option<&Lit>) -> Resu
         })
 }
 
-pub fn path_seg_to_arg(name: &str, seg: &PathSegment) -> Option<Arg> {
-    match seg.ident.to_string().as_ref() {
-        "Vec" | "HashMap" | "ZendHashTable" => Some(Arg::new(name, "Array")),
-        "Callable" => Some(Arg::new(name, "Callable")),
-        "String" | "Binary" => Some(Arg::new(name, "String")),
-        "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" => Some(Arg::new(name, "Long")),
-        "f32" | "f64" => Some(Arg::new(name, "Double")),
-        "bool" => Some(Arg::new(name, "Bool")),
-        "Option" => match &seg.arguments {
-            PathArguments::AngleBracketed(args) => match args.args.first() {
-                Some(GenericArgument::Type(ty)) => {
-                    let mut ty = syn_arg_to_arg(name, ty, None).ok()?;
-                    ty.nullable = true;
-                    Some(ty)
-                }
-                _ => None,
-            },
-            _ => None,
-        },
-        _ => None,
+pub fn path_seg_to_arg(name: &str, path: &Path, is_return: bool) -> Option<Arg> {
+    let seg = path.segments.last()?;
+
+    // check if the type is a result - if it is, grab the ok value and use that for the
+    // type, since we don't actually return a `Result` (it is parsed and the error is thrown).
+    let str_path = if seg.ident == "Result" && is_return {
+        match &seg.arguments {
+            PathArguments::AngleBracketed(args) => args
+                .args
+                .iter()
+                .find(|arg| matches!(arg, GenericArgument::Type(_)))
+                .map(|ty| ty.to_token_stream().to_string())?,
+            _ => return None,
+        }
+    } else {
+        path.to_token_stream().to_string()
+    };
+
+    let mut arg = Arg::new(name, &str_path);
+
+    if seg.ident == "Option" {
+        arg.nullable = true;
     }
+
+    Some(arg)
 }
 
 impl Arg {
@@ -307,8 +304,11 @@ impl Arg {
     }
 
     #[inline]
-    pub fn get_type_ident(&self) -> Ident {
-        Ident::new(&self.ty, Span::call_site())
+    pub fn get_type_ident(&self) -> TokenStream {
+        let ty = drop_path_lifetimes(syn::parse_str(&self.ty).unwrap());
+        quote! {
+            <#ty as ::ext_php_rs::php::types::zval::FromZval>::TYPE
+        }
     }
 
     #[inline]
@@ -361,7 +361,7 @@ impl Arg {
         });
 
         quote! {
-            ::ext_php_rs::php::args::Arg::new(#name, ::ext_php_rs::php::enums::DataType::#ty) #null #default
+            ::ext_php_rs::php::args::Arg::new(#name, #ty) #null #default
         }
     }
 }
@@ -391,10 +391,11 @@ impl Function {
             })
             .collect::<Vec<_>>();
         let output = self.output.as_ref().map(|(ty, nullable)| {
-            let ty = Ident::new(ty, Span::call_site());
+            let ty = drop_path_lifetimes(syn::parse_str(ty).unwrap());
+
             // TODO allow reference returns?
             quote! {
-                .returns(::ext_php_rs::php::enums::DataType::#ty, false, #nullable)
+                .returns(<#ty as ::ext_php_rs::php::types::zval::FromZval>::TYPE, false, #nullable)
             }
         });
 
@@ -404,5 +405,45 @@ impl Function {
                 #output
                 .build()
         }
+    }
+}
+
+/// When attempting to get the return type of arguments, we can't have lifetimes
+/// in the angled brackets. Ugly hack to drop these :(
+pub fn drop_path_lifetimes(path: Path) -> Path {
+    Path {
+        leading_colon: path.leading_colon,
+        segments: path
+            .segments
+            .into_iter()
+            .map(|seg| PathSegment {
+                arguments: match seg.arguments {
+                    PathArguments::AngleBracketed(brackets) => {
+                        PathArguments::AngleBracketed(AngleBracketedGenericArguments {
+                            args: brackets
+                                .args
+                                .into_iter()
+                                .filter_map(|arg| match arg {
+                                    GenericArgument::Lifetime(_) => None,
+                                    GenericArgument::Type(ty) => {
+                                        Some(GenericArgument::Type(match ty {
+                                            Type::Path(path) => Type::Path(TypePath {
+                                                path: drop_path_lifetimes(path.path),
+                                                ..path
+                                            }),
+                                            val => val,
+                                        }))
+                                    }
+                                    val => Some(val),
+                                })
+                                .collect(),
+                            ..brackets
+                        })
+                    }
+                    args => args,
+                },
+                ..seg
+            })
+            .collect(),
     }
 }
