@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start,
     php::{
-        allocator::PhpAllocator,
         exceptions::PhpException,
         module::ModuleEntry,
         types::{array::ZendHashTable, callable::Callable},
@@ -11,8 +10,8 @@ use ext_php_rs::{
     prelude::*,
 };
 
-#[global_allocator]
-static GLOBAL: PhpAllocator = PhpAllocator::new();
+// #[global_allocator]
+// static GLOBAL: PhpAllocator = PhpAllocator::new();
 
 #[php_function]
 pub fn hello_world(name: String) -> String {
