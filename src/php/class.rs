@@ -133,10 +133,7 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `name` - The name of the class.
     #[allow(clippy::unwrap_used)]
-    pub fn new<N>(name: N) -> Self
-    where
-        N: AsRef<str>,
-    {
+    pub fn new<T: Into<String>>(name: T) -> Self {
         // SAFETY: Allocating temporary class entry. Will return a null-ptr if allocation fails,
         // which will cause the program to panic (standard in Rust). Unwrapping is OK - the ptr
         // will either be valid or null.
@@ -147,7 +144,7 @@ impl<'a> ClassBuilder<'a> {
         };
 
         Self {
-            name: name.as_ref().to_string(),
+            name: name.into(),
             ptr,
             extends: None,
             methods: vec![],
@@ -189,15 +186,15 @@ impl<'a> ClassBuilder<'a> {
     /// * `name` - The name of the property to add to the class.
     /// * `default` - The default value of the property.
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
-    pub fn property(
+    pub fn property<T: Into<String>>(
         mut self,
-        name: &str,
+        name: T,
         default: impl IntoZval,
         flags: PropertyFlags,
     ) -> Result<Self> {
         let default = default.as_zval(true)?;
 
-        self.properties.push((name.to_string(), default, flags));
+        self.properties.push((name.into(), default, flags));
         Ok(self)
     }
 
@@ -210,10 +207,10 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
-    pub fn constant(mut self, name: &str, value: impl IntoZval) -> Result<Self> {
+    pub fn constant<T: Into<String>>(mut self, name: T, value: impl IntoZval) -> Result<Self> {
         let value = value.as_zval(true)?;
 
-        self.constants.push((name.to_string(), value));
+        self.constants.push((name.into(), value));
         Ok(self)
     }
 
@@ -235,10 +232,7 @@ impl<'a> ClassBuilder<'a> {
     /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
     /// which can be derived through the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler)
     /// derive macro.
-    pub fn object_override<T>(mut self) -> Self
-    where
-        T: ZendObjectOverride,
-    {
+    pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
         self.object_override = Some(T::create_object);
         self
     }

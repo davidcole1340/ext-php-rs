@@ -60,12 +60,9 @@ impl<'a> FunctionBuilder<'a> {
     ///
     /// * `name` - The name of the function.
     /// * `handler` - The handler to be called when the function is invoked from PHP.
-    pub fn new<N>(name: N, handler: FunctionHandler) -> Self
-    where
-        N: AsRef<str>,
-    {
+    pub fn new<T: Into<String>>(name: T, handler: FunctionHandler) -> Self {
         Self {
-            name: name.as_ref().to_string(),
+            name: name.into(),
             function: FunctionEntry {
                 fname: ptr::null(),
                 handler: Some(unsafe {

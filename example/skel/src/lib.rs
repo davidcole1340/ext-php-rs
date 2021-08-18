@@ -4,7 +4,6 @@ use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start,
     php::{
         allocator::PhpAllocator,
-        class::ClassEntry,
         exceptions::PhpException,
         module::ModuleEntry,
         types::{array::ZendHashTable, callable::Callable},

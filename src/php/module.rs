@@ -60,14 +60,10 @@ impl ModuleBuilder {
     ///
     /// * `name` - The name of the extension.
     /// * `version` - The current version of the extension. TBD: Deprecate in favour of the `Cargo.toml` version?
-    pub fn new<N, V>(name: N, version: V) -> Self
-    where
-        N: AsRef<str>,
-        V: AsRef<str>,
-    {
+    pub fn new<T: Into<String>, U: Into<String>>(name: T, version: U) -> Self {
         Self {
-            name: name.as_ref().to_string(),
-            version: version.as_ref().to_string(),
+            name: name.into(),
+            version: version.into(),
             module: ModuleEntry {
                 size: mem::size_of::<ModuleEntry>() as u16,
                 zend_api: ZEND_MODULE_API_NO,
