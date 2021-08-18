@@ -33,9 +33,9 @@ impl ClassEntry {
     ///
     /// Returns a reference to the class if found, or [`None`] if the class could
     /// not be found or the class table has not been initialized.
-    pub fn try_find(name: impl TryInto<ZendString>) -> Option<&'static Self> {
+    pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
-        let name: ZendString = name.try_into().ok()?;
+        let name = ZendString::new(name, false).ok()?;
 
         unsafe {
             crate::bindings::zend_lookup_class_ex(name.borrow_ptr(), std::ptr::null_mut(), 0)
@@ -109,7 +109,7 @@ impl ClassEntry {
         } else {
             let name =
                 unsafe { ZendString::from_ptr(self.__bindgen_anon_1.parent_name, false) }.ok()?;
-            Self::try_find(name)
+            Self::try_find(name.as_str()?)
         }
     }
 }

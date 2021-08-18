@@ -87,6 +87,19 @@ impl ZendString {
         self.ptr
     }
 
+    /// Extracts a string slice containing the contents of the [`ZendString`].
+    pub fn as_str(&self) -> Option<&str> {
+        // SAFETY: Zend strings have a length that we know we can read.
+        // By reading this many bytes we should not run into any issues.
+        // The value of the string is represented in C as a `char` array of
+        // length 1, but the data can be read up to `ptr.len` bytes.
+        unsafe {
+            let ptr = self.ptr.as_ref()?;
+            let slice = std::slice::from_raw_parts(ptr.val.as_ptr() as *const u8, ptr.len as _);
+            std::str::from_utf8(slice).ok()
+        }
+    }
+
     /// Borrows the underlying internal pointer of the Zend string.
     pub(crate) fn borrow_ptr(&self) -> *mut zend_string {
         self.ptr
@@ -121,18 +134,9 @@ impl TryFrom<&ZendString> for String {
     type Error = Error;
 
     fn try_from(s: &ZendString) -> Result<Self> {
-        let zs = unsafe { s.ptr.as_ref() }.ok_or(Error::InvalidPointer)?;
-
-        // SAFETY: Zend strings have a length that we know we can read.
-        // By reading this many bytes we will not run into any issues.
-        //
-        // We can safely cast our *const c_char into a *const u8 as both
-        // only occupy one byte.
-        std::str::from_utf8(unsafe {
-            slice::from_raw_parts(zs.val.as_ptr() as *const u8, zs.len as _)
-        })
-        .map(|s| s.to_string())
-        .map_err(|_| Error::InvalidPointer)
+        s.as_str()
+            .map(|s| s.to_string())
+            .ok_or(Error::InvalidPointer)
     }
 }
 
