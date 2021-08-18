@@ -1,13 +1,15 @@
 //! Builder and objects for creating modules in PHP. A module is the base of a PHP extension.
 
-use std::{ffi::c_void, mem, ptr};
+use std::{
+    ffi::{c_void, CString},
+    mem, ptr,
+};
 
 use crate::{
     bindings::{
         ext_php_rs_php_build_id, zend_module_entry, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO,
     },
     errors::Result,
-    functions::c_str,
 };
 
 use super::function::FunctionEntry;
@@ -166,8 +168,8 @@ impl ModuleBuilder {
         self.functions.push(FunctionEntry::end());
         self.module.functions =
             Box::into_raw(self.functions.into_boxed_slice()) as *const FunctionEntry;
-        self.module.name = c_str(self.name)?;
-        self.module.version = c_str(self.version)?;
+        self.module.name = CString::new(self.name)?.into_raw();
+        self.module.version = CString::new(self.version)?.into_raw();
 
         Ok(self.module)
     }

@@ -1,5 +1,7 @@
 //! Contains all the base PHP throwables, including `Throwable` and `Exception`.
 
+use std::ffi::CString;
+
 use super::class::ClassEntry;
 use crate::{
     bindings::{
@@ -9,7 +11,6 @@ use crate::{
         zend_ce_value_error, zend_throw_exception_ex,
     },
     errors::{Error, Result},
-    functions::c_str,
     php::flags::ClassFlags,
 };
 
@@ -124,8 +125,8 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
         zend_throw_exception_ex(
             (ex as *const _) as *mut _,
             code as _,
-            c_str("%s")?,
-            c_str(message)?,
+            CString::new("%s")?.as_ptr(),
+            CString::new(message)?.as_ptr(),
         )
     };
     Ok(())

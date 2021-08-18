@@ -245,10 +245,7 @@ impl<'a> Zval {
     ///
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
-    pub fn set_string<S>(&mut self, val: S, persistent: bool) -> Result<()>
-    where
-        S: AsRef<str>,
-    {
+    pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
         let zend_str = ZendString::new(val, persistent)?;
         self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
@@ -355,6 +352,15 @@ impl<'a> Zval {
     /// Sets the reference count of the Zval.
     pub(crate) fn set_refcount(&mut self, rc: u32) {
         unsafe { (*self.value.counted).gc.refcount = rc }
+    }
+
+    /// Used to drop the Zval but keep the value of the zval intact.
+    ///
+    /// This is important when copying the value of the zval, as the actual value
+    /// will not be copied, but the pointer to the value (string for example) will be
+    /// copied.
+    pub(crate) fn release(mut self) {
+        self.u1.type_info = ZvalTypeFlags::Null.bits();
     }
 }
 
@@ -468,7 +474,7 @@ macro_rules! try_into_zval_str {
 
             fn try_from(value: $type) -> Result<Self> {
                 let mut zv = Self::new();
-                zv.set_string(value, false)?;
+                zv.set_string(&value, false)?;
                 Ok(zv)
             }
         }
@@ -521,7 +527,7 @@ where
 
 impl<K, V> IntoZval for HashMap<K, V>
 where
-    K: ToString,
+    K: AsRef<str>,
     V: IntoZval,
 {
     fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {

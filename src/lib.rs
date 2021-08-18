@@ -1,5 +1,6 @@
 //! Bindings and abstractions for the Zend API to build PHP extensions natively in Rust.
 
+#![feature(backtrace)]
 #![deny(clippy::unwrap_used)]
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
@@ -9,7 +10,6 @@
 pub mod macros;
 pub mod bindings;
 pub mod errors;
-pub mod functions;
 pub mod php;
 
 /// Attribute used to annotate constants to be exported to PHP.

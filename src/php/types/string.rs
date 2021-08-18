@@ -4,6 +4,7 @@
 use core::slice;
 use std::{
     convert::{TryFrom, TryInto},
+    ffi::CString,
     fmt::Debug,
 };
 
@@ -13,7 +14,6 @@ use crate::{
         zend_string_init_interned,
     },
     errors::{Error, Result},
-    functions::c_str,
 };
 
 /// A wrapper around the [`zend_string`] used within the Zend API. Essentially a C string, except
@@ -30,11 +30,11 @@ impl ZendString {
     ///
     /// * `str_` - The string to create a Zend string from.
     /// * `persistent` - Whether the request should relive the request boundary.
-    pub fn new(str_: impl AsRef<str>, persistent: bool) -> Result<Self> {
-        let str_ = str_.as_ref();
-
+    pub fn new(str: &str, persistent: bool) -> Result<Self> {
         Ok(Self {
-            ptr: unsafe { ext_php_rs_zend_string_init(c_str(str_)?, str_.len() as _, persistent) },
+            ptr: unsafe {
+                ext_php_rs_zend_string_init(CString::new(str)?.as_ptr(), str.len() as _, persistent)
+            },
             free: true,
         })
     }
@@ -51,7 +51,13 @@ impl ZendString {
         // Unwrap is OK here - `zend_string_init_interned` will be a valid function ptr by the time
         // our extension is loaded.
         Ok(Self {
-            ptr: unsafe { zend_string_init_interned.unwrap()(c_str(str_)?, str_.len() as _, true) },
+            ptr: unsafe {
+                zend_string_init_interned.unwrap()(
+                    CString::new(str_)?.as_ptr(),
+                    str_.len() as _,
+                    true,
+                )
+            },
             free: true,
         })
     }
@@ -101,7 +107,7 @@ impl TryFrom<String> for ZendString {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self> {
-        ZendString::new(value, false)
+        ZendString::new(value.as_str(), false)
     }
 }
 

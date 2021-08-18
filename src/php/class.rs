@@ -1,14 +1,11 @@
 //! Builder and objects for creating classes in the PHP world.
 
 use crate::errors::{Error, Result};
-use std::{convert::TryInto, fmt::Debug, mem};
+use std::{convert::TryInto, ffi::CString, fmt::Debug, mem};
 
-use crate::{
-    bindings::{
-        zend_class_entry, zend_declare_class_constant, zend_declare_property,
-        zend_register_internal_class_ex,
-    },
-    functions::c_str,
+use crate::bindings::{
+    zend_class_entry, zend_declare_class_constant, zend_declare_property,
+    zend_register_internal_class_ex,
 };
 
 use super::{
@@ -278,7 +275,7 @@ impl<'a> ClassBuilder<'a> {
             unsafe {
                 zend_declare_property(
                     class,
-                    c_str(&name)?,
+                    CString::new(name.as_str())?.as_ptr(),
                     name.len() as _,
                     &mut default,
                     flags.bits() as _,
@@ -288,7 +285,14 @@ impl<'a> ClassBuilder<'a> {
 
         for (name, value) in self.constants {
             let value = Box::into_raw(Box::new(value));
-            unsafe { zend_declare_class_constant(class, c_str(&name)?, name.len() as u64, value) };
+            unsafe {
+                zend_declare_class_constant(
+                    class,
+                    CString::new(name.as_str())?.as_ptr(),
+                    name.len() as u64,
+                    value,
+                )
+            };
         }
 
         if let Some(object_override) = self.object_override {
