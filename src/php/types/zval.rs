@@ -268,10 +268,7 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_interned_string<S>(&mut self, val: S) -> Result<()>
-    where
-        S: AsRef<str>,
-    {
+    pub fn set_interned_string(&mut self, val: &str) -> Result<()> {
         let zend_str = ZendString::new_interned(val)?;
         self.value.str_ = zend_str.release();
         self.u1.type_info = ZvalTypeFlags::InternedStringEx.bits();

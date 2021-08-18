@@ -191,14 +191,13 @@ impl<'a> ClassBuilder<'a> {
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
     pub fn property(
         mut self,
-        name: impl AsRef<str>,
+        name: &str,
         default: impl IntoZval,
         flags: PropertyFlags,
     ) -> Result<Self> {
         let default = default.as_zval(true)?;
 
-        self.properties
-            .push((name.as_ref().to_string(), default, flags));
+        self.properties.push((name.to_string(), default, flags));
         Ok(self)
     }
 
@@ -211,10 +210,10 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
-    pub fn constant(mut self, name: impl AsRef<str>, value: impl IntoZval) -> Result<Self> {
+    pub fn constant(mut self, name: &str, value: impl IntoZval) -> Result<Self> {
         let value = value.as_zval(true)?;
 
-        self.constants.push((name.as_ref().to_string(), value));
+        self.constants.push((name.to_string(), value));
         Ok(self)
     }
 
@@ -250,7 +249,7 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
     pub fn build(mut self) -> Result<&'static mut ClassEntry> {
-        self.ptr.name = ZendString::new_interned(self.name)?.release();
+        self.ptr.name = ZendString::new_interned(&self.name)?.release();
 
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;

@@ -59,9 +59,7 @@ impl ZendObject {
     ///
     /// * `name` - The name of the property.
     /// * `query` - The type of query to use when attempting to get a property.
-    pub fn get_property(&self, name: impl AsRef<str>) -> Result<&Zval> {
-        let name = name.as_ref();
-
+    pub fn get_property(&self, name: &str) -> Result<&Zval> {
         if !self.has_property(name, PropertyQuery::Exists)? {
             return Err(Error::InvalidProperty);
         }
@@ -117,8 +115,8 @@ impl ZendObject {
     ///
     /// * `name` - The name of the property.
     /// * `query` - The 'query' to classify if a property exists.
-    pub fn has_property(&self, name: impl AsRef<str>, query: PropertyQuery) -> Result<bool> {
-        let name = ZendString::new(name.as_ref(), false)?;
+    pub fn has_property(&self, name: &str, query: PropertyQuery) -> Result<bool> {
+        let name = ZendString::new(name, false)?;
 
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(

@@ -45,7 +45,7 @@ pub fn parser(input: ItemImpl) -> Result<TokenStream> {
     let class = state
         .classes
         .get_mut(&class_name)
-        .ok_or_else(|| Error::new("You must use `#[derive(ZendObjectHandler)]` on the struct before using this attribute on the impl."))?;
+        .ok_or_else(|| Error::new("You must use `#[derive(ZendObjectHandler)]` on the struct before using this attribute on the impl.".to_string()))?;
 
     let tokens = items
         .into_iter()

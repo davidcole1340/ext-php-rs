@@ -45,9 +45,7 @@ impl ZendString {
     ///
     /// * `str_` - The string to create a Zend string from.
     #[allow(clippy::unwrap_used)]
-    pub fn new_interned(str_: impl AsRef<str>) -> Result<Self> {
-        let str_ = str_.as_ref();
-
+    pub fn new_interned(str_: &str) -> Result<Self> {
         // Unwrap is OK here - `zend_string_init_interned` will be a valid function ptr by the time
         // our extension is loaded.
         Ok(Self {
