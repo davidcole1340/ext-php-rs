@@ -293,8 +293,6 @@
 <span id="291">291</span>
 <span id="292">292</span>
 <span id="293">293</span>
-<span id="294">294</span>
-<span id="295">295</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Represents an object in PHP. Allows for overriding the internal object used by classes,</span>
 <span class="doccomment">//! allowing users to store Rust data inside a PHP object.</span>
@@ -357,9 +355,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `name` - The name of the property.</span>
     <span class="doccomment">/// * `query` - The type of query to use when attempting to get a property.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_property</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">name</span>.<span class="ident">as_ref</span>();
-
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_property</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">has_property</span>(<span class="ident">name</span>, <span class="ident">PropertyQuery::Exists</span>)<span class="question-mark">?</span> {
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::InvalidProperty</span>);
         }
@@ -387,7 +383,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `name` - The name of the property.</span>
     <span class="doccomment">/// * `value` - The value to set the property to.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_property</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">value</span>: <span class="kw">impl</span> <span class="ident">IntoZval</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_property</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">value</span>: <span class="kw">impl</span> <span class="ident">IntoZval</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString::new</span>(<span class="ident">name</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">as_zval</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
 
@@ -415,8 +411,8 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `name` - The name of the property.</span>
     <span class="doccomment">/// * `query` - The &#39;query&#39; to classify if a property exists.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_property</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">query</span>: <span class="ident">PropertyQuery</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString::new</span>(<span class="ident">name</span>.<span class="ident">as_ref</span>(), <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_property</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">query</span>: <span class="ident">PropertyQuery</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString::new</span>(<span class="ident">name</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="kw">unsafe</span> {
             <span class="self">self</span>.<span class="ident">handlers</span>()<span class="question-mark">?</span>.<span class="ident">has_property</span>.<span class="ident">ok_or</span>(<span class="ident">Error::InvalidScope</span>)<span class="question-mark">?</span>(

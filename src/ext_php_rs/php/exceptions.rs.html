@@ -193,8 +193,11 @@
 <span id="191">191</span>
 <span id="192">192</span>
 <span id="193">193</span>
+<span id="194">194</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Contains all the base PHP throwables, including `Throwable` and `Exception`.</span>
+
+<span class="kw">use</span> <span class="ident">std::ffi::CString</span>;
 
 <span class="kw">use</span> <span class="kw">super</span><span class="ident">::class::ClassEntry</span>;
 <span class="kw">use</span> <span class="kw">crate</span>::{
@@ -205,7 +208,6 @@
         <span class="ident">zend_ce_value_error</span>, <span class="ident">zend_throw_exception_ex</span>,
     },
     <span class="ident">errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>},
-    <span class="ident">functions::c_str</span>,
     <span class="ident">php::flags::ClassFlags</span>,
 };
 
@@ -320,8 +322,8 @@
         <span class="ident">zend_throw_exception_ex</span>(
             (<span class="ident">ex</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>,
             <span class="ident">code</span> <span class="kw">as</span> <span class="kw">_</span>,
-            <span class="ident">c_str</span>(<span class="string">&quot;%s&quot;</span>)<span class="question-mark">?</span>,
-            <span class="ident">c_str</span>(<span class="ident">message</span>)<span class="question-mark">?</span>,
+            <span class="ident">CString::new</span>(<span class="string">&quot;%s&quot;</span>)<span class="question-mark">?</span>.<span class="ident">as_ptr</span>(),
+            <span class="ident">CString::new</span>(<span class="ident">message</span>)<span class="question-mark">?</span>.<span class="ident">as_ptr</span>(),
         )
     };
     <span class="prelude-val">Ok</span>(())

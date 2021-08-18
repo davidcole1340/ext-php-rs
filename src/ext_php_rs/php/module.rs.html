@@ -179,19 +179,19 @@
 <span id="177">177</span>
 <span id="178">178</span>
 <span id="179">179</span>
-<span id="180">180</span>
-<span id="181">181</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Builder and objects for creating modules in PHP. A module is the base of a PHP extension.</span>
 
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">ffi::c_void</span>, <span class="ident">mem</span>, <span class="ident">ptr</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{
+    <span class="ident">ffi</span>::{<span class="ident">c_void</span>, <span class="ident">CString</span>},
+    <span class="ident">mem</span>, <span class="ident">ptr</span>,
+};
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
         <span class="ident">ext_php_rs_php_build_id</span>, <span class="ident">zend_module_entry</span>, <span class="ident">USING_ZTS</span>, <span class="ident">ZEND_DEBUG</span>, <span class="ident">ZEND_MODULE_API_NO</span>,
     },
     <span class="ident">errors::Result</span>,
-    <span class="ident">functions::c_str</span>,
 };
 
 <span class="kw">use</span> <span class="kw">super</span><span class="ident">::function::FunctionEntry</span>;
@@ -242,14 +242,10 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `name` - The name of the extension.</span>
     <span class="doccomment">/// * `version` - The current version of the extension. TBD: Deprecate in favour of the `Cargo.toml` version?</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">N</span>, <span class="ident">V</span><span class="op">&gt;</span>(<span class="ident">name</span>: <span class="ident">N</span>, <span class="ident">version</span>: <span class="ident">V</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span>
-    <span class="kw">where</span>
-        <span class="ident">N</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
-        <span class="ident">V</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
-    {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>, <span class="ident">U</span>: <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span><span class="op">&gt;</span>(<span class="ident">name</span>: <span class="ident">T</span>, <span class="ident">version</span>: <span class="ident">U</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
-            <span class="ident">name</span>: <span class="ident">name</span>.<span class="ident">as_ref</span>().<span class="ident">to_string</span>(),
-            <span class="ident">version</span>: <span class="ident">version</span>.<span class="ident">as_ref</span>().<span class="ident">to_string</span>(),
+            <span class="ident">name</span>: <span class="ident">name</span>.<span class="ident">into</span>(),
+            <span class="ident">version</span>: <span class="ident">version</span>.<span class="ident">into</span>(),
             <span class="ident">module</span>: <span class="ident">ModuleEntry</span> {
                 <span class="ident">size</span>: <span class="ident">mem::size_of</span>::<span class="op">&lt;</span><span class="ident">ModuleEntry</span><span class="op">&gt;</span>() <span class="kw">as</span> <span class="ident">u16</span>,
                 <span class="ident">zend_api</span>: <span class="ident">ZEND_MODULE_API_NO</span>,
@@ -350,8 +346,8 @@
         <span class="self">self</span>.<span class="ident">functions</span>.<span class="ident">push</span>(<span class="ident">FunctionEntry::end</span>());
         <span class="self">self</span>.<span class="ident">module</span>.<span class="ident">functions</span> <span class="op">=</span>
             <span class="ident">Box::into_raw</span>(<span class="self">self</span>.<span class="ident">functions</span>.<span class="ident">into_boxed_slice</span>()) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">FunctionEntry</span>;
-        <span class="self">self</span>.<span class="ident">module</span>.<span class="ident">name</span> <span class="op">=</span> <span class="ident">c_str</span>(<span class="self">self</span>.<span class="ident">name</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">module</span>.<span class="ident">version</span> <span class="op">=</span> <span class="ident">c_str</span>(<span class="self">self</span>.<span class="ident">version</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">module</span>.<span class="ident">name</span> <span class="op">=</span> <span class="ident">CString::new</span>(<span class="self">self</span>.<span class="ident">name</span>)<span class="question-mark">?</span>.<span class="ident">into_raw</span>();
+        <span class="self">self</span>.<span class="ident">module</span>.<span class="ident">version</span> <span class="op">=</span> <span class="ident">CString::new</span>(<span class="self">self</span>.<span class="ident">version</span>)<span class="question-mark">?</span>.<span class="ident">into_raw</span>();
 
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">module</span>)
     }
