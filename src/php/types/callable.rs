@@ -50,7 +50,7 @@ impl<'a> Callable<'a> {
             .into_iter()
             .map(|val| val.as_zval(false))
             .collect::<Result<Vec<_>>>()?;
-        let packed = Box::into_raw(params.into_boxed_slice()) as *mut Zval;
+        let packed = params.into_boxed_slice();
 
         let result = unsafe {
             _call_user_function_impl(
@@ -58,14 +58,10 @@ impl<'a> Callable<'a> {
                 std::mem::transmute(self.0),
                 &mut retval,
                 len as _,
-                packed,
+                packed.as_ptr() as *mut _,
                 std::ptr::null_mut(),
             )
         };
-
-        // SAFETY: We just boxed this vector, and the `_call_user_function_impl` does not modify the parameters.
-        // We can safely reclaim the memory knowing it will have the same length and size.
-        unsafe { Vec::from_raw_parts(packed, len, len) };
 
         if result < 0 {
             Err(Error::Callable)

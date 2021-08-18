@@ -1,6 +1,6 @@
 #![doc(hidden)]
 
-use crate::bindings::{_efree, _emalloc};
+use ext_php_rs::bindings::{_efree, _emalloc};
 use std::alloc::GlobalAlloc;
 
 /// Global allocator which uses the Zend memory management APIs to allocate memory.
