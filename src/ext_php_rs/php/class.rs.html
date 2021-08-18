@@ -207,11 +207,117 @@
 <span id="205">205</span>
 <span id="206">206</span>
 <span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Builder and objects for creating classes in the PHP world.</span>
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>};
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">mem</span>, <span class="ident">ptr</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">convert::TryInto</span>, <span class="ident">fmt::Debug</span>, <span class="ident">mem</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
@@ -222,6 +328,7 @@
 };
 
 <span class="kw">use</span> <span class="kw">super</span>::{
+    <span class="ident">executor::ExecutorGlobals</span>,
     <span class="ident">flags</span>::{<span class="ident">ClassFlags</span>, <span class="ident">MethodFlags</span>, <span class="ident">PropertyFlags</span>},
     <span class="ident">function::FunctionEntry</span>,
     <span class="ident">types</span>::{
@@ -233,6 +340,98 @@
 
 <span class="doccomment">/// A Zend class entry. Alias.</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ClassEntry</span> <span class="op">=</span> <span class="ident">zend_class_entry</span>;
+
+<span class="kw">impl</span> <span class="ident">PartialEq</span> <span class="kw">for</span> <span class="ident">ClassEntry</span> {
+    <span class="kw">fn</span> <span class="ident">eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="ident">std::ptr::eq</span>(<span class="self">self</span>, <span class="ident">other</span>)
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">ClassEntry</span> {
+    <span class="doccomment">/// Attempts to find a reference to a class in the global class table.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Returns a reference to the class if found, or [`None`] if the class could</span>
+    <span class="doccomment">/// not be found or the class table has not been initialized.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_find</span>(<span class="ident">name</span>: <span class="kw">impl</span> <span class="ident">TryInto</span><span class="op">&lt;</span><span class="ident">ZendString</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="ident">ExecutorGlobals::get</span>().<span class="ident">class_table</span>()<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">name</span>: <span class="ident">ZendString</span> <span class="op">=</span> <span class="ident">name</span>.<span class="ident">try_into</span>().<span class="ident">ok</span>()<span class="question-mark">?</span>;
+
+        <span class="kw">unsafe</span> {
+            <span class="kw">crate</span><span class="ident">::bindings::zend_lookup_class_ex</span>(<span class="ident">name</span>.<span class="ident">borrow_ptr</span>(), <span class="ident">std::ptr::null_mut</span>(), <span class="number">0</span>)
+                .<span class="ident">as_ref</span>()
+        }
+    }
+
+    <span class="doccomment">/// Returns the class flags.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">flags</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ClassFlags</span> {
+        <span class="ident">ClassFlags::from_bits_truncate</span>(<span class="self">self</span>.<span class="ident">ce_flags</span>)
+    }
+
+    <span class="doccomment">/// Checks if the class is an instance of another class or interface.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `ce` - The inherited class entry to check.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">instance_of</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ce</span>: <span class="kw-2">&amp;</span><span class="ident">ClassEntry</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="kw">if</span> <span class="self">self</span> <span class="op">=</span><span class="op">=</span> <span class="ident">ce</span> {
+            <span class="kw">return</span> <span class="bool-val">true</span>;
+        }
+
+        <span class="kw">if</span> <span class="ident">ce</span>.<span class="ident">flags</span>().<span class="ident">contains</span>(<span class="ident">ClassFlags::Interface</span>) {
+            <span class="kw">let</span> <span class="ident">interfaces</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">interfaces</span>() {
+                <span class="prelude-val">Some</span>(<span class="ident">interfaces</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">interfaces</span>,
+                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="bool-val">false</span>,
+            };
+
+            <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="ident">interfaces</span> {
+                <span class="kw">if</span> <span class="ident">ce</span> <span class="op">=</span><span class="op">=</span> <span class="ident">i</span> {
+                    <span class="kw">return</span> <span class="bool-val">true</span>;
+                }
+            }
+        } <span class="kw">else</span> {
+            <span class="kw">loop</span> {
+                <span class="kw">let</span> <span class="ident">parent</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">parent</span>() {
+                    <span class="prelude-val">Some</span>(<span class="ident">parent</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">parent</span>,
+                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="bool-val">false</span>,
+                };
+
+                <span class="kw">if</span> <span class="ident">parent</span> <span class="op">=</span><span class="op">=</span> <span class="ident">ce</span> {
+                    <span class="kw">return</span> <span class="bool-val">true</span>;
+                }
+            }
+        }
+
+        <span class="bool-val">false</span>
+    }
+
+    <span class="doccomment">/// Returns an iterator of all the interfaces that the class implements. Returns [`None`] if</span>
+    <span class="doccomment">/// the interfaces have not been resolved on the class.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">interfaces</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">flags</span>()
+            .<span class="ident">contains</span>(<span class="ident">ClassFlags::ResolvedInterfaces</span>)
+            .<span class="ident">then</span>(<span class="op">|</span><span class="op">|</span> <span class="kw">unsafe</span> {
+                (<span class="number">0</span>..<span class="self">self</span>.<span class="ident">num_interfaces</span>)
+                    .<span class="ident">into_iter</span>()
+                    .<span class="ident">map</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">i</span><span class="op">|</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">__bindgen_anon_3</span>.<span class="ident">interfaces</span>.<span class="ident">offset</span>(<span class="ident">i</span> <span class="kw">as</span> <span class="kw">_</span>))
+                    .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">ptr</span><span class="op">|</span> <span class="ident">ptr</span>.<span class="ident">as_ref</span>())
+            })
+    }
+
+    <span class="doccomment">/// Returns the parent of the class.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If the parent of the class has not been resolved, it attempts to find the parent by name.</span>
+    <span class="doccomment">/// Returns [`None`] if the parent was not resolved and the parent was not able to be found</span>
+    <span class="doccomment">/// by name.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parent</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">flags</span>().<span class="ident">contains</span>(<span class="ident">ClassFlags::ResolvedParent</span>) {
+            <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">__bindgen_anon_1</span>.<span class="ident">parent</span>.<span class="ident">as_ref</span>() }
+        } <span class="kw">else</span> {
+            <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span>
+                <span class="kw">unsafe</span> { <span class="ident">ZendString::from_ptr</span>(<span class="self">self</span>.<span class="ident">__bindgen_anon_1</span>.<span class="ident">parent_name</span>, <span class="bool-val">false</span>) }.<span class="ident">ok</span>()<span class="question-mark">?</span>;
+            <span class="self">Self</span><span class="ident">::try_find</span>(<span class="ident">name</span>)
+        }
+    }
+}
 
 <span class="doccomment">/// Builds a class to be exported as a PHP class.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ClassBuilder</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
@@ -381,7 +580,7 @@
                 <span class="self">self</span>.<span class="ident">ptr</span>,
                 <span class="kw">match</span> <span class="self">self</span>.<span class="ident">extends</span> {
                     <span class="prelude-val">Some</span>(<span class="ident">ptr</span>) <span class="op">=</span><span class="op">&gt;</span> (<span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>,
-                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ptr::null_mut</span>(),
+                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">std::ptr::null_mut</span>(),
                 },
             )
             .<span class="ident">as_mut</span>()
@@ -413,6 +612,19 @@
         }
 
         <span class="prelude-val">Ok</span>(<span class="ident">class</span>)
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">ClassEntry</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std::fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::fmt::Result</span> {
+        <span class="kw">let</span> <span class="ident">name</span>: <span class="ident">String</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">ZendString::from_ptr</span>(<span class="self">self</span>.<span class="ident">name</span>, <span class="bool-val">false</span>) }
+            .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">str</span><span class="op">|</span> <span class="ident">str</span>.<span class="ident">try_into</span>())
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">std::fmt::Error</span>)<span class="question-mark">?</span>;
+
+        <span class="ident">f</span>.<span class="ident">debug_struct</span>(<span class="string">&quot;ClassEntry&quot;</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;name&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">name</span>)
+            .<span class="ident">field</span>(<span class="string">&quot;flags&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">flags</span>())
+            .<span class="ident">finish</span>()
     }
 }
 </pre></div>

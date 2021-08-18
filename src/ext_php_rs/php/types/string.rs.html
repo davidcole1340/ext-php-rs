@@ -135,6 +135,14 @@
 <span id="133">133</span>
 <span id="134">134</span>
 <span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Represents a string in the PHP world. Similar to a C string, but is reference counted and</span>
 <span class="doccomment">//! contains the length of the string, meaning the string can contain the NUL character.</span>
@@ -232,6 +240,14 @@
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">free</span> <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">ptr</span>.<span class="ident">is_null</span>() {
             <span class="kw">unsafe</span> { <span class="ident">ext_php_rs_zend_string_release</span>(<span class="self">self</span>.<span class="ident">ptr</span>) };
         }
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">TryFrom</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ZendString</span> {
+    <span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="ident">Error</span>;
+
+    <span class="kw">fn</span> <span class="ident">try_from</span>(<span class="ident">value</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="ident">ZendString::new</span>(<span class="ident">value</span>, <span class="bool-val">false</span>)
     }
 }
 

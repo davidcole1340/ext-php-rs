@@ -175,6 +175,10 @@
 <span id="173">173</span>
 <span id="174">174</span>
 <span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Wrapper for enums introduced in C.</span>
 
@@ -183,7 +187,7 @@
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
         <span class="ident">IS_ARRAY</span>, <span class="ident">IS_CALLABLE</span>, <span class="ident">IS_CONSTANT_AST</span>, <span class="ident">IS_DOUBLE</span>, <span class="ident">IS_FALSE</span>, <span class="ident">IS_LONG</span>, <span class="ident">IS_NULL</span>, <span class="ident">IS_OBJECT</span>,
-        <span class="ident">IS_REFERENCE</span>, <span class="ident">IS_RESOURCE</span>, <span class="ident">IS_STRING</span>, <span class="ident">IS_TRUE</span>, <span class="ident">IS_UNDEF</span>, <span class="ident">IS_VOID</span>,
+        <span class="ident">IS_REFERENCE</span>, <span class="ident">IS_RESOURCE</span>, <span class="ident">IS_STRING</span>, <span class="ident">IS_TRUE</span>, <span class="ident">IS_UNDEF</span>, <span class="ident">IS_VOID</span>, <span class="ident">_IS_BOOL</span>,
     },
     <span class="ident">errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>},
     <span class="ident">php::flags::ZvalTypeFlags</span>,
@@ -209,6 +213,9 @@
 
     <span class="ident">ConstantExpression</span> <span class="op">=</span> <span class="ident">IS_CONSTANT_AST</span>,
     <span class="ident">Void</span> <span class="op">=</span> <span class="ident">IS_VOID</span>,
+
+    <span class="doccomment">/// Only used when creating arguments.</span>
+    <span class="ident">Bool</span> <span class="op">=</span> <span class="ident">_IS_BOOL</span>,
 }
 
 <span class="comment">// TODO: Ideally want something like this</span>
@@ -304,6 +311,7 @@
             <span class="ident">DataType::Callable</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;Callable&quot;</span>),
             <span class="ident">DataType::ConstantExpression</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;Constant Expression&quot;</span>),
             <span class="ident">DataType::Void</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;Void&quot;</span>),
+            <span class="ident">DataType::Bool</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;Bool&quot;</span>),
         }
     }
 }

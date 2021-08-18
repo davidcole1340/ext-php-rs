@@ -1,0 +1,1 @@
+initSidebarItems({"type":[["ExecutorGlobals","Stores global variables used in the PHP executor."]]});

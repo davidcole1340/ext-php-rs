@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Darling"><meta name="keywords" content="rust, rustlang, rust-lang, darling"><title>darling - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><script src="../crates.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../darling/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><h2 class="location">Crate darling</h2><div class="block version"><p>Version 0.12.4</p></div><div class="sidebar-elems"><a id="all-types" href="all.html"><p>See all darling's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li><li><a href="#structs">Structs</a></li><li><a href="#traits">Traits</a></li><li><a href="#types">Type Definitions</a></li></ul></div><div id="sidebar-vars" data-name="darling" data-ty="mod" data-relpath=""></div><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img src="../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../settings.html" title="settings"><img src="../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Crate <a class="mod" href="#">darling</a><button id="copy-path" onclick="copy_path(this)" title="copy path"><img src="../clipboard.svg" width="19" height="18" alt="Copy item import" title="Copy item import to clipboard"></button></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/darling/lib.rs.html#1-108" title="goto source code">[src]</a></span></h1><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h1 id="darling" class="section-header"><a href="#darling">Darling</a></h1>
+<p>Darling is a tool for declarative attribute parsing in proc macro implementations.</p>
+<h2 id="design" class="section-header"><a href="#design">Design</a></h2>
+<p>Darling takes considerable design inspiration from [<code>serde</code>]. A data structure that can be
+read from any attribute implements <code>FromMeta</code> (or has an implementation automatically
+generated using <code>derive</code>). Any crate can provide <code>FromMeta</code> implementations, even one not
+specifically geared towards proc-macro authors.</p>
+<p>Proc-macro crates should provide their own structs which implement or derive <code>FromDeriveInput</code>,
+<code>FromField</code>, <code>FromVariant</code>, <code>FromGenerics</code>, <em>et alia</em> to gather settings relevant to their operation.</p>
+<h2 id="attributes" class="section-header"><a href="#attributes">Attributes</a></h2>
+<p>There are a number of attributes that <code>darling</code> exposes to enable finer-grained control over the code
+it generates.</p>
+<ul>
+<li><strong>Field renaming</strong>: You can use <code>#[darling(rename=&quot;new_name&quot;)]</code> on a field to change the name Darling looks for.
+You can also use <code>#[darling(rename_all=&quot;...&quot;)]</code> at the struct or enum level to apply a casing rule to all fields or variants.</li>
+<li><strong>Map function</strong>: You can use <code>#[darling(map=&quot;path::to::function&quot;)]</code> to run code on a field before its stored in the struct.</li>
+<li><strong>Default values</strong>: You can use <code>#[darling(default)]</code> at the type or field level to use that type’s default value to fill
+in values not specified by the caller.</li>
+<li><strong>Skipped fields</strong>: You can skip a variant or field using <code>#[darling(skip)]</code>. Fields marked with this will fall back to
+<code>Default::default()</code> for their value, but you can override that with an explicit default or a value from the type-level default.</li>
+</ul>
+<h2 id="forwarded-fields" class="section-header"><a href="#forwarded-fields">Forwarded Fields</a></h2>
+<p>All derivable traits except <code>FromMeta</code> support forwarding some fields from the input AST to the derived struct.
+These fields are matched up by identifier <strong>before</strong> <code>rename</code> attribute values are considered,
+allowing you to use their names for your own properties.
+The deriving struct is responsible for making sure the types of fields it chooses to declare are compatible with this table.</p>
+<p>A deriving struct is free to include or exclude any of the fields below.</p>
+<h3 id="fromderiveinput" class="section-header"><a href="#fromderiveinput"><code>FromDeriveInput</code></a></h3><table><thead><tr><th>Field name</th><th>Type</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>ident</code></td><td><code>syn::Ident</code></td><td>The identifier of the passed-in type</td></tr>
+<tr><td><code>vis</code></td><td><code>syn::Visibility</code></td><td>The visibility of the passed-in type</td></tr>
+<tr><td><code>generics</code></td><td><code>T: darling::FromGenerics</code></td><td>The generics of the passed-in type. This can be <code>syn::Generics</code>, <code>darling::ast::Generics</code>, or any compatible type.</td></tr>
+<tr><td><code>data</code></td><td><code>darling::ast::Data</code></td><td>The body of the passed-in type</td></tr>
+<tr><td><code>attrs</code></td><td><code>Vec&lt;syn::Attribute&gt;</code></td><td>The forwarded attributes from the passed in type. These are controlled using the <code>forward_attrs</code> attribute.</td></tr>
+</tbody></table>
+<h3 id="fromfield" class="section-header"><a href="#fromfield"><code>FromField</code></a></h3><table><thead><tr><th>Field name</th><th>Type</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>ident</code></td><td><code>Option&lt;syn::Ident&gt;</code></td><td>The identifier of the passed-in field, or <code>None</code> for tuple fields</td></tr>
+<tr><td><code>vis</code></td><td><code>syn::Visibility</code></td><td>The visibility of the passed-in field</td></tr>
+<tr><td><code>ty</code></td><td><code>syn::Type</code></td><td>The type of the passed-in field</td></tr>
+<tr><td><code>attrs</code></td><td><code>Vec&lt;syn::Attribute&gt;</code></td><td>The forwarded attributes from the passed in field. These are controlled using the <code>forward_attrs</code> attribute.</td></tr>
+</tbody></table>
+<h3 id="fromtypeparam" class="section-header"><a href="#fromtypeparam"><code>FromTypeParam</code></a></h3><table><thead><tr><th>Field name</th><th>Type</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>ident</code></td><td><code>syn::Ident</code></td><td>The identifier of the passed-in type param</td></tr>
+<tr><td><code>bounds</code></td><td><code>Vec&lt;syn::TypeParamBound&gt;</code></td><td>The bounds applied to the type param</td></tr>
+<tr><td><code>default</code></td><td><code>Option&lt;syn::Type&gt;</code></td><td>The default type of the parameter, if one exists</td></tr>
+<tr><td><code>attrs</code></td><td><code>Vec&lt;syn::Attribute&gt;</code></td><td>The forwarded attributes from the passed in type param. These are controlled using the <code>forward_attrs</code> attribute.</td></tr>
+</tbody></table>
+<h3 id="fromvariant" class="section-header"><a href="#fromvariant"><code>FromVariant</code></a></h3><table><thead><tr><th>Field name</th><th>Type</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>ident</code></td><td><code>syn::Ident</code></td><td>The identifier of the passed-in variant</td></tr>
+<tr><td><code>discriminant</code></td><td><code>Option&lt;syn::Expr&gt;</code></td><td>For a variant such as <code>Example = 2</code>, the <code>2</code></td></tr>
+<tr><td><code>fields</code></td><td><code>Option&lt;darling::ast::Fields&lt;__&gt;&gt;</code></td><td>The fields associated with the variant</td></tr>
+<tr><td><code>attrs</code></td><td><code>Vec&lt;syn::Attribute&gt;</code></td><td>The forwarded attributes from the passed in variant. These are controlled using the <code>forward_attrs</code> attribute.</td></tr>
+</tbody></table>
+</div></details><h2 id="modules" class="section-header"><a href="#modules">Modules</a></h2>
+<table><tr class="module-item"><td><a class="mod" href="ast/index.html" title="darling::ast mod">ast</a></td><td class="docblock-short"><p>Utility types for working with the AST.</p>
+</td></tr><tr class="module-item"><td><a class="mod" href="error/index.html" title="darling::error mod">error</a></td><td class="docblock-short"><p>The <code>darling::Error</code> type and its internals.</p>
+</td></tr><tr class="module-item"><td><a class="mod" href="usage/index.html" title="darling::usage mod">usage</a></td><td class="docblock-short"><p>Traits and types used for tracking the usage of generic parameters through a proc-macro input.</p>
+</td></tr><tr class="module-item"><td><a class="mod" href="util/index.html" title="darling::util mod">util</a></td><td class="docblock-short"><p>Utility types for attribute parsing.</p>
+</td></tr></table><h2 id="macros" class="section-header"><a href="#macros">Macros</a></h2>
+<table><tr class="module-item"><td><a class="macro" href="macro.uses_lifetimes.html" title="darling::uses_lifetimes macro">uses_lifetimes</a></td><td class="docblock-short"><p>Generator for <code>UsesLifetimes</code> impls that unions the used lifetimes of the selected fields.</p>
+</td></tr><tr class="module-item"><td><a class="macro" href="macro.uses_type_params.html" title="darling::uses_type_params macro">uses_type_params</a></td><td class="docblock-short"><p>Generator for <code>UsesTypeParam</code> impls that unions the used type parameters of the selected fields.</p>
+</td></tr></table><h2 id="structs" class="section-header"><a href="#structs">Structs</a></h2>
+<table><tr class="module-item"><td><a class="struct" href="struct.Error.html" title="darling::Error struct">Error</a></td><td class="docblock-short"><p>An error encountered during attribute parsing.</p>
+</td></tr></table><h2 id="traits" class="section-header"><a href="#traits">Traits</a></h2>
+<table><tr class="module-item"><td><a class="trait" href="trait.FromDeriveInput.html" title="darling::FromDeriveInput trait">FromDeriveInput</a></td><td class="docblock-short"><p>Creates an instance by parsing an entire proc-macro <code>derive</code> input,
+including the, identity, generics, and visibility of the type.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.FromField.html" title="darling::FromField trait">FromField</a></td><td class="docblock-short"><p>Creates an instance by parsing an individual field and its attributes.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.FromGenericParam.html" title="darling::FromGenericParam trait">FromGenericParam</a></td><td class="docblock-short"><p>Creates an instance by parsing a specific <code>syn::GenericParam</code>.
+This can be a type param, a lifetime, or a const param.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.FromGenerics.html" title="darling::FromGenerics trait">FromGenerics</a></td><td class="docblock-short"><p>Creates an instance by parsing an entire generics declaration, including the
+<code>where</code> clause.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.FromMeta.html" title="darling::FromMeta trait">FromMeta</a></td><td class="docblock-short"><p>Create an instance from an item in an attribute declaration.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.FromTypeParam.html" title="darling::FromTypeParam trait">FromTypeParam</a></td><td class="docblock-short"><p>Creates an instance by parsing an individual type_param and its attributes.</p>
+</td></tr><tr class="module-item"><td><a class="trait" href="trait.FromVariant.html" title="darling::FromVariant trait">FromVariant</a></td><td class="docblock-short"><p>Creates an instance from a specified <code>syn::Variant</code>.</p>
+</td></tr></table><h2 id="types" class="section-header"><a href="#types">Type Definitions</a></h2>
+<table><tr class="module-item"><td><a class="type" href="type.Result.html" title="darling::Result type">Result</a></td><td class="docblock-short"><p>An alias of <code>Result</code> specific to attribute parsing.</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../" data-current-crate="darling" data-search-index-js="../search-index.js" data-search-js="../search.js"></div><script src="../main.js"></script></body></html>

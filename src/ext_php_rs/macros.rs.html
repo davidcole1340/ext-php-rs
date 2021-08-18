@@ -161,6 +161,10 @@
 <span id="159">159</span>
 <span id="160">160</span>
 <span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Macros for interacting with PHP, mainly when the function takes variadic arguments.</span>
 <span class="doccomment">//! Unforutunately, this is the best way to handle these.</span>
@@ -221,6 +225,10 @@
 <span class="doccomment">/// [`Zval`](crate::php::types::zval::Zval).</span>
 <span class="attribute">#[<span class="ident">macro_export</span>]</span>
 <span class="macro">macro_rules!</span> <span class="ident">call_user_func</span> {
+    (<span class="macro-nonterminal">$</span><span class="kw">fn</span>: <span class="macro-nonterminal">expr</span>) <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="macro-nonterminal">$</span><span class="kw">fn</span>.<span class="macro-nonterminal">try_call</span>(<span class="macro">vec!</span>[])
+    };
+
     (<span class="macro-nonterminal">$</span><span class="kw">fn</span>: <span class="macro-nonterminal">expr</span>, $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">param</span>: <span class="ident">expr</span>),<span class="kw-2">*</span>) <span class="op">=</span><span class="op">&gt;</span> {
         <span class="macro-nonterminal">$</span><span class="kw">fn</span>.<span class="macro-nonterminal">try_call</span>(<span class="macro">vec!</span>[$(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">param</span>),<span class="kw-2">*</span>])
     };

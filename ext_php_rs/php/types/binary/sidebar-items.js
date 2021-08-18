@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Binary","Acts as a wrapper around [`Vec<T>`] where `T` implements [`Pack`]. Primarily used for passing binary data into Rust functions. Can be treated as a [`Vec`] in most situations, or can be ‘unwrapped’ into a [`Vec`] through the [`From`] implementation on [`Vec`]."]]});
