@@ -2,12 +2,17 @@
 //! determined by a property inside the struct. The content of the Zval is stored in a union.
 
 use core::slice;
-use std::{convert::TryFrom, fmt::Debug, ptr};
+use std::{
+    collections::HashMap,
+    convert::{TryFrom, TryInto},
+    fmt::Debug,
+    ptr,
+};
 
 use crate::{
     bindings::{
-        _call_user_function_impl, _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2,
-        ext_php_rs_zend_string_release, zend_is_callable, zend_resource, zend_value, zval,
+        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, ext_php_rs_zend_string_release,
+        zend_is_callable, zend_resource, zend_value, zval,
     },
     errors::{Error, Result},
     php::pack::Pack,
@@ -19,7 +24,7 @@ use crate::php::{
     types::{long::ZendLong, string::ZendString},
 };
 
-use super::{array::ZendHashTable, object::ZendObject};
+use super::{array::ZendHashTable, callable::Callable, object::ZendObject};
 
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
@@ -97,11 +102,14 @@ impl<'a> Zval {
     ///
     /// There is no way to tell if the data stored in the string is actually of the given type.
     /// The results of this function can also differ from platform-to-platform due to the different
-    /// representation of some types on different platforms. Consult the [`pack`](https://www.php.net/manual/en/function.pack.php)
-    /// function documentation for more details.
-    pub unsafe fn binary<T: Pack>(&self) -> Option<Vec<T>> {
+    /// representation of some types on different platforms. Consult the [`pack`] function
+    /// documentation for more details.
+    ///
+    /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    pub fn binary<T: Pack>(&self) -> Option<Vec<T>> {
         if self.is_string() {
-            Some(T::unpack_into(self.value.str_.as_ref()?))
+            // SAFETY: Type is string therefore we are able to take a reference.
+            Some(T::unpack_into(unsafe { self.value.str_.as_ref() }?))
         } else {
             None
         }
@@ -119,7 +127,7 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is an array.
-    pub fn array(&self) -> Option<ZendHashTable> {
+    pub fn array(&self) -> Option<ZendHashTable<'a>> {
         if self.is_array() {
             unsafe { ZendHashTable::from_ptr(self.value.arr, false) }.ok()
         } else {
@@ -145,7 +153,13 @@ impl<'a> Zval {
         }
     }
 
-    /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
+    /// Returns the value of the zval if it is callable.
+    pub fn callable(&'a self) -> Option<Callable<'a>> {
+        // The Zval is checked if it is callable in the `new` function.
+        Callable::new(self).ok()
+    }
+
+    /// Attempts to call the zval as a callable with a list of arguments to pass to the function.
     /// Note that a thrown exception inside the callable is not detectable, therefore you should
     /// check if the return value is valid rather than unwrapping. Returns a result containing the
     /// return value of the function, or an error.
@@ -156,48 +170,7 @@ impl<'a> Zval {
     ///
     /// * `params` - A list of parameters to call the function with.
     pub fn try_call(&self, params: Vec<&dyn IntoZval>) -> Result<Zval> {
-        let mut retval = Zval::new();
-        let len = params.len();
-        let params = params
-            .into_iter()
-            .map(|val| val.as_zval(false))
-            .collect::<Result<Vec<_>>>()?;
-        let packed = Box::into_raw(params.into_boxed_slice()) as *mut Self;
-        let ptr: *const Self = self;
-
-        if !self.is_callable() {
-            return Err(Error::Callable);
-        }
-
-        let result = unsafe {
-            _call_user_function_impl(
-                std::ptr::null_mut(),
-                ptr as *mut Self,
-                &mut retval,
-                len as _,
-                packed,
-                std::ptr::null_mut(),
-            )
-        };
-
-        // SAFETY: We just boxed this vector, and the `_call_user_function_impl` does not modify the parameters.
-        // We can safely reclaim the memory knowing it will have the same length and size.
-        // If any parameters are zend strings, they must be released.
-        unsafe {
-            let params = Vec::from_raw_parts(packed, len, len);
-
-            for param in params {
-                if param.is_string() {
-                    ext_php_rs_zend_string_release(param.value.str_);
-                }
-            }
-        };
-
-        if result < 0 {
-            Err(Error::Callable)
-        } else {
-            Ok(retval)
-        }
+        self.callable().ok_or(Error::Callable)?.try_call(params)
     }
 
     /// Returns the type of the Zval.
@@ -369,7 +342,7 @@ impl<'a> Zval {
         self.value.obj = (val as *const ZendObject) as *mut ZendObject;
     }
 
-    /// Sets the value of the zval as an array.
+    /// Sets the value of the zval as an array. Returns nothng in a result on success.
     ///
     /// # Parameters
     ///
@@ -413,10 +386,19 @@ impl Debug for Zval {
                 DataType::Callable => field!(self.string()),
                 DataType::ConstantExpression => field!(Option::<()>::None),
                 DataType::Void => field!(Option::<()>::None),
+                DataType::Bool => field!(self.bool()),
             };
         }
 
         dbg.finish()
+    }
+}
+
+impl Drop for Zval {
+    fn drop(&mut self) {
+        if self.is_string() {
+            unsafe { ext_php_rs_zend_string_release(self.value.str_) };
+        }
     }
 }
 
@@ -430,46 +412,22 @@ pub trait IntoZval {
     /// # Parameters
     ///
     /// * `persistent` - Whether the contents of the Zval will persist between requests.
-    fn as_zval(&self, persistent: bool) -> Result<Zval>;
+    fn as_zval(&self, persistent: bool) -> Result<Zval> {
+        let mut zval = Zval::new();
+        self.set_zval(&mut zval, persistent)?;
+        Ok(zval)
+    }
+
+    /// Sets the content of a pre-existing zval. Returns a result containing nothing if setting
+    /// the content was successful.
+    ///
+    /// # Parameters
+    ///
+    /// * `zv` - The Zval to set the content of.
+    /// * `persistent` - Whether the contents of the Zval will persist between requests.
+    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
-macro_rules! try_from_zval {
-    ($type: ty, $fn: ident) => {
-        impl TryFrom<&Zval> for $type {
-            type Error = Error;
-
-            fn try_from(value: &Zval) -> Result<Self> {
-                match value.$fn() {
-                    Some(v) => match <$type>::try_from(v) {
-                        Ok(v) => Ok(v),
-                        Err(_) => Err(Error::ZvalConversion(value.get_type()?)),
-                    },
-                    _ => Err(Error::ZvalConversion(value.get_type()?)),
-                }
-            }
-        }
-    };
-}
-
-try_from_zval!(i8, long);
-try_from_zval!(i16, long);
-try_from_zval!(i32, long);
-try_from_zval!(i64, long);
-
-try_from_zval!(u8, long);
-try_from_zval!(u16, long);
-try_from_zval!(u32, long);
-try_from_zval!(u64, long);
-
-try_from_zval!(usize, long);
-try_from_zval!(isize, long);
-
-try_from_zval!(f64, double);
-try_from_zval!(bool, bool);
-try_from_zval!(String, string);
-try_from_zval!(ZendHashTable, array);
-
-/// Implements the trait `Into<T>` on Zval for a given type.
 macro_rules! into_zval {
     ($type: ty, $fn: ident) => {
         impl From<$type> for Zval {
@@ -481,10 +439,9 @@ macro_rules! into_zval {
         }
 
         impl IntoZval for $type {
-            fn as_zval(&self, _: bool) -> Result<Zval> {
-                let mut zv = Zval::new();
+            fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
                 zv.$fn(*self);
-                Ok(zv)
+                Ok(())
             }
         }
     };
@@ -517,15 +474,190 @@ macro_rules! try_into_zval_str {
         }
 
         impl IntoZval for $type {
-            fn as_zval(&self, persistent: bool) -> Result<Zval> {
-                let mut zv = Zval::new();
-                zv.set_string(self, persistent)?;
-                Ok(zv)
+            fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
+                zv.set_string(self, persistent)
             }
         }
     };
 }
 
 try_into_zval_str!(String);
-try_into_zval_str!(&String);
 try_into_zval_str!(&str);
+
+impl<T> IntoZval for Option<T>
+where
+    T: IntoZval,
+{
+    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
+        match self {
+            Some(val) => val.set_zval(zv, persistent),
+            None => {
+                zv.set_null();
+                Ok(())
+            }
+        }
+    }
+}
+
+impl<'a> IntoZval for ZendHashTable<'a> {
+    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+        zv.set_array(self.clone());
+        Ok(())
+    }
+}
+
+impl<T> IntoZval for Vec<T>
+where
+    T: IntoZval,
+{
+    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+        let hm = self
+            .try_into()
+            .map_err(|_| Error::ZvalConversion(DataType::Array))?;
+        zv.set_array(hm);
+        Ok(())
+    }
+}
+
+impl<K, V> IntoZval for HashMap<K, V>
+where
+    K: ToString,
+    V: IntoZval,
+{
+    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+        let hm = self.try_into()?;
+        zv.set_array(hm);
+        Ok(())
+    }
+}
+
+/// Allows zvals to be converted into Rust types in a fallible way. Reciprocal of the [`IntoZval`]
+/// trait.
+///
+/// This trait requires the [`TryFrom`] trait to be implemented. All this trait does is contain the
+/// type of data that is expected when parsing the value, which is used when parsing arguments.
+pub trait FromZval<'a>: TryFrom<&'a Zval> {
+    /// The corresponding type of the implemented value in PHP.
+    const TYPE: DataType;
+}
+
+impl<'a, T> FromZval<'a> for Option<T>
+where
+    T: FromZval<'a>,
+{
+    const TYPE: DataType = T::TYPE;
+}
+
+// Converting to an option is infallible.
+impl<'a, T> From<&'a Zval> for Option<T>
+where
+    T: FromZval<'a>,
+{
+    fn from(val: &'a Zval) -> Self {
+        val.try_into().ok()
+    }
+}
+
+macro_rules! try_from_zval {
+    ($type: ty, $fn: ident, $dt: ident) => {
+        impl<'a> FromZval<'a> for $type {
+            const TYPE: DataType = DataType::$dt;
+        }
+
+        impl TryFrom<&Zval> for $type {
+            type Error = Error;
+
+            fn try_from(value: &Zval) -> Result<Self> {
+                value
+                    .$fn()
+                    .and_then(|val| val.try_into().ok())
+                    .ok_or(Error::ZvalConversion(value.get_type()?))
+            }
+        }
+    };
+}
+
+try_from_zval!(i8, long, Long);
+try_from_zval!(i16, long, Long);
+try_from_zval!(i32, long, Long);
+try_from_zval!(i64, long, Long);
+
+try_from_zval!(u8, long, Long);
+try_from_zval!(u16, long, Long);
+try_from_zval!(u32, long, Long);
+try_from_zval!(u64, long, Long);
+
+try_from_zval!(usize, long, Long);
+try_from_zval!(isize, long, Long);
+
+try_from_zval!(f64, double, Double);
+try_from_zval!(bool, bool, Bool);
+try_from_zval!(String, string, String);
+
+impl<'a> FromZval<'a> for ZendHashTable<'a> {
+    const TYPE: DataType = DataType::Array;
+}
+
+impl<'a> TryFrom<&'a Zval> for ZendHashTable<'a> {
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))
+    }
+}
+
+impl<'a, T> FromZval<'a> for Vec<T>
+where
+    T: FromZval<'a>,
+{
+    const TYPE: DataType = DataType::Array;
+}
+
+impl<'a, T> TryFrom<&'a Zval> for Vec<T>
+where
+    T: FromZval<'a>,
+{
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))?
+            .try_into()
+    }
+}
+
+impl<'a, T> FromZval<'a> for HashMap<String, T>
+where
+    T: FromZval<'a>,
+{
+    const TYPE: DataType = DataType::Array;
+}
+
+impl<'a, T> TryFrom<&'a Zval> for HashMap<String, T>
+where
+    T: FromZval<'a>,
+{
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))?
+            .try_into()
+    }
+}
+
+impl<'a> FromZval<'a> for Callable<'a> {
+    const TYPE: DataType = DataType::Callable;
+}
+
+impl<'a> TryFrom<&'a Zval> for Callable<'a> {
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value.callable().ok_or(Error::Callable)
+    }
+}

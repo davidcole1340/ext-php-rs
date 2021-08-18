@@ -1,7 +1,7 @@
 //! Builder and objects for creating classes in the PHP world.
 
 use crate::errors::{Error, Result};
-use std::{mem, ptr};
+use std::{convert::TryInto, fmt::Debug, mem};
 
 use crate::{
     bindings::{
@@ -12,6 +12,7 @@ use crate::{
 };
 
 use super::{
+    executor::ExecutorGlobals,
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     function::FunctionEntry,
     types::{
@@ -23,6 +24,98 @@ use super::{
 
 /// A Zend class entry. Alias.
 pub type ClassEntry = zend_class_entry;
+
+impl PartialEq for ClassEntry {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
+}
+
+impl ClassEntry {
+    /// Attempts to find a reference to a class in the global class table.
+    ///
+    /// Returns a reference to the class if found, or [`None`] if the class could
+    /// not be found or the class table has not been initialized.
+    pub fn try_find(name: impl TryInto<ZendString>) -> Option<&'static Self> {
+        ExecutorGlobals::get().class_table()?;
+        let name: ZendString = name.try_into().ok()?;
+
+        unsafe {
+            crate::bindings::zend_lookup_class_ex(name.borrow_ptr(), std::ptr::null_mut(), 0)
+                .as_ref()
+        }
+    }
+
+    /// Returns the class flags.
+    pub fn flags(&self) -> ClassFlags {
+        ClassFlags::from_bits_truncate(self.ce_flags)
+    }
+
+    /// Checks if the class is an instance of another class or interface.
+    ///
+    /// # Parameters
+    ///
+    /// * `ce` - The inherited class entry to check.
+    pub fn instance_of(&self, ce: &ClassEntry) -> bool {
+        if self == ce {
+            return true;
+        }
+
+        if ce.flags().contains(ClassFlags::Interface) {
+            let interfaces = match self.interfaces() {
+                Some(interfaces) => interfaces,
+                None => return false,
+            };
+
+            for i in interfaces {
+                if ce == i {
+                    return true;
+                }
+            }
+        } else {
+            loop {
+                let parent = match self.parent() {
+                    Some(parent) => parent,
+                    None => return false,
+                };
+
+                if parent == ce {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    /// Returns an iterator of all the interfaces that the class implements. Returns [`None`] if
+    /// the interfaces have not been resolved on the class.
+    pub fn interfaces(&self) -> Option<impl Iterator<Item = &ClassEntry>> {
+        self.flags()
+            .contains(ClassFlags::ResolvedInterfaces)
+            .then(|| unsafe {
+                (0..self.num_interfaces)
+                    .into_iter()
+                    .map(move |i| *self.__bindgen_anon_3.interfaces.offset(i as _))
+                    .filter_map(|ptr| ptr.as_ref())
+            })
+    }
+
+    /// Returns the parent of the class.
+    ///
+    /// If the parent of the class has not been resolved, it attempts to find the parent by name.
+    /// Returns [`None`] if the parent was not resolved and the parent was not able to be found
+    /// by name.
+    pub fn parent(&self) -> Option<&Self> {
+        if self.flags().contains(ClassFlags::ResolvedParent) {
+            unsafe { self.__bindgen_anon_1.parent.as_ref() }
+        } else {
+            let name =
+                unsafe { ZendString::from_ptr(self.__bindgen_anon_1.parent_name, false) }.ok()?;
+            Self::try_find(name)
+        }
+    }
+}
 
 /// Builds a class to be exported as a PHP class.
 pub struct ClassBuilder<'a> {
@@ -171,7 +264,7 @@ impl<'a> ClassBuilder<'a> {
                 self.ptr,
                 match self.extends {
                     Some(ptr) => (ptr as *const _) as *mut _,
-                    None => ptr::null_mut(),
+                    None => std::ptr::null_mut(),
                 },
             )
             .as_mut()
@@ -203,5 +296,18 @@ impl<'a> ClassBuilder<'a> {
         }
 
         Ok(class)
+    }
+}
+
+impl Debug for ClassEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name: String = unsafe { ZendString::from_ptr(self.name, false) }
+            .and_then(|str| str.try_into())
+            .map_err(|_| std::fmt::Error)?;
+
+        f.debug_struct("ClassEntry")
+            .field("name", &name)
+            .field("flags", &self.flags())
+            .finish()
     }
 }

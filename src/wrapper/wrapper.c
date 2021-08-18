@@ -19,3 +19,16 @@ void *ext_php_rs_zend_object_alloc(size_t obj_size, zend_class_entry *ce)
 {
     return zend_object_alloc(obj_size, ce);
 }
+
+zend_executor_globals *ext_php_rs_executor_globals()
+{
+#ifdef ZTS
+# ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+    return TSRMG_FAST_BULK_STATIC(executor_globals_offset, zend_executor_globals);
+# else
+    return TSRMG_FAST_BULK(executor_globals_offset, zend_executor_globals *);
+# endif
+#else
+    return &executor_globals;
+#endif
+}

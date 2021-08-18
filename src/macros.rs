@@ -57,6 +57,10 @@ macro_rules! _info_table_row {
 /// [`Zval`](crate::php::types::zval::Zval).
 #[macro_export]
 macro_rules! call_user_func {
+    ($fn: expr) => {
+        $fn.try_call(vec![])
+    };
+
     ($fn: expr, $($param: expr),*) => {
         $fn.try_call(vec![$(&$param),*])
     };

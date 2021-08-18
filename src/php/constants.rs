@@ -1,3 +1,5 @@
+//! Types relating to registering constants in PHP.
+
 use super::flags::GlobalConstantFlags;
 use crate::errors::Result;
 use crate::{

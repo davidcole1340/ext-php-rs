@@ -38,16 +38,17 @@ pub unsafe trait Pack: Clone {
     ///
     /// # Safety
     ///
-    /// This is an unsafe function. There is no way to tell if the data passed from the PHP
-    /// function is indeed the correct format. Exercise caution when using the `unpack` functions.
-    /// In fact, even when used correctly, the results can differ depending on the platform and the
-    /// size of each type on the platform. Consult the [`pack`](https://www.php.net/manual/en/function.pack.php)
-    /// function documentation for more details.
+    /// There is no way to tell if the data stored in the string is actually of the given type.
+    /// The results of this function can also differ from platform-to-platform due to the different
+    /// representation of some types on different platforms. Consult the [`pack`] function
+    /// documentation for more details.
     ///
     /// # Parameters
     ///
     /// * `s` - The Zend string containing the binary data.
-    unsafe fn unpack_into(s: &zend_string) -> Vec<Self>;
+    ///
+    /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    fn unpack_into(s: &zend_string) -> Vec<Self>;
 }
 
 /// Implements the [`Pack`] trait for a given type.
@@ -62,13 +63,15 @@ macro_rules! pack_impl {
                 unsafe { ext_php_rs_zend_string_init(ptr as *mut i8, len as _, false) }
             }
 
-            unsafe fn unpack_into(s: &zend_string) -> Vec<Self> {
+            fn unpack_into(s: &zend_string) -> Vec<Self> {
                 let len = s.len / $d;
                 let mut result = Vec::with_capacity(len as _);
                 let ptr = s.val.as_ptr() as *const $t;
 
+                // SAFETY: We calculate the length of memory that we can legally read based on the
+                // side of the type, therefore we never read outside the memory we should.
                 for i in 0..len {
-                    result.push(*ptr.offset(i as _));
+                    result.push(unsafe { *ptr.offset(i as _) });
                 }
 
                 result

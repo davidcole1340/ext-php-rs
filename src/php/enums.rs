@@ -5,7 +5,7 @@ use std::{convert::TryFrom, fmt::Display};
 use crate::{
     bindings::{
         IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_OBJECT,
-        IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
+        IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID, _IS_BOOL,
     },
     errors::{Error, Result},
     php::flags::ZvalTypeFlags,
@@ -31,6 +31,9 @@ pub enum DataType {
 
     ConstantExpression = IS_CONSTANT_AST,
     Void = IS_VOID,
+
+    /// Only used when creating arguments.
+    Bool = _IS_BOOL,
 }
 
 // TODO: Ideally want something like this
@@ -126,6 +129,7 @@ impl Display for DataType {
             DataType::Callable => write!(f, "Callable"),
             DataType::ConstantExpression => write!(f, "Constant Expression"),
             DataType::Void => write!(f, "Void"),
+            DataType::Bool => write!(f, "Bool"),
         }
     }
 }

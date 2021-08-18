@@ -1,47 +1,97 @@
+mod class;
+mod constant;
+mod error;
+mod function;
+mod impl_;
+mod method;
+mod module;
+mod startup_function;
+
+use std::{collections::HashMap, sync::Mutex};
+
+use constant::Constant;
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span};
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use proc_macro2::Span;
+use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemImpl};
 
 extern crate proc_macro;
 
-/// Derives the implementation of `ZendObjectOverride` for the given structure.
+#[derive(Default, Debug)]
+struct State {
+    functions: Vec<function::Function>,
+    classes: HashMap<String, class::Class>,
+    constants: Vec<Constant>,
+    startup_function: Option<String>,
+    built_module: bool,
+}
+
+lazy_static::lazy_static! {
+    pub(crate) static ref STATE: Mutex<State> = Mutex::new(Default::default());
+}
+
 #[proc_macro_derive(ZendObjectHandler)]
 pub fn object_handler_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let name = input.ident;
-    let handlers = Ident::new(
-        format!("__{}_OBJECT_HANDLERS", name).as_str(),
-        Span::call_site(),
-    );
 
-    let output = quote! {
-        static mut #handlers: Option<
-            *mut ::ext_php_rs::php::types::object::ZendObjectHandlers
-        > = None;
+    match class::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
 
-        impl ::ext_php_rs::php::types::object::ZendObjectOverride for #name {
-            extern "C" fn create_object(
-                ce: *mut ::ext_php_rs::php::class::ClassEntry,
-            ) -> *mut ::ext_php_rs::php::types::object::ZendObject {
-                // SAFETY: The handlers are only modified once, when they are first accessed.
-                // At the moment we only support single-threaded PHP installations therefore the pointer contained
-                // inside the option can be passed around.
-                unsafe {
-                    if #handlers.is_none() {
-                        #handlers = Some(::ext_php_rs::php::types::object::ZendObjectHandlers::init::<#name>());
-                    }
+#[proc_macro_attribute]
+pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
+    let input = parse_macro_input!(input as ItemFn);
 
-                    // The handlers unwrap can never fail - we check that it is none above.
-                    // Unwrapping the result from `new_ptr` is nessacary as C cannot handle results.
-                    ::ext_php_rs::php::types::object::ZendClassObject::<#name>::new_ptr(
-                        ce,
-                        #handlers.unwrap()
-                    ).expect("Failed to allocate memory for new Zend object.")
-                }
-            }
-        }
-    };
+    match function::parser(args, input) {
+        Ok((parsed, _)) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
 
-    TokenStream::from(output)
+#[proc_macro_attribute]
+pub fn php_module(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemFn);
+
+    match module::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn php_startup(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemFn);
+
+    match startup_function::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn php_impl(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemImpl);
+
+    match impl_::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn php_const(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemConst);
+
+    match constant::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
 }

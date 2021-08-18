@@ -2,26 +2,54 @@
 
 [<img align="right" src="https://discord.com/api/guilds/115233111977099271/widget.png?style=banner2">](https://discord.gg/dphp)
 
-Bindings for the Zend API to build PHP extensions natively in Rust. Inspired by [killertux/solder](https://github.com/killertux/solder) and its predecessors.
+Bindings and abstractions for the Zend API to build PHP extensions natively in Rust.
 
-## Documentation
+## Example
 
-We are currently unable to deploy our documentation to `docs.rs` due to the crate requiring PHP 8.0, which is unavailable in the default Ubuntu repositories.
-Documentation can be viewed [here](https://davidcole1340.github.io/ext-php-rs/). It is generated from the latest `master` branch. Documentation will be moved to `docs.rs` when Ubuntu updates its repositories
-to PHP 8.0.
+Export a simple function `function hello_world(string $name): string` to PHP:
+
+```rs
+use ext_php_rs::prelude::*;
+
+#[php_function]
+pub fn hello_world(name: String) -> String {
+    format!("Hello, {}!", name)
+}
+
+// Required to register the extension with PHP.
+#[php_module]
+pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+    module
+}
+```
+
+Calling the function from PHP:
+
+```php
+var_dump(hello_world("David")); // string(13) "Hello, David!"
+```
 
 ## Features
 
-This is not a set feature list, but these are the features on my roadmap. Create an issue if there's something you'd like to see!
+- **Easy to use:** The built-in macros can abstract away the need to interact with the Zend API, such as Rust-type function parameter abstracting away interacting with Zend values.
+- **Lightweight:** You don't have to use the built-in helper macros. It's possible to write your own glue code around your own functions.
+- **Extensible:** Implement `IntoZval` and `FromZval` for your own custom types, allowing the type to be used as function parameters and return types.
 
-- [x] Module definitions
-- [x] Function implementation
-- [x] Class implementation
-    - [x] Class methods
-    - [x] Class properties
-    - [x] Class constants
-- [x] Module constants
-- [x] Calling PHP functions
+## Goals
+
+Our main goal is to **make extension development easier.**
+
+- Writing extensions in C can be tedious, and with the Zend APIs limited documentation can be intimidating.
+- Rust's modern language features and feature-full standard library are big improvements on C.
+- Abstracting away the raw Zend APIs allows extensions to be developed faster and with more confidence.
+- Abstractions also allow us to support future (and potentially past) versions of PHP without significant changes to extension code.
+
+## Documentation
+
+The project is documented in-line, so viewing the `cargo` documentation is the best resource at the moment.
+
+We are currently unable to deploy our documentation to `docs.rs` due to the crate requiring PHP 8.0, which is unavailable in the default Ubuntu repositories.
+Documentation can be viewed [here](https://davidcole1340.github.io/ext-php-rs/). It is generated from the latest `master` branch. Documentation will be moved to `docs.rs` when Ubuntu updates its repositories to PHP 8.0.
 
 ## Requirements
 
@@ -41,16 +69,22 @@ See the following links for the dependency crate requirements:
 
 This project only works for PHP >= 8.0 (for now). Due to the fact that the PHP extension system relies heavily on C macros (which cannot be exported to Rust easily), structs have to be hard coded in.
 
-There is only inline documentation for the time being. Starting by creating a C extension is a good start as well.
-
 Check out one of the example projects:
 
 - [ext-skel](example/skel) - Testbed for testing the library. Check out previous commits as well to see what else is possible.
+- [anonaddy-sequoia](https://gitlab.com/willbrowning/anonaddy-sequoia) - Sequoia encryption PHP extension.
 - [opus-php](https://github.com/davidcole1340/opus-php/tree/rewrite_rs) - Work-in-progress extension to use the Opus library in PHP.
 
 ## Contributions
 
 Contributions are very much welcome. I am a novice Rust developer and any suggestions are wanted and welcome. Feel free to file issues and PRs through Github.
+
+Contributions welcome include:
+
+- Documentation expansion (examples in particular!)
+- Safety reviews (especially if you have experience with Rust and the Zend API).
+- Bug fixes and features.
+- Feature requests.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
