@@ -31,7 +31,7 @@ pub type Zval = zval;
 
 impl<'a> Zval {
     /// Creates a new, empty zval.
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             value: zend_value {
                 ptr: ptr::null_mut(),

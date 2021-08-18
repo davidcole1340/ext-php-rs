@@ -1,7 +1,6 @@
 //! Represents a string in the PHP world. Similar to a C string, but is reference counted and
 //! contains the length of the string, meaning the string can contain the NUL character.
 
-use core::slice;
 use std::{
     convert::{TryFrom, TryInto},
     ffi::CString,
