@@ -1,14 +1,13 @@
 //! Types relating to registering constants in PHP.
 
+use std::ffi::CString;
+
 use super::flags::GlobalConstantFlags;
-use crate::errors::Result;
-use crate::{
-    bindings::{
-        zend_register_bool_constant, zend_register_double_constant, zend_register_long_constant,
-        zend_register_string_constant,
-    },
-    functions::c_str,
+use crate::bindings::{
+    zend_register_bool_constant, zend_register_double_constant, zend_register_long_constant,
+    zend_register_string_constant,
 };
+use crate::errors::Result;
 
 pub trait IntoConst: Sized {
     /// Registers a global module constant in PHP, with the value as the content of self.
@@ -35,7 +34,7 @@ pub trait IntoConst: Sized {
     ///     0
     /// }
     /// ```
-    fn register_constant<N: AsRef<str>>(&self, name: N, module_number: i32) -> Result<()> {
+    fn register_constant(&self, name: &str, module_number: i32) -> Result<()> {
         self.register_constant_flags(
             name,
             module_number,
@@ -68,18 +67,18 @@ pub trait IntoConst: Sized {
     ///     0
     /// }
     /// ```
-    fn register_constant_flags<N: AsRef<str>>(
+    fn register_constant_flags(
         &self,
-        name: N,
+        name: &str,
         module_number: i32,
         flags: GlobalConstantFlags,
     ) -> Result<()>;
 }
 
 impl IntoConst for String {
-    fn register_constant_flags<N: AsRef<str>>(
+    fn register_constant_flags(
         &self,
-        name: N,
+        name: &str,
         module_number: i32,
         flags: GlobalConstantFlags,
     ) -> Result<()> {
@@ -89,18 +88,17 @@ impl IntoConst for String {
 }
 
 impl IntoConst for &str {
-    fn register_constant_flags<N: AsRef<str>>(
+    fn register_constant_flags(
         &self,
-        name: N,
+        name: &str,
         module_number: i32,
         flags: GlobalConstantFlags,
     ) -> Result<()> {
-        let name = name.as_ref();
         unsafe {
             zend_register_string_constant(
-                c_str(name)?,
+                CString::new(name)?.as_ptr(),
                 name.len() as _,
-                c_str(self)?,
+                CString::new(*self)?.as_ptr(),
                 flags.bits() as _,
                 module_number,
             )
@@ -110,16 +108,15 @@ impl IntoConst for &str {
 }
 
 impl IntoConst for bool {
-    fn register_constant_flags<N: AsRef<str>>(
+    fn register_constant_flags(
         &self,
-        name: N,
+        name: &str,
         module_number: i32,
         flags: GlobalConstantFlags,
     ) -> Result<()> {
-        let name = name.as_ref();
         unsafe {
             zend_register_bool_constant(
-                c_str(name)?,
+                CString::new(name)?.as_ptr(),
                 name.len() as _,
                 *self,
                 flags.bits() as _,
@@ -134,16 +131,15 @@ impl IntoConst for bool {
 macro_rules! into_const_num {
     ($type: ty, $fn: expr) => {
         impl IntoConst for $type {
-            fn register_constant_flags<N: AsRef<str>>(
+            fn register_constant_flags(
                 &self,
-                name: N,
+                name: &str,
                 module_number: i32,
                 flags: GlobalConstantFlags,
             ) -> Result<()> {
-                let name = name.as_ref();
                 Ok(unsafe {
                     $fn(
-                        c_str(name)?,
+                        CString::new(name)?.as_ptr(),
                         name.len() as _,
                         *self as _,
                         flags.bits() as _,

@@ -9,7 +9,6 @@
 pub mod macros;
 pub mod bindings;
 pub mod errors;
-pub mod functions;
 pub mod php;
 
 /// Attribute used to annotate constants to be exported to PHP.

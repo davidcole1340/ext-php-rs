@@ -1,14 +1,11 @@
 //! Builder and objects for creating classes in the PHP world.
 
 use crate::errors::{Error, Result};
-use std::{convert::TryInto, fmt::Debug, mem};
+use std::{convert::TryInto, ffi::CString, fmt::Debug, mem};
 
-use crate::{
-    bindings::{
-        zend_class_entry, zend_declare_class_constant, zend_declare_property,
-        zend_register_internal_class_ex,
-    },
-    functions::c_str,
+use crate::bindings::{
+    zend_class_entry, zend_declare_class_constant, zend_declare_property,
+    zend_register_internal_class_ex,
 };
 
 use super::{
@@ -36,9 +33,9 @@ impl ClassEntry {
     ///
     /// Returns a reference to the class if found, or [`None`] if the class could
     /// not be found or the class table has not been initialized.
-    pub fn try_find(name: impl TryInto<ZendString>) -> Option<&'static Self> {
+    pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
-        let name: ZendString = name.try_into().ok()?;
+        let name = ZendString::new(name, false).ok()?;
 
         unsafe {
             crate::bindings::zend_lookup_class_ex(name.borrow_ptr(), std::ptr::null_mut(), 0)
@@ -112,7 +109,7 @@ impl ClassEntry {
         } else {
             let name =
                 unsafe { ZendString::from_ptr(self.__bindgen_anon_1.parent_name, false) }.ok()?;
-            Self::try_find(name)
+            Self::try_find(name.as_str()?)
         }
     }
 }
@@ -136,10 +133,7 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `name` - The name of the class.
     #[allow(clippy::unwrap_used)]
-    pub fn new<N>(name: N) -> Self
-    where
-        N: AsRef<str>,
-    {
+    pub fn new<T: Into<String>>(name: T) -> Self {
         // SAFETY: Allocating temporary class entry. Will return a null-ptr if allocation fails,
         // which will cause the program to panic (standard in Rust). Unwrapping is OK - the ptr
         // will either be valid or null.
@@ -150,7 +144,7 @@ impl<'a> ClassBuilder<'a> {
         };
 
         Self {
-            name: name.as_ref().to_string(),
+            name: name.into(),
             ptr,
             extends: None,
             methods: vec![],
@@ -192,16 +186,15 @@ impl<'a> ClassBuilder<'a> {
     /// * `name` - The name of the property to add to the class.
     /// * `default` - The default value of the property.
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
-    pub fn property(
+    pub fn property<T: Into<String>>(
         mut self,
-        name: impl AsRef<str>,
+        name: T,
         default: impl IntoZval,
         flags: PropertyFlags,
     ) -> Result<Self> {
         let default = default.as_zval(true)?;
 
-        self.properties
-            .push((name.as_ref().to_string(), default, flags));
+        self.properties.push((name.into(), default, flags));
         Ok(self)
     }
 
@@ -214,10 +207,10 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
-    pub fn constant(mut self, name: impl AsRef<str>, value: impl IntoZval) -> Result<Self> {
+    pub fn constant<T: Into<String>>(mut self, name: T, value: impl IntoZval) -> Result<Self> {
         let value = value.as_zval(true)?;
 
-        self.constants.push((name.as_ref().to_string(), value));
+        self.constants.push((name.into(), value));
         Ok(self)
     }
 
@@ -239,10 +232,7 @@ impl<'a> ClassBuilder<'a> {
     /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
     /// which can be derived through the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler)
     /// derive macro.
-    pub fn object_override<T>(mut self) -> Self
-    where
-        T: ZendObjectOverride,
-    {
+    pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
         self.object_override = Some(T::create_object);
         self
     }
@@ -253,7 +243,7 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
     pub fn build(mut self) -> Result<&'static mut ClassEntry> {
-        self.ptr.name = ZendString::new_interned(self.name)?.release();
+        self.ptr.name = ZendString::new_interned(&self.name)?.release();
 
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
@@ -278,7 +268,7 @@ impl<'a> ClassBuilder<'a> {
             unsafe {
                 zend_declare_property(
                     class,
-                    c_str(&name)?,
+                    CString::new(name.as_str())?.as_ptr(),
                     name.len() as _,
                     &mut default,
                     flags.bits() as _,
@@ -288,7 +278,14 @@ impl<'a> ClassBuilder<'a> {
 
         for (name, value) in self.constants {
             let value = Box::into_raw(Box::new(value));
-            unsafe { zend_declare_class_constant(class, c_str(&name)?, name.len() as u64, value) };
+            unsafe {
+                zend_declare_class_constant(
+                    class,
+                    CString::new(name.as_str())?.as_ptr(),
+                    name.len() as u64,
+                    value,
+                )
+            };
         }
 
         if let Some(object_override) = self.object_override {

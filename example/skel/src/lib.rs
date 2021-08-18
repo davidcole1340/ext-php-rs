@@ -10,11 +10,11 @@ use ext_php_rs::{
     prelude::*,
 };
 
+// #[global_allocator]
+// static GLOBAL: PhpAllocator = PhpAllocator::new();
+
 #[php_function]
-pub fn hello_world(
-    name: std::string::String,
-    age: std::option::Option<std::string::String>,
-) -> String {
+pub fn hello_world(name: String) -> String {
     format!("Hello, {}!", name)
 }
 

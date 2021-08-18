@@ -1,6 +1,6 @@
 //! Error and result types returned from the library functions.
 
-use std::{error::Error as ErrorTrait, fmt::Display};
+use std::{error::Error as ErrorTrait, ffi::NulError, fmt::Display};
 
 use crate::php::{
     enums::DataType,
@@ -82,3 +82,9 @@ impl Display for Error {
 }
 
 impl ErrorTrait for Error {}
+
+impl From<NulError> for Error {
+    fn from(_: NulError) -> Self {
+        Self::InvalidCString
+    }
+}

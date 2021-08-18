@@ -1,9 +1,9 @@
 //! Represents a string in the PHP world. Similar to a C string, but is reference counted and
 //! contains the length of the string, meaning the string can contain the NUL character.
 
-use core::slice;
 use std::{
     convert::{TryFrom, TryInto},
+    ffi::CString,
     fmt::Debug,
 };
 
@@ -13,7 +13,6 @@ use crate::{
         zend_string_init_interned,
     },
     errors::{Error, Result},
-    functions::c_str,
 };
 
 /// A wrapper around the [`zend_string`] used within the Zend API. Essentially a C string, except
@@ -30,11 +29,11 @@ impl ZendString {
     ///
     /// * `str_` - The string to create a Zend string from.
     /// * `persistent` - Whether the request should relive the request boundary.
-    pub fn new(str_: impl AsRef<str>, persistent: bool) -> Result<Self> {
-        let str_ = str_.as_ref();
-
+    pub fn new(str: &str, persistent: bool) -> Result<Self> {
         Ok(Self {
-            ptr: unsafe { ext_php_rs_zend_string_init(c_str(str_)?, str_.len() as _, persistent) },
+            ptr: unsafe {
+                ext_php_rs_zend_string_init(CString::new(str)?.as_ptr(), str.len() as _, persistent)
+            },
             free: true,
         })
     }
@@ -45,13 +44,17 @@ impl ZendString {
     ///
     /// * `str_` - The string to create a Zend string from.
     #[allow(clippy::unwrap_used)]
-    pub fn new_interned(str_: impl AsRef<str>) -> Result<Self> {
-        let str_ = str_.as_ref();
-
+    pub fn new_interned(str_: &str) -> Result<Self> {
         // Unwrap is OK here - `zend_string_init_interned` will be a valid function ptr by the time
         // our extension is loaded.
         Ok(Self {
-            ptr: unsafe { zend_string_init_interned.unwrap()(c_str(str_)?, str_.len() as _, true) },
+            ptr: unsafe {
+                zend_string_init_interned.unwrap()(
+                    CString::new(str_)?.as_ptr(),
+                    str_.len() as _,
+                    true,
+                )
+            },
             free: true,
         })
     }
@@ -83,6 +86,19 @@ impl ZendString {
         self.ptr
     }
 
+    /// Extracts a string slice containing the contents of the [`ZendString`].
+    pub fn as_str(&self) -> Option<&str> {
+        // SAFETY: Zend strings have a length that we know we can read.
+        // By reading this many bytes we should not run into any issues.
+        // The value of the string is represented in C as a `char` array of
+        // length 1, but the data can be read up to `ptr.len` bytes.
+        unsafe {
+            let ptr = self.ptr.as_ref()?;
+            let slice = std::slice::from_raw_parts(ptr.val.as_ptr() as *const u8, ptr.len as _);
+            std::str::from_utf8(slice).ok()
+        }
+    }
+
     /// Borrows the underlying internal pointer of the Zend string.
     pub(crate) fn borrow_ptr(&self) -> *mut zend_string {
         self.ptr
@@ -101,7 +117,7 @@ impl TryFrom<String> for ZendString {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self> {
-        ZendString::new(value, false)
+        ZendString::new(value.as_str(), false)
     }
 }
 
@@ -117,18 +133,9 @@ impl TryFrom<&ZendString> for String {
     type Error = Error;
 
     fn try_from(s: &ZendString) -> Result<Self> {
-        let zs = unsafe { s.ptr.as_ref() }.ok_or(Error::InvalidPointer)?;
-
-        // SAFETY: Zend strings have a length that we know we can read.
-        // By reading this many bytes we will not run into any issues.
-        //
-        // We can safely cast our *const c_char into a *const u8 as both
-        // only occupy one byte.
-        std::str::from_utf8(unsafe {
-            slice::from_raw_parts(zs.val.as_ptr() as *const u8, zs.len as _)
-        })
-        .map(|s| s.to_string())
-        .map_err(|_| Error::InvalidPointer)
+        s.as_str()
+            .map(|s| s.to_string())
+            .ok_or(Error::InvalidPointer)
     }
 }
 

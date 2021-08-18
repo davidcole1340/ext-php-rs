@@ -6,8 +6,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct Error(String);
 
 impl Error {
-    pub fn new(inner: impl ToString) -> Self {
-        Self(inner.to_string())
+    pub fn new(inner: String) -> Self {
+        Self(inner)
     }
 }
 

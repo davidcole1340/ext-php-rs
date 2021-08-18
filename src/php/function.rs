@@ -1,9 +1,9 @@
 //! Builder and objects used to create functions and methods in PHP.
 
-use std::{mem, os::raw::c_char, ptr};
+use std::{ffi::CString, mem, os::raw::c_char, ptr};
 
+use crate::bindings::zend_function_entry;
 use crate::errors::Result;
-use crate::{bindings::zend_function_entry, functions::c_str};
 
 use super::{
     args::{Arg, ArgInfo},
@@ -60,12 +60,9 @@ impl<'a> FunctionBuilder<'a> {
     ///
     /// * `name` - The name of the function.
     /// * `handler` - The handler to be called when the function is invoked from PHP.
-    pub fn new<N>(name: N, handler: FunctionHandler) -> Self
-    where
-        N: AsRef<str>,
-    {
+    pub fn new<T: Into<String>>(name: T, handler: FunctionHandler) -> Self {
         Self {
-            name: name.as_ref().to_string(),
+            name: name.into(),
             function: FunctionEntry {
                 fname: ptr::null(),
                 handler: Some(unsafe {
@@ -147,16 +144,16 @@ impl<'a> FunctionBuilder<'a> {
         // arguments
         for arg in self.args.iter() {
             args.push(ArgInfo {
-                name: c_str(&arg.name)?,
+                name: CString::new(arg.name.as_str())?.into_raw(),
                 type_: ZendType::empty_from_type(arg._type, arg.as_ref, false, arg.allow_null),
                 default_value: match &arg.default_value {
-                    Some(val) => c_str(val)?,
+                    Some(val) => CString::new(val.as_str())?.into_raw(),
                     None => ptr::null(),
                 },
             });
         }
 
-        self.function.fname = c_str(self.name)?;
+        self.function.fname = CString::new(self.name)?.into_raw();
         self.function.num_args = (args.len() - 1) as u32;
         self.function.arg_info = Box::into_raw(args.into_boxed_slice()) as *const ArgInfo;
 

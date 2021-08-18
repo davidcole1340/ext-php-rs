@@ -4,6 +4,7 @@
 use std::{
     collections::HashMap,
     convert::{TryFrom, TryInto},
+    ffi::CString,
     fmt::Debug,
     marker::PhantomData,
     u64,
@@ -17,7 +18,6 @@ use crate::{
         HT_MIN_SIZE,
     },
     errors::{Error, Result},
-    functions::c_str,
     php::enums::DataType,
 };
 
@@ -114,13 +114,9 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
     /// * `None` - No value at the given position was found.
-    pub fn get<K>(&self, key: K) -> Option<&Zval>
-    where
-        K: Into<String>,
-    {
-        let _key = key.into();
-        let len = _key.len();
-        unsafe { zend_hash_str_find(self.ptr, c_str(_key).ok()?, len as u64).as_ref() }
+    pub fn get(&self, key: &str) -> Option<&Zval> {
+        let str = CString::new(key).ok()?;
+        unsafe { zend_hash_str_find(self.ptr, str.as_ptr(), key.len() as _).as_ref() }
     }
 
     /// Attempts to retrieve a value from the hash table with an index.
@@ -147,13 +143,10 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `Some(())` - Key was successfully removed.
     /// * `None` - No key was removed, did not exist.
-    pub fn remove<K>(&self, key: K) -> Option<()>
-    where
-        K: Into<String>,
-    {
-        let _key = key.into();
-        let len = _key.len();
-        let result = unsafe { zend_hash_str_del(self.ptr, c_str(_key).ok()?, len as u64) };
+    pub fn remove<K>(&self, key: &str) -> Option<()> {
+        let result = unsafe {
+            zend_hash_str_del(self.ptr, CString::new(key).ok()?.as_ptr(), key.len() as _)
+        };
 
         if result < 0 {
             None
@@ -190,24 +183,20 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `key` - The key to insert the value at in the hash table.
     /// * `value` - The value to insert into the hash table.
-    pub fn insert<K, V>(&mut self, key: K, val: &V) -> Result<HashTableInsertResult>
+    pub fn insert<V>(&mut self, key: &str, val: &V) -> Result<HashTableInsertResult>
     where
-        K: Into<String>,
         V: IntoZval,
     {
-        let key: String = key.into();
-        let len = key.len();
-        let val = val.as_zval(false)?;
-
+        let mut val = val.as_zval(false)?;
         let existing_ptr = unsafe {
             zend_hash_str_update(
                 self.ptr,
-                c_str(key)?,
-                len as u64,
-                Box::into_raw(Box::new(val)), // Do we really want to allocate the value on the heap?
-                                              // I read somewhere that zvals are't usually (or never) allocated on the heap.
+                CString::new(key)?.as_ptr(),
+                key.len() as u64,
+                &mut val,
             )
         };
+        val.release();
 
         // Should we be claiming this Zval into rust?
         // I'm not sure if the PHP GC will collect this.
@@ -236,10 +225,9 @@ impl<'a> ZendHashTable<'a> {
     where
         V: IntoZval,
     {
-        let val = val.as_zval(false)?;
-
-        let existing_ptr =
-            unsafe { zend_hash_index_update(self.ptr, key, Box::into_raw(Box::new(val))) };
+        let mut val = val.as_zval(false)?;
+        let existing_ptr = unsafe { zend_hash_index_update(self.ptr, key, &mut val) };
+        val.release();
 
         // SAFETY: The `zend_hash_str_update` function will either return a valid pointer or a null pointer.
         // In the latter case, `as_ref()` will return `None`.
@@ -259,9 +247,10 @@ impl<'a> ZendHashTable<'a> {
     where
         V: IntoZval,
     {
-        let val = val.as_zval(false)?;
+        let mut val = val.as_zval(false)?;
+        unsafe { zend_hash_next_index_insert(self.ptr, &mut val) };
+        val.release();
 
-        unsafe { zend_hash_next_index_insert(self.ptr, Box::into_raw(Box::new(val))) };
         Ok(())
     }
 
@@ -402,7 +391,7 @@ where
 /// Implementation converting a Rust HashTable into a ZendHashTable.
 impl<'a, 'b, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable<'b>
 where
-    K: ToString,
+    K: AsRef<str>,
     V: IntoZval,
 {
     type Error = Error;
@@ -411,7 +400,7 @@ where
         let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
 
         for (k, v) in hm.iter() {
-            ht.insert(k.to_string(), v)?;
+            ht.insert(k.as_ref(), v)?;
         }
 
         Ok(ht)

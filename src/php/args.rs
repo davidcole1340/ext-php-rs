@@ -37,12 +37,9 @@ impl<'a> Arg<'a> {
     ///
     /// * `name` - The name of the parameter.
     /// * `_type` - The type of the parameter.
-    pub fn new<S>(name: S, _type: DataType) -> Self
-    where
-        S: ToString,
-    {
+    pub fn new<T: Into<String>>(name: T, _type: DataType) -> Self {
         Arg {
-            name: name.to_string(),
+            name: name.into(),
             _type,
             as_ref: false,
             allow_null: false,
@@ -65,21 +62,15 @@ impl<'a> Arg<'a> {
     }
 
     /// Sets the default value for the argument.
-    pub fn default<S>(mut self, default: S) -> Self
-    where
-        S: ToString,
-    {
-        self.default_value = Some(default.to_string());
+    pub fn default<T: Into<String>>(mut self, default: T) -> Self {
+        self.default_value = Some(default.into());
         self
     }
 
     /// Attempts to retrieve the value of the argument.
     /// This will be None until the ArgParser is used to parse
     /// the arguments.
-    pub fn val<T>(&self) -> Option<T>
-    where
-        T: TryFrom<&'a Zval>,
-    {
+    pub fn val<T: TryFrom<&'a Zval>>(&self) -> Option<T> {
         match self.zval {
             Some(zval) => match zval.try_into() {
                 Ok(val) => Some(val),
