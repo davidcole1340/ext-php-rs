@@ -1,6 +1,7 @@
 mod class;
 mod constant;
 mod error;
+mod extern_;
 mod function;
 mod impl_;
 mod method;
@@ -12,7 +13,9 @@ use std::{collections::HashMap, sync::Mutex};
 use constant::Constant;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use syn::{parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemImpl};
+use syn::{
+    parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl,
+};
 
 extern crate proc_macro;
 
@@ -90,6 +93,17 @@ pub fn php_const(_: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemConst);
 
     match constant::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemForeignMod);
+
+    match extern_::parser(input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }

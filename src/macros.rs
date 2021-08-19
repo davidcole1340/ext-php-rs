@@ -37,7 +37,7 @@ macro_rules! info_table_row {
 macro_rules! _info_table_row {
     ($fn: ident, $($element: expr),*) => {
         unsafe {
-            $crate::bindings::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $(::std::ffi::CString::new($element).unwrap().into_raw()),*);
+            $crate::bindings::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $(::std::ffi::CString::new($element).unwrap().as_ptr()),*);
         }
     };
 
