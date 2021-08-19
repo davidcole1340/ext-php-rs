@@ -308,6 +308,50 @@
 <span id="306">306</span>
 <span id="307">307</span>
 <span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
+<span id="350">350</span>
+<span id="351">351</span>
+<span id="352">352</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Bindings and abstractions for the Zend API to build PHP extensions natively in Rust.</span>
 
@@ -340,6 +384,49 @@
 <span class="doccomment">/// const ANOTHER_CONST: &amp;str = &quot;Hello, world!&quot;;</span>
 <span class="doccomment">/// ```</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ext_php_rs_derive::php_const</span>;
+
+<span class="doccomment">/// Attribute used to annotate `extern` blocks which are deemed as PHP functions.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This allows you to &#39;import&#39; PHP functions into Rust so that they can be called like regular</span>
+<span class="doccomment">/// Rust functions. Parameters can be any type that implements [`IntoZval`], and the return type</span>
+<span class="doccomment">/// can be anything that implements [`From&lt;Zval&gt;`] (notice how [`Zval`] is consumed rather than</span>
+<span class="doccomment">/// borrowed in this case).</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Panics</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The function can panic when called under a few circumstances:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// * The function could not be found or was not callable.</span>
+<span class="doccomment">/// * One of the parameters could not be converted into a [`Zval`].</span>
+<span class="doccomment">/// * The actual function call failed internally.</span>
+<span class="doccomment">/// * The output [`Zval`] could not be parsed into the output type.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The last point can be important when interacting with functions that return unions, such as</span>
+<span class="doccomment">/// [`strpos`] which can return an integer or a boolean. In this case, a [`Zval`] should be</span>
+<span class="doccomment">/// returned as parsing a boolean to an integer is invalid, and vice versa.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Example</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This `extern` block imports the [`strpos`] function from PHP. Notice that the string parameters</span>
+<span class="doccomment">/// can take either [`String`] or [`&amp;str`], the optional parameter `offset` is an [`Option&lt;i64&gt;`],</span>
+<span class="doccomment">/// and the return value is a [`Zval`] as the return type is an integer-boolean union.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```ignore</span>
+<span class="doccomment">/// #[php_extern]</span>
+<span class="doccomment">/// extern &quot;C&quot; {</span>
+<span class="doccomment">///     fn strpos(haystack: &amp;str, needle: &amp;str, offset: Option&lt;i64&gt;) -&gt; Zval;</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// #[php_function]</span>
+<span class="doccomment">/// pub fn my_strpos() {</span>
+<span class="doccomment">///     assert_eq!(unsafe { strpos(&quot;Hello&quot;, &quot;e&quot;, None) }, 1);</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`strpos`]: https://www.php.net/manual/en/function.strpos.php</span>
+<span class="doccomment">/// [`IntoZval`]: ext_php_rs::php::types::zval::IntoZval</span>
+<span class="doccomment">/// [`Zval`]: ext_php_rs::php::types::zval::Zval</span>
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ext_php_rs_derive::php_extern</span>;
 
 <span class="doccomment">/// Attribute used to annotate a function as a PHP function.</span>
 <span class="doccomment">///</span>
@@ -611,6 +698,7 @@
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">prelude</span> {
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php::module::ModuleBuilder</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_const</span>;
+    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_extern</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_function</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_impl</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_module</span>;
