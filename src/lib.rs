@@ -30,6 +30,49 @@ pub mod php;
 /// ```
 pub use ext_php_rs_derive::php_const;
 
+/// Attribute used to annotate `extern` blocks which are deemed as PHP functions.
+///
+/// This allows you to 'import' PHP functions into Rust so that they can be called like regular
+/// Rust functions. Parameters can be any type that implements [`IntoZval`], and the return type
+/// can be anything that implements [`From<Zval>`] (notice how [`Zval`] is consumed rather than
+/// borrowed in this case).
+///
+/// # Panics
+///
+/// The function can panic when called under a few circumstances:
+///
+/// * The function could not be found or was not callable.
+/// * One of the parameters could not be converted into a [`Zval`].
+/// * The actual function call failed internally.
+/// * The output [`Zval`] could not be parsed into the output type.
+///
+/// The last point can be important when interacting with functions that return unions, such as
+/// [`strpos`] which can return an integer or a boolean. In this case, a [`Zval`] should be
+/// returned as parsing a boolean to an integer is invalid, and vice versa.
+///
+/// # Example
+///
+/// This `extern` block imports the [`strpos`] function from PHP. Notice that the string parameters
+/// can take either [`String`] or [`&str`], the optional parameter `offset` is an [`Option<i64>`],
+/// and the return value is a [`Zval`] as the return type is an integer-boolean union.
+///
+/// ```ignore
+/// #[php_extern]
+/// extern "C" {
+///     fn strpos(haystack: &str, needle: &str, offset: Option<i64>) -> Zval;
+/// }
+///
+/// #[php_function]
+/// pub fn my_strpos() {
+///     assert_eq!(unsafe { strpos("Hello", "e", None) }, 1);
+/// }
+/// ```
+///
+/// [`strpos`]: https://www.php.net/manual/en/function.strpos.php
+/// [`IntoZval`]: ext_php_rs::php::types::zval::IntoZval
+/// [`Zval`]: ext_php_rs::php::types::zval::Zval
+pub use ext_php_rs_derive::php_extern;
+
 /// Attribute used to annotate a function as a PHP function.
 ///
 /// Only types that implement [`FromZval`] can be used as parameter and return types. These include
@@ -300,6 +343,7 @@ pub use ext_php_rs_derive::ZendObjectHandler;
 pub mod prelude {
     pub use crate::php::module::ModuleBuilder;
     pub use crate::php_const;
+    pub use crate::php_extern;
     pub use crate::php_function;
     pub use crate::php_impl;
     pub use crate::php_module;

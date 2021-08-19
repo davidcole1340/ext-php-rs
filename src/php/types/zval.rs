@@ -577,6 +577,14 @@ macro_rules! try_from_zval {
                     .ok_or(Error::ZvalConversion(value.get_type()?))
             }
         }
+
+        impl TryFrom<Zval> for $type {
+            type Error = Error;
+
+            fn try_from(value: Zval) -> Result<Self> {
+                (&value).try_into()
+            }
+        }
     };
 }
 
@@ -632,6 +640,20 @@ where
     }
 }
 
+impl<'a, T> TryFrom<Zval> for Vec<T>
+where
+    T: FromZval<'a>,
+{
+    type Error = Error;
+
+    fn try_from(value: Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))?
+            .try_into()
+    }
+}
+
 impl<'a, T> FromZval<'a> for HashMap<String, T>
 where
     T: FromZval<'a>,
@@ -653,6 +675,20 @@ where
     }
 }
 
+impl<'a, T> TryFrom<Zval> for HashMap<String, T>
+where
+    T: FromZval<'a>,
+{
+    type Error = Error;
+
+    fn try_from(value: Zval) -> Result<Self> {
+        value
+            .array()
+            .ok_or(Error::ZvalConversion(value.get_type()?))?
+            .try_into()
+    }
+}
+
 impl<'a> FromZval<'a> for Callable<'a> {
     const TYPE: DataType = DataType::Callable;
 }
@@ -661,6 +697,14 @@ impl<'a> TryFrom<&'a Zval> for Callable<'a> {
     type Error = Error;
 
     fn try_from(value: &'a Zval) -> Result<Self> {
-        value.callable().ok_or(Error::Callable)
+        Callable::new(value)
+    }
+}
+
+impl<'a> TryFrom<Zval> for Callable<'a> {
+    type Error = Error;
+
+    fn try_from(value: Zval) -> Result<Self> {
+        Callable::new_owned(value)
     }
 }

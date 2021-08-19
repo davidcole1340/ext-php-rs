@@ -1,21 +1,29 @@
+mod allocator;
+
 use std::collections::HashMap;
 
+use allocator::PhpAllocator;
 use ext_php_rs::{
     call_user_func, info_table_end, info_table_row, info_table_start,
     php::{
         exceptions::PhpException,
         module::ModuleEntry,
-        types::{array::ZendHashTable, callable::Callable},
+        types::{array::ZendHashTable, callable::Callable, zval::Zval},
     },
     prelude::*,
 };
 
-// #[global_allocator]
-// static GLOBAL: PhpAllocator = PhpAllocator::new();
+#[global_allocator]
+static GLOBAL: PhpAllocator = PhpAllocator::new();
 
 #[php_function]
-pub fn hello_world(name: String) -> String {
-    format!("Hello, {}!", name)
+pub fn hello_world() -> String {
+    let call = Callable::try_from_name("strpos").unwrap();
+
+    eprintln!("im callin");
+    let val = call.try_call(vec![&"hello world", &"w"]);
+    dbg!(val);
+    "Ok".into()
 }
 
 #[derive(Debug, Default, ZendObjectHandler)]
@@ -132,6 +140,15 @@ pub fn skel_unpack<'a>(
     Ok(arr)
 }
 
+#[php_function]
+pub fn test_extern() -> i32 {
+    let y = unsafe { strpos("hello", "e", None) };
+    dbg!(y);
+    // let x = unsafe { test_func() };
+    // dbg!(x.try_call(vec![]));
+    0
+}
+
 #[no_mangle]
 pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_start!();
@@ -145,4 +162,11 @@ pub fn startup() {}
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
     module.info_function(php_module_info)
+}
+
+#[php_extern]
+extern "C" {
+    fn test_func<'a>() -> Callable<'a>;
+    fn strpos2<'a>(haystack: &str, needle: &str, offset: Option<i32>) -> Zval;
+    pub fn strpos<'a>(haystack: &str, needle: &str, offset: Option<i32>) -> Zval;
 }

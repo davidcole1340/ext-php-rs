@@ -1,7 +1,7 @@
 //! Types relating to binary data transmission between Rust and PHP.
 
 use std::{
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
     ops::{Deref, DerefMut},
 };
 
@@ -43,6 +43,10 @@ impl<T: Pack> DerefMut for Binary<T> {
     }
 }
 
+impl<'a, T: Pack> FromZval<'a> for Binary<T> {
+    const TYPE: DataType = DataType::String;
+}
+
 impl<T: Pack> TryFrom<&Zval> for Binary<T> {
     type Error = Error;
 
@@ -54,8 +58,12 @@ impl<T: Pack> TryFrom<&Zval> for Binary<T> {
     }
 }
 
-impl<'a, T: Pack> FromZval<'a> for Binary<T> {
-    const TYPE: DataType = DataType::String;
+impl<T: Pack> TryFrom<Zval> for Binary<T> {
+    type Error = Error;
+
+    fn try_from(value: Zval) -> Result<Self> {
+        (&value).try_into()
+    }
 }
 
 impl<T: Pack> IntoZval for Binary<T> {
