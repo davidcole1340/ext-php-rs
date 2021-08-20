@@ -78,3 +78,9 @@ impl<T: Pack> From<Binary<T>> for Vec<T> {
         value.0
     }
 }
+
+impl<T: Pack> From<Vec<T>> for Binary<T> {
+    fn from(value: Vec<T>) -> Self {
+        Self::new(value)
+    }
+}

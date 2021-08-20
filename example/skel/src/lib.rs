@@ -167,6 +167,6 @@ pub fn module(module: ModuleBuilder) -> ModuleBuilder {
 #[php_extern]
 extern "C" {
     fn test_func<'a>() -> Callable<'a>;
-    fn strpos2<'a>(haystack: &str, needle: &str, offset: Option<i32>) -> Zval;
-    pub fn strpos<'a>(haystack: &str, needle: &str, offset: Option<i32>) -> Zval;
+    fn strpos2(haystack: &str, needle: &str, offset: Option<i32>) -> Zval;
+    pub fn strpos(haystack: &str, needle: &str, offset: Option<i32>) -> Zval;
 }

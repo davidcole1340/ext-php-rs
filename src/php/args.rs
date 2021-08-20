@@ -71,13 +71,7 @@ impl<'a> Arg<'a> {
     /// This will be None until the ArgParser is used to parse
     /// the arguments.
     pub fn val<T: TryFrom<&'a Zval>>(&self) -> Option<T> {
-        match self.zval {
-            Some(zval) => match zval.try_into() {
-                Ok(val) => Some(val),
-                Err(_) => None,
-            },
-            None => None,
-        }
+        self.zval.and_then(|zv| zv.try_into().ok())
     }
 
     /// Attempts to return a reference to the arguments internal Zval.
