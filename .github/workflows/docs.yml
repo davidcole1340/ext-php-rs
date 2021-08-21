@@ -32,6 +32,11 @@ jobs:
         with:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
+      - name: Install mdbook
+        uses: actions-rs/install@v0.1
+        with:
+          crate: mdbook
+          version: latest
       - name: Build docs
         uses: actions-rs/cargo@v1
         env:
@@ -39,6 +44,10 @@ jobs:
         with:
           command: doc
           args: --release
+      - name: Build guide
+        run: |
+          mdbook build guide
+          mv guide/book target/doc/guide
       - name: Create index redirect
         run: |
           echo '<meta http-equiv=refresh content=0;url=/ext-php-rs/ext_php_rs>' > target/doc/index.html
