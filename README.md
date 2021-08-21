@@ -30,7 +30,8 @@ Calling the function from PHP:
 var_dump(hello_world("David")); // string(13) "Hello, David!"
 ```
 
-For more information read the [guide](https://davidcole1340.github.io/ext-php-rs/guide).
+For more examples read the library
+[guide](https://davidcole1340.github.io/ext-php-rs/guide).
 
 ## Features
 
@@ -57,7 +58,8 @@ Our main goal is to **make extension development easier.**
 
 ## Documentation
 
-The library guide can be read [here](https://davidcole1340.github.io/ext-php-rs/guide).
+The library guide can be read
+[here](https://davidcole1340.github.io/ext-php-rs/guide).
 
 The project is documented in-line, so viewing the `cargo` documentation is the
 best resource at the moment.
@@ -122,8 +124,11 @@ dual licensed as above, without any additional terms or conditions.
 
 Licensed under either of
 
-- Apache License, Version 2.0 ([LICENSE_APACHE](LICENSE_APACHE) or
-  http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE_MIT](LICENSE_MIT) or http://opensource.org/licenses/MIT)
+- Apache License, Version 2.0 ([LICENSE_APACHE] or
+  <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE_MIT] or <http://opensource.org/licenses/MIT>)
 
 at your option.
+
+[LICENSE_APACHE]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_APACHE
+[LICENSE_MIT]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_MIT

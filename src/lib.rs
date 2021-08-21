@@ -1,7 +1,4 @@
-//! Bindings and abstractions for the Zend API to build PHP extensions natively in Rust.
-//!
-//! The library guide can be read [here.](https://davidcole1340.github.io/ext-php-rs/guide)
-
+#![doc = include_str!("../README.md")]
 #![deny(clippy::unwrap_used)]
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
@@ -23,12 +20,17 @@ pub mod php;
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
+/// # use ext_php_rs::prelude::*;
 /// #[php_const]
 /// const TEST_CONSTANT: i32 = 100;
 ///
 /// #[php_const]
 /// const ANOTHER_CONST: &str = "Hello, world!";
+/// # #[php_module]
+/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+/// #     module
+/// # }
 /// ```
 pub use ext_php_rs_derive::php_const;
 
@@ -58,7 +60,9 @@ pub use ext_php_rs_derive::php_const;
 /// can take either [`String`] or [`&str`], the optional parameter `offset` is an [`Option<i64>`],
 /// and the return value is a [`Zval`] as the return type is an integer-boolean union.
 ///
-/// ```ignore
+/// ```
+/// # use ext_php_rs::prelude::*;
+/// # use ext_php_rs::php::types::zval::Zval;
 /// #[php_extern]
 /// extern "C" {
 ///     fn strpos(haystack: &str, needle: &str, offset: Option<i64>) -> Zval;
@@ -66,8 +70,12 @@ pub use ext_php_rs_derive::php_const;
 ///
 /// #[php_function]
 /// pub fn my_strpos() {
-///     assert_eq!(unsafe { strpos("Hello", "e", None) }, 1);
+///     assert_eq!(unsafe { strpos("Hello", "e", None) }.long(), Some(1));
 /// }
+/// # #[php_module]
+/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+/// #     module
+/// # }
 /// ```
 ///
 /// [`strpos`]: https://www.php.net/manual/en/function.strpos.php
@@ -153,18 +161,24 @@ pub use ext_php_rs_derive::php_extern;
 /// Creating a simple function which will return a string. The function still must be declared in
 /// the PHP module to be able to call.
 ///
-/// ```ignore
+/// ```
+/// # use ext_php_rs::prelude::*;
 /// #[php_function]
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
 /// }
+/// # #[php_module]
+/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+/// #     module
+/// # }
 /// ```
 ///
 /// Parameters can also be deemed optional by passing the parameter name in the attribute options.
 /// This function takes one required parameter (`hello`) and two optional parameters (`description`
 /// and `age`).
 ///
-/// ```ignore
+/// ```
+/// # use ext_php_rs::prelude::*;
 /// #[php_function(optional = "description")]
 /// pub fn hello(name: String, description: Option<String>, age: Option<i32>) -> String {
 ///     let mut response = format!("Hello, {}!", name);
@@ -179,26 +193,25 @@ pub use ext_php_rs_derive::php_extern;
 ///
 ///     response
 /// }
+/// # #[php_module]
+/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+/// #     module
+/// # }
 /// ```
 ///
 /// Defaults can also be given in a similar fashion. For example, the above function could have
 /// default values for `description` and `age` by changing the attribute to the following:
 ///
-/// ```ignore
+/// ```
+/// # use ext_php_rs::prelude::*;
 /// #[php_function(optional = "description", defaults(description = "David", age = 10))]
 /// pub fn hello(name: String, description: String, age: i32) -> String {
-///     let mut response = format!("Hello, {}!", name);
-///
-///     if let Some(description) = description {
-///         response.push_str(format!(" {}.", description).as_ref());
-///     }
-///
-///     if let Some(age) = age {
-///         response.push_str(format!(" I am {} year(s) old.", age).as_ref());
-///     }
-///
-///     response
+///     format!("Hello, {}! {}. I am {} year(s) old.", name, description, age)
 /// }
+/// # #[php_module]
+/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+/// #     module
+/// # }
 /// ```
 ///
 /// [`Result<T, E>`]: std::result::Result
@@ -245,7 +258,7 @@ pub use ext_php_rs_derive::php_function;
 ///
 /// ```ignore
 /// #[derive(Debug, Default, ZendObjectHandler)]
-/// struct Human {
+/// pub struct Human {
 ///     name: String,
 ///     age: i32,
 /// }
@@ -302,7 +315,8 @@ pub use ext_php_rs_derive::php_impl;
 /// since the function is declared above the module it will automatically be registered when the
 /// module attribute is called.
 ///
-/// ```ignore
+/// ```
+/// # use ext_php_rs::prelude::*;
 /// #[php_function]
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
@@ -330,11 +344,16 @@ pub use ext_php_rs_derive::php_module;
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
+/// # use ext_php_rs::prelude::*;
 /// #[php_startup]
 /// pub fn startup_function() {
 ///     // do whatever you need to do...
 /// }
+/// # #[php_module]
+/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+/// #     module
+/// # }
 /// ```
 pub use ext_php_rs_derive::php_startup;
 
