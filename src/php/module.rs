@@ -42,6 +42,7 @@ pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);
 ///     ModuleBuilder::new("ext-name", "ext-version")
 ///         .info_function(php_module_info)
 ///         .build()
+///         .unwrap()
 ///         .into_raw()
 /// }
 /// ```
