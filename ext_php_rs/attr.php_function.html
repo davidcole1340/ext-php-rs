@@ -69,7 +69,7 @@ function.</p>
 <p>Creating a simple function which will return a string. The function still must be declared in
 the PHP module to be able to call.</p>
 
-<div class='information'><div class='tooltip ignore'>ⓘ</div></div><div class="example-wrap"><pre class="rust rust-example-rendered ignore">
+<div class="example-wrap"><pre class="rust rust-example-rendered">
 <span class="attribute">#[<span class="ident">php_function</span>]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">hello</span>(<span class="ident">name</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="macro">format!</span>(<span class="string">&quot;Hello, {}!&quot;</span>, <span class="ident">name</span>)
@@ -78,7 +78,7 @@ the PHP module to be able to call.</p>
 This function takes one required parameter (<code>hello</code>) and two optional parameters (<code>description</code>
 and <code>age</code>).</p>
 
-<div class='information'><div class='tooltip ignore'>ⓘ</div></div><div class="example-wrap"><pre class="rust rust-example-rendered ignore">
+<div class="example-wrap"><pre class="rust rust-example-rendered">
 <span class="attribute">#[<span class="ident">php_function</span>(<span class="ident">optional</span> <span class="op">=</span> <span class="string">&quot;description&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">hello</span>(<span class="ident">name</span>: <span class="ident">String</span>, <span class="ident">description</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>, <span class="ident">age</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">i32</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;Hello, {}!&quot;</span>, <span class="ident">name</span>);
@@ -96,19 +96,9 @@ and <code>age</code>).</p>
 <p>Defaults can also be given in a similar fashion. For example, the above function could have
 default values for <code>description</code> and <code>age</code> by changing the attribute to the following:</p>
 
-<div class='information'><div class='tooltip ignore'>ⓘ</div></div><div class="example-wrap"><pre class="rust rust-example-rendered ignore">
+<div class="example-wrap"><pre class="rust rust-example-rendered">
 <span class="attribute">#[<span class="ident">php_function</span>(<span class="ident">optional</span> <span class="op">=</span> <span class="string">&quot;description&quot;</span>, <span class="ident">defaults</span>(<span class="ident">description</span> <span class="op">=</span> <span class="string">&quot;David&quot;</span>, <span class="ident">age</span> <span class="op">=</span> <span class="number">10</span>))]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">hello</span>(<span class="ident">name</span>: <span class="ident">String</span>, <span class="ident">description</span>: <span class="ident">String</span>, <span class="ident">age</span>: <span class="ident">i32</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;Hello, {}!&quot;</span>, <span class="ident">name</span>);
-
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">description</span>) <span class="op">=</span> <span class="ident">description</span> {
-        <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="macro">format!</span>(<span class="string">&quot; {}.&quot;</span>, <span class="ident">description</span>).<span class="ident">as_ref</span>());
-    }
-
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">age</span>) <span class="op">=</span> <span class="ident">age</span> {
-        <span class="ident">response</span>.<span class="ident">push_str</span>(<span class="macro">format!</span>(<span class="string">&quot; I am {} year(s) old.&quot;</span>, <span class="ident">age</span>).<span class="ident">as_ref</span>());
-    }
-
-    <span class="ident">response</span>
+    <span class="macro">format!</span>(<span class="string">&quot;Hello, {}! {}. I am {} year(s) old.&quot;</span>, <span class="ident">name</span>, <span class="ident">description</span>, <span class="ident">age</span>)
 }</pre></div>
 </div></details></section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../" data-current-crate="ext_php_rs" data-search-index-js="../search-index.js" data-search-js="../search.js"></div><script src="../main.js"></script></body></html>

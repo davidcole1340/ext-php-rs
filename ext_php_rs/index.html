@@ -1,7 +1,117 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Bindings and abstractions for the Zend API to build PHP extensions natively in Rust."><meta name="keywords" content="rust, rustlang, rust-lang, ext_php_rs"><title>ext_php_rs - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><script src="../crates.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="ext-php-rs"><meta name="keywords" content="rust, rustlang, rust-lang, ext_php_rs"><title>ext_php_rs - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><script src="../crates.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <link rel="alternate icon" type="image/png" href="../favicon-16x16.png">
-<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../ext_php_rs/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><h2 class="location">Crate ext_php_rs</h2><div class="block version"><p>Version 0.1.0</p></div><div class="sidebar-elems"><a id="all-types" href="all.html"><p>See all ext_php_rs's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li></ul></div><div id="sidebar-vars" data-name="ext_php_rs" data-ty="mod" data-relpath=""></div><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img src="../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../settings.html" title="settings"><img src="../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Crate <a class="mod" href="#">ext_php_rs</a><button id="copy-path" onclick="copy_path(this)" title="copy path"><img src="../clipboard.svg" width="19" height="18" alt="Copy item import" title="Copy item import to clipboard"></button></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/ext_php_rs/lib.rs.html#1-354" title="goto source code">[src]</a></span></h1><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Bindings and abstractions for the Zend API to build PHP extensions natively in Rust.</p>
-<p>The library guide can be read <a href="https://davidcole1340.github.io/ext-php-rs/guide">here.</a></p>
+<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../ext_php_rs/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><h2 class="location">Crate ext_php_rs</h2><div class="block version"><p>Version 0.1.0</p></div><div class="sidebar-elems"><a id="all-types" href="all.html"><p>See all ext_php_rs's items</p></a><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#macros">Macros</a></li></ul></div><div id="sidebar-vars" data-name="ext_php_rs" data-ty="mod" data-relpath=""></div><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img src="../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../settings.html" title="settings"><img src="../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Crate <a class="mod" href="#">ext_php_rs</a><button id="copy-path" onclick="copy_path(this)" title="copy path"><img src="../clipboard.svg" width="19" height="18" alt="Copy item import" title="Copy item import to clipboard"></button></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/ext_php_rs/lib.rs.html#1-373" title="goto source code">[src]</a></span></h1><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h1 id="ext-php-rs" class="section-header"><a href="#ext-php-rs">ext-php-rs</a></h1>
+<p><a href="https://discord.gg/dphp"><img align="right" src="https://discord.com/api/guilds/115233111977099271/widget.png?style=banner2"></a></p>
+<p>Bindings and abstractions for the Zend API to build PHP extensions natively in
+Rust.</p>
+<h2 id="example" class="section-header"><a href="#example">Example</a></h2>
+<p>Export a simple function <code>function hello_world(string $name): string</code> to PHP:</p>
+<pre><code class="language-rs">use ext_php_rs::prelude::*;
+
+#[php_function]
+pub fn hello_world(name: String) -&gt; String {
+    format!(&quot;Hello, {}!&quot;, name)
+}
+
+// Required to register the extension with PHP.
+#[php_module]
+pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+}
+</code></pre>
+<p>Calling the function from PHP:</p>
+<pre><code class="language-php">var_dump(hello_world(&quot;David&quot;)); // string(13) &quot;Hello, David!&quot;
+</code></pre>
+<p>For more examples read the library
+<a href="https://davidcole1340.github.io/ext-php-rs/guide">guide</a>.</p>
+<h2 id="features" class="section-header"><a href="#features">Features</a></h2>
+<ul>
+<li><strong>Easy to use:</strong> The built-in macros can abstract away the need to interact
+with the Zend API, such as Rust-type function parameter abstracting away
+interacting with Zend values.</li>
+<li><strong>Lightweight:</strong> You don’t have to use the built-in helper macros. It’s
+possible to write your own glue code around your own functions.</li>
+<li><strong>Extensible:</strong> Implement <code>IntoZval</code> and <code>FromZval</code> for your own custom types,
+allowing the type to be used as function parameters and return types.</li>
+</ul>
+<h2 id="goals" class="section-header"><a href="#goals">Goals</a></h2>
+<p>Our main goal is to <strong>make extension development easier.</strong></p>
+<ul>
+<li>Writing extensions in C can be tedious, and with the Zend APIs limited
+documentation can be intimidating.</li>
+<li>Rust’s modern language features and feature-full standard library are big
+improvements on C.</li>
+<li>Abstracting away the raw Zend APIs allows extensions to be developed faster
+and with more confidence.</li>
+<li>Abstractions also allow us to support future (and potentially past) versions
+of PHP without significant changes to extension code.</li>
+</ul>
+<h2 id="documentation" class="section-header"><a href="#documentation">Documentation</a></h2>
+<p>The library guide can be read
+<a href="https://davidcole1340.github.io/ext-php-rs/guide">here</a>.</p>
+<p>The project is documented in-line, so viewing the <code>cargo</code> documentation is the
+best resource at the moment.</p>
+<p>We are currently unable to deploy our documentation to <code>docs.rs</code> due to the
+crate requiring PHP 8.0, which is unavailable in the default Ubuntu
+repositories. Documentation can be viewed
+<a href="https://davidcole1340.github.io/ext-php-rs/">here</a>. It is generated from the
+latest <code>master</code> branch. Documentation will be moved to <code>docs.rs</code> when Ubuntu
+updates its repositories to PHP 8.0.</p>
+<h2 id="requirements" class="section-header"><a href="#requirements">Requirements</a></h2>
+<ul>
+<li>PHP 8.0 or later
+<ul>
+<li>No support is planned for lower versions.</li>
+</ul>
+</li>
+<li>Linux or Darwin-based OS</li>
+<li>Rust - no idea which version</li>
+<li>Clang 3.9 or greater</li>
+</ul>
+<p>See the following links for the dependency crate requirements:</p>
+<ul>
+<li><a href="https://github.com/alexcrichton/cc-rs#compile-time-requirements"><code>cc</code></a></li>
+<li><a href="https://rust-lang.github.io/rust-bindgen/requirements.html"><code>bindgen</code></a></li>
+</ul>
+<h2 id="usage" class="section-header"><a href="#usage">Usage</a></h2>
+<p>This project only works for PHP &gt;= 8.0 (for now). Due to the fact that the PHP
+extension system relies heavily on C macros (which cannot be exported to Rust
+easily), structs have to be hard coded in.</p>
+<p>Check out one of the example projects:</p>
+<ul>
+<li><a href="example/skel">ext-skel</a> - Testbed for testing the library. Check out previous
+commits as well to see what else is possible.</li>
+<li><a href="https://gitlab.com/willbrowning/anonaddy-sequoia">anonaddy-sequoia</a> - Sequoia
+encryption PHP extension.</li>
+<li><a href="https://github.com/davidcole1340/opus-php/tree/rewrite_rs">opus-php</a> -
+Work-in-progress extension to use the Opus library in PHP.</li>
+</ul>
+<h2 id="contributions" class="section-header"><a href="#contributions">Contributions</a></h2>
+<p>Contributions are very much welcome. I am a novice Rust developer and any
+suggestions are wanted and welcome. Feel free to file issues and PRs through
+Github.</p>
+<p>Contributions welcome include:</p>
+<ul>
+<li>Documentation expansion (examples in particular!)</li>
+<li>Safety reviews (especially if you have experience with Rust and the Zend API).</li>
+<li>Bug fixes and features.</li>
+<li>Feature requests.</li>
+</ul>
+<p>Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.</p>
+<h2 id="resources" class="section-header"><a href="#resources">Resources</a></h2>
+<ul>
+<li><a href="https://www.phpinternalsbook.com/">PHP Internals Book</a></li>
+</ul>
+<h2 id="license" class="section-header"><a href="#license">License</a></h2>
+<p>Licensed under either of</p>
+<ul>
+<li>Apache License, Version 2.0 (<a href="https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_APACHE">LICENSE_APACHE</a> or
+<a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a>)</li>
+<li>MIT license (<a href="https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_MIT">LICENSE_MIT</a> or <a href="http://opensource.org/licenses/MIT">http://opensource.org/licenses/MIT</a>)</li>
+</ul>
+<p>at your option.</p>
 </div></details><h2 id="modules" class="section-header"><a href="#modules">Modules</a></h2>
 <table><tr class="module-item"><td><a class="mod" href="bindings/index.html" title="ext_php_rs::bindings mod">bindings</a></td><td class="docblock-short"><p>Raw FFI bindings to the PHP API.</p>
 </td></tr><tr class="module-item"><td><a class="mod" href="errors/index.html" title="ext_php_rs::errors mod">errors</a></td><td class="docblock-short"><p>Error and result types returned from the library functions.</p>

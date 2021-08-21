@@ -17,7 +17,7 @@ a startup function, it will be automatically declared and registered.</p>
 since the function is declared above the module it will automatically be registered when the
 module attribute is called.</p>
 
-<div class='information'><div class='tooltip ignore'>ⓘ</div></div><div class="example-wrap"><pre class="rust rust-example-rendered ignore">
+<div class="example-wrap"><pre class="rust rust-example-rendered">
 <span class="attribute">#[<span class="ident">php_function</span>]</span>
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">hello</span>(<span class="ident">name</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
     <span class="macro">format!</span>(<span class="string">&quot;Hello, {}!&quot;</span>, <span class="ident">name</span>)
