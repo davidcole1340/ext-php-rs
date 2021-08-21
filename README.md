@@ -9,7 +9,7 @@ Rust.
 
 Export a simple function `function hello_world(string $name): string` to PHP:
 
-```rs
+```rust
 use ext_php_rs::prelude::*;
 
 #[php_function]
