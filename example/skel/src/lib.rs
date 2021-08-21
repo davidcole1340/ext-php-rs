@@ -127,9 +127,21 @@ pub fn skeleton_array(
     Ok(new)
 }
 
-#[php_function]
-pub fn test_array() -> Vec<i32> {
+#[php_function(optional = "i", defaults(i = 5))]
+pub fn test_array(i: i32, b: Option<i32>) -> Vec<i32> {
+    dbg!(i, b);
     vec![1, 2, 3, 4]
+}
+
+#[php_function(optional = "offset", defaults(offset = 0))]
+pub fn rust_strpos(haystack: &str, needle: &str, offset: i64) -> Option<usize> {
+    let haystack = haystack.chars().skip(offset as usize).collect::<String>();
+    haystack.find(needle)
+}
+
+#[php_function]
+pub fn example_exception() -> Result<i32, &'static str> {
+    Err("Bad here")
 }
 
 #[php_function]

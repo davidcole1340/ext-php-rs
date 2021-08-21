@@ -17,3 +17,8 @@ have been implemented on most regular Rust types:
   data.
 - `Option<T>` where T implements `IntoZval` and/or `FromZval`, and where `None`
   is converted to a PHP `null`.
+
+There is one special case - `Result<T, E>`, where T implements `IntoZval` and
+`E` implements `Into<PhpException>`. This can only be used as a function/method
+return type. If the error variant is encountered, `E` is converted into a
+`PhpException` and thrown.

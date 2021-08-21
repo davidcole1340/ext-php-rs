@@ -26,7 +26,7 @@ pub fn str_example(input: &str) -> String {
 }
 
 #[php_function]
-pub fn str_return_example() -> &str {
+pub fn str_return_example() -> &'static str {
     "Hello from Rust"
 }
 ```
