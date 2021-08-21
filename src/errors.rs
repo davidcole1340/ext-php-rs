@@ -4,6 +4,7 @@ use std::{error::Error as ErrorTrait, ffi::NulError, fmt::Display};
 
 use crate::php::{
     enums::DataType,
+    exceptions::PhpException,
     flags::{ClassFlags, ZvalTypeFlags},
 };
 
@@ -47,6 +48,8 @@ pub enum Error {
     Callable,
     /// An invalid exception type was thrown.
     InvalidException(ClassFlags),
+    /// Converting integer arguments resulted in an overflow.
+    IntegerOverflow,
 }
 
 impl Display for Error {
@@ -77,6 +80,9 @@ impl Display for Error {
             Error::InvalidException(flags) => {
                 write!(f, "Invalid exception type was thrown: {:?}", flags)
             }
+            Error::IntegerOverflow => {
+                write!(f, "Converting integer arguments resulted in an overflow.")
+            }
         }
     }
 }
@@ -86,5 +92,11 @@ impl ErrorTrait for Error {}
 impl From<NulError> for Error {
     fn from(_: NulError) -> Self {
         Self::InvalidCString
+    }
+}
+
+impl<'a> From<Error> for PhpException<'a> {
+    fn from(err: Error) -> Self {
+        Self::default(err.to_string())
     }
 }

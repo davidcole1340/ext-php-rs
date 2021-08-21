@@ -1,4 +1,5 @@
-use crate::{error::Result, STATE};
+use crate::STATE;
+use anyhow::{bail, Result};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::DeriveInput;
@@ -47,18 +48,17 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
         }
     };
 
-    let mut state = STATE.lock()?;
+    let mut state = STATE.lock();
 
     if state.built_module {
-        return Err("The `#[php_module]` macro must be called last to ensure functions and classes are registered.".into());
+        bail!("The `#[php_module]` macro must be called last to ensure functions and classes are registered.");
     }
 
     if state.classes.contains_key(&class_name) {
-        return Err(format!(
+        bail!(
             "A class has already been registered with the name `{}`.",
             class_name
-        )
-        .into());
+        );
     }
 
     state.classes.insert(class_name, Default::default());

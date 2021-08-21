@@ -57,18 +57,15 @@ impl<'a> PhpException<'a> {
     }
 }
 
-impl<'a, T> From<T> for PhpException<'a>
-where
-    T: Into<String>,
-{
-    fn from(str: T) -> Self {
-        Self::default(str.into())
+impl<'a> From<String> for PhpException<'a> {
+    fn from(str: String) -> Self {
+        Self::default(str)
     }
 }
 
-impl<'a> From<Error> for PhpException<'a> {
-    fn from(err: Error) -> Self {
-        Self::default(err.to_string())
+impl<'a> From<&str> for PhpException<'a> {
+    fn from(str: &str) -> Self {
+        Self::default(str.into())
     }
 }
 

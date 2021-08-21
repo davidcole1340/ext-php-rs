@@ -1,6 +1,5 @@
 mod class;
 mod constant;
-mod error;
 mod extern_;
 mod function;
 mod impl_;
@@ -8,7 +7,10 @@ mod method;
 mod module;
 mod startup_function;
 
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Mutex, MutexGuard},
+};
 
 use constant::Constant;
 use proc_macro::TokenStream;
@@ -29,7 +31,19 @@ struct State {
 }
 
 lazy_static::lazy_static! {
-    pub(crate) static ref STATE: Mutex<State> = Mutex::new(Default::default());
+    pub(crate) static ref STATE: StateMutex = StateMutex::new();
+}
+
+struct StateMutex(Mutex<State>);
+
+impl StateMutex {
+    pub fn new() -> Self {
+        Self(Mutex::new(Default::default()))
+    }
+
+    pub fn lock(&self) -> MutexGuard<State> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
 }
 
 #[proc_macro_derive(ZendObjectHandler)]

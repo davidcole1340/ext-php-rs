@@ -1,17 +1,18 @@
 use std::collections::HashMap;
 
+use anyhow::Result;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{ItemFn, Signature};
 
-use crate::{class::Class, constant::Constant, error::Result, STATE};
+use crate::{class::Class, constant::Constant, STATE};
 
 pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
     let Signature { ident, .. } = sig;
     let stmts = &block.stmts;
 
-    let mut state = STATE.lock()?;
+    let mut state = STATE.lock();
     state.startup_function = Some(ident.to_string());
 
     let classes = build_classes(&state.classes);

@@ -73,7 +73,21 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is a string.
+    ///
+    /// If the zval does not contain a string, the function will check if it contains a
+    /// double or a long, and if so it will convert the value to a [`String`] and return it.
     pub fn string(&self) -> Option<String> {
+        self.str()
+            .map(|s| s.to_string())
+            .or_else(|| self.double().map(|x| x.to_string()))
+    }
+
+    /// Returns the value of the zval if it is a string.
+    ///
+    /// Note that this functions output will not be the same as [`Zval::string`], as this
+    /// function does not attempt to convert other types into a [`String`], as it could not
+    /// pass back a [`&str`] in those cases.
+    pub fn str(&'a self) -> Option<&'a str> {
         if self.is_string() {
             // SAFETY: Zend strings have a length that we know we can read.
             // By reading this many bytes we will not run into any issues.
@@ -81,16 +95,14 @@ impl<'a> Zval {
             // We can safely cast our *const c_char into a *const u8 as both
             // only occupy one byte.
             unsafe {
-                let _str = std::str::from_utf8(slice::from_raw_parts(
+                std::str::from_utf8(slice::from_raw_parts(
                     (*self.value.str_).val.as_ptr() as *const u8,
                     (*self.value.str_).len as usize,
                 ))
-                .ok()?;
-
-                Some(_str.to_string())
+                .ok()
             }
         } else {
-            self.double().map(|x| x.to_string())
+            None
         }
     }
 
@@ -453,16 +465,44 @@ macro_rules! into_zval {
 into_zval!(i8, set_long);
 into_zval!(i16, set_long);
 into_zval!(i32, set_long);
-into_zval!(i64, set_long);
 
 into_zval!(u8, set_long);
 into_zval!(u16, set_long);
-into_zval!(u32, set_long);
 
 into_zval!(f32, set_double);
 into_zval!(f64, set_double);
 
 into_zval!(bool, set_bool);
+
+macro_rules! try_into_zval_int {
+    ($type: ty) => {
+        impl TryFrom<$type> for Zval {
+            type Error = Error;
+
+            fn try_from(val: $type) -> Result<Self> {
+                let mut zv = Self::new();
+                let val: ZendLong = val.try_into().map_err(|_| Error::IntegerOverflow)?;
+                zv.set_long(val);
+                Ok(zv)
+            }
+        }
+
+        impl IntoZval for $type {
+            fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+                let val: ZendLong = (*self).try_into().map_err(|_| Error::IntegerOverflow)?;
+                zv.set_long(val);
+                Ok(())
+            }
+        }
+    };
+}
+
+try_into_zval_int!(i64);
+try_into_zval_int!(u32);
+try_into_zval_int!(u64);
+
+try_into_zval_int!(isize);
+try_into_zval_int!(usize);
 
 macro_rules! try_into_zval_str {
     ($type: ty) => {
@@ -604,6 +644,33 @@ try_from_zval!(isize, long, Long);
 try_from_zval!(f64, double, Double);
 try_from_zval!(bool, bool, Bool);
 try_from_zval!(String, string, String);
+
+impl<'a> FromZval<'a> for f32 {
+    const TYPE: DataType = DataType::Double;
+}
+
+impl<'a> TryFrom<&'a Zval> for f32 {
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value
+            .double()
+            .map(|v| v as f32)
+            .ok_or(Error::ZvalConversion(value.get_type()?))
+    }
+}
+
+impl<'a> FromZval<'a> for &'a str {
+    const TYPE: DataType = DataType::String;
+}
+
+impl<'a> TryFrom<&'a Zval> for &'a str {
+    type Error = Error;
+
+    fn try_from(value: &'a Zval) -> Result<Self> {
+        value.str().ok_or(Error::ZvalConversion(value.get_type()?))
+    }
+}
 
 impl<'a> FromZval<'a> for ZendHashTable<'a> {
     const TYPE: DataType = DataType::Array;

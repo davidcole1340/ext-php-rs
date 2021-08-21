@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
-use crate::{error::Result, STATE};
+use crate::STATE;
+use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
+use regex::Regex;
 use syn::{
-    punctuated::Punctuated, AngleBracketedGenericArguments, AttributeArgs, FnArg, GenericArgument,
-    ItemFn, Lit, Path, PathArguments, PathSegment, ReturnType, Signature, Token, Type, TypePath,
+    punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, Lit, PathArguments,
+    ReturnType, Signature, Token, Type, TypePath,
 };
 
 #[derive(Default, Debug, FromMeta)]
@@ -37,7 +39,7 @@ pub struct Function {
 pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Function)> {
     let attr_args = match AttrArgs::from_list(&args) {
         Ok(args) => args,
-        Err(e) => return Err(format!("Unable to parse attribute arguments: {:?}", e).into()),
+        Err(e) => bail!("Unable to parse attribute arguments: {:?}", e),
     };
 
     let ItemFn { sig, .. } = &input;
@@ -76,10 +78,10 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         }
     };
 
-    let mut state = STATE.lock()?;
+    let mut state = STATE.lock();
 
     if state.built_module && !attr_args.ignore_module {
-        return Err("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`".into());
+        bail!("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`");
     }
 
     let function = Function {
@@ -102,16 +104,16 @@ fn build_args(
     inputs
         .iter()
         .map(|arg| match arg {
-            FnArg::Receiver(_) => Err(
+            FnArg::Receiver(_) => bail!(
                 "`self` is not permitted in PHP functions. See the `#[php_method]` attribute."
-                    .into(),
             ),
             FnArg::Typed(ty) => {
                 let name = match &*ty.pat {
                     syn::Pat::Ident(pat) => pat.ident.to_string(),
-                    _ => return Err("Invalid parameter type.".into()),
+                    _ => bail!("Invalid parameter type."),
                 };
-                syn_arg_to_arg(&name, &ty.ty, defaults.get(&name))
+                Arg::from_type(&name, &ty.ty, defaults.get(&name), false)
+                    .ok_or_else(|| anyhow!("Invalid parameter type for parameter `{}`.", name))
             }
         })
         .collect::<Result<Vec<_>>>()
@@ -150,11 +152,10 @@ pub fn build_arg_parser<'a>(
             };
 
             if rest_optional && !arg.nullable && arg.default.is_none() {
-                Err(format!(
+                bail!(
                     "Parameter `{}` must be a variant of `Option` or have a default value as it is optional.",
                     arg.name
                 )
-                .into())
             } else {
                 Ok(quote! {
                     #prelude
@@ -237,75 +238,70 @@ pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
 pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)>> {
     Ok(match output_type {
         ReturnType::Default => None,
-        ReturnType::Type(_, ty) => match **ty {
-            Type::Path(ref path) => {
-                path_seg_to_arg("", &path.path, true).map(|arg| (arg.ty, arg.nullable))
-            }
-            _ => return Err("Invalid return type.".into()),
-        },
+        ReturnType::Type(_, ty) => {
+            Arg::from_type("", ty, None, true).map(|arg| (arg.ty, arg.nullable))
+        }
     })
 }
 
-pub fn syn_arg_to_arg(name: &str, ty: &syn::Type, default: Option<&Lit>) -> Result<Arg> {
-    let ty_path = match ty {
-        Type::Path(path) => path,
-        ty => {
-            return Err(format!(
-                "Unsupported parameter type for parameter `{}`: {:?}",
-                name, ty
-            )
-            .into())
-        }
-    };
-
-    path_seg_to_arg(name, &ty_path.path, false)
-        .ok_or_else(|| format!("Invalid parameter type for parameter `{}`.", name).into())
-        .map(|mut arg| {
-            arg.default = default.map(|def| def.to_token_stream().to_string());
-            arg
-        })
-}
-
-pub fn path_seg_to_arg(name: &str, path: &Path, is_return: bool) -> Option<Arg> {
-    let seg = path.segments.last()?;
-
-    // check if the type is a result - if it is, grab the ok value and use that for the
-    // type, since we don't actually return a `Result` (it is parsed and the error is thrown).
-    let str_path = if seg.ident == "Result" && is_return {
-        match &seg.arguments {
-            PathArguments::AngleBracketed(args) => args
-                .args
-                .iter()
-                .find(|arg| matches!(arg, GenericArgument::Type(_)))
-                .map(|ty| ty.to_token_stream().to_string())?,
-            _ => return None,
-        }
-    } else {
-        path.to_token_stream().to_string()
-    };
-
-    let mut arg = Arg::new(name, &str_path);
-
-    if seg.ident == "Option" {
-        arg.nullable = true;
-    }
-
-    Some(arg)
-}
-
 impl Arg {
-    pub fn new(name: &str, ty: &str) -> Self {
+    pub fn new(name: &str, ty: &str, nullable: bool, default: Option<String>) -> Self {
         Self {
             name: name.to_string(),
-            ty: ty.to_string(),
-            nullable: false,
-            default: None,
+            ty: Regex::new(r"'[A-Za-z]+")
+                .unwrap()
+                .replace_all(ty, "")
+                .to_string(),
+            nullable,
+            default,
+        }
+    }
+
+    pub fn from_type(
+        name: &str,
+        ty: &syn::Type,
+        default: Option<&Lit>,
+        is_return: bool,
+    ) -> Option<Arg> {
+        let default = default.map(|lit| lit.to_token_stream().to_string());
+        match ty {
+            Type::Path(TypePath { path, .. }) => {
+                let seg = path.segments.last()?;
+                let result = Some(seg)
+                    .filter(|seg| seg.ident == "Result")
+                    .and_then(|seg| {
+                        if let PathArguments::AngleBracketed(args) = &seg.arguments {
+                            args.args
+                                .iter()
+                                .find(|arg| matches!(arg, GenericArgument::Type(_)))
+                                .map(|ty| ty.to_token_stream().to_string())
+                        } else {
+                            None
+                        }
+                    });
+                let stringified = match result {
+                    Some(result) if is_return => result,
+                    _ => path.to_token_stream().to_string(),
+                };
+
+                Some(Arg::new(name, &stringified, seg.ident == "Option", default))
+            }
+            Type::Reference(ref_) => {
+                // Returning references is invalid, so let's just create our arg
+                Some(Arg::new(
+                    name,
+                    &ref_.to_token_stream().to_string(),
+                    false,
+                    default,
+                ))
+            }
+            _ => None,
         }
     }
 
     #[inline]
     pub fn get_type_ident(&self) -> TokenStream {
-        let ty = drop_path_lifetimes(syn::parse_str(&self.ty).unwrap());
+        let ty: Type = syn::parse_str(&self.ty).unwrap();
         quote! {
             <#ty as ::ext_php_rs::php::types::zval::FromZval>::TYPE
         }
@@ -391,7 +387,7 @@ impl Function {
             })
             .collect::<Vec<_>>();
         let output = self.output.as_ref().map(|(ty, nullable)| {
-            let ty = drop_path_lifetimes(syn::parse_str(ty).unwrap());
+            let ty: Type = syn::parse_str(ty).unwrap();
 
             // TODO allow reference returns?
             quote! {
@@ -405,45 +401,5 @@ impl Function {
                 #output
                 .build()
         }
-    }
-}
-
-/// When attempting to get the return type of arguments, we can't have lifetimes
-/// in the angled brackets. Ugly hack to drop these :(
-pub fn drop_path_lifetimes(path: Path) -> Path {
-    Path {
-        leading_colon: path.leading_colon,
-        segments: path
-            .segments
-            .into_iter()
-            .map(|seg| PathSegment {
-                arguments: match seg.arguments {
-                    PathArguments::AngleBracketed(brackets) => {
-                        PathArguments::AngleBracketed(AngleBracketedGenericArguments {
-                            args: brackets
-                                .args
-                                .into_iter()
-                                .filter_map(|arg| match arg {
-                                    GenericArgument::Lifetime(_) => None,
-                                    GenericArgument::Type(ty) => {
-                                        Some(GenericArgument::Type(match ty {
-                                            Type::Path(path) => Type::Path(TypePath {
-                                                path: drop_path_lifetimes(path.path),
-                                                ..path
-                                            }),
-                                            val => val,
-                                        }))
-                                    }
-                                    val => Some(val),
-                                })
-                                .collect(),
-                            ..brackets
-                        })
-                    }
-                    args => args,
-                },
-                ..seg
-            })
-            .collect(),
     }
 }
