@@ -156,7 +156,7 @@ pub fn test_lifetimes<'a>() -> ZendHashTable<'a> {
 
 #[php_function]
 pub fn test_str(input: &str) -> &str {
-    "Hello world"
+    input
 }
 
 #[no_mangle]
