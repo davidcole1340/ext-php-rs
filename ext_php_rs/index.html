@@ -6,19 +6,20 @@
 Rust.</p>
 <h2 id="example" class="section-header"><a href="#example">Example</a></h2>
 <p>Export a simple function <code>function hello_world(string $name): string</code> to PHP:</p>
-<pre><code class="language-rs">use ext_php_rs::prelude::*;
 
-#[php_function]
-pub fn hello_world(name: String) -&gt; String {
-    format!(&quot;Hello, {}!&quot;, name)
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">ext_php_rs::prelude</span>::<span class="kw-2">*</span>;
+
+<span class="attribute">#[<span class="ident">php_function</span>]</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">hello_world</span>(<span class="ident">name</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">String</span> {
+    <span class="macro">format!</span>(<span class="string">&quot;Hello, {}!&quot;</span>, <span class="ident">name</span>)
 }
 
-// Required to register the extension with PHP.
-#[php_module]
-pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
-    module
-}
-</code></pre>
+<span class="comment">// Required to register the extension with PHP.</span>
+<span class="attribute">#[<span class="ident">php_module</span>]</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">module</span>(<span class="ident">module</span>: <span class="ident">ModuleBuilder</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ModuleBuilder</span> {
+    <span class="ident">module</span>
+}</pre></div>
 <p>Calling the function from PHP:</p>
 <pre><code class="language-php">var_dump(hello_world(&quot;David&quot;)); // string(13) &quot;Hello, David!&quot;
 </code></pre>
