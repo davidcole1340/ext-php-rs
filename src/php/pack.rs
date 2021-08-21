@@ -52,19 +52,22 @@ pub unsafe trait Pack: Clone {
 }
 
 /// Implements the [`Pack`] trait for a given type.
-/// The first argument is the type and the second argument is the factor of size difference between
-/// the given type and an 8-bit integer e.g. impl Unpack for i32, factor = 4 => 4 * 8 = 32
 macro_rules! pack_impl {
+    ($t: ty) => {
+        pack_impl!($t, <$t>::BITS);
+    };
+
     ($t: ty, $d: expr) => {
         unsafe impl Pack for $t {
             fn pack_into(vec: Vec<Self>) -> *mut zend_string {
-                let len = vec.len() * $d;
+                let len = vec.len() * ($d as usize / 8);
                 let ptr = Box::into_raw(vec.into_boxed_slice());
                 unsafe { ext_php_rs_zend_string_init(ptr as *mut i8, len as _, false) }
             }
 
             fn unpack_into(s: &zend_string) -> Vec<Self> {
-                let len = s.len / $d;
+                let bytes = ($d / 8) as u64;
+                let len = (s.len as u64) / bytes;
                 let mut result = Vec::with_capacity(len as _);
                 let ptr = s.val.as_ptr() as *const $t;
 
@@ -80,17 +83,20 @@ macro_rules! pack_impl {
     };
 }
 
-pack_impl!(u8, 1);
-pack_impl!(i8, 1);
+pack_impl!(u8);
+pack_impl!(i8);
 
-pack_impl!(u16, 2);
-pack_impl!(i16, 2);
+pack_impl!(u16);
+pack_impl!(i16);
 
-pack_impl!(u32, 4);
-pack_impl!(i32, 4);
+pack_impl!(u32);
+pack_impl!(i32);
 
-pack_impl!(u64, 8);
-pack_impl!(i64, 8);
+pack_impl!(u64);
+pack_impl!(i64);
 
-pack_impl!(f32, 4);
-pack_impl!(f64, 8);
+pack_impl!(isize);
+pack_impl!(usize);
+
+pack_impl!(f32, 32);
+pack_impl!(f64, 64);

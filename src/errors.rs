@@ -47,6 +47,8 @@ pub enum Error {
     Callable,
     /// An invalid exception type was thrown.
     InvalidException(ClassFlags),
+    /// Converting integer arguments resulted in an overflow.
+    IntegerOverflow,
 }
 
 impl Display for Error {
@@ -76,6 +78,9 @@ impl Display for Error {
             Error::Callable => write!(f, "Could not call given function."),
             Error::InvalidException(flags) => {
                 write!(f, "Invalid exception type was thrown: {:?}", flags)
+            }
+            Error::IntegerOverflow => {
+                write!(f, "Converting integer arguments resulted in an overflow.")
             }
         }
     }

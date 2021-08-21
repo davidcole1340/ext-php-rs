@@ -2,6 +2,7 @@
 
 use std::{
     convert::{TryFrom, TryInto},
+    iter::FromIterator,
     ops::{Deref, DerefMut},
 };
 
@@ -82,5 +83,11 @@ impl<T: Pack> From<Binary<T>> for Vec<T> {
 impl<T: Pack> From<Vec<T>> for Binary<T> {
     fn from(value: Vec<T>) -> Self {
         Self::new(value)
+    }
+}
+
+impl<T: Pack> FromIterator<T> for Binary<T> {
+    fn from_iter<U: IntoIterator<Item = T>>(iter: U) -> Self {
+        Self(iter.into_iter().collect::<Vec<_>>())
     }
 }
