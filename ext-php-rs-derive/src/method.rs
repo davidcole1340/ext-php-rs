@@ -1,14 +1,14 @@
+use anyhow::{anyhow, bail, Result};
 use quote::ToTokens;
 use std::collections::HashMap;
 
 use crate::{
-    error::Result,
     function,
     impl_::{parse_attribute, ParsedAttribute, Visibility},
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{punctuated::Punctuated, FnArg, ImplItemMethod, Lit, Pat, Signature, Token};
+use syn::{punctuated::Punctuated, FnArg, ImplItemMethod, Lit, Pat, Signature, Token, Type};
 
 #[derive(Debug, Clone)]
 pub enum Arg {
@@ -107,20 +107,19 @@ fn build_args(
         .map(|arg| match arg {
             FnArg::Receiver(receiver) => {
                 if receiver.reference.is_none() {
-                    return Err("`self` parameter must be a reference.".into());
+                    bail!("`self` parameter must be a reference.");
                 }
                 Ok(Arg::Receiver(receiver.mutability.is_some()))
             }
             FnArg::Typed(ty) => {
                 let name = match &*ty.pat {
                     Pat::Ident(pat) => pat.ident.to_string(),
-                    _ => return Err("Invalid parameter type.".into()),
+                    _ => bail!("Invalid parameter type."),
                 };
-                Ok(Arg::Typed(crate::function::syn_arg_to_arg(
-                    &name,
-                    &ty.ty,
-                    defaults.get(&name),
-                )?)) // TODO defaults
+                Ok(Arg::Typed(
+                    crate::function::Arg::from_type(&name, &ty.ty, defaults.get(&name), false)
+                        .ok_or_else(|| anyhow!("Invalid parameter type for `{}`.", name))?,
+                ))
             }
         })
         .collect()
@@ -206,7 +205,7 @@ impl Method {
             })
             .collect::<Vec<_>>();
         let output = self.output.as_ref().map(|(ty, nullable)| {
-            let ty = function::drop_path_lifetimes(syn::parse_str(ty).unwrap());
+            let ty: Type = syn::parse_str(ty).unwrap();
 
             // TODO allow reference returns?
             quote! {

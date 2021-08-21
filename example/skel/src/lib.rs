@@ -1,6 +1,6 @@
 mod allocator;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryFrom};
 
 use allocator::PhpAllocator;
 use ext_php_rs::{
@@ -147,6 +147,16 @@ pub fn test_extern() -> i32 {
     // let x = unsafe { test_func() };
     // dbg!(x.try_call(vec![]));
     0
+}
+
+#[php_function]
+pub fn test_lifetimes<'a>() -> ZendHashTable<'a> {
+    ZendHashTable::try_from(&HashMap::<String, String>::new()).unwrap()
+}
+
+#[php_function]
+pub fn test_str(input: &str) -> &str {
+    "Hello world"
 }
 
 #[no_mangle]

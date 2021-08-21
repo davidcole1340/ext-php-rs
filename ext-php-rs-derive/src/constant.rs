@@ -1,9 +1,10 @@
+use anyhow::{bail, Result};
 use darling::ToTokens;
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::quote;
 use syn::ItemConst;
 
-use crate::{error::Result, STATE};
+use crate::STATE;
 
 #[derive(Debug)]
 pub struct Constant {
@@ -13,10 +14,10 @@ pub struct Constant {
 }
 
 pub fn parser(input: ItemConst) -> Result<TokenStream> {
-    let mut state = STATE.lock()?;
+    let mut state = STATE.lock();
 
     if state.startup_function.is_some() {
-        return Err("Constants must be declared before you declare your startup function and module function.".into());
+        bail!("Constants must be declared before you declare your startup function and module function.");
     }
 
     state.constants.push(Constant {

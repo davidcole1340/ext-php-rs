@@ -1,15 +1,12 @@
 use std::collections::HashMap;
 
+use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Attribute, ItemImpl, Lit, Meta, NestedMeta};
 
-use crate::{
-    constant::Constant,
-    error::{Error, Result},
-    method,
-};
+use crate::{constant::Constant, method};
 
 #[derive(Debug, Clone)]
 pub enum Visibility {
@@ -30,22 +27,21 @@ pub fn parser(input: ItemImpl) -> Result<TokenStream> {
     let class_name = self_ty.to_token_stream().to_string();
 
     if input.trait_.is_some() {
-        return Err("This macro cannot be used on trait implementations.".into());
+        bail!("This macro cannot be used on trait implementations.");
     }
 
-    let mut state = crate::STATE.lock()?;
+    let mut state = crate::STATE.lock();
 
     if state.startup_function.is_some() {
-        return Err(
+        bail!(
             "Impls must be declared before you declare your startup function and module function."
-                .into(),
         );
     }
 
     let class = state
         .classes
         .get_mut(&class_name)
-        .ok_or_else(|| Error::new("You must use `#[derive(ZendObjectHandler)]` on the struct before using this attribute on the impl.".to_string()))?;
+        .ok_or_else(|| anyhow!("You must use `#[derive(ZendObjectHandler)]` on the struct before using this attribute on the impl."))?;
 
     let tokens = items
         .into_iter()
@@ -85,12 +81,12 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
     let name = attr.path.to_token_stream().to_string();
     let meta = attr
         .parse_meta()
-        .map_err(|_| "Unable to parse attribute.")?;
+        .map_err(|_| anyhow!("Unable to parse attribute."))?;
 
     Ok(match name.as_ref() {
         "defaults" => {
-            let defaults =
-                HashMap::from_meta(&meta).map_err(|_| "Unable to parse `#[default]` macro.")?;
+            let defaults = HashMap::from_meta(&meta)
+                .map_err(|_| anyhow!("Unable to parse `#[default]` macro."))?;
             ParsedAttribute::Default(defaults)
         }
         "optional" => {
@@ -103,13 +99,13 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
             } else {
                 None
             }
-            .ok_or("Invalid argument given for `#[optional]` macro.")?;
+            .ok_or_else(|| anyhow!("Invalid argument given for `#[optional]` macro."))?;
 
             ParsedAttribute::Optional(name)
         }
         "public" => ParsedAttribute::Visibility(Visibility::Public),
         "protected" => ParsedAttribute::Visibility(Visibility::Protected),
         "private" => ParsedAttribute::Visibility(Visibility::Private),
-        attr => return Err(format!("Invalid attribute `#[{}]`.", attr).into()),
+        attr => bail!("Invalid attribute `#[{}]`.", attr),
     })
 }

@@ -1,8 +1,7 @@
+use anyhow::{anyhow, bail, Result};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{punctuated::Punctuated, ForeignItemFn, ItemForeignMod, ReturnType, Signature, Token};
-
-use crate::error::Result;
 
 pub fn parser(input: ItemForeignMod) -> Result<TokenStream> {
     input
@@ -10,7 +9,7 @@ pub fn parser(input: ItemForeignMod) -> Result<TokenStream> {
         .into_iter()
         .map(|item| match item {
             syn::ForeignItem::Fn(func) => parse_function(func),
-            _ => Err("Only `extern` functions are supported by PHP.".into()),
+            _ => bail!("Only `extern` functions are supported by PHP."),
         })
         .collect::<Result<Vec<_>>>()
         .map(|vec| quote! { #(#vec)* })
@@ -36,7 +35,9 @@ fn parse_function(mut func: ForeignItemFn) -> Result<TokenStream> {
             _ => None,
         })
         .collect::<Option<Punctuated<_, Token![,]>>>()
-        .ok_or("`self` parameters are not permitted inside `#[php_extern]` blocks.")?;
+        .ok_or_else(|| {
+            anyhow!("`self` parameters are not permitted inside `#[php_extern]` blocks.")
+        })?;
     let ret = build_return(&name, &sig.output, params);
 
     Ok(quote! {

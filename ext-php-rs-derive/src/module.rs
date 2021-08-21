@@ -1,18 +1,19 @@
+use anyhow::{anyhow, bail, Result};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{ItemFn, Signature};
 
-use crate::{error::Result, startup_function, STATE};
+use crate::{startup_function, STATE};
 
 pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
     let Signature { output, inputs, .. } = sig;
     let stmts = &block.stmts;
 
-    let mut state = STATE.lock()?;
+    let mut state = STATE.lock();
 
     if state.built_module {
-        return Err("You may only define a module with the `#[php_module]` attribute once.".into());
+        bail!("You may only define a module with the `#[php_module]` attribute once.");
     }
 
     state.built_module = true;
@@ -26,10 +27,10 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         let parsed = syn::parse2(quote! {
             fn php_module_startup() {}
         })
-        .map_err(|_| "Unable to generate PHP module startup function.")?;
+        .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
         let startup = startup_function::parser(parsed)?;
 
-        state = STATE.lock()?;
+        state = STATE.lock();
         Some(startup)
     } else {
         None
