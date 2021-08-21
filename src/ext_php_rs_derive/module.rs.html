@@ -78,22 +78,24 @@
 <span id="76">76</span>
 <span id="77">77</span>
 <span id="78">78</span>
+<span id="79">79</span>
 </pre><pre class="rust">
+<span class="kw">use</span> <span class="ident">anyhow</span>::{<span class="ident">anyhow</span>, <span class="ident">bail</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use</span> <span class="ident">proc_macro2</span>::{<span class="ident">Ident</span>, <span class="ident">Span</span>, <span class="ident">TokenStream</span>};
 <span class="kw">use</span> <span class="ident">quote::quote</span>;
 <span class="kw">use</span> <span class="ident">syn</span>::{<span class="ident">ItemFn</span>, <span class="ident">Signature</span>};
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">error::Result</span>, <span class="ident">startup_function</span>, <span class="ident">STATE</span>};
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">startup_function</span>, <span class="ident">STATE</span>};
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parser</span>(<span class="ident">input</span>: <span class="ident">ItemFn</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">TokenStream</span><span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">ItemFn</span> { <span class="ident">sig</span>, <span class="ident">block</span>, .. } <span class="op">=</span> <span class="ident">input</span>;
     <span class="kw">let</span> <span class="ident">Signature</span> { <span class="ident">output</span>, <span class="ident">inputs</span>, .. } <span class="op">=</span> <span class="ident">sig</span>;
     <span class="kw">let</span> <span class="ident">stmts</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">block</span>.<span class="ident">stmts</span>;
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>()<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>();
 
     <span class="kw">if</span> <span class="ident">state</span>.<span class="ident">built_module</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="string">&quot;You may only define a module with the `#[php_module]` attribute once.&quot;</span>.<span class="ident">into</span>());
+        <span class="macro">bail!</span>(<span class="string">&quot;You may only define a module with the `#[php_module]` attribute once.&quot;</span>);
     }
 
     <span class="ident">state</span>.<span class="ident">built_module</span> <span class="op">=</span> <span class="bool-val">true</span>;
@@ -107,10 +109,10 @@
         <span class="kw">let</span> <span class="ident">parsed</span> <span class="op">=</span> <span class="ident">syn::parse2</span>(<span class="macro">quote!</span> {
             <span class="kw">fn</span> <span class="ident">php_module_startup</span>() {}
         })
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="string">&quot;Unable to generate PHP module startup function.&quot;</span>)<span class="question-mark">?</span>;
+        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="macro">anyhow!</span>(<span class="string">&quot;Unable to generate PHP module startup function.&quot;</span>))<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">startup</span> <span class="op">=</span> <span class="ident">startup_function::parser</span>(<span class="ident">parsed</span>)<span class="question-mark">?</span>;
 
-        <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>()<span class="question-mark">?</span>;
+        <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>();
         <span class="prelude-val">Some</span>(<span class="ident">startup</span>)
     } <span class="kw">else</span> {
         <span class="prelude-val">None</span>

@@ -405,60 +405,18 @@
 <span id="403">403</span>
 <span id="404">404</span>
 <span id="405">405</span>
-<span id="406">406</span>
-<span id="407">407</span>
-<span id="408">408</span>
-<span id="409">409</span>
-<span id="410">410</span>
-<span id="411">411</span>
-<span id="412">412</span>
-<span id="413">413</span>
-<span id="414">414</span>
-<span id="415">415</span>
-<span id="416">416</span>
-<span id="417">417</span>
-<span id="418">418</span>
-<span id="419">419</span>
-<span id="420">420</span>
-<span id="421">421</span>
-<span id="422">422</span>
-<span id="423">423</span>
-<span id="424">424</span>
-<span id="425">425</span>
-<span id="426">426</span>
-<span id="427">427</span>
-<span id="428">428</span>
-<span id="429">429</span>
-<span id="430">430</span>
-<span id="431">431</span>
-<span id="432">432</span>
-<span id="433">433</span>
-<span id="434">434</span>
-<span id="435">435</span>
-<span id="436">436</span>
-<span id="437">437</span>
-<span id="438">438</span>
-<span id="439">439</span>
-<span id="440">440</span>
-<span id="441">441</span>
-<span id="442">442</span>
-<span id="443">443</span>
-<span id="444">444</span>
-<span id="445">445</span>
-<span id="446">446</span>
-<span id="447">447</span>
-<span id="448">448</span>
-<span id="449">449</span>
 </pre><pre class="rust">
 <span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">error::Result</span>, <span class="ident">STATE</span>};
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::STATE</span>;
+<span class="kw">use</span> <span class="ident">anyhow</span>::{<span class="ident">anyhow</span>, <span class="ident">bail</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use</span> <span class="ident">darling</span>::{<span class="ident">FromMeta</span>, <span class="ident">ToTokens</span>};
 <span class="kw">use</span> <span class="ident">proc_macro2</span>::{<span class="ident">Ident</span>, <span class="ident">Literal</span>, <span class="ident">Span</span>, <span class="ident">TokenStream</span>};
 <span class="kw">use</span> <span class="ident">quote::quote</span>;
+<span class="kw">use</span> <span class="ident">regex::Regex</span>;
 <span class="kw">use</span> <span class="ident">syn</span>::{
-    <span class="ident">punctuated::Punctuated</span>, <span class="ident">AngleBracketedGenericArguments</span>, <span class="ident">AttributeArgs</span>, <span class="ident">FnArg</span>, <span class="ident">GenericArgument</span>,
-    <span class="ident">ItemFn</span>, <span class="ident">Lit</span>, <span class="ident">Path</span>, <span class="ident">PathArguments</span>, <span class="ident">PathSegment</span>, <span class="ident">ReturnType</span>, <span class="ident">Signature</span>, <span class="ident">Token</span>, <span class="ident">Type</span>, <span class="ident">TypePath</span>,
+    <span class="ident">punctuated::Punctuated</span>, <span class="ident">AttributeArgs</span>, <span class="ident">FnArg</span>, <span class="ident">GenericArgument</span>, <span class="ident">ItemFn</span>, <span class="ident">Lit</span>, <span class="ident">PathArguments</span>,
+    <span class="ident">ReturnType</span>, <span class="ident">Signature</span>, <span class="ident">Token</span>, <span class="ident">Type</span>, <span class="ident">TypePath</span>,
 };
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>, <span class="ident">Debug</span>, <span class="ident">FromMeta</span>)]</span>
@@ -489,7 +447,7 @@
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parser</span>(<span class="ident">args</span>: <span class="ident">AttributeArgs</span>, <span class="ident">input</span>: <span class="ident">ItemFn</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">TokenStream</span>, <span class="ident">Function</span>)<span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">attr_args</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">AttrArgs::from_list</span>(<span class="kw-2">&amp;</span><span class="ident">args</span>) {
         <span class="prelude-val">Ok</span>(<span class="ident">args</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">args</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Unable to parse attribute arguments: {:?}&quot;</span>, <span class="ident">e</span>).<span class="ident">into</span>()),
+        <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail!</span>(<span class="string">&quot;Unable to parse attribute arguments: {:?}&quot;</span>, <span class="ident">e</span>),
     };
 
     <span class="kw">let</span> <span class="ident">ItemFn</span> { <span class="ident">sig</span>, .. } <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">input</span>;
@@ -528,10 +486,10 @@
         }
     };
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>()<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>();
 
     <span class="kw">if</span> <span class="ident">state</span>.<span class="ident">built_module</span> <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">attr_args</span>.<span class="ident">ignore_module</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="string">&quot;The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`&quot;</span>.<span class="ident">into</span>());
+        <span class="macro">bail!</span>(<span class="string">&quot;The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`&quot;</span>);
     }
 
     <span class="kw">let</span> <span class="ident">function</span> <span class="op">=</span> <span class="ident">Function</span> {
@@ -554,16 +512,16 @@
     <span class="ident">inputs</span>
         .<span class="ident">iter</span>()
         .<span class="ident">map</span>(<span class="op">|</span><span class="ident">arg</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">arg</span> {
-            <span class="ident">FnArg::Receiver</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Err</span>(
+            <span class="ident">FnArg::Receiver</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail!</span>(
                 <span class="string">&quot;`self` is not permitted in PHP functions. See the `#[php_method]` attribute.&quot;</span>
-                    .<span class="ident">into</span>(),
             ),
             <span class="ident">FnArg::Typed</span>(<span class="ident">ty</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">ty</span>.<span class="ident">pat</span> {
                     <span class="ident">syn::Pat::Ident</span>(<span class="ident">pat</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">pat</span>.<span class="ident">ident</span>.<span class="ident">to_string</span>(),
-                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="string">&quot;Invalid parameter type.&quot;</span>.<span class="ident">into</span>()),
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">bail!</span>(<span class="string">&quot;Invalid parameter type.&quot;</span>),
                 };
-                <span class="ident">syn_arg_to_arg</span>(<span class="kw-2">&amp;</span><span class="ident">name</span>, <span class="kw-2">&amp;</span><span class="ident">ty</span>.<span class="ident">ty</span>, <span class="ident">defaults</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">name</span>))
+                <span class="ident">Arg::from_type</span>(<span class="kw-2">&amp;</span><span class="ident">name</span>, <span class="kw-2">&amp;</span><span class="ident">ty</span>.<span class="ident">ty</span>, <span class="ident">defaults</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">name</span>), <span class="bool-val">false</span>)
+                    .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">anyhow!</span>(<span class="string">&quot;Invalid parameter type for parameter `{}`.&quot;</span>, <span class="ident">name</span>))
             }
         })
         .<span class="ident">collect</span>::<span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>()
@@ -602,11 +560,10 @@
             };
 
             <span class="kw">if</span> <span class="ident">rest_optional</span> <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="ident">arg</span>.<span class="ident">nullable</span> <span class="op">&amp;&amp;</span> <span class="ident">arg</span>.<span class="ident">default</span>.<span class="ident">is_none</span>() {
-                <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+                <span class="macro">bail!</span>(
                     <span class="string">&quot;Parameter `{}` must be a variant of `Option` or have a default value as it is optional.&quot;</span>,
                     <span class="ident">arg</span>.<span class="ident">name</span>
                 )
-                .<span class="ident">into</span>())
             } <span class="kw">else</span> {
                 <span class="prelude-val">Ok</span>(<span class="macro">quote!</span> {
                     #<span class="ident">prelude</span>
@@ -689,75 +646,70 @@
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_return_type</span>(<span class="ident">output_type</span>: <span class="kw-2">&amp;</span><span class="ident">ReturnType</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">String</span>, <span class="ident">bool</span>)<span class="op">&gt;</span><span class="op">&gt;</span> {
     <span class="prelude-val">Ok</span>(<span class="kw">match</span> <span class="ident">output_type</span> {
         <span class="ident">ReturnType::Default</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
-        <span class="ident">ReturnType::Type</span>(<span class="kw">_</span>, <span class="ident">ty</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">ty</span> {
-            <span class="ident">Type::Path</span>(<span class="kw-2">ref</span> <span class="ident">path</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">path_seg_to_arg</span>(<span class="string">&quot;&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">path</span>.<span class="ident">path</span>, <span class="bool-val">true</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">arg</span><span class="op">|</span> (<span class="ident">arg</span>.<span class="ident">ty</span>, <span class="ident">arg</span>.<span class="ident">nullable</span>))
-            }
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="string">&quot;Invalid return type.&quot;</span>.<span class="ident">into</span>()),
-        },
+        <span class="ident">ReturnType::Type</span>(<span class="kw">_</span>, <span class="ident">ty</span>) <span class="op">=</span><span class="op">&gt;</span> {
+            <span class="ident">Arg::from_type</span>(<span class="string">&quot;&quot;</span>, <span class="ident">ty</span>, <span class="prelude-val">None</span>, <span class="bool-val">true</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">arg</span><span class="op">|</span> (<span class="ident">arg</span>.<span class="ident">ty</span>, <span class="ident">arg</span>.<span class="ident">nullable</span>))
+        }
     })
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">syn_arg_to_arg</span>(<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">ty</span>: <span class="kw-2">&amp;</span><span class="ident">syn::Type</span>, <span class="ident">default</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Lit</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Arg</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">ty_path</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">ty</span> {
-        <span class="ident">Type::Path</span>(<span class="ident">path</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">path</span>,
-        <span class="ident">ty</span> <span class="op">=</span><span class="op">&gt;</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
-                <span class="string">&quot;Unsupported parameter type for parameter `{}`: {:?}&quot;</span>,
-                <span class="ident">name</span>, <span class="ident">ty</span>
-            )
-            .<span class="ident">into</span>())
-        }
-    };
-
-    <span class="ident">path_seg_to_arg</span>(<span class="ident">name</span>, <span class="kw-2">&amp;</span><span class="ident">ty_path</span>.<span class="ident">path</span>, <span class="bool-val">false</span>)
-        .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;Invalid parameter type for parameter `{}`.&quot;</span>, <span class="ident">name</span>).<span class="ident">into</span>())
-        .<span class="ident">map</span>(<span class="op">|</span><span class="kw-2">mut</span> <span class="ident">arg</span><span class="op">|</span> {
-            <span class="ident">arg</span>.<span class="ident">default</span> <span class="op">=</span> <span class="ident">default</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">def</span><span class="op">|</span> <span class="ident">def</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>());
-            <span class="ident">arg</span>
-        })
-}
-
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">path_seg_to_arg</span>(<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>, <span class="ident">is_return</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arg</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">seg</span> <span class="op">=</span> <span class="ident">path</span>.<span class="ident">segments</span>.<span class="ident">last</span>()<span class="question-mark">?</span>;
-
-    <span class="comment">// check if the type is a result - if it is, grab the ok value and use that for the</span>
-    <span class="comment">// type, since we don&#39;t actually return a `Result` (it is parsed and the error is thrown).</span>
-    <span class="kw">let</span> <span class="ident">str_path</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">seg</span>.<span class="ident">ident</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;Result&quot;</span> <span class="op">&amp;&amp;</span> <span class="ident">is_return</span> {
-        <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="ident">seg</span>.<span class="ident">arguments</span> {
-            <span class="ident">PathArguments::AngleBracketed</span>(<span class="ident">args</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">args</span>
-                .<span class="ident">args</span>
-                .<span class="ident">iter</span>()
-                .<span class="ident">find</span>(<span class="op">|</span><span class="ident">arg</span><span class="op">|</span> <span class="macro">matches!</span>(<span class="ident">arg</span>, <span class="ident">GenericArgument::Type</span>(<span class="kw">_</span>)))
-                .<span class="ident">map</span>(<span class="op">|</span><span class="ident">ty</span><span class="op">|</span> <span class="ident">ty</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>())<span class="question-mark">?</span>,
-            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="prelude-val">None</span>,
-        }
-    } <span class="kw">else</span> {
-        <span class="ident">path</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>()
-    };
-
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">arg</span> <span class="op">=</span> <span class="ident">Arg::new</span>(<span class="ident">name</span>, <span class="kw-2">&amp;</span><span class="ident">str_path</span>);
-
-    <span class="kw">if</span> <span class="ident">seg</span>.<span class="ident">ident</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;Option&quot;</span> {
-        <span class="ident">arg</span>.<span class="ident">nullable</span> <span class="op">=</span> <span class="bool-val">true</span>;
-    }
-
-    <span class="prelude-val">Some</span>(<span class="ident">arg</span>)
-}
-
 <span class="kw">impl</span> <span class="ident">Arg</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">ty</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">ty</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">nullable</span>: <span class="ident">bool</span>, <span class="ident">default</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
             <span class="ident">name</span>: <span class="ident">name</span>.<span class="ident">to_string</span>(),
-            <span class="ident">ty</span>: <span class="ident">ty</span>.<span class="ident">to_string</span>(),
-            <span class="ident">nullable</span>: <span class="bool-val">false</span>,
-            <span class="ident">default</span>: <span class="prelude-val">None</span>,
+            <span class="ident">ty</span>: <span class="ident">Regex::new</span>(<span class="string">r&quot;&#39;[A-Za-z]+&quot;</span>)
+                .<span class="ident">unwrap</span>()
+                .<span class="ident">replace_all</span>(<span class="ident">ty</span>, <span class="string">&quot;&quot;</span>)
+                .<span class="ident">to_string</span>(),
+            <span class="ident">nullable</span>,
+            <span class="ident">default</span>,
+        }
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_type</span>(
+        <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
+        <span class="ident">ty</span>: <span class="kw-2">&amp;</span><span class="ident">syn::Type</span>,
+        <span class="ident">default</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Lit</span><span class="op">&gt;</span>,
+        <span class="ident">is_return</span>: <span class="ident">bool</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arg</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">default</span> <span class="op">=</span> <span class="ident">default</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">lit</span><span class="op">|</span> <span class="ident">lit</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>());
+        <span class="kw">match</span> <span class="ident">ty</span> {
+            <span class="ident">Type::Path</span>(<span class="ident">TypePath</span> { <span class="ident">path</span>, .. }) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">let</span> <span class="ident">seg</span> <span class="op">=</span> <span class="ident">path</span>.<span class="ident">segments</span>.<span class="ident">last</span>()<span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">seg</span>)
+                    .<span class="ident">filter</span>(<span class="op">|</span><span class="ident">seg</span><span class="op">|</span> <span class="ident">seg</span>.<span class="ident">ident</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;Result&quot;</span>)
+                    .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">seg</span><span class="op">|</span> {
+                        <span class="kw">if</span> <span class="kw">let</span> <span class="ident">PathArguments::AngleBracketed</span>(<span class="ident">args</span>) <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">seg</span>.<span class="ident">arguments</span> {
+                            <span class="ident">args</span>.<span class="ident">args</span>
+                                .<span class="ident">iter</span>()
+                                .<span class="ident">find</span>(<span class="op">|</span><span class="ident">arg</span><span class="op">|</span> <span class="macro">matches!</span>(<span class="ident">arg</span>, <span class="ident">GenericArgument::Type</span>(<span class="kw">_</span>)))
+                                .<span class="ident">map</span>(<span class="op">|</span><span class="ident">ty</span><span class="op">|</span> <span class="ident">ty</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>())
+                        } <span class="kw">else</span> {
+                            <span class="prelude-val">None</span>
+                        }
+                    });
+                <span class="kw">let</span> <span class="ident">stringified</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">result</span> {
+                    <span class="prelude-val">Some</span>(<span class="ident">result</span>) <span class="kw">if</span> <span class="ident">is_return</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">result</span>,
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">path</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>(),
+                };
+
+                <span class="prelude-val">Some</span>(<span class="ident">Arg::new</span>(<span class="ident">name</span>, <span class="kw-2">&amp;</span><span class="ident">stringified</span>, <span class="ident">seg</span>.<span class="ident">ident</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;Option&quot;</span>, <span class="ident">default</span>))
+            }
+            <span class="ident">Type::Reference</span>(<span class="ident">ref_</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="comment">// Returning references is invalid, so let&#39;s just create our arg</span>
+                <span class="prelude-val">Some</span>(<span class="ident">Arg::new</span>(
+                    <span class="ident">name</span>,
+                    <span class="kw-2">&amp;</span><span class="ident">ref_</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>(),
+                    <span class="bool-val">false</span>,
+                    <span class="ident">default</span>,
+                ))
+            }
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
         }
     }
 
     <span class="attribute">#[<span class="ident">inline</span>]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_type_ident</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">TokenStream</span> {
-        <span class="kw">let</span> <span class="ident">ty</span> <span class="op">=</span> <span class="ident">drop_path_lifetimes</span>(<span class="ident">syn::parse_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ty</span>).<span class="ident">unwrap</span>());
+        <span class="kw">let</span> <span class="ident">ty</span>: <span class="ident">Type</span> <span class="op">=</span> <span class="ident">syn::parse_str</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">ty</span>).<span class="ident">unwrap</span>();
         <span class="macro">quote!</span> {
             <span class="op">&lt;</span>#<span class="ident">ty</span> <span class="kw">as</span> <span class="ident">::ext_php_rs::php::types::zval::FromZval</span><span class="op">&gt;</span><span class="ident">::TYPE</span>
         }
@@ -843,7 +795,7 @@
             })
             .<span class="ident">collect</span>::<span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span><span class="op">&gt;</span>();
         <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">output</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">ty</span>, <span class="ident">nullable</span>)<span class="op">|</span> {
-            <span class="kw">let</span> <span class="ident">ty</span> <span class="op">=</span> <span class="ident">drop_path_lifetimes</span>(<span class="ident">syn::parse_str</span>(<span class="ident">ty</span>).<span class="ident">unwrap</span>());
+            <span class="kw">let</span> <span class="ident">ty</span>: <span class="ident">Type</span> <span class="op">=</span> <span class="ident">syn::parse_str</span>(<span class="ident">ty</span>).<span class="ident">unwrap</span>();
 
             <span class="comment">// TODO allow reference returns?</span>
             <span class="macro">quote!</span> {
@@ -857,46 +809,6 @@
                 #<span class="ident">output</span>
                 .<span class="ident">build</span>()
         }
-    }
-}
-
-<span class="doccomment">/// When attempting to get the return type of arguments, we can&#39;t have lifetimes</span>
-<span class="doccomment">/// in the angled brackets. Ugly hack to drop these :(</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">drop_path_lifetimes</span>(<span class="ident">path</span>: <span class="ident">Path</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Path</span> {
-    <span class="ident">Path</span> {
-        <span class="ident">leading_colon</span>: <span class="ident">path</span>.<span class="ident">leading_colon</span>,
-        <span class="ident">segments</span>: <span class="ident">path</span>
-            .<span class="ident">segments</span>
-            .<span class="ident">into_iter</span>()
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">seg</span><span class="op">|</span> <span class="ident">PathSegment</span> {
-                <span class="ident">arguments</span>: <span class="kw">match</span> <span class="ident">seg</span>.<span class="ident">arguments</span> {
-                    <span class="ident">PathArguments::AngleBracketed</span>(<span class="ident">brackets</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                        <span class="ident">PathArguments::AngleBracketed</span>(<span class="ident">AngleBracketedGenericArguments</span> {
-                            <span class="ident">args</span>: <span class="ident">brackets</span>
-                                .<span class="ident">args</span>
-                                .<span class="ident">into_iter</span>()
-                                .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">arg</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">arg</span> {
-                                    <span class="ident">GenericArgument::Lifetime</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
-                                    <span class="ident">GenericArgument::Type</span>(<span class="ident">ty</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                                        <span class="prelude-val">Some</span>(<span class="ident">GenericArgument::Type</span>(<span class="kw">match</span> <span class="ident">ty</span> {
-                                            <span class="ident">Type::Path</span>(<span class="ident">path</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Type::Path</span>(<span class="ident">TypePath</span> {
-                                                <span class="ident">path</span>: <span class="ident">drop_path_lifetimes</span>(<span class="ident">path</span>.<span class="ident">path</span>),
-                                                ..<span class="ident">path</span>
-                                            }),
-                                            <span class="ident">val</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">val</span>,
-                                        }))
-                                    }
-                                    <span class="ident">val</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">val</span>),
-                                })
-                                .<span class="ident">collect</span>(),
-                            ..<span class="ident">brackets</span>
-                        })
-                    }
-                    <span class="ident">args</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">args</span>,
-                },
-                ..<span class="ident">seg</span>
-            })
-            .<span class="ident">collect</span>(),
     }
 }
 </pre></div>

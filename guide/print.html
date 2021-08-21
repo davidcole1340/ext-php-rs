@@ -1,0 +1,789 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>ext-php-rs</title>
+        <meta name="robots" content="noindex" />
+        <!-- Custom HTML head -->
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="types/index.html"><strong aria-hidden="true">2.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="types/numbers.html"><strong aria-hidden="true">2.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="types/string.html"><strong aria-hidden="true">2.2.</strong> String</a></li><li class="chapter-item expanded "><a href="types/str.html"><strong aria-hidden="true">2.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="types/bool.html"><strong aria-hidden="true">2.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="types/vec.html"><strong aria-hidden="true">2.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="types/hashmap.html"><strong aria-hidden="true">2.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="types/binary.html"><strong aria-hidden="true">2.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="types/option.html"><strong aria-hidden="true">2.8.</strong> Option</a></li></ol></li><li class="chapter-item expanded "><a href="macros/index.html"><strong aria-hidden="true">3.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/module.html"><strong aria-hidden="true">3.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="macros/module_startup.html"><strong aria-hidden="true">3.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="macros/function.html"><strong aria-hidden="true">3.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="macros/structs.html"><strong aria-hidden="true">3.4.</strong> Structs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/impl.html"><strong aria-hidden="true">3.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="macros/constant.html"><strong aria-hidden="true">3.5.</strong> Constants</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">ext-php-rs</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p><code>ext-php-rs</code> is a Rust library containing bindings and abstractions for the PHP
+extension API, which allows users to build extensions natively in Rust.</p>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<ul>
+<li><strong>Easy to use:</strong> The built-in macros can abstract away the need to interact
+with the Zend API, such as Rust-type function parameter abstracting away
+interacting with Zend values.</li>
+<li><strong>Lightweight:</strong> You don't have to use the built-in helper macros. It's
+possible to write your own glue code around your own functions.</li>
+<li><strong>Extensible:</strong> Implement <code>IntoZval</code> and <code>FromZval</code> for your own custom types,
+allowing the type to be used as function parameters and return types.</li>
+</ul>
+<h2 id="goals"><a class="header" href="#goals">Goals</a></h2>
+<p>Our main goal is to <strong>make extension development easier.</strong></p>
+<ul>
+<li>Writing extensions in C can be tedious, and with the Zend APIs limited
+documentation can be intimidating.</li>
+<li>Rust's modern language features and feature-full standard library are big
+improvements on C.</li>
+<li>Abstracting away the raw Zend APIs allows extensions to be developed faster
+and with more confidence.</li>
+<li>Abstractions also allow us to support future (and potentially past) versions
+of PHP without significant changes to extension code.</li>
+</ul>
+<h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
+<p><code>ext-php-rs</code> follows semantic versioning, however, no backwards compatibility is
+guaranteed while we are at major version <code>0</code>, which is for the forseeable
+future. It's recommended to lock the version at the patch level.</p>
+<h2 id="documentation"><a class="header" href="#documentation">Documentation</a></h2>
+<ul>
+<li>This guide!</li>
+<li><a href="https://davidcole1340.github.io/ext-php-rs">Rust docs</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="types"><a class="header" href="#types">Types</a></h1>
+<p>In PHP, data is stored in containers called zvals (zend values). Internally,
+these are effectively tagged unions (enums in Rust) without the safety that Rust
+introduces. Passing data between Rust and PHP requires the data to become a
+zval. This is done through two traits: <code>FromZval</code> and <code>IntoZval</code>. These traits
+have been implemented on most regular Rust types:</p>
+<ul>
+<li>Primitive integers (<code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code>, <code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>,
+<code>usize</code>, <code>isize</code>).</li>
+<li>Double and single-precision floating point numbers (<code>f32</code>, <code>f64</code>).</li>
+<li>Booleans.</li>
+<li>Strings (<code>String</code> and <code>&amp;str</code>)</li>
+<li><code>Vec&lt;T&gt;</code> where T implements <code>IntoZval</code> and/or <code>FromZval</code>.</li>
+<li><code>HashMap&lt;String, T&gt;</code> where T implements <code>IntoZval</code> and/or <code>FromZval</code>.</li>
+<li><code>Binary&lt;T&gt;</code> where T implements <code>Pack</code>, used for transferring binary string
+data.</li>
+<li><code>Option&lt;T&gt;</code> where T implements <code>IntoZval</code> and/or <code>FromZval</code>, and where <code>None</code>
+is converted to a PHP <code>null</code>.</li>
+</ul>
+<p>There is one special case - <code>Result&lt;T, E&gt;</code>, where T implements <code>IntoZval</code> and
+<code>E</code> implements <code>Into&lt;PhpException&gt;</code>. This can only be used as a function/method
+return type. If the error variant is encountered, <code>E</code> is converted into a
+<code>PhpException</code> and thrown.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="primitive-numbers"><a class="header" href="#primitive-numbers">Primitive Numbers</a></h1>
+<p>Primitive integers include <code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code>, <code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>,
+<code>isize</code>, <code>usize</code>, <code>f32</code> and <code>f64</code>.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td><code>i32</code> on 32-bit platforms, <code>i64</code> on 64-bit platforms, <code>f64</code> platform-independent</td></tr>
+</tbody></table>
+<p>Note that internally, PHP treats <strong>all</strong> of these integers the same (a 'long'),
+and therefore it must be converted into a long to be stored inside the zval. A
+long is always signed, and the size will be 32-bits on 32-bit platforms and
+64-bits on 64-bit platforms.</p>
+<p>Floating point numbers are always stored in a <code>double</code> type (<code>f64</code>), regardless
+of platform. Note that converting a zval into a <code>f32</code> will lose accuracy.</p>
+<p>This means that converting <code>i64</code>, <code>u32</code>, <code>u64</code>, <code>isize</code> and <code>usize</code> <em>can</em> fail
+depending on the value and the platform, which is why all zval conversions are
+fallible.</p>
+<h2 id="rust-example"><a class="header" href="#rust-example">Rust example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+pub fn test_numbers(a: i32, b: u32, c: f32) -&gt; u8 {
+    println!(&quot;a {} b {} c {}&quot;, a, b, c);
+    0
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-example"><a class="header" href="#php-example">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+test_numbers(5, 10, 12.5); // a 5 b 10 c 12.5
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="string"><a class="header" href="#string"><code>String</code></a></h1>
+<p>When a <code>String</code> type is encountered, the zend string content is copied to/from a
+Rust <code>String</code> object. If the zval does not contain a string, it will attempt to
+read a <code>double</code> from the zval and convert it into a <code>String</code> object.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td><code>zend_string</code> (C-string)</td></tr>
+</tbody></table>
+<p>Internally, PHP stores strings in <code>zend_string</code> objects, which is a refcounted C
+struct containing the string length with the content of the string appended to
+the end of the struct based on how long the string is. Since the string is
+NUL-terminated, you cannot have any NUL bytes in your string, and an error will
+be thrown if one is encountered while converting a <code>String</code> to a zval.</p>
+<h2 id="rust-example-1"><a class="header" href="#rust-example-1">Rust example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+pub fn str_example(input: &amp;str) -&gt; String {
+    format!(&quot;Hello {}&quot;, input)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-example-1"><a class="header" href="#php-example-1">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+var_dump(str_example(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
+var_dump(str_example(5)); // string(7) &quot;Hello 5&quot;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="str"><a class="header" href="#str"><code>&amp;str</code></a></h1>
+<p>A borrowed string. When this type is encountered, you are given a reference to
+the actual zend string memory, rather than copying the contents like if you were
+taking an owned <code>String</code> argument.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>No</td><td>Yes</td><td>Yes</td><td><code>zend_string</code> (C-string)</td></tr>
+</tbody></table>
+<p>Note that you cannot expect the function to operate the same by swapping out
+<code>String</code> and <code>&amp;str</code> - since the zend string memory is read directly, this
+library does not attempt to parse <code>double</code> types as strings.</p>
+<p>See the <a href="types/./string.html"><code>String</code></a> for a deeper dive into the internal structure of
+PHP strings.</p>
+<h2 id="rust-example-2"><a class="header" href="#rust-example-2">Rust example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+pub fn str_example(input: &amp;str) -&gt; String {
+    format!(&quot;Hello {}&quot;, input)
+}
+
+#[php_function]
+pub fn str_return_example() -&gt; &amp;'static str {
+    &quot;Hello from Rust&quot;
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-example-2"><a class="header" href="#php-example-2">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+var_dump(str_example(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
+var_dump(str_example(5)); // Invalid
+
+var_dump(str_return_example());
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="bool"><a class="header" href="#bool"><code>bool</code></a></h1>
+<p>A boolean. Not much else to say here.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td>Union flag</td></tr>
+</tbody></table>
+<p>Booleans are not actually stored inside the zval. Instead, they are treated as
+two different union types (the zval can be in a true or false state). An
+equivalent structure in Rust would look like:</p>
+<pre><code class="language-rs">enum Zval {
+    True,
+    False,
+    String(&amp;mut ZendString),
+    Long(i64),
+    // ...
+}
+</code></pre>
+<h2 id="rust-example-3"><a class="header" href="#rust-example-3">Rust example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+pub fn test_bool(input: bool) -&gt; String {
+    if input {
+        &quot;Yes!&quot;.into()
+    } else {
+        &quot;No!&quot;.into()
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-example-3"><a class="header" href="#php-example-3">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+var_dump(test_bool(true)); // string(4) &quot;Yes!&quot;
+var_dump(test_bool(false)); // string(3) &quot;No!&quot;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="vec"><a class="header" href="#vec"><code>Vec</code></a></h1>
+<p>Vectors can contain any type that can be represented as a zval. Note that the
+data contained in the array will be copied into Rust types and stored inside the
+vector. The internal representation of a PHP array is discussed below.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td><code>ZendHashTable</code></td></tr>
+</tbody></table>
+<p>Internally, PHP arrays are hash tables where the key can be an unsigned long or
+a string. Zvals are contained inside arrays therefore the data does not have to
+contain only one type.</p>
+<p>When converting into a vector, all values are converted from zvals into the
+given generic type. If any of the conversions fail, the whole conversion will
+fail.</p>
+<h2 id="rust-example-4"><a class="header" href="#rust-example-4">Rust example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+pub fn test_vec(vec: Vec&lt;String&gt;) -&gt; String {
+    vec.join(&quot; &quot;)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-example-4"><a class="header" href="#php-example-4">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+var_dump(test_vec(['hello', 'world', 5])); // string(13) &quot;hello world 5&quot;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hashmap"><a class="header" href="#hashmap"><code>HashMap</code></a></h1>
+<p><code>HashMap</code>s are represented as associative arrays in PHP.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td><code>ZendHashTable</code></td></tr>
+</tbody></table>
+<p>Converting from a zval to a <code>HashMap</code> is valid when the key is a <code>String</code>, and
+the value implements <code>FromZval</code>. The key and values are copied into Rust types
+before being inserted into the <code>HashMap</code>. If one of the key-value pairs has a
+numeric key, the key is represented as a string before being inserted.</p>
+<p>Converting from a <code>HashMap</code> to a zval is valid when the key implements
+<code>AsRef&lt;str&gt;</code>, and the value implements <code>IntoZval</code>.</p>
+<h2 id="rust-example-5"><a class="header" href="#rust-example-5">Rust example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span><span class="boring">use std::collections::HashMap;
+</span>#[php_function]
+pub fn test_hashmap(hm: HashMap&lt;String, String&gt;) -&gt; Vec&lt;String&gt; {
+    for (k, v) in hm.iter() {
+        println!(&quot;k: {} v: {}&quot;, k, v);
+    }
+
+    hm.into_iter()
+        .map(|(_, v)| v)
+        .collect::&lt;Vec&lt;_&gt;&gt;()
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-example-5"><a class="header" href="#php-example-5">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+var_dump(test_hashmap([
+    'hello' =&gt; 'world',
+    'rust' =&gt; 'php',
+    'okk',
+]));
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-ignore">k: hello v: world
+k: rust v: php
+k: 0 v: okk
+array(3) {
+    [0] =&gt; string(5) &quot;world&quot;,
+    [1] =&gt; string(3) &quot;php&quot;,
+    [2] =&gt; string(3) &quot;okk&quot;
+}
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="binary"><a class="header" href="#binary"><code>Binary</code></a></h1>
+<p>Binary data is represented as a string in PHP. The most common source of this
+data is from the <a href="https://www.php.net/manual/en/function.pack.php"><code>pack</code></a> and <a href="https://www.php.net/manual/en/function.unpack.php"><code>unpack</code></a> functions. It allows you to transfer
+arbitrary binary data between Rust and PHP.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td><code>zend_string</code></td></tr>
+</tbody></table>
+<p>The binary type is represented as a string in PHP. Although not encoded, the
+data is converted into an array and then the pointer to the data is set as the
+string pointer, with the length of the array being the length of the string.</p>
+<p><code>Binary&lt;T&gt;</code> is valid when <code>T</code> implements <code>Pack</code>. This is currently implemented
+on most primitive numbers (i8, i16, i32, i64, u8, u16, u32, u64, isize, usize,
+f32, f64).</p>
+<h2 id="rust-usage"><a class="header" href="#rust-usage">Rust Usage</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span><span class="boring">use ext_php_rs::php::types::binary::Binary;
+</span>#[php_function]
+pub fn test_binary(input: Binary&lt;u32&gt;) -&gt; Binary&lt;u32&gt; {
+    for i in input.iter() {
+        println!(&quot;{}&quot;, i);
+    }
+
+    vec![5, 4, 3, 2, 1]
+        .into_iter()
+        .collect::&lt;Binary&lt;_&gt;&gt;()
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-usage"><a class="header" href="#php-usage">PHP Usage</a></h2>
+<pre><code class="language-php">&lt;?php
+
+$data = pack('*L', [1, 2, 3, 4, 5]);
+$output = unpack('*L', test_binary($data));
+var_dump($output); // array(5) { [0] =&gt; 5, [1] =&gt; 4, [2] =&gt; 3, [3] =&gt; 2, [4] =&gt; 1 }
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="optiont"><a class="header" href="#optiont"><code>Option&lt;T&gt;</code></a></h1>
+<p>Options are used for optional and nullable parameters, as well as null returns.
+It is valid to be converted to/from a zval as long as the underlying <code>T</code> generic
+is also able to be converted to/from a zval.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td>Depends on <code>T</code></td></tr>
+</tbody></table>
+<p>Using <code>Option&lt;T&gt;</code> as a parameter indicates that the parameter is nullable. If
+null is passed, a <code>None</code> value will be supplied. It is also used in the place of
+optional parameters. If the parameter is not given, a <code>None</code> value will also be
+supplied.</p>
+<p>Returning <code>Option&lt;T&gt;</code> is a nullable return type. Returning <code>None</code> will return
+null to PHP.</p>
+<h2 id="rust-example-6"><a class="header" href="#rust-example-6">Rust example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+pub fn test_option_null(input: Option&lt;String&gt;) -&gt; Option&lt;String&gt; {
+    input.map(|input| format!(&quot;Hello {}&quot;, input).into())
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-example-6"><a class="header" href="#php-example-6">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+var_dump(test_option_null(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
+var_dump(test_option_null()); // null
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="macros"><a class="header" href="#macros">Macros</a></h1>
+<p><code>ext-php-rs</code> comes with a set of macros that are used to annotate types which
+are to be exported to PHP. This allows you to write Rust-like APIs that can be
+used from PHP without fiddling around with zvals.</p>
+<ul>
+<li><a href="macros/./module.html"><code>php_module</code></a> - Defines the function used by PHP to retrieve your extension.</li>
+<li><a href="macros/./module_startup.html"><code>php_startup</code></a> - Defines the extension startup function used by PHP to
+initialize your extension.</li>
+<li><a href="macros/./function.html"><code>php_function</code></a> - Used to export a Rust function to PHP.</li>
+<li><a href="macros/./structs.html"><code>ZendObjectHandler</code></a> - Used to export a Rust struct or enum as a PHP class.</li>
+<li><a href="macros/./impl.html"><code>php_impl</code></a> - Used to export a Rust <code>impl</code> block to PHP, including all
+methods and constants.</li>
+<li><a href="macros/./constant.html"><code>php_const</code></a> - Used to export a Rust constant to PHP as a global constant.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_module"><a class="header" href="#php_module"><code>#[php_module]</code></a></h1>
+<p>The module macro is used to annotate the <code>get_module</code> function, which is used by
+the PHP interpreter to retrieve information about your extension, including the
+name, version, functions and extra initialization functions. Regardless if you
+use this macro, your extension requires a <code>extern &quot;C&quot; fn get_module()</code> so that
+PHP can get this information.</p>
+<p>Using the macro, any functions annotated with the <code>php_function</code> macro will be
+automatically registered with the extension in this function. If you have
+defined any constants or classes with their corresponding macros, a 'module
+startup' function will also be generated if it has not already been defined.</p>
+<p>Automatically registering these functions requires you to define the module
+function <strong>after</strong> all other functions have been registered, as macros are
+expanded in-order, therefore this macro will not know that other functions have
+been used after.</p>
+<p>The function is renamed to <code>get_module</code> if you have used another name. The
+function is passed an instance of <code>ModuleBuilder</code> which allows you to register
+the following (if required):</p>
+<ul>
+<li>Extension and request startup and shutdown functions.
+<ul>
+<li>Read more about the PHP extension lifecycle
+<a href="https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html">here</a>.</li>
+</ul>
+</li>
+<li>PHP extension information function
+<ul>
+<li>Used by the <code>phpinfo()</code> function to get information about your extension.</li>
+</ul>
+</li>
+<li>Functions not automatically registered</li>
+</ul>
+<p>Classes and constants are not registered in the <code>get_module</code> function. These are
+registered inside the extension startup function.</p>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<pre><code class="language-rust ignore"><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span><span class="boring">use ext_php_rs::{info_table_start, info_table_row, info_table_end};
+</span><span class="boring">use ext_php_rs::php::module::ModuleEntry;
+</span>/// Used by the `phpinfo()` function and when you run `php -i`.
+/// This will probably be simplified with another macro eventually!
+pub extern &quot;C&quot; fn php_module_info(_module: *mut ModuleEntry) {
+    info_table_start!();
+    info_table_row!(&quot;my extension&quot;, &quot;enabled&quot;);
+    info_table_end!();
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.info_function(php_module_info)
+}
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_startup"><a class="header" href="#php_startup"><code>#[php_startup]</code></a></h1>
+<p>Used to define the PHP extension startup function. This function is used to
+register extension classes and constants with the PHP interpreter.</p>
+<p>This function is automatically generated if you have registered classes or
+constants and have not already used this macro. If you do use this macro, it
+will be automatically registered in the <code>get_module</code> function when you use the
+<code>#[php_module]</code> attribute.</p>
+<p>Most of the time you won't need to use this macro as the startup function will
+be automatically generated when required (if not already defined).</p>
+<p>Read more about what the module startup function is used for
+<a href="https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html#module-initialization-minit">here.</a></p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_startup]
+pub fn startup_function() {
+
+}
+<span class="boring">}
+</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_function"><a class="header" href="#php_function"><code>#[php_function]</code></a></h1>
+<p>Used to annotate functions which should be exported to PHP. Note that this
+should not be used on class methods - see the <code>#[php_impl]</code> macro for that.</p>
+<p>See the <a href="macros/../types/index.html">list of types</a> that are valid as parameter and
+return types.</p>
+<h2 id="optional-parameters"><a class="header" href="#optional-parameters">Optional parameters</a></h2>
+<p>Optional parameters can be used by setting the Rust parameter type to
+<code>Option&lt;T&gt;</code> and then passing the name of the first optional parameter into the
+macro options. Note that all parameters after the given parameter will be
+optional as well, and therefore must be of the type <code>Option&lt;T&gt;</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function(optional = &quot;age&quot;)]
+pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
+    let mut greeting = format!(&quot;Hello, {}!&quot;, name);
+
+    if let Some(age) = age {
+        greeting += &amp;format!(&quot; You are {} years old.&quot;, age);
+    }
+
+    greeting
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Default parameter values can also be set for optional parameters. This is done
+through the <code>defaults</code> attribute option. When an optional parameter has a
+default, it does not need to be a variant of <code>Option</code>:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function(optional = &quot;offset&quot;, defaults(offset = 0))]
+pub fn rusty_strpos(haystack: &amp;str, needle: &amp;str, offset: i64) -&gt; Option&lt;usize&gt; {
+    let haystack: String = haystack.chars().skip(offset as usize).collect();
+    haystack.find(needle)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="throwing-exceptions"><a class="header" href="#throwing-exceptions">Throwing exceptions</a></h2>
+<p>Exceptions can be thrown from inside a function which returns a <code>Result&lt;T, E&gt;</code>,
+where <code>E</code> implements <code>Into&lt;PhpException&gt;</code>. The <code>PhpException</code> class allows you
+to customise the type of exception thrown, along with the exception code and
+message.</p>
+<p>By default, <code>String</code> and <code>&amp;str</code> are both implemented with <code>Into&lt;PhpException&gt;</code>,
+and in both cases a regular <code>Exception</code> is thrown.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+pub fn example_exception() -&gt; Result&lt;i64, &amp;'static str&gt; {
+    Err(&quot;Bad!!!&quot;)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="structs"><a class="header" href="#structs">Structs</a></h1>
+<p>Structs can be exported to PHP as classes with the
+<code>#[derive(ZendObjectHandler)]</code> macro.</p>
+<p>The implementation of <code>ZendObjectOverride</code> requires the implementation of
+<code>Default</code> on the struct. This is because the struct is initialized before the
+constructor is called, therefore it must have default values for all properties.</p>
+<p>This derive macro is likely to be changed to an attribute macro over time, as to
+introduce class renaming as well as inheritance, which can't be done with a
+derive macro.</p>
+<p>This macro can also be used on enums.</p>
+<p>Note that Rust struct properties <strong>are not</strong> PHP properties, so if you want the
+user to be able to access these, you must provide getters and/or setters.
+Properties are supported, however, they are not usable through the automatic
+macros.</p>
+<h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
+<p>This example creates a PHP class <code>Human</code>:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[derive(Default, ZendObjectHandler)]
+pub struct Human {
+    name: String,
+    age: i32
+}
+<span class="boring">}
+</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_impl"><a class="header" href="#php_impl"><code>#[php_impl]</code></a></h1>
+<p>You can export an entire <code>impl</code> block to PHP. This exports all methods as well
+as constants to PHP on the class that it is implemented on. This requires the
+<code>#[derive(ZendObjectHandler)]</code> macro to already be used on the underlying
+struct. Trait implementations cannot be exported to PHP.</p>
+<p>If you do not want a function exported to PHP, you should place it in a seperate
+<code>impl</code> block.</p>
+<h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
+<p>Methods basically follow the same rules as functions, so read about the
+<a href="macros/./function.html"><code>php_function</code></a> macro first. The primary difference between functions and
+methods is they are bounded by their class object.</p>
+<p>Class methods can take a <code>&amp;self</code> or <code>&amp;mut self</code> parameter. They cannot take a
+consuming <code>self</code> parameter. Static methods can omit this <code>self</code> parameter.</p>
+<p>As there is no attribute directly on the method, options are passed as separate
+attributes:</p>
+<ul>
+<li><code>#[defaults(i = 5, b = &quot;hello&quot;)]</code> - Sets the default value for parameter(s).</li>
+<li><code>#[optional(i)]</code> - Sets the first optional parameter. Note that this also sets
+the remaining parameters as optional, so all optional parameters must be a
+variant of <code>Option&lt;T&gt;</code>.</li>
+<li><code>#[public]</code>, <code>#[protected]</code> and <code>#[private]</code> - Sets the visibility of the
+method.</li>
+</ul>
+<h2 id="constants"><a class="header" href="#constants">Constants</a></h2>
+<p>Constants are defined as regular Rust <code>impl</code> constants. Any type that implements
+<code>IntoZval</code> can be used as a constant. Constant visibility is not supported at
+the moment, and therefore no attributes are valid on constants.</p>
+<h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
+<p>Continuing on from our <code>Human</code> example in the structs section, we will define a
+constructor, as well as getters for the properties. We will also define a
+constant for the maximum age of a <code>Human</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span><span class="boring">#[derive(Default, ZendObjectHandler)]
+</span><span class="boring">pub struct Human {
+</span><span class="boring">    name: String,
+</span><span class="boring">    age: i32
+</span><span class="boring">}
+</span>#[php_impl]
+impl Human {
+    const MAX_AGE: i32 = 100;
+
+    pub fn __construct(&amp;mut self, name: String, age: i32) {
+        self.name = name;
+        self.age = age;
+    }
+
+    pub fn get_name(&amp;self) -&gt; String {
+        self.name.to_string()
+    }
+
+    pub fn get_age(&amp;self) -&gt; i32 {
+        self.age
+    }
+
+    pub fn introduce(&amp;self) {
+        println!(&quot;My name is {} and I am {} years old.&quot;, self.name, self.age);
+    }
+
+    pub fn get_max_age() -&gt; i32 {
+        Self::MAX_AGE
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Using our newly created class in PHP:</p>
+<pre><code class="language-php">&lt;?php
+
+$me = new Human('David', 20);
+
+$me-&gt;introduce(); // My name is David and I am 20 years old.
+var_dump(Human::get_max_age()); // int(100)
+var_dump(Human::MAX_AGE); // int(100)
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_const"><a class="header" href="#php_const"><code>#[php_const]</code></a></h1>
+<p>Exports a Rust constant as a global PHP constant. The constant can be any type
+that implements <code>IntoConst</code>.</p>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_const]
+const TEST_CONSTANT: i32 = 100;
+
+#[php_const]
+const ANOTHER_STRING_CONST: &amp;'static str = &quot;Hello world!&quot;;
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="php-usage-1"><a class="header" href="#php-usage-1">PHP usage</a></h2>
+<pre><code class="language-php">&lt;?php
+
+var_dump(TEST_CONSTANT); // int(100)
+var_dump(ANOTHER_STRING_CONST); // string(12) &quot;Hello world!&quot;
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+            </nav>
+
+        </div>
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+    </body>
+</html>

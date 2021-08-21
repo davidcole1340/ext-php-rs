@@ -710,6 +710,73 @@
 <span id="708">708</span>
 <span id="709">709</span>
 <span id="710">710</span>
+<span id="711">711</span>
+<span id="712">712</span>
+<span id="713">713</span>
+<span id="714">714</span>
+<span id="715">715</span>
+<span id="716">716</span>
+<span id="717">717</span>
+<span id="718">718</span>
+<span id="719">719</span>
+<span id="720">720</span>
+<span id="721">721</span>
+<span id="722">722</span>
+<span id="723">723</span>
+<span id="724">724</span>
+<span id="725">725</span>
+<span id="726">726</span>
+<span id="727">727</span>
+<span id="728">728</span>
+<span id="729">729</span>
+<span id="730">730</span>
+<span id="731">731</span>
+<span id="732">732</span>
+<span id="733">733</span>
+<span id="734">734</span>
+<span id="735">735</span>
+<span id="736">736</span>
+<span id="737">737</span>
+<span id="738">738</span>
+<span id="739">739</span>
+<span id="740">740</span>
+<span id="741">741</span>
+<span id="742">742</span>
+<span id="743">743</span>
+<span id="744">744</span>
+<span id="745">745</span>
+<span id="746">746</span>
+<span id="747">747</span>
+<span id="748">748</span>
+<span id="749">749</span>
+<span id="750">750</span>
+<span id="751">751</span>
+<span id="752">752</span>
+<span id="753">753</span>
+<span id="754">754</span>
+<span id="755">755</span>
+<span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
+<span id="759">759</span>
+<span id="760">760</span>
+<span id="761">761</span>
+<span id="762">762</span>
+<span id="763">763</span>
+<span id="764">764</span>
+<span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
 </pre><pre class="rust">
 <span class="doccomment">//! The base value in PHP. A Zval can contain any PHP type, and the type that it contains is</span>
 <span class="doccomment">//! determined by a property inside the struct. The content of the Zval is stored in a union.</span>
@@ -786,7 +853,21 @@
     }
 
     <span class="doccomment">/// Returns the value of the zval if it is a string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// If the zval does not contain a string, the function will check if it contains a</span>
+    <span class="doccomment">/// double or a long, and if so it will convert the value to a [`String`] and return it.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">str</span>()
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">to_string</span>())
+            .<span class="ident">or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">double</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="ident">x</span>.<span class="ident">to_string</span>()))
+    }
+
+    <span class="doccomment">/// Returns the value of the zval if it is a string.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note that this functions output will not be the same as [`Zval::string`], as this</span>
+    <span class="doccomment">/// function does not attempt to convert other types into a [`String`], as it could not</span>
+    <span class="doccomment">/// pass back a [`&amp;str`] in those cases.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">str</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span><span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">is_string</span>() {
             <span class="comment">// SAFETY: Zend strings have a length that we know we can read.</span>
             <span class="comment">// By reading this many bytes we will not run into any issues.</span>
@@ -794,16 +875,14 @@
             <span class="comment">// We can safely cast our *const c_char into a *const u8 as both</span>
             <span class="comment">// only occupy one byte.</span>
             <span class="kw">unsafe</span> {
-                <span class="kw">let</span> <span class="ident">_str</span> <span class="op">=</span> <span class="ident">std::str::from_utf8</span>(<span class="ident">slice::from_raw_parts</span>(
+                <span class="ident">std::str::from_utf8</span>(<span class="ident">slice::from_raw_parts</span>(
                     (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">value</span>.<span class="ident">str_</span>).<span class="ident">val</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">u8</span>,
                     (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">value</span>.<span class="ident">str_</span>).<span class="ident">len</span> <span class="kw">as</span> <span class="ident">usize</span>,
                 ))
-                .<span class="ident">ok</span>()<span class="question-mark">?</span>;
-
-                <span class="prelude-val">Some</span>(<span class="ident">_str</span>.<span class="ident">to_string</span>())
+                .<span class="ident">ok</span>()
             }
         } <span class="kw">else</span> {
-            <span class="self">self</span>.<span class="ident">double</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="ident">x</span>.<span class="ident">to_string</span>())
+            <span class="prelude-val">None</span>
         }
     }
 
@@ -1166,16 +1245,44 @@
 <span class="macro">into_zval!</span>(<span class="macro-nonterminal">i8</span>, <span class="ident">set_long</span>);
 <span class="macro">into_zval!</span>(<span class="ident">i16</span>, <span class="ident">set_long</span>);
 <span class="macro">into_zval!</span>(<span class="ident">i32</span>, <span class="ident">set_long</span>);
-<span class="macro">into_zval!</span>(<span class="ident">i64</span>, <span class="ident">set_long</span>);
 
 <span class="macro">into_zval!</span>(<span class="ident">u8</span>, <span class="ident">set_long</span>);
 <span class="macro">into_zval!</span>(<span class="ident">u16</span>, <span class="ident">set_long</span>);
-<span class="macro">into_zval!</span>(<span class="ident">u32</span>, <span class="ident">set_long</span>);
 
 <span class="macro">into_zval!</span>(<span class="ident">f32</span>, <span class="ident">set_double</span>);
 <span class="macro">into_zval!</span>(<span class="ident">f64</span>, <span class="ident">set_double</span>);
 
 <span class="macro">into_zval!</span>(<span class="ident">bool</span>, <span class="ident">set_bool</span>);
+
+<span class="macro">macro_rules!</span> <span class="ident">try_into_zval_int</span> {
+    (<span class="macro-nonterminal">$</span><span class="kw">type</span>: <span class="macro-nonterminal">ty</span>) <span class="op">=</span><span class="op">&gt;</span> {
+        <span class="kw">impl</span> <span class="ident">TryFrom</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="kw">type</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="macro-nonterminal">Zval</span> {
+            <span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="ident">Error</span>;
+
+            <span class="kw">fn</span> <span class="ident">try_from</span>(<span class="ident">val</span>: <span class="macro-nonterminal">$</span><span class="kw">type</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="macro-nonterminal">zv</span> <span class="op">=</span> <span class="self">Self</span><span class="ident">::new</span>();
+                <span class="kw">let</span> <span class="ident">val</span>: <span class="ident">ZendLong</span> <span class="op">=</span> <span class="ident">val</span>.<span class="ident">try_into</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">Error::IntegerOverflow</span>)<span class="question-mark">?</span>;
+                <span class="ident">zv</span>.<span class="ident">set_long</span>(<span class="ident">val</span>);
+                <span class="prelude-val">Ok</span>(<span class="ident">zv</span>)
+            }
+        }
+
+        <span class="kw">impl</span> <span class="ident">IntoZval</span> <span class="kw">for</span> <span class="macro-nonterminal">$</span><span class="kw">type</span> {
+            <span class="kw">fn</span> <span class="macro-nonterminal">set_zval</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">zv</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Zval</span>, <span class="kw">_</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+                <span class="kw">let</span> <span class="ident">val</span>: <span class="ident">ZendLong</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="self">self</span>).<span class="ident">try_into</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">Error::IntegerOverflow</span>)<span class="question-mark">?</span>;
+                <span class="ident">zv</span>.<span class="ident">set_long</span>(<span class="ident">val</span>);
+                <span class="prelude-val">Ok</span>(())
+            }
+        }
+    };
+}
+
+<span class="macro">try_into_zval_int!</span>(<span class="ident">i64</span>);
+<span class="macro">try_into_zval_int!</span>(<span class="ident">u32</span>);
+<span class="macro">try_into_zval_int!</span>(<span class="ident">u64</span>);
+
+<span class="macro">try_into_zval_int!</span>(<span class="ident">isize</span>);
+<span class="macro">try_into_zval_int!</span>(<span class="ident">usize</span>);
 
 <span class="macro">macro_rules!</span> <span class="ident">try_into_zval_str</span> {
     (<span class="macro-nonterminal">$</span><span class="kw">type</span>: <span class="macro-nonterminal">ty</span>) <span class="op">=</span><span class="op">&gt;</span> {
@@ -1317,6 +1424,33 @@
 <span class="macro">try_from_zval!</span>(<span class="ident">f64</span>, <span class="ident">double</span>, <span class="ident">Double</span>);
 <span class="macro">try_from_zval!</span>(<span class="ident">bool</span>, <span class="ident">bool</span>, <span class="ident">Bool</span>);
 <span class="macro">try_from_zval!</span>(<span class="ident">String</span>, <span class="ident">string</span>, <span class="ident">String</span>);
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">FromZval</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">f32</span> {
+    <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::Double</span>;
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">TryFrom</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Zval</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">f32</span> {
+    <span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="ident">Error</span>;
+
+    <span class="kw">fn</span> <span class="ident">try_from</span>(<span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Zval</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="ident">value</span>
+            .<span class="ident">double</span>()
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="ident">v</span> <span class="kw">as</span> <span class="ident">f32</span>)
+            .<span class="ident">ok_or</span>(<span class="ident">Error::ZvalConversion</span>(<span class="ident">value</span>.<span class="ident">get_type</span>()<span class="question-mark">?</span>))
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">FromZval</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span> {
+    <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::String</span>;
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">TryFrom</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Zval</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span> {
+    <span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="ident">Error</span>;
+
+    <span class="kw">fn</span> <span class="ident">try_from</span>(<span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Zval</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="ident">value</span>.<span class="ident">str</span>().<span class="ident">ok_or</span>(<span class="ident">Error::ZvalConversion</span>(<span class="ident">value</span>.<span class="ident">get_type</span>()<span class="question-mark">?</span>))
+    }
+}
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">FromZval</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ZendHashTable</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::Array</span>;

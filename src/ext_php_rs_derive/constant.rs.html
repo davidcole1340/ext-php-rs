@@ -50,13 +50,15 @@
 <span id="48">48</span>
 <span id="49">49</span>
 <span id="50">50</span>
+<span id="51">51</span>
 </pre><pre class="rust">
+<span class="kw">use</span> <span class="ident">anyhow</span>::{<span class="ident">bail</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use</span> <span class="ident">darling::ToTokens</span>;
 <span class="kw">use</span> <span class="ident">proc_macro2</span>::{<span class="ident">Ident</span>, <span class="ident">Literal</span>, <span class="ident">TokenStream</span>};
 <span class="kw">use</span> <span class="ident">quote::quote</span>;
 <span class="kw">use</span> <span class="ident">syn::ItemConst</span>;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">error::Result</span>, <span class="ident">STATE</span>};
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::STATE</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Constant</span> {
@@ -66,10 +68,10 @@
 }
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parser</span>(<span class="ident">input</span>: <span class="ident">ItemConst</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">TokenStream</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>()<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">STATE</span>.<span class="ident">lock</span>();
 
     <span class="kw">if</span> <span class="ident">state</span>.<span class="ident">startup_function</span>.<span class="ident">is_some</span>() {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="string">&quot;Constants must be declared before you declare your startup function and module function.&quot;</span>.<span class="ident">into</span>());
+        <span class="macro">bail!</span>(<span class="string">&quot;Constants must be declared before you declare your startup function and module function.&quot;</span>);
     }
 
     <span class="ident">state</span>.<span class="ident">constants</span>.<span class="ident">push</span>(<span class="ident">Constant</span> {
