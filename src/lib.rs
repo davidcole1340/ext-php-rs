@@ -1,4 +1,6 @@
 //! Bindings and abstractions for the Zend API to build PHP extensions natively in Rust.
+//!
+//! The library guide can be read [here.](https://davidcole1340.github.io/ext-php-rs/guide)
 
 #![deny(clippy::unwrap_used)]
 #![allow(non_upper_case_globals)]

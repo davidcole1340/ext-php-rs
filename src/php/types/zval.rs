@@ -76,6 +76,8 @@ impl<'a> Zval {
     ///
     /// If the zval does not contain a string, the function will check if it contains a
     /// double or a long, and if so it will convert the value to a [`String`] and return it.
+    /// Don't rely on this logic, as there is potential for this to change to match the output
+    /// of the [`str()`](#method.str) function.
     pub fn string(&self) -> Option<String> {
         self.str()
             .map(|s| s.to_string())
@@ -84,8 +86,8 @@ impl<'a> Zval {
 
     /// Returns the value of the zval if it is a string.
     ///
-    /// Note that this functions output will not be the same as [`Zval::string`], as this
-    /// function does not attempt to convert other types into a [`String`], as it could not
+    /// Note that this functions output will not be the same as [`string()`](#method.string), as
+    /// this function does not attempt to convert other types into a [`String`], as it could not
     /// pass back a [`&str`] in those cases.
     pub fn str(&'a self) -> Option<&'a str> {
         if self.is_string() {

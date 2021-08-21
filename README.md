@@ -30,6 +30,8 @@ Calling the function from PHP:
 var_dump(hello_world("David")); // string(13) "Hello, David!"
 ```
 
+For more information read the [guide](https://davidcole1340.github.io/ext-php-rs/guide).
+
 ## Features
 
 - **Easy to use:** The built-in macros can abstract away the need to interact
@@ -54,6 +56,8 @@ Our main goal is to **make extension development easier.**
   of PHP without significant changes to extension code.
 
 ## Documentation
+
+The library guide can be read [here](https://davidcole1340.github.io/ext-php-rs/guide).
 
 The project is documented in-line, so viewing the `cargo` documentation is the
 best resource at the moment.

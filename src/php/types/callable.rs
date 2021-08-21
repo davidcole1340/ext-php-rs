@@ -38,8 +38,7 @@ impl<'a> Deref for OwnedZval<'a> {
 }
 
 impl<'a> Callable<'a> {
-    /// Attempts to create a new [`Callable`]. Should not need to be used directly, but through the
-    /// [`Zval::callable`] method.
+    /// Attempts to create a new [`Callable`] from a zval.
     ///
     /// # Parameters
     ///
