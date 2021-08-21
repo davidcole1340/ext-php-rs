@@ -777,6 +777,8 @@
 <span id="775">775</span>
 <span id="776">776</span>
 <span id="777">777</span>
+<span id="778">778</span>
+<span id="779">779</span>
 </pre><pre class="rust">
 <span class="doccomment">//! The base value in PHP. A Zval can contain any PHP type, and the type that it contains is</span>
 <span class="doccomment">//! determined by a property inside the struct. The content of the Zval is stored in a union.</span>
@@ -856,6 +858,8 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// If the zval does not contain a string, the function will check if it contains a</span>
     <span class="doccomment">/// double or a long, and if so it will convert the value to a [`String`] and return it.</span>
+    <span class="doccomment">/// Don&#39;t rely on this logic, as there is potential for this to change to match the output</span>
+    <span class="doccomment">/// of the [`str()`](#method.str) function.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">str</span>()
             .<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">to_string</span>())
@@ -864,8 +868,8 @@
 
     <span class="doccomment">/// Returns the value of the zval if it is a string.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Note that this functions output will not be the same as [`Zval::string`], as this</span>
-    <span class="doccomment">/// function does not attempt to convert other types into a [`String`], as it could not</span>
+    <span class="doccomment">/// Note that this functions output will not be the same as [`string()`](#method.string), as</span>
+    <span class="doccomment">/// this function does not attempt to convert other types into a [`String`], as it could not</span>
     <span class="doccomment">/// pass back a [`&amp;str`] in those cases.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">str</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span><span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="self">self</span>.<span class="ident">is_string</span>() {
