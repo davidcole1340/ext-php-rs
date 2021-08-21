@@ -2,7 +2,11 @@
 
 use std::{error::Error as ErrorTrait, ffi::NulError, fmt::Display};
 
-use crate::php::{enums::DataType, exceptions::PhpException, flags::{ClassFlags, ZvalTypeFlags}};
+use crate::php::{
+    enums::DataType,
+    exceptions::PhpException,
+    flags::{ClassFlags, ZvalTypeFlags},
+};
 
 /// The main result type which is passed by the library.
 pub type Result<T> = std::result::Result<T, Error>;
