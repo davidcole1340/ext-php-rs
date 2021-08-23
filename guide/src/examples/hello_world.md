@@ -49,8 +49,7 @@ we were given.
 
 ### `src/lib.rs`
 
-```rust
-# extern crate ext_php_rs;
+```rust,ignore
 use ext_php_rs::prelude::*;
 
 #[php_function]
@@ -84,7 +83,7 @@ name, so for us it will be `libhello_world`. The extension is based on your OS -
 on Linux it will be `libhello_world.so` and on macOS it will be
 `libhello_world.dylib`.
 
-```
+```sh
 $ cargo build
     Finished dev [unoptimized + debuginfo] target(s) in 0.01s
 $ php -dextension=./target/debug/libhello_world.dylib test.php
