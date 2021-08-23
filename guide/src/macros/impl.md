@@ -27,6 +27,9 @@ attributes:
 - `#[public]`, `#[protected]` and `#[private]` - Sets the visibility of the
   method.
 
+The `#[defaults]` and `#[optional]` attributes operate the same as the
+equivalent function attribute parameters.
+
 ## Constants
 
 Constants are defined as regular Rust `impl` constants. Any type that implements

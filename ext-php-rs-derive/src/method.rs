@@ -59,6 +59,13 @@ pub fn parser(input: &mut ImplItemMethod) -> Result<(TokenStream, Method)> {
 
     let internal_ident = Ident::new(&format!("_internal_php_{}", ident), Span::call_site());
     let args = build_args(inputs, &defaults)?;
+    let optional = function::find_optional_parameter(
+        args.iter().filter_map(|arg| match arg {
+            Arg::Typed(arg) => Some(arg),
+            _ => None,
+        }),
+        optional,
+    );
     let (arg_definitions, is_static) = build_arg_definitions(&args);
     let arg_parser = build_arg_parser(args.iter(), &optional)?;
     let arg_accessors = build_arg_accessors(&args);

@@ -55,8 +55,9 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         Span::call_site(),
     );
     let args = build_args(inputs, &attr_args.defaults)?;
+    let optional = find_optional_parameter(args.iter(), attr_args.optional);
     let arg_definitions = build_arg_definitions(&args);
-    let arg_parser = build_arg_parser(args.iter(), &attr_args.optional)?;
+    let arg_parser = build_arg_parser(args.iter(), &optional)?;
     let arg_accessors = build_arg_accessors(&args);
 
     let return_handler = build_return_handler(output);
@@ -88,7 +89,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         name: ident.to_string(),
         ident: internal_ident.to_string(),
         args,
-        optional: attr_args.optional,
+        optional,
         output: return_type,
     };
 
@@ -129,6 +130,27 @@ fn build_arg_definitions(args: &[Arg]) -> Vec<TokenStream> {
             }
         })
         .collect()
+}
+
+pub fn find_optional_parameter<'a>(
+    args: impl DoubleEndedIterator<Item = &'a Arg>,
+    optional: Option<String>,
+) -> Option<String> {
+    if optional.is_some() {
+        return optional;
+    }
+
+    let mut optional = None;
+
+    for arg in args.rev() {
+        if arg.nullable {
+            optional.replace(arg.name.clone());
+        } else {
+            break;
+        }
+    }
+
+    optional
 }
 
 pub fn build_arg_parser<'a>(
@@ -284,7 +306,12 @@ impl Arg {
                     _ => path.to_token_stream().to_string(),
                 };
 
-                Some(Arg::new(name, &stringified, seg.ident == "Option", default))
+                Some(Arg::new(
+                    name,
+                    &stringified,
+                    seg.ident == "Option" || default.is_some(),
+                    default,
+                ))
             }
             Type::Reference(ref_) => {
                 // Returning references is invalid, so let's just create our arg

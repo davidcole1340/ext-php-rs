@@ -8,15 +8,15 @@ return types.
 
 ## Optional parameters
 
-Optional parameters can be used by setting the Rust parameter type to
-`Option<T>` and then passing the name of the first optional parameter into the
-macro options. Note that all parameters after the given parameter will be
-optional as well, and therefore must be of the type `Option<T>`.
+Optional parameters can be used by setting the Rust parameter type to a variant
+of `Option<T>`. The macro will then figure out which parameters are optional by
+using the last consecutive arguments that are a variant of `Option<T>` or have a
+default value.
 
 ```rust
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function(optional = "age")]
+#[php_function]
 pub fn greet(name: String, age: Option<i32>) -> String {
     let mut greeting = format!("Hello, {}!", name);
 
@@ -35,10 +35,56 @@ default, it does not need to be a variant of `Option`:
 ```rust
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function(optional = "offset", defaults(offset = 0))]
+#[php_function(defaults(offset = 0))]
 pub fn rusty_strpos(haystack: &str, needle: &str, offset: i64) -> Option<usize> {
     let haystack: String = haystack.chars().skip(offset as usize).collect();
     haystack.find(needle)
+}
+```
+
+Note that if there is a non-optional argument after an argument that is a
+variant of `Option<T>`, the `Option<T>` argument will be deemed a nullable
+argument rather than an optional argument.
+
+```rust
+# extern crate ext_php_rs;
+# use ext_php_rs::prelude::*;
+/// `age` will be deemed required and nullable rather than optional.
+#[php_function]
+pub fn greet(name: String, age: Option<i32>, description: String) -> String {
+    let mut greeting = format!("Hello, {}!", name);
+
+    if let Some(age) = age {
+        greeting += &format!(" You are {} years old.", age);
+    }
+
+    greeting += &format!(" {}.", description);
+    greeting
+}
+```
+
+You can also specify the optional arguments if you want to have nullable
+arguments before optional arguments. This is done through an attribute
+parameter:
+
+```rust
+# extern crate ext_php_rs;
+# use ext_php_rs::prelude::*;
+/// `age` will be deemed required and nullable rather than optional,
+/// while description will be optional.
+#[php_function(optional = "description")]
+pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> String {
+    let mut greeting = format!("Hello, {}!", name);
+
+    if let Some(age) = age {
+        greeting += &format!(" You are {} years old.", age);
+    }
+
+    if let Some(description) = description {
+        greeting += &format!(" {}.", description);
+    }
+
+    greeting
 }
 ```
 
