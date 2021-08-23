@@ -405,6 +405,33 @@
 <span id="403">403</span>
 <span id="404">404</span>
 <span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
 </pre><pre class="rust">
 <span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 
@@ -463,8 +490,9 @@
         <span class="ident">Span::call_site</span>(),
     );
     <span class="kw">let</span> <span class="ident">args</span> <span class="op">=</span> <span class="ident">build_args</span>(<span class="ident">inputs</span>, <span class="kw-2">&amp;</span><span class="ident">attr_args</span>.<span class="ident">defaults</span>)<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="ident">optional</span> <span class="op">=</span> <span class="ident">find_optional_parameter</span>(<span class="ident">args</span>.<span class="ident">iter</span>(), <span class="ident">attr_args</span>.<span class="ident">optional</span>);
     <span class="kw">let</span> <span class="ident">arg_definitions</span> <span class="op">=</span> <span class="ident">build_arg_definitions</span>(<span class="kw-2">&amp;</span><span class="ident">args</span>);
-    <span class="kw">let</span> <span class="ident">arg_parser</span> <span class="op">=</span> <span class="ident">build_arg_parser</span>(<span class="ident">args</span>.<span class="ident">iter</span>(), <span class="kw-2">&amp;</span><span class="ident">attr_args</span>.<span class="ident">optional</span>)<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="ident">arg_parser</span> <span class="op">=</span> <span class="ident">build_arg_parser</span>(<span class="ident">args</span>.<span class="ident">iter</span>(), <span class="kw-2">&amp;</span><span class="ident">optional</span>)<span class="question-mark">?</span>;
     <span class="kw">let</span> <span class="ident">arg_accessors</span> <span class="op">=</span> <span class="ident">build_arg_accessors</span>(<span class="kw-2">&amp;</span><span class="ident">args</span>);
 
     <span class="kw">let</span> <span class="ident">return_handler</span> <span class="op">=</span> <span class="ident">build_return_handler</span>(<span class="ident">output</span>);
@@ -496,7 +524,7 @@
         <span class="ident">name</span>: <span class="ident">ident</span>.<span class="ident">to_string</span>(),
         <span class="ident">ident</span>: <span class="ident">internal_ident</span>.<span class="ident">to_string</span>(),
         <span class="ident">args</span>,
-        <span class="ident">optional</span>: <span class="ident">attr_args</span>.<span class="ident">optional</span>,
+        <span class="ident">optional</span>,
         <span class="ident">output</span>: <span class="ident">return_type</span>,
     };
 
@@ -537,6 +565,27 @@
             }
         })
         .<span class="ident">collect</span>()
+}
+
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_optional_parameter</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(
+    <span class="ident">args</span>: <span class="kw">impl</span> <span class="ident">DoubleEndedIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Arg</span><span class="op">&gt;</span>,
+    <span class="ident">optional</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
+    <span class="kw">if</span> <span class="ident">optional</span>.<span class="ident">is_some</span>() {
+        <span class="kw">return</span> <span class="ident">optional</span>;
+    }
+
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">optional</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+
+    <span class="kw">for</span> <span class="ident">arg</span> <span class="kw">in</span> <span class="ident">args</span>.<span class="ident">rev</span>() {
+        <span class="kw">if</span> <span class="ident">arg</span>.<span class="ident">nullable</span> {
+            <span class="ident">optional</span>.<span class="ident">replace</span>(<span class="ident">arg</span>.<span class="ident">name</span>.<span class="ident">clone</span>());
+        } <span class="kw">else</span> {
+            <span class="kw">break</span>;
+        }
+    }
+
+    <span class="ident">optional</span>
 }
 
 <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">build_arg_parser</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(
@@ -692,7 +741,12 @@
                     <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">path</span>.<span class="ident">to_token_stream</span>().<span class="ident">to_string</span>(),
                 };
 
-                <span class="prelude-val">Some</span>(<span class="ident">Arg::new</span>(<span class="ident">name</span>, <span class="kw-2">&amp;</span><span class="ident">stringified</span>, <span class="ident">seg</span>.<span class="ident">ident</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;Option&quot;</span>, <span class="ident">default</span>))
+                <span class="prelude-val">Some</span>(<span class="ident">Arg::new</span>(
+                    <span class="ident">name</span>,
+                    <span class="kw-2">&amp;</span><span class="ident">stringified</span>,
+                    <span class="ident">seg</span>.<span class="ident">ident</span> <span class="op">=</span><span class="op">=</span> <span class="string">&quot;Option&quot;</span> <span class="op">|</span><span class="op">|</span> <span class="ident">default</span>.<span class="ident">is_some</span>(),
+                    <span class="ident">default</span>,
+                ))
             }
             <span class="ident">Type::Reference</span>(<span class="ident">ref_</span>) <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="comment">// Returning references is invalid, so let&#39;s just create our arg</span>

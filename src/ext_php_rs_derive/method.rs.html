@@ -241,6 +241,13 @@
 <span id="239">239</span>
 <span id="240">240</span>
 <span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
 </pre><pre class="rust">
 <span class="kw">use</span> <span class="ident">anyhow</span>::{<span class="ident">anyhow</span>, <span class="ident">bail</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use</span> <span class="ident">quote::ToTokens</span>;
@@ -303,6 +310,13 @@
 
     <span class="kw">let</span> <span class="ident">internal_ident</span> <span class="op">=</span> <span class="ident">Ident::new</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;_internal_php_{}&quot;</span>, <span class="ident">ident</span>), <span class="ident">Span::call_site</span>());
     <span class="kw">let</span> <span class="ident">args</span> <span class="op">=</span> <span class="ident">build_args</span>(<span class="ident">inputs</span>, <span class="kw-2">&amp;</span><span class="ident">defaults</span>)<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="ident">optional</span> <span class="op">=</span> <span class="ident">function::find_optional_parameter</span>(
+        <span class="ident">args</span>.<span class="ident">iter</span>().<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">arg</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">arg</span> {
+            <span class="ident">Arg::Typed</span>(<span class="ident">arg</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">Some</span>(<span class="ident">arg</span>),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
+        }),
+        <span class="ident">optional</span>,
+    );
     <span class="kw">let</span> (<span class="ident">arg_definitions</span>, <span class="ident">is_static</span>) <span class="op">=</span> <span class="ident">build_arg_definitions</span>(<span class="kw-2">&amp;</span><span class="ident">args</span>);
     <span class="kw">let</span> <span class="ident">arg_parser</span> <span class="op">=</span> <span class="ident">build_arg_parser</span>(<span class="ident">args</span>.<span class="ident">iter</span>(), <span class="kw-2">&amp;</span><span class="ident">optional</span>)<span class="question-mark">?</span>;
     <span class="kw">let</span> <span class="ident">arg_accessors</span> <span class="op">=</span> <span class="ident">build_arg_accessors</span>(<span class="kw-2">&amp;</span><span class="ident">args</span>);
