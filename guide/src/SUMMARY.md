@@ -1,6 +1,8 @@
 # Summary
 
 - [Introduction](./introduction.md)
+- [Examples](./examples/index.md)
+  - [Hello World](./examples/hello_world.md)
 - [Types](./types/index.md)
   - [Primitive Numbers](./types/numbers.md)
   - [`String`](./types/string.md)
