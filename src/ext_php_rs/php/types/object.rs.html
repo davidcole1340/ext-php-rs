@@ -652,7 +652,7 @@
         <span class="self">self</span>.<span class="ident">check_uninit</span>();
 
         <span class="comment">// SAFETY: `check_uninit` guarantees that the handlers have been initialized.</span>
-        <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">assume_init_ref</span>() }
+        <span class="kw">unsafe</span> { <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">as_ptr</span>() }
     }
 
     <span class="doccomment">/// Checks if the handlers have been initialized, and initializes them if they have not been.</span>
@@ -660,7 +660,7 @@
         <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">init</span>.<span class="ident">load</span>(<span class="ident">Ordering::Acquire</span>) {
             <span class="comment">// SAFETY: Memory location has been initialized therefore given pointer is valid.</span>
             <span class="kw">unsafe</span> {
-                <span class="ident">ZendObjectHandlers::init</span>::<span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">std::mem::transmute</span>(<span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">assume_init_ref</span>()));
+                <span class="ident">ZendObjectHandlers::init</span>::<span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>);
             };
             <span class="self">self</span>.<span class="ident">init</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">Ordering::Release</span>);
         }
