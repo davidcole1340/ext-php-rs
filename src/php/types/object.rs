@@ -2,10 +2,13 @@
 //! allowing users to store Rust data inside a PHP object.
 
 use std::{
+    alloc::Layout,
     convert::TryInto,
     fmt::Debug,
-    mem,
+    marker::PhantomData,
+    mem::MaybeUninit,
     ops::{Deref, DerefMut},
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use crate::{
@@ -182,7 +185,11 @@ pub trait ZendObjectOverride {
     /// # Parameters
     ///
     /// * `ce` - The class entry that we are creating an object for.
-    extern "C" fn create_object(ce: *mut ClassEntry) -> *mut ZendObject;
+    ///
+    /// # Safety
+    ///
+    /// Caller needs to ensure that the given `ce` is a valid pointer to a [`ClassEntry`].
+    unsafe extern "C" fn create_object(ce: *mut ClassEntry) -> *mut ZendObject;
 }
 
 /// A Zend class object which is allocated when a PHP
@@ -215,7 +222,7 @@ impl<T: Default> ZendClassObject<T> {
     /// them with safety.
     pub unsafe fn new_ptr(
         ce: *mut ClassEntry,
-        handlers: *mut ZendObjectHandlers,
+        handlers: &ZendObjectHandlers,
     ) -> Result<*mut zend_object> {
         let obj = {
             let obj = (ext_php_rs_zend_object_alloc(std::mem::size_of::<Self>() as _, ce)
@@ -244,8 +251,8 @@ impl<T: Default> ZendClassObject<T> {
         let ptr = (ex.This.object()? as *const ZendObject) as *mut u8;
         let offset = std::mem::size_of::<T>();
         unsafe {
-            let ptr = ptr.offset(0 - offset as isize);
-            (ptr as *mut Self).as_mut()
+            let ptr = ptr.offset(0 - offset as isize) as *mut Self;
+            ptr.as_mut()
         }
     }
 }
@@ -270,24 +277,73 @@ impl<T: Default> DerefMut for ZendClassObject<T> {
     }
 }
 
-impl ZendObjectHandlers {
-    /// Creates a new set of object handlers from the standard object handlers, returning a pointer
-    /// to the handlers.
-    pub fn init<T>() -> *mut ZendObjectHandlers {
-        // SAFETY: We are allocating memory for the handlers ourselves, which ensures that
-        // we can copy to the allocated memory. We can also copy from the standard handlers
-        // as the `std_object_handlers` are not modified.
-        unsafe {
-            let s = mem::size_of::<Self>();
-            let ptr = libc::malloc(s) as *mut Self;
-            libc::memcpy(
-                ptr as *mut _,
-                (&std_object_handlers as *const Self) as *mut _,
-                s,
-            );
-            let offset = mem::size_of::<T>();
-            (*ptr).offset = offset as i32;
-            ptr
+/// Lazy-loading wrapper around the [`ZendObjectHandlers`] type.
+pub struct Handlers<T> {
+    init: AtomicBool,
+    handlers: MaybeUninit<ZendObjectHandlers>,
+    phantom: PhantomData<T>,
+}
+
+impl<T> Handlers<T> {
+    /// Creates a new instance of object handlers.
+    pub const fn new() -> Self {
+        Self {
+            init: AtomicBool::new(false),
+            handlers: MaybeUninit::uninit(),
+            phantom: PhantomData,
         }
+    }
+
+    /// Returns an immutable reference to the object handlers, initializing them in the process
+    /// if they have not already been initialized.
+    pub fn get(&self) -> &ZendObjectHandlers {
+        self.check_uninit();
+
+        // SAFETY: `check_uninit` guarantees that the handlers have been initialized.
+        unsafe { self.handlers.assume_init_ref() }
+    }
+
+    /// Checks if the handlers have been initialized, and initializes them if they have not been.
+    fn check_uninit(&self) {
+        if !self.init.load(Ordering::Acquire) {
+            // SAFETY: Memory location has been initialized therefore given pointer is valid.
+            unsafe {
+                ZendObjectHandlers::init::<T>(std::mem::transmute(self.handlers.assume_init_ref()));
+            };
+            self.init.store(true, Ordering::Release);
+        }
+    }
+}
+
+impl ZendObjectHandlers {
+    /// Initializes a given set of object handlers by copying the standard object handlers into
+    /// the memory location, as well as setting up the `T` type destructor.
+    ///
+    /// # Parameters
+    ///
+    //// * `ptr` - Pointer to memory location to copy the standard handlers to.
+    ///
+    /// # Safety
+    ///
+    /// Caller must guarantee that the `ptr` given is a valid memory location.
+    pub unsafe fn init<T>(ptr: *mut ZendObjectHandlers) {
+        pub unsafe extern "C" fn free_obj<T>(object: *mut zend_object) {
+            let layout = Layout::new::<T>();
+            let offset = layout.size();
+
+            // Cast to *mut u8 to work in byte offsets
+            let ptr = (object as *mut u8).offset(0 - offset as isize) as *mut T;
+            let _ = Box::from_raw(ptr);
+
+            match std_object_handlers.free_obj {
+                Some(free) => free(object),
+                None => core::hint::unreachable_unchecked(),
+            }
+        }
+
+        std::ptr::copy_nonoverlapping(&std_object_handlers, ptr, 1);
+        let offset = std::mem::size_of::<T>();
+        (*ptr).offset = offset as _;
+        (*ptr).free_obj = Some(free_obj::<T>);
     }
 }

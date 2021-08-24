@@ -19,31 +19,14 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
     );
 
     let output = quote! {
-        static mut #handlers: Option<
-            *mut ::ext_php_rs::php::types::object::ZendObjectHandlers
-        > = None;
+        static #handlers: ::ext_php_rs::php::types::object::Handlers<#name> = ::ext_php_rs::php::types::object::Handlers::new();
 
         impl ::ext_php_rs::php::types::object::ZendObjectOverride for #name {
-            // Allow clippy ptr-deref lint because PHP guarantees that we are passed a valid pointer.
-            #[allow(clippy::not_unsafe_ptr_arg_deref)]
-            extern "C" fn create_object(
+            unsafe extern "C" fn create_object(
                 ce: *mut ::ext_php_rs::php::class::ClassEntry,
             ) -> *mut ::ext_php_rs::php::types::object::ZendObject {
-                // SAFETY: The handlers are only modified once, when they are first accessed.
-                // At the moment we only support single-threaded PHP installations therefore the pointer contained
-                // inside the option can be passed around.
-                unsafe {
-                    if #handlers.is_none() {
-                        #handlers = Some(::ext_php_rs::php::types::object::ZendObjectHandlers::init::<#name>());
-                    }
-
-                    // The handlers unwrap can never fail - we check that it is none above.
-                    // Unwrapping the result from `new_ptr` is nessacary as C cannot handle results.
-                    ::ext_php_rs::php::types::object::ZendClassObject::<#name>::new_ptr(
-                        ce,
-                        #handlers.unwrap()
-                    ).expect("Failed to allocate memory for new Zend object.")
-                }
+                ::ext_php_rs::php::types::object::ZendClassObject::<#name>::new_ptr(ce, #handlers.get())
+                    .expect("Failed to allocate memory for new Zend object.")
             }
         }
     };

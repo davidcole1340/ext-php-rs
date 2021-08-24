@@ -1,7 +1,7 @@
 //! Builder and objects for creating classes in the PHP world.
 
 use crate::errors::{Error, Result};
-use std::{convert::TryInto, ffi::CString, fmt::Debug, mem};
+use std::{alloc::Layout, convert::TryInto, ffi::CString, fmt::Debug};
 
 use crate::bindings::{
     zend_class_entry, zend_declare_class_constant, zend_declare_property,
@@ -138,7 +138,7 @@ impl<'a> ClassBuilder<'a> {
         // which will cause the program to panic (standard in Rust). Unwrapping is OK - the ptr
         // will either be valid or null.
         let ptr = unsafe {
-            (libc::calloc(1, mem::size_of::<ClassEntry>()) as *mut ClassEntry)
+            (std::alloc::alloc_zeroed(Layout::new::<ClassEntry>()) as *mut ClassEntry)
                 .as_mut()
                 .unwrap()
         };
@@ -262,7 +262,9 @@ impl<'a> ClassBuilder<'a> {
         };
 
         // SAFETY: We allocated memory for this pointer in `new`, so it is our job to free it when the builder has finished.
-        unsafe { libc::free((self.ptr as *mut ClassEntry) as *mut libc::c_void) };
+        unsafe {
+            std::alloc::dealloc((self.ptr as *mut _) as *mut u8, Layout::new::<ClassEntry>())
+        };
 
         for (name, mut default, flags) in self.properties {
             unsafe {
