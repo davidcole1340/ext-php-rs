@@ -50,23 +50,6 @@
 <span id="48">48</span>
 <span id="49">49</span>
 <span id="50">50</span>
-<span id="51">51</span>
-<span id="52">52</span>
-<span id="53">53</span>
-<span id="54">54</span>
-<span id="55">55</span>
-<span id="56">56</span>
-<span id="57">57</span>
-<span id="58">58</span>
-<span id="59">59</span>
-<span id="60">60</span>
-<span id="61">61</span>
-<span id="62">62</span>
-<span id="63">63</span>
-<span id="64">64</span>
-<span id="65">65</span>
-<span id="66">66</span>
-<span id="67">67</span>
 </pre><pre class="rust">
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::STATE</span>;
 <span class="kw">use</span> <span class="ident">anyhow</span>::{<span class="ident">bail</span>, <span class="prelude-ty">Result</span>};
@@ -89,31 +72,14 @@
     );
 
     <span class="kw">let</span> <span class="ident">output</span> <span class="op">=</span> <span class="macro">quote!</span> {
-        <span class="kw">static</span> <span class="kw-2">mut</span> #<span class="ident">handlers</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>
-            <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">::ext_php_rs::php::types::object::ZendObjectHandlers</span>
-        <span class="op">&gt;</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+        <span class="kw">static</span> #<span class="ident">handlers</span>: <span class="ident">::ext_php_rs::php::types::object::Handlers</span><span class="op">&lt;</span>#<span class="ident">name</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">::ext_php_rs::php::types::object::Handlers::new</span>();
 
         <span class="kw">impl</span> <span class="ident">::ext_php_rs::php::types::object::ZendObjectOverride</span> <span class="kw">for</span> #<span class="ident">name</span> {
-            <span class="comment">// Allow clippy ptr-deref lint because PHP guarantees that we are passed a valid pointer.</span>
-            <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::not_unsafe_ptr_arg_deref</span>)]</span>
-            <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">create_object</span>(
+            <span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">create_object</span>(
                 <span class="ident">ce</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">::ext_php_rs::php::class::ClassEntry</span>,
             ) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">::ext_php_rs::php::types::object::ZendObject</span> {
-                <span class="comment">// SAFETY: The handlers are only modified once, when they are first accessed.</span>
-                <span class="comment">// At the moment we only support single-threaded PHP installations therefore the pointer contained</span>
-                <span class="comment">// inside the option can be passed around.</span>
-                <span class="kw">unsafe</span> {
-                    <span class="kw">if</span> #<span class="ident">handlers</span>.<span class="ident">is_none</span>() {
-                        #<span class="ident">handlers</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">::ext_php_rs::php::types::object::ZendObjectHandlers::init</span>::<span class="op">&lt;</span>#<span class="ident">name</span><span class="op">&gt;</span>());
-                    }
-
-                    <span class="comment">// The handlers unwrap can never fail - we check that it is none above.</span>
-                    <span class="comment">// Unwrapping the result from `new_ptr` is nessacary as C cannot handle results.</span>
-                    <span class="ident">::ext_php_rs::php::types::object::ZendClassObject</span>::<span class="op">&lt;</span>#<span class="ident">name</span><span class="op">&gt;</span><span class="ident">::new_ptr</span>(
-                        <span class="ident">ce</span>,
-                        #<span class="ident">handlers</span>.<span class="ident">unwrap</span>()
-                    ).<span class="ident">expect</span>(<span class="string">&quot;Failed to allocate memory for new Zend object.&quot;</span>)
-                }
+                <span class="ident">::ext_php_rs::php::types::object::ZendClassObject</span>::<span class="op">&lt;</span>#<span class="ident">name</span><span class="op">&gt;</span><span class="ident">::new_ptr</span>(<span class="ident">ce</span>, #<span class="ident">handlers</span>.<span class="ident">get</span>())
+                    .<span class="ident">expect</span>(<span class="string">&quot;Failed to allocate memory for new Zend object.&quot;</span>)
             }
         }
     };

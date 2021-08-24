@@ -310,11 +310,13 @@
 <span id="308">308</span>
 <span id="309">309</span>
 <span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Builder and objects for creating classes in the PHP world.</span>
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>};
-<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">convert::TryInto</span>, <span class="ident">ffi::CString</span>, <span class="ident">fmt::Debug</span>, <span class="ident">mem</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">alloc::Layout</span>, <span class="ident">convert::TryInto</span>, <span class="ident">ffi::CString</span>, <span class="ident">fmt::Debug</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::bindings</span>::{
     <span class="ident">zend_class_entry</span>, <span class="ident">zend_declare_class_constant</span>, <span class="ident">zend_declare_property</span>,
@@ -451,7 +453,7 @@
         <span class="comment">// which will cause the program to panic (standard in Rust). Unwrapping is OK - the ptr</span>
         <span class="comment">// will either be valid or null.</span>
         <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> {
-            (<span class="ident">libc::calloc</span>(<span class="number">1</span>, <span class="ident">mem::size_of</span>::<span class="op">&lt;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span>()) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>)
+            (<span class="ident">std::alloc::alloc_zeroed</span>(<span class="ident">Layout::new</span>::<span class="op">&lt;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span>()) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>)
                 .<span class="ident">as_mut</span>()
                 .<span class="ident">unwrap</span>()
         };
@@ -575,7 +577,9 @@
         };
 
         <span class="comment">// SAFETY: We allocated memory for this pointer in `new`, so it is our job to free it when the builder has finished.</span>
-        <span class="kw">unsafe</span> { <span class="ident">libc::free</span>((<span class="self">self</span>.<span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">libc::c_void</span>) };
+        <span class="kw">unsafe</span> {
+            <span class="ident">std::alloc::dealloc</span>((<span class="self">self</span>.<span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>, <span class="ident">Layout::new</span>::<span class="op">&lt;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span>())
+        };
 
         <span class="kw">for</span> (<span class="ident">name</span>, <span class="kw-2">mut</span> <span class="ident">default</span>, <span class="ident">flags</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">properties</span> {
             <span class="kw">unsafe</span> {
