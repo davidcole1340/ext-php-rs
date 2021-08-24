@@ -300,7 +300,7 @@ impl<T> Handlers<T> {
         self.check_uninit();
 
         // SAFETY: `check_uninit` guarantees that the handlers have been initialized.
-        unsafe { self.handlers.assume_init_ref() }
+        unsafe { &*self.handlers.as_ptr() }
     }
 
     /// Checks if the handlers have been initialized, and initializes them if they have not been.
@@ -308,7 +308,7 @@ impl<T> Handlers<T> {
         if !self.init.load(Ordering::Acquire) {
             // SAFETY: Memory location has been initialized therefore given pointer is valid.
             unsafe {
-                ZendObjectHandlers::init::<T>(std::mem::transmute(self.handlers.assume_init_ref()));
+                ZendObjectHandlers::init::<T>(self.handlers.as_ptr() as *mut _);
             };
             self.init.store(true, Ordering::Release);
         }
