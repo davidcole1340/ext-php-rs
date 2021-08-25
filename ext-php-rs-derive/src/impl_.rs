@@ -38,10 +38,11 @@ pub fn parser(input: ItemImpl) -> Result<TokenStream> {
         );
     }
 
-    let class = state
-        .classes
-        .get_mut(&class_name)
-        .ok_or_else(|| anyhow!("You must use `#[derive(ZendObjectHandler)]` on the struct before using this attribute on the impl."))?;
+    let class = state.classes.get_mut(&class_name).ok_or_else(|| {
+        anyhow!(
+            "You must use `#[php_class]` on the struct before using this attribute on the impl."
+        )
+    })?;
 
     let tokens = items
         .into_iter()

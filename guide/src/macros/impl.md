@@ -2,8 +2,8 @@
 
 You can export an entire `impl` block to PHP. This exports all methods as well
 as constants to PHP on the class that it is implemented on. This requires the
-`#[derive(ZendObjectHandler)]` macro to already be used on the underlying
-struct. Trait implementations cannot be exported to PHP.
+`#[php_class]` macro to already be used on the underlying struct. Trait
+implementations cannot be exported to PHP.
 
 If you do not want a function exported to PHP, you should place it in a seperate
 `impl` block.
@@ -45,7 +45,8 @@ constant for the maximum age of a `Human`.
 ```rust
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-# #[derive(Default, ZendObjectHandler)]
+# #[php_class]
+# #[derive(Default)]
 # pub struct Human {
 #     name: String,
 #     age: i32
