@@ -257,7 +257,8 @@ pub use ext_php_rs_derive::php_function;
 /// # Example
 ///
 /// ```ignore
-/// #[derive(Debug, Default, ZendObjectHandler)]
+/// #[php_class]
+/// #[derive(Debug, Default)]
 /// pub struct Human {
 ///     name: String,
 ///     age: i32,
@@ -306,7 +307,7 @@ pub use ext_php_rs_derive::php_impl;
 ///
 /// Note that if the function is not called `get_module`, it will be renamed.
 ///
-/// If you have defined classes using the `ZendObjectHandler` derive macro and you have not defined
+/// If you have defined classes using the [`macro@php_class`] macro and you have not defined
 /// a startup function, it will be automatically declared and registered.
 ///
 /// # Example
@@ -329,12 +330,83 @@ pub use ext_php_rs_derive::php_impl;
 /// ```
 pub use ext_php_rs_derive::php_module;
 
+/// Annotates a struct that will be exported to PHP as a class.
+///
+/// The struct that this attribute is used on must implement [`Default`], as this is used to
+/// initialize the struct before the constructor is called. You may define a constructor with
+/// the [`macro@php_impl`] macro which can modify the properties of the struct.
+///
+/// This attribute takes a set of optional arguments:
+///
+/// * `name` - The name of the exported class, if it is different from the Rust struct name. This
+///    can be useful for namespaced classes, as you cannot place backslashes in Rust struct names.
+///
+/// Any struct that uses this attribute can also provide an optional set of extra attributes, used
+/// to modify the class. These attributes must be used **underneath** this attribute, as they are
+/// not valid Rust attributes, and instead are parsed by this attribute:
+///
+/// * `#[extends(ce)]` - Sets the parent class of this new class. Can only be used once, and `ce`
+///   may be any valid expression.
+/// * `#[implements(ce)]` - Implements an interface on the new class. Can be used multiple times,
+///   and `ce` may be any valid expression.
+///
+/// This attribute (and its associated structs) must be defined *above* the startup function (which
+/// is annotated by the [`macro@php_startup`] macro, or automatically generated just above the
+/// [`macro@php_module`] function).
+///
+/// Fields defined on the struct *are not* the same as PHP properties, and are only accessible from
+/// Rust.
+///
+/// # Example
+///
+/// Export a simple class called `Example`, with 3 Rust fields.
+///
+/// ```
+/// # use ext_php_rs::prelude::*;
+/// #[php_class]
+/// #[derive(Default)]
+/// pub struct Example {
+///     x: i32,
+///     y: String,
+///     z: bool
+/// }
+///
+/// #[php_module]
+/// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+///     module
+/// }
+/// ```
+///
+/// Create a custom exception `RedisException` inside the namespace `Redis\Exception`:
+///
+/// ```
+/// # use ext_php_rs::prelude::*;
+/// use ext_php_rs::php::exceptions::PhpException;
+/// use ext_php_rs::php::class::ClassEntry;
+///
+/// #[php_class(name = "Redis\\Exception\\RedisException")]
+/// #[extends(ClassEntry::exception())]
+/// #[derive(Default)]
+/// pub struct Example;
+///
+/// #[php_function]
+/// pub fn throw_exception() -> Result<i32, PhpException<'static>> {
+///     Err(PhpException::from_class::<Example>("Bad things happen".into()))
+/// }
+///
+/// #[php_module]
+/// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+///     module
+/// }
+/// ```
+pub use ext_php_rs_derive::php_class;
+
 /// Annotates a function that will be called by PHP when the module starts up. Generally used to
 /// register classes and constants.
 ///
 /// As well as annotating the function, any classes and constants that had been declared using the
-/// [`macro@ZendObjectHandler`], [`macro@php_const`] and [`macro@php_impl`] attributes will be
-/// registered inside this function.
+/// [`macro@php_class`], [`macro@php_const`] and [`macro@php_impl`] attributes will be registered
+/// inside this function.
 ///
 /// This function *must* be declared before the [`macro@php_module`] function, as this function
 /// needs to be declared when building the module.
@@ -357,17 +429,14 @@ pub use ext_php_rs_derive::php_module;
 /// ```
 pub use ext_php_rs_derive::php_startup;
 
-/// Derives the implementation of `ZendObjectOverride` for the given structure.
-pub use ext_php_rs_derive::ZendObjectHandler;
-
 /// A module typically glob-imported containing the typically required macros and imports.
 pub mod prelude {
     pub use crate::php::module::ModuleBuilder;
+    pub use crate::php_class;
     pub use crate::php_const;
     pub use crate::php_extern;
     pub use crate::php_function;
     pub use crate::php_impl;
     pub use crate::php_module;
     pub use crate::php_startup;
-    pub use crate::ZendObjectHandler;
 }

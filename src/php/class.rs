@@ -5,13 +5,13 @@ use std::{alloc::Layout, convert::TryInto, ffi::CString, fmt::Debug};
 
 use crate::bindings::{
     zend_class_entry, zend_declare_class_constant, zend_declare_property,
-    zend_register_internal_class_ex,
+    zend_do_implement_interface, zend_register_internal_class_ex,
 };
 
 use super::{
-    executor::ExecutorGlobals,
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     function::FunctionEntry,
+    globals::ExecutorGlobals,
     types::{
         object::{ZendObject, ZendObjectOverride},
         string::ZendString,
@@ -46,6 +46,11 @@ impl ClassEntry {
     /// Returns the class flags.
     pub fn flags(&self) -> ClassFlags {
         ClassFlags::from_bits_truncate(self.ce_flags)
+    }
+
+    /// Returns `true` if the class entry is an interface, and `false` otherwise.
+    pub fn is_interface(&self) -> bool {
+        self.flags().contains(ClassFlags::Interface)
     }
 
     /// Checks if the class is an instance of another class or interface.
@@ -119,6 +124,7 @@ pub struct ClassBuilder<'a> {
     name: String,
     ptr: &'a mut ClassEntry,
     extends: Option<&'static ClassEntry>,
+    interfaces: Vec<&'static ClassEntry>,
     methods: Vec<FunctionEntry>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
     properties: Vec<(String, Zval, PropertyFlags)>,
@@ -147,6 +153,7 @@ impl<'a> ClassBuilder<'a> {
             name: name.into(),
             ptr,
             extends: None,
+            interfaces: vec![],
             methods: vec![],
             object_override: None,
             properties: vec![],
@@ -162,6 +169,20 @@ impl<'a> ClassBuilder<'a> {
     pub fn extends(mut self, parent: &'static ClassEntry) -> Self {
         self.extends = Some(parent);
         self
+    }
+
+    /// Implements an interface on the class.
+    ///
+    /// # Parameters
+    ///
+    /// * `interface` - Interface to implement on the class.
+    pub fn implements(mut self, interface: &'static ClassEntry) -> Result<Self> {
+        if !interface.is_interface() {
+            return Err(Error::InvalidInterface);
+        }
+
+        self.interfaces.push(interface);
+        Ok(self)
     }
 
     /// Adds a method to the class.
@@ -230,8 +251,7 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
-    /// which can be derived through the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler)
-    /// derive macro.
+    /// which can be derived using the [`php_class`](crate::php_class) attribute macro.
     pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
         self.object_override = Some(T::create_object);
         self
@@ -265,6 +285,10 @@ impl<'a> ClassBuilder<'a> {
         unsafe {
             std::alloc::dealloc((self.ptr as *mut _) as *mut u8, Layout::new::<ClassEntry>())
         };
+
+        for iface in self.interfaces {
+            unsafe { zend_do_implement_interface(class, std::mem::transmute(iface)) };
+        }
 
         for (name, mut default, flags) in self.properties {
             unsafe {
