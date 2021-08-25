@@ -569,11 +569,23 @@ used from PHP without fiddling around with zvals.</p>
 <li><a href="macros/./module_startup.html"><code>php_startup</code></a> - Defines the extension startup function used by PHP to
 initialize your extension.</li>
 <li><a href="macros/./function.html"><code>php_function</code></a> - Used to export a Rust function to PHP.</li>
-<li><a href="macros/./structs.html"><code>ZendObjectHandler</code></a> - Used to export a Rust struct or enum as a PHP class.</li>
+<li><a href="macros/./structs.html"><code>php_class</code></a> - Used to export a Rust struct or enum as a PHP class.</li>
 <li><a href="macros/./impl.html"><code>php_impl</code></a> - Used to export a Rust <code>impl</code> block to PHP, including all
 methods and constants.</li>
 <li><a href="macros/./constant.html"><code>php_const</code></a> - Used to export a Rust constant to PHP as a global constant.</li>
 </ul>
+<p>These macros do abuse the fact that (at the moment) proc macro expansion <em>seems</em>
+to happen orderly, on one single thread. It has been stated many times that this
+order is undefined behaviour (<a href="https://github.com/rust-lang/reference/issues/578">see here</a>), so these macros <em>could</em> break at any
+time with a <code>rustc</code> update (let's just keep our fingers crossed).</p>
+<p>The macros abuse this fact by storing a global state, which stores information
+about all the constants, functions, methods and classes you have registered
+throughout your crate. It is then read out of the state in the function tagged
+with the <code>#[php_module]</code> attribute. This is why this function <strong>must</strong> be the
+last function in your crate.</p>
+<p>In the case the ordering does change (or we find out that it already was not in
+order), the most likely solution will be having to register your PHP exports
+manually inside the <code>#[php_module]</code> function.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_module"><a class="header" href="#php_module"><code>#[php_module]</code></a></h1>
 <p>The module macro is used to annotate the <code>get_module</code> function, which is used by
 the PHP interpreter to retrieve information about your extension, including the
@@ -757,19 +769,33 @@ pub fn example_exception() -&gt; Result&lt;i64, &amp;'static str&gt; {
 <span class="boring">}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="structs"><a class="header" href="#structs">Structs</a></h1>
-<p>Structs can be exported to PHP as classes with the
-<code>#[derive(ZendObjectHandler)]</code> macro.</p>
+<p>Structs can be exported to PHP as classes with the <code>#[php_class]</code> attribute
+macro. This attribute derives the <code>ZendObjectOverride</code> trait on your struct, as
+well as registering the class to be registered with the <code>#[php_module]</code> macro.</p>
 <p>The implementation of <code>ZendObjectOverride</code> requires the implementation of
 <code>Default</code> on the struct. This is because the struct is initialized before the
 constructor is called, therefore it must have default values for all properties.</p>
-<p>This derive macro is likely to be changed to an attribute macro over time, as to
-introduce class renaming as well as inheritance, which can't be done with a
-derive macro.</p>
-<p>This macro can also be used on enums.</p>
 <p>Note that Rust struct properties <strong>are not</strong> PHP properties, so if you want the
 user to be able to access these, you must provide getters and/or setters.
-Properties are supported, however, they are not usable through the automatic
-macros.</p>
+Properties are supported internally, however, they are not usable through the
+automatic macros. Support for properties is planned.</p>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<p>The attribute takes some options to modify the output of the class:</p>
+<ul>
+<li><code>name</code> - Changes the name of the class when exported to PHP. The Rust struct
+name is kept the same. If no name is given, the name of the struct is used.
+Useful for namespacing classes.</li>
+</ul>
+<p>There are also additional macros that modify the class. These macros <strong>must</strong> be
+placed underneath the <code>#[php_class]</code> attribute.</p>
+<ul>
+<li><code>#[extends(ce)]</code> - Sets the parent class of the class. Can only be used once.
+<code>ce</code> must be a valid Rust expression when it is called inside the
+<code>#[php_module]</code> function.</li>
+<li><code>#[implements(ce)]</code> - Implements the given interface on the class. Can be used
+multiple times. <code>ce</code> must be a valid Rust expression when it is called inside
+the <code>#[php_module]</code> function.</li>
+</ul>
 <h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
 <p>This example creates a PHP class <code>Human</code>:</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -777,18 +803,40 @@ macros.</p>
 </span><span class="boring">fn main() {
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[derive(Default, ZendObjectHandler)]
+</span>#[php_class]
+#[derive(Default)]
 pub struct Human {
     name: String,
     age: i32
 }
 <span class="boring">}
 </span></code></pre></pre>
+<p>Create a custom exception <code>RedisException</code>, which extends <code>Exception</code>, and put
+it in the <code>Redis\Exception</code> namespace:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>use ext_php_rs::php::{class::ClassEntry, exceptions::PhpException};
+
+#[php_class(name = &quot;Redis\\Exception\\RedisException&quot;)]
+#[extends(ClassEntry::exception())]
+#[derive(Default)]
+pub struct RedisException;
+
+// Throw our newly created exception
+#[php_function]
+pub fn throw_exception() -&gt; Result&lt;i32, PhpException&lt;'static&gt;&gt; {
+    Err(PhpException::from_class::&lt;RedisException&gt;(&quot;Not good!&quot;.into()))
+}
+<span class="boring">}
+</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_impl"><a class="header" href="#php_impl"><code>#[php_impl]</code></a></h1>
 <p>You can export an entire <code>impl</code> block to PHP. This exports all methods as well
 as constants to PHP on the class that it is implemented on. This requires the
-<code>#[derive(ZendObjectHandler)]</code> macro to already be used on the underlying
-struct. Trait implementations cannot be exported to PHP.</p>
+<code>#[php_class]</code> macro to already be used on the underlying struct. Trait
+implementations cannot be exported to PHP.</p>
 <p>If you do not want a function exported to PHP, you should place it in a seperate
 <code>impl</code> block.</p>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
@@ -822,7 +870,8 @@ constant for the maximum age of a <code>Human</code>.</p>
 </span><span class="boring">fn main() {
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
-</span><span class="boring">#[derive(Default, ZendObjectHandler)]
+</span><span class="boring">#[php_class]
+</span><span class="boring">#[derive(Default)]
 </span><span class="boring">pub struct Human {
 </span><span class="boring">    name: String,
 </span><span class="boring">    age: i32

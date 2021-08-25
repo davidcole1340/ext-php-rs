@@ -159,9 +159,6 @@
 <span id="157">157</span>
 <span id="158">158</span>
 <span id="159">159</span>
-<span id="160">160</span>
-<span id="161">161</span>
-<span id="162">162</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Builder and objects used to create functions and methods in PHP.</span>
 
@@ -293,10 +290,7 @@
 
         <span class="comment">// argument header, retval etc</span>
         <span class="ident">args</span>.<span class="ident">push</span>(<span class="ident">ArgInfo</span> {
-            <span class="ident">name</span>: ((<span class="kw">match</span> <span class="self">self</span>.<span class="ident">n_req</span> {
-                <span class="prelude-val">Some</span>(<span class="ident">req</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">req</span>,
-                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="self">self</span>.<span class="ident">args</span>.<span class="ident">len</span>(),
-            }) <span class="kw">as</span> <span class="ident">libc::uintptr_t</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">i8</span>,
+            <span class="ident">name</span>: <span class="self">self</span>.<span class="ident">n_req</span>.<span class="ident">unwrap_or</span>(<span class="self">self</span>.<span class="ident">args</span>.<span class="ident">len</span>()) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">i8</span>,
             <span class="ident">type_</span>: <span class="kw">match</span> <span class="self">self</span>.<span class="ident">retval</span> {
                 <span class="prelude-val">Some</span>(<span class="ident">retval</span>) <span class="op">=</span><span class="op">&gt;</span> {
                     <span class="ident">ZendType::empty_from_type</span>(<span class="ident">retval</span>, <span class="self">self</span>.<span class="ident">ret_as_ref</span>, <span class="bool-val">false</span>, <span class="self">self</span>.<span class="ident">ret_as_null</span>)

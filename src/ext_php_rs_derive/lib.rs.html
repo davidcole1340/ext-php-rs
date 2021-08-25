@@ -125,6 +125,7 @@
 <span id="123">123</span>
 <span id="124">124</span>
 <span id="125">125</span>
+<span id="126">126</span>
 </pre><pre class="rust">
 <span class="kw">mod</span> <span class="ident">class</span>;
 <span class="kw">mod</span> <span class="ident">constant</span>;
@@ -144,7 +145,7 @@
 <span class="kw">use</span> <span class="ident">proc_macro::TokenStream</span>;
 <span class="kw">use</span> <span class="ident">proc_macro2::Span</span>;
 <span class="kw">use</span> <span class="ident">syn</span>::{
-    <span class="ident">parse_macro_input</span>, <span class="ident">AttributeArgs</span>, <span class="ident">DeriveInput</span>, <span class="ident">ItemConst</span>, <span class="ident">ItemFn</span>, <span class="ident">ItemForeignMod</span>, <span class="ident">ItemImpl</span>,
+    <span class="ident">parse_macro_input</span>, <span class="ident">AttributeArgs</span>, <span class="ident">ItemConst</span>, <span class="ident">ItemFn</span>, <span class="ident">ItemForeignMod</span>, <span class="ident">ItemImpl</span>, <span class="ident">ItemStruct</span>,
 };
 
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">proc_macro</span>;
@@ -174,11 +175,12 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">proc_macro_derive</span>(<span class="ident">ZendObjectHandler</span>)]</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">object_handler_derive</span>(<span class="ident">input</span>: <span class="ident">TokenStream</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">TokenStream</span> {
-    <span class="kw">let</span> <span class="ident">input</span> <span class="op">=</span> <span class="macro">parse_macro_input!</span>(<span class="ident">input</span> <span class="kw">as</span> <span class="ident">DeriveInput</span>);
+<span class="attribute">#[<span class="ident">proc_macro_attribute</span>]</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">php_class</span>(<span class="ident">args</span>: <span class="ident">TokenStream</span>, <span class="ident">input</span>: <span class="ident">TokenStream</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">TokenStream</span> {
+    <span class="kw">let</span> <span class="ident">args</span> <span class="op">=</span> <span class="macro">parse_macro_input!</span>(<span class="ident">args</span> <span class="kw">as</span> <span class="ident">AttributeArgs</span>);
+    <span class="kw">let</span> <span class="ident">input</span> <span class="op">=</span> <span class="macro">parse_macro_input!</span>(<span class="ident">input</span> <span class="kw">as</span> <span class="ident">ItemStruct</span>);
 
-    <span class="kw">match</span> <span class="ident">class::parser</span>(<span class="ident">input</span>) {
+    <span class="kw">match</span> <span class="ident">class::parser</span>(<span class="ident">args</span>, <span class="ident">input</span>) {
         <span class="prelude-val">Ok</span>(<span class="ident">parsed</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">parsed</span>,
         <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">syn::Error::new</span>(<span class="ident">Span::call_site</span>(), <span class="ident">e</span>).<span class="ident">to_compile_error</span>(),
     }

@@ -191,12 +191,21 @@
 <span id="189">189</span>
 <span id="190">190</span>
 <span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Contains all the base PHP throwables, including `Throwable` and `Exception`.</span>
 
 <span class="kw">use</span> <span class="ident">std::ffi::CString</span>;
 
-<span class="kw">use</span> <span class="kw">super</span><span class="ident">::class::ClassEntry</span>;
+<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">class::ClassEntry</span>, <span class="ident">types::object::ZendObjectOverride</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
         <span class="ident">zend_ce_argument_count_error</span>, <span class="ident">zend_ce_arithmetic_error</span>, <span class="ident">zend_ce_compile_error</span>,
@@ -242,6 +251,15 @@
     <span class="doccomment">/// * `message` - Message to contain in the exception.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">default</span>(<span class="ident">message</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span><span class="ident">::new</span>(<span class="ident">message</span>, <span class="number">0</span>, <span class="ident">ClassEntry::exception</span>())
+    }
+
+    <span class="doccomment">/// Creates an instance of an exception from a PHP class type and a message.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `message` - Message to contain in the exception.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_class</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">ZendObjectOverride</span><span class="op">&gt;</span>(<span class="ident">message</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span><span class="ident">::new</span>(<span class="ident">message</span>, <span class="number">0</span>, <span class="ident">T::get_class</span>())
     }
 
     <span class="doccomment">/// Throws the exception, returning nothing inside a result if successful and an error</span>

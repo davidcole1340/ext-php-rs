@@ -1,1 +1,1 @@
-initSidebarItems({"attr":[["php_const",""],["php_extern",""],["php_function",""],["php_impl",""],["php_module",""],["php_startup",""]],"derive":[["ZendObjectHandler",""]]});
+initSidebarItems({"attr":[["php_class",""],["php_const",""],["php_extern",""],["php_function",""],["php_impl",""],["php_module",""],["php_startup",""]]});

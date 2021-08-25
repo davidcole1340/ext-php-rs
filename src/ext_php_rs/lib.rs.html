@@ -373,6 +373,75 @@
 <span id="371">371</span>
 <span id="372">372</span>
 <span id="373">373</span>
+<span id="374">374</span>
+<span id="375">375</span>
+<span id="376">376</span>
+<span id="377">377</span>
+<span id="378">378</span>
+<span id="379">379</span>
+<span id="380">380</span>
+<span id="381">381</span>
+<span id="382">382</span>
+<span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
+<span id="394">394</span>
+<span id="395">395</span>
+<span id="396">396</span>
+<span id="397">397</span>
+<span id="398">398</span>
+<span id="399">399</span>
+<span id="400">400</span>
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
 </pre><pre class="rust">
 <span class="attribute">#![<span class="ident">doc</span> <span class="op">=</span> <span class="macro">include_str!</span>(<span class="string">&quot;../README.md&quot;</span>)]</span>
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">clippy::unwrap_used</span>)]</span>
@@ -633,7 +702,8 @@
 <span class="doccomment">/// # Example</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// ```ignore</span>
-<span class="doccomment">/// #[derive(Debug, Default, ZendObjectHandler)]</span>
+<span class="doccomment">/// #[php_class]</span>
+<span class="doccomment">/// #[derive(Debug, Default)]</span>
 <span class="doccomment">/// pub struct Human {</span>
 <span class="doccomment">///     name: String,</span>
 <span class="doccomment">///     age: i32,</span>
@@ -682,7 +752,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// Note that if the function is not called `get_module`, it will be renamed.</span>
 <span class="doccomment">///</span>
-<span class="doccomment">/// If you have defined classes using the `ZendObjectHandler` derive macro and you have not defined</span>
+<span class="doccomment">/// If you have defined classes using the [`macro@php_class`] macro and you have not defined</span>
 <span class="doccomment">/// a startup function, it will be automatically declared and registered.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # Example</span>
@@ -705,12 +775,83 @@
 <span class="doccomment">/// ```</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ext_php_rs_derive::php_module</span>;
 
+<span class="doccomment">/// Annotates a struct that will be exported to PHP as a class.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// The struct that this attribute is used on must implement [`Default`], as this is used to</span>
+<span class="doccomment">/// initialize the struct before the constructor is called. You may define a constructor with</span>
+<span class="doccomment">/// the [`macro@php_impl`] macro which can modify the properties of the struct.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This attribute takes a set of optional arguments:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// * `name` - The name of the exported class, if it is different from the Rust struct name. This</span>
+<span class="doccomment">///    can be useful for namespaced classes, as you cannot place backslashes in Rust struct names.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Any struct that uses this attribute can also provide an optional set of extra attributes, used</span>
+<span class="doccomment">/// to modify the class. These attributes must be used **underneath** this attribute, as they are</span>
+<span class="doccomment">/// not valid Rust attributes, and instead are parsed by this attribute:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// * `#[extends(ce)]` - Sets the parent class of this new class. Can only be used once, and `ce`</span>
+<span class="doccomment">///   may be any valid expression.</span>
+<span class="doccomment">/// * `#[implements(ce)]` - Implements an interface on the new class. Can be used multiple times,</span>
+<span class="doccomment">///   and `ce` may be any valid expression.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This attribute (and its associated structs) must be defined *above* the startup function (which</span>
+<span class="doccomment">/// is annotated by the [`macro@php_startup`] macro, or automatically generated just above the</span>
+<span class="doccomment">/// [`macro@php_module`] function).</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Fields defined on the struct *are not* the same as PHP properties, and are only accessible from</span>
+<span class="doccomment">/// Rust.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Example</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Export a simple class called `Example`, with 3 Rust fields.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// # use ext_php_rs::prelude::*;</span>
+<span class="doccomment">/// #[php_class]</span>
+<span class="doccomment">/// #[derive(Default)]</span>
+<span class="doccomment">/// pub struct Example {</span>
+<span class="doccomment">///     x: i32,</span>
+<span class="doccomment">///     y: String,</span>
+<span class="doccomment">///     z: bool</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// #[php_module]</span>
+<span class="doccomment">/// pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {</span>
+<span class="doccomment">///     module</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Create a custom exception `RedisException` inside the namespace `Redis\Exception`:</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```</span>
+<span class="doccomment">/// # use ext_php_rs::prelude::*;</span>
+<span class="doccomment">/// use ext_php_rs::php::exceptions::PhpException;</span>
+<span class="doccomment">/// use ext_php_rs::php::class::ClassEntry;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// #[php_class(name = &quot;Redis\\Exception\\RedisException&quot;)]</span>
+<span class="doccomment">/// #[extends(ClassEntry::exception())]</span>
+<span class="doccomment">/// #[derive(Default)]</span>
+<span class="doccomment">/// pub struct Example;</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// #[php_function]</span>
+<span class="doccomment">/// pub fn throw_exception() -&gt; Result&lt;i32, PhpException&lt;&#39;static&gt;&gt; {</span>
+<span class="doccomment">///     Err(PhpException::from_class::&lt;Example&gt;(&quot;Bad things happen&quot;.into()))</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// #[php_module]</span>
+<span class="doccomment">/// pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {</span>
+<span class="doccomment">///     module</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ext_php_rs_derive::php_class</span>;
+
 <span class="doccomment">/// Annotates a function that will be called by PHP when the module starts up. Generally used to</span>
 <span class="doccomment">/// register classes and constants.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// As well as annotating the function, any classes and constants that had been declared using the</span>
-<span class="doccomment">/// [`macro@ZendObjectHandler`], [`macro@php_const`] and [`macro@php_impl`] attributes will be</span>
-<span class="doccomment">/// registered inside this function.</span>
+<span class="doccomment">/// [`macro@php_class`], [`macro@php_const`] and [`macro@php_impl`] attributes will be registered</span>
+<span class="doccomment">/// inside this function.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// This function *must* be declared before the [`macro@php_module`] function, as this function</span>
 <span class="doccomment">/// needs to be declared when building the module.</span>
@@ -733,19 +874,16 @@
 <span class="doccomment">/// ```</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ext_php_rs_derive::php_startup</span>;
 
-<span class="doccomment">/// Derives the implementation of `ZendObjectOverride` for the given structure.</span>
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ext_php_rs_derive::ZendObjectHandler</span>;
-
 <span class="doccomment">/// A module typically glob-imported containing the typically required macros and imports.</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">prelude</span> {
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php::module::ModuleBuilder</span>;
+    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_class</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_const</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_extern</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_function</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_impl</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_module</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_startup</span>;
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::ZendObjectHandler</span>;
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="ext_php_rs" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div><script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>

@@ -312,6 +312,34 @@
 <span id="310">310</span>
 <span id="311">311</span>
 <span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Builder and objects for creating classes in the PHP world.</span>
 
@@ -320,13 +348,13 @@
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::bindings</span>::{
     <span class="ident">zend_class_entry</span>, <span class="ident">zend_declare_class_constant</span>, <span class="ident">zend_declare_property</span>,
-    <span class="ident">zend_register_internal_class_ex</span>,
+    <span class="ident">zend_do_implement_interface</span>, <span class="ident">zend_register_internal_class_ex</span>,
 };
 
 <span class="kw">use</span> <span class="kw">super</span>::{
-    <span class="ident">executor::ExecutorGlobals</span>,
     <span class="ident">flags</span>::{<span class="ident">ClassFlags</span>, <span class="ident">MethodFlags</span>, <span class="ident">PropertyFlags</span>},
     <span class="ident">function::FunctionEntry</span>,
+    <span class="ident">globals::ExecutorGlobals</span>,
     <span class="ident">types</span>::{
         <span class="ident">object</span>::{<span class="ident">ZendObject</span>, <span class="ident">ZendObjectOverride</span>},
         <span class="ident">string::ZendString</span>,
@@ -361,6 +389,11 @@
     <span class="doccomment">/// Returns the class flags.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">flags</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ClassFlags</span> {
         <span class="ident">ClassFlags::from_bits_truncate</span>(<span class="self">self</span>.<span class="ident">ce_flags</span>)
+    }
+
+    <span class="doccomment">/// Returns `true` if the class entry is an interface, and `false` otherwise.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_interface</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">flags</span>().<span class="ident">contains</span>(<span class="ident">ClassFlags::Interface</span>)
     }
 
     <span class="doccomment">/// Checks if the class is an instance of another class or interface.</span>
@@ -434,6 +467,7 @@
     <span class="ident">name</span>: <span class="ident">String</span>,
     <span class="ident">ptr</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">ClassEntry</span>,
     <span class="ident">extends</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassEntry</span><span class="op">&gt;</span>,
+    <span class="ident">interfaces</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassEntry</span><span class="op">&gt;</span>,
     <span class="ident">methods</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">FunctionEntry</span><span class="op">&gt;</span>,
     <span class="ident">object_override</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span>(<span class="ident">class_type</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ZendObject</span><span class="op">&gt;</span>,
     <span class="ident">properties</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">String</span>, <span class="ident">Zval</span>, <span class="ident">PropertyFlags</span>)<span class="op">&gt;</span>,
@@ -462,6 +496,7 @@
             <span class="ident">name</span>: <span class="ident">name</span>.<span class="ident">into</span>(),
             <span class="ident">ptr</span>,
             <span class="ident">extends</span>: <span class="prelude-val">None</span>,
+            <span class="ident">interfaces</span>: <span class="macro">vec!</span>[],
             <span class="ident">methods</span>: <span class="macro">vec!</span>[],
             <span class="ident">object_override</span>: <span class="prelude-val">None</span>,
             <span class="ident">properties</span>: <span class="macro">vec!</span>[],
@@ -476,6 +511,24 @@
     <span class="doccomment">/// * `parent` - The parent class to extend.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">extends</span>(<span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">parent</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassEntry</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">self</span>.<span class="ident">extends</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">parent</span>);
+        <span class="self">self</span>
+    }
+
+    <span class="doccomment">/// Implements an interface on the class.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `interface` - Interface to implement on the class.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Panics when the given class entry `interface` is not an interface.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">implements</span>(<span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">interface</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassEntry</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">interface</span>.<span class="ident">is_interface</span>() {
+            <span class="macro">panic!</span>(<span class="string">&quot;Given class entry was not an interface.&quot;</span>);
+        }
+
+        <span class="self">self</span>.<span class="ident">interfaces</span>.<span class="ident">push</span>(<span class="ident">interface</span>);
         <span class="self">self</span>
     }
 
@@ -545,8 +598,7 @@
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]</span>
-    <span class="doccomment">/// which can be derived through the [`ZendObjectHandler`](ext_php_rs_derive::ZendObjectHandler)</span>
-    <span class="doccomment">/// derive macro.</span>
+    <span class="doccomment">/// which can be derived using the [`php_class`](crate::php_class) attribute macro.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">object_override</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">ZendObjectOverride</span><span class="op">&gt;</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">self</span>.<span class="ident">object_override</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">T::create_object</span>);
         <span class="self">self</span>
@@ -580,6 +632,10 @@
         <span class="kw">unsafe</span> {
             <span class="ident">std::alloc::dealloc</span>((<span class="self">self</span>.<span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>, <span class="ident">Layout::new</span>::<span class="op">&lt;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span>())
         };
+
+        <span class="kw">for</span> <span class="ident">iface</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">interfaces</span> {
+            <span class="kw">unsafe</span> { <span class="ident">zend_do_implement_interface</span>(<span class="ident">class</span>, <span class="ident">std::mem::transmute</span>(<span class="ident">iface</span>)) };
+        }
 
         <span class="kw">for</span> (<span class="ident">name</span>, <span class="kw-2">mut</span> <span class="ident">default</span>, <span class="ident">flags</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">properties</span> {
             <span class="kw">unsafe</span> {

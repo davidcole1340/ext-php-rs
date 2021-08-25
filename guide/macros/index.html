@@ -152,11 +152,23 @@ used from PHP without fiddling around with zvals.</p>
 <li><a href="./module_startup.html"><code>php_startup</code></a> - Defines the extension startup function used by PHP to
 initialize your extension.</li>
 <li><a href="./function.html"><code>php_function</code></a> - Used to export a Rust function to PHP.</li>
-<li><a href="./structs.html"><code>ZendObjectHandler</code></a> - Used to export a Rust struct or enum as a PHP class.</li>
+<li><a href="./structs.html"><code>php_class</code></a> - Used to export a Rust struct or enum as a PHP class.</li>
 <li><a href="./impl.html"><code>php_impl</code></a> - Used to export a Rust <code>impl</code> block to PHP, including all
 methods and constants.</li>
 <li><a href="./constant.html"><code>php_const</code></a> - Used to export a Rust constant to PHP as a global constant.</li>
 </ul>
+<p>These macros do abuse the fact that (at the moment) proc macro expansion <em>seems</em>
+to happen orderly, on one single thread. It has been stated many times that this
+order is undefined behaviour (<a href="https://github.com/rust-lang/reference/issues/578">see here</a>), so these macros <em>could</em> break at any
+time with a <code>rustc</code> update (let's just keep our fingers crossed).</p>
+<p>The macros abuse this fact by storing a global state, which stores information
+about all the constants, functions, methods and classes you have registered
+throughout your crate. It is then read out of the state in the function tagged
+with the <code>#[php_module]</code> attribute. This is why this function <strong>must</strong> be the
+last function in your crate.</p>
+<p>In the case the ordering does change (or we find out that it already was not in
+order), the most likely solution will be having to register your PHP exports
+manually inside the <code>#[php_module]</code> function.</p>
 
                     </main>
 
