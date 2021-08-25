@@ -176,13 +176,17 @@ impl<'a> ClassBuilder<'a> {
     /// # Parameters
     ///
     /// * `interface` - Interface to implement on the class.
-    pub fn implements(mut self, interface: &'static ClassEntry) -> Result<Self> {
+    ///
+    /// # Panics
+    ///
+    /// Panics when the given class entry `interface` is not an interface.
+    pub fn implements(mut self, interface: &'static ClassEntry) -> Self {
         if !interface.is_interface() {
-            return Err(Error::InvalidInterface);
+            panic!("Given class entry was not an interface.");
         }
 
         self.interfaces.push(interface);
-        Ok(self)
+        self
     }
 
     /// Adds a method to the class.

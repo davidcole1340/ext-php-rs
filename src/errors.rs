@@ -50,8 +50,6 @@ pub enum Error {
     InvalidException(ClassFlags),
     /// Converting integer arguments resulted in an overflow.
     IntegerOverflow,
-    /// Given interface to implement was not an interface.
-    InvalidInterface,
 }
 
 impl Display for Error {
@@ -85,7 +83,6 @@ impl Display for Error {
             Error::IntegerOverflow => {
                 write!(f, "Converting integer arguments resulted in an overflow.")
             }
-            Error::InvalidInterface => write!(f, "Given class entry was not an interface."),
         }
     }
 }

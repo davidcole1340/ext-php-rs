@@ -79,10 +79,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                             interface
                         )
                     })?;
-                    Ok(quote! {
-                       .implements(#expr)
-                       .expect(concat!("Unable to implement interface on `", #class_name, "`"))
-                    })
+                    Ok(quote! { .implements(#expr) })
                 })
                 .collect::<Result<Vec<_>>>()?;
 
