@@ -304,7 +304,7 @@ impl<'a> Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_double<T: Into<libc::c_double>>(&mut self, val: T) {
+    pub fn set_double<T: Into<f64>>(&mut self, val: T) {
         self.value.dval = val.into();
         self.u1.type_info = ZvalTypeFlags::Double.bits();
     }

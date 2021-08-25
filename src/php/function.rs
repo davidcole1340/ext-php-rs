@@ -128,10 +128,7 @@ impl<'a> FunctionBuilder<'a> {
 
         // argument header, retval etc
         args.push(ArgInfo {
-            name: ((match self.n_req {
-                Some(req) => req,
-                None => self.args.len(),
-            }) as libc::uintptr_t) as *const i8,
+            name: self.n_req.unwrap_or(self.args.len()) as *const i8,
             type_: match self.retval {
                 Some(retval) => {
                     ZendType::empty_from_type(retval, self.ret_as_ref, false, self.ret_as_null)

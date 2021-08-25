@@ -97,10 +97,10 @@ static GLOBAL: PhpAllocator = PhpAllocator::new();
 //     ZendHashTable::try_from(&HashMap::<String, String>::new()).unwrap()
 // }
 
-// #[php_function]
-// pub fn test_str(input: &str) -> &str {
-//     input
-// }
+#[php_function]
+pub fn test_str(input: &str) -> &str {
+    input
+}
 
 // #[no_mangle]
 // pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
