@@ -16,7 +16,7 @@ use constant::Constant;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use syn::{
-    parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl,
+    parse_macro_input, AttributeArgs, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
 };
 
 extern crate proc_macro;
@@ -46,11 +46,12 @@ impl StateMutex {
     }
 }
 
-#[proc_macro_derive(ZendObjectHandler)]
-pub fn object_handler_derive(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+#[proc_macro_attribute]
+pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
+    let input = parse_macro_input!(input as ItemStruct);
 
-    match class::parser(input) {
+    match class::parser(args, input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }

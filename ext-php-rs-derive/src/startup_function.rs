@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{ItemFn, Signature};
+use syn::{Expr, ItemFn, Signature};
 
 use crate::{class::Class, constant::Constant, STATE};
 
@@ -15,7 +15,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let mut state = STATE.lock();
     state.startup_function = Some(ident.to_string());
 
-    let classes = build_classes(&state.classes);
+    let classes = build_classes(&state.classes)?;
     let constants = build_constants(&state.constants);
 
     let func = quote! {
@@ -41,11 +41,13 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
 }
 
 /// Returns a vector of `ClassBuilder`s for each class.
-fn build_classes(classes: &HashMap<String, Class>) -> Vec<TokenStream> {
+fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
     classes
         .iter()
         .map(|(name, class)| {
+            let Class { class_name, .. } = &class;
             let ident = Ident::new(name, Span::call_site());
+            let class_entry = Ident::new(&format!("_{}_CLASS_ENTRY", name), Span::call_site());
             let methods = class.methods.iter().map(|method| {
                 let builder = method.get_builder(&ident);
                 let flags = method.get_flags();
@@ -56,17 +58,44 @@ fn build_classes(classes: &HashMap<String, Class>) -> Vec<TokenStream> {
                 let val = constant.val_tokens();
                 quote! { .constant(#name, #val).unwrap() }
             });
+            let parent = {
+                if let Some(parent) = &class.parent {
+                    let expr: Expr = syn::parse_str(parent).map_err(|_| {
+                        anyhow!("Invalid expression given for `{}` parent", class_name)
+                    })?;
+                    Some(quote! { .extends(#expr) })
+                } else {
+                    None
+                }
+            };
+            let interfaces = class
+                .interfaces
+                .iter()
+                .map(|interface| {
+                    let expr: Expr = syn::parse_str(interface).map_err(|_| {
+                        anyhow!(
+                            "Invalid expression given for `{}` interface: `{}`",
+                            class_name,
+                            interface
+                        )
+                    })?;
+                    Ok(quote! { .implements(#expr) })
+                })
+                .collect::<Result<Vec<_>>>()?;
 
-            quote! {
-                ::ext_php_rs::php::class::ClassBuilder::new(#name)
+            Ok(quote! {{
+                let class = ::ext_php_rs::php::class::ClassBuilder::new(#class_name)
                     #(#methods)*
                     #(#constants)*
+                    #(#interfaces)*
+                    #parent
                     .object_override::<#ident>()
                     .build()
-                    .unwrap();
-            }
+                    .expect(concat!("Unable to build class `", #class_name, "`"));
+                unsafe { #class_entry.replace(class) };
+            }})
         })
-        .collect()
+        .collect::<Result<Vec<_>>>()
 }
 
 fn build_constants(constants: &[Constant]) -> Vec<TokenStream> {
