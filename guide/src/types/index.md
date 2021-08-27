@@ -22,3 +22,6 @@ There is one special case - `Result<T, E>`, where T implements `IntoZval` and
 `E` implements `Into<PhpException>`. This can only be used as a function/method
 return type. If the error variant is encountered, `E` is converted into a
 `PhpException` and thrown.
+
+For a type to be returnable, it must implement `IntoZval`, while for it to be
+valid as a parameter, it must implement `FromZval`.

@@ -5,7 +5,7 @@ use std::convert::{TryFrom, TryInto};
 use super::{
     enums::DataType,
     execution_data::ExecutionData,
-    types::zval::{IntoZval, Zval},
+    types::zval::{IntoZvalDyn, Zval},
 };
 
 use crate::{
@@ -94,7 +94,7 @@ impl<'a> Arg<'a> {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
-    pub fn try_call(&self, params: Vec<&dyn IntoZval>) -> Result<Zval> {
+    pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.zval().ok_or(Error::Callable)?.try_call(params)
     }
 }

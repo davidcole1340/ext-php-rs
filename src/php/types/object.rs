@@ -18,7 +18,10 @@ use crate::{
         ZEND_PROPERTY_ISSET,
     },
     errors::{Error, Result},
-    php::{class::ClassEntry, execution_data::ExecutionData, types::string::ZendString},
+    php::{
+        class::ClassEntry, enums::DataType, execution_data::ExecutionData,
+        types::string::ZendString,
+    },
 };
 
 use super::{
@@ -154,6 +157,11 @@ impl ZendObject {
     fn mut_ptr(&self) -> *mut Self {
         (self as *const Self) as *mut Self
     }
+
+    /// Increments the objects reference counter by 1.
+    pub(crate) fn refcount_inc(&mut self) {
+        self.gc.refcount += 1;
+    }
 }
 
 impl Debug for ZendObject {
@@ -179,7 +187,7 @@ impl Debug for ZendObject {
 ///
 /// Implements a function `create_object` which is passed to a PHP class entry to instantiate the
 /// object that will represent an object.
-pub trait ZendObjectOverride {
+pub trait ZendObjectOverride: Default {
     /// Creates a new Zend object. Also allocates space for type T on which the trait is
     /// implemented on.
     ///
@@ -199,6 +207,19 @@ pub trait ZendObjectOverride {
     /// the class with PHP.
     #[doc(hidden)]
     fn set_class(ce: &'static ClassEntry);
+}
+
+impl<T: ZendObjectOverride> IntoZval for &T {
+    const TYPE: DataType = DataType::Object;
+
+    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+        unsafe {
+            let obj = ZendClassObject::from_obj_ptr(*self).ok_or(Error::InvalidPointer)?;
+            zv.set_object(&mut obj.std);
+        }
+
+        Ok(())
+    }
 }
 
 /// A Zend class object which is allocated when a PHP
@@ -261,6 +282,20 @@ impl<T: Default> ZendClassObject<T> {
             let ptr = ptr.offset(0 - offset as isize) as *mut Self;
             ptr.as_mut()
         }
+    }
+
+    /// Returns a reference to the [`ZendClassObject`] of a given object `T`.
+    ///
+    /// # Parameters
+    ///
+    /// * `obj` - The object to get the [`ZendClassObject`] for.
+    ///
+    /// # Safety
+    ///
+    /// Caller must guarantee that the given `obj` was created by Zend, which means that it
+    /// is immediately followed by a [`zend_object`].
+    pub(crate) unsafe fn from_obj_ptr(obj: &T) -> Option<&mut Self> {
+        ((obj as *const T) as *mut Self).as_mut()
     }
 }
 

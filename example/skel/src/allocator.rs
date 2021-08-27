@@ -19,16 +19,22 @@ impl PhpAllocator {
 
 unsafe impl GlobalAlloc for PhpAllocator {
     unsafe fn alloc(&self, layout: std::alloc::Layout) -> *mut u8 {
-        _emalloc(
+        let ptr = _emalloc(
             layout.size() as _,
             std::ptr::null_mut(),
             0,
             std::ptr::null_mut(),
             0,
-        ) as *mut u8
+        ) as *mut u8;
+
+        eprintln!("allocating {} bytes at {:?}", layout.size(), ptr);
+
+        ptr
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, _: std::alloc::Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: std::alloc::Layout) {
+        eprintln!("deallocating {} bytes at {:?}", layout.size(), ptr);
+
         _efree(
             ptr as *mut _,
             std::ptr::null_mut(),
