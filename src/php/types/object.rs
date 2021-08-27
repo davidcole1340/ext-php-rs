@@ -6,7 +6,7 @@ use std::{
     convert::TryInto,
     fmt::Debug,
     marker::PhantomData,
-    mem::{self, MaybeUninit},
+    mem::MaybeUninit,
     ops::{Deref, DerefMut},
     sync::atomic::{AtomicBool, Ordering},
 };
