@@ -1,16 +1,8 @@
 mod allocator;
 
-use std::{collections::HashMap, convert::TryFrom, mem::MaybeUninit};
-
 use allocator::PhpAllocator;
 use ext_php_rs::{
-    call_user_func, info_table_end, info_table_row, info_table_start,
-    php::{
-        class::ClassEntry,
-        exceptions::PhpException,
-        module::ModuleEntry,
-        types::{array::ZendHashTable, callable::Callable, zval::Zval},
-    },
+    php::{class::ClassEntry, exceptions::PhpException},
     php_class,
     prelude::*,
 };
@@ -119,6 +111,27 @@ pub fn test_exception() -> Result<i32, PhpException<'static>> {
     Err(PhpException::from_class::<RedisException>(
         "Hello world".into(),
     ))
+}
+
+#[php_class]
+#[derive(Default)]
+pub struct Test {
+    test: String,
+}
+
+#[php_impl]
+impl Test {
+    pub fn get(&mut self) -> &Test {
+        self
+    }
+
+    pub fn set_str(&mut self, str: String) {
+        self.test = str;
+    }
+
+    pub fn get_str(&self) -> String {
+        self.test.clone()
+    }
 }
 
 #[php_module]

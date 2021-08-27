@@ -2,7 +2,7 @@
 
 use std::ops::Deref;
 
-use super::zval::{IntoZval, Zval};
+use super::zval::{IntoZvalDyn, Zval};
 use crate::{
     bindings::_call_user_function_impl,
     errors::{Error, Result},
@@ -92,7 +92,7 @@ impl<'a> Callable<'a> {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
-    pub fn try_call(&self, params: Vec<&dyn IntoZval>) -> Result<Zval> {
+    pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         if !self.0.is_callable() {
             return Err(Error::Callable);
         }

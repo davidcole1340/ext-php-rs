@@ -216,7 +216,7 @@ impl Method {
 
             // TODO allow reference returns?
             quote! {
-                .returns(<#ty as ::ext_php_rs::php::types::zval::FromZval>::TYPE, false, #nullable)
+                .returns(<#ty as ::ext_php_rs::php::types::zval::IntoZval>::TYPE, false, #nullable)
             }
         });
 
