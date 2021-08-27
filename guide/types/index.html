@@ -166,6 +166,8 @@ is converted to a PHP <code>null</code>.</li>
 <code>E</code> implements <code>Into&lt;PhpException&gt;</code>. This can only be used as a function/method
 return type. If the error variant is encountered, <code>E</code> is converted into a
 <code>PhpException</code> and thrown.</p>
+<p>For a type to be returnable, it must implement <code>IntoZval</code>, while for it to be
+valid as a parameter, it must implement <code>FromZval</code>.</p>
 
                     </main>
 

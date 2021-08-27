@@ -130,7 +130,7 @@
 
 <span class="kw">use</span> <span class="ident">std::ops::Deref</span>;
 
-<span class="kw">use</span> <span class="kw">super</span><span class="ident">::zval</span>::{<span class="ident">IntoZval</span>, <span class="ident">Zval</span>};
+<span class="kw">use</span> <span class="kw">super</span><span class="ident">::zval</span>::{<span class="ident">IntoZvalDyn</span>, <span class="ident">Zval</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings::_call_user_function_impl</span>,
     <span class="ident">errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>},
@@ -220,7 +220,7 @@
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `params` - A list of parameters to call the function with.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_call</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">params</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">IntoZval</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_call</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">params</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">IntoZvalDyn</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
         <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="number">0</span>.<span class="ident">is_callable</span>() {
             <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::Callable</span>);
         }

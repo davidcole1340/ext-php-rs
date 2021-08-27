@@ -202,7 +202,7 @@
 <span class="kw">use</span> <span class="kw">super</span>::{
     <span class="ident">enums::DataType</span>,
     <span class="ident">execution_data::ExecutionData</span>,
-    <span class="ident">types::zval</span>::{<span class="ident">IntoZval</span>, <span class="ident">Zval</span>},
+    <span class="ident">types::zval</span>::{<span class="ident">IntoZvalDyn</span>, <span class="ident">Zval</span>},
 };
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
@@ -291,7 +291,7 @@
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `params` - A list of parameters to call the function with.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_call</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">params</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">IntoZval</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_call</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">params</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">IntoZvalDyn</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">zval</span>().<span class="ident">ok_or</span>(<span class="ident">Error::Callable</span>)<span class="question-mark">?</span>.<span class="ident">try_call</span>(<span class="ident">params</span>)
     }
 }

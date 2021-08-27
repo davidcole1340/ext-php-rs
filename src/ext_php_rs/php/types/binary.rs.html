@@ -93,6 +93,8 @@
 <span id="91">91</span>
 <span id="92">92</span>
 <span id="93">93</span>
+<span id="94">94</span>
+<span id="95">95</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Types relating to binary data transmission between Rust and PHP.</span>
 
@@ -164,6 +166,8 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Pack</span><span class="op">&gt;</span> <span class="ident">IntoZval</span> <span class="kw">for</span> <span class="ident">Binary</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::String</span>;
+
     <span class="kw">fn</span> <span class="ident">set_zval</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">zv</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Zval</span>, <span class="kw">_</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
         <span class="ident">zv</span>.<span class="ident">set_binary</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>);
         <span class="prelude-val">Ok</span>(())
