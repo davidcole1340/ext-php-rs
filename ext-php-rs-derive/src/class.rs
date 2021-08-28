@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 use crate::STATE;
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{Attribute, AttributeArgs, Expr, ItemStruct};
+use syn::{Attribute, AttributeArgs, Expr, ItemStruct, Token};
 
 #[derive(Debug, Default)]
 pub struct Class {
@@ -12,12 +14,14 @@ pub struct Class {
     pub interfaces: Vec<String>,
     pub methods: Vec<crate::method::Method>,
     pub constants: Vec<crate::constant::Constant>,
+    pub properties: HashMap<String, (String, Option<String>)>,
 }
 
 #[derive(Debug)]
 pub enum ParsedAttribute {
     Extends(Expr),
     Implements(Expr),
+    Property(Box<PropertyAttr>),
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -32,6 +36,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     let mut parent = None;
     let mut interfaces = vec![];
+    let mut properties = HashMap::<String, (String, Option<String>)>::new();
 
     input.attrs = {
         let mut unused = vec![];
@@ -43,6 +48,15 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
                     }
                     ParsedAttribute::Implements(class) => {
                         interfaces.push(class.to_token_stream().to_string());
+                    }
+                    ParsedAttribute::Property(attr) => {
+                        properties.insert(
+                            attr.name.to_string(),
+                            (
+                                attr.default.to_token_stream().to_string(),
+                                attr.flags.map(|flags| flags.to_token_stream().to_string()),
+                            ),
+                        );
                     }
                 },
                 None => unused.push(attr),
@@ -93,6 +107,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         class_name,
         parent,
         interfaces,
+        properties,
         ..Default::default()
     };
 
@@ -111,6 +126,31 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
     Ok(output)
 }
 
+#[derive(Debug)]
+pub struct PropertyAttr {
+    pub name: Ident,
+    pub default: Expr,
+    pub flags: Option<Expr>,
+}
+
+impl syn::parse::Parse for PropertyAttr {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let name: Ident = input.parse()?;
+        let _: Token![=] = input.parse()?;
+        let default: Expr = input.parse()?;
+        let flags = input
+            .parse::<Token![,]>()
+            .and_then(|_| input.parse::<Expr>())
+            .ok();
+
+        Ok(PropertyAttr {
+            name,
+            default,
+            flags,
+        })
+    }
+}
+
 fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
     let name = attr.path.to_token_stream().to_string();
 
@@ -126,6 +166,13 @@ fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
                 .parse_args()
                 .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
             Some(ParsedAttribute::Implements(meta))
+        }
+        "property" => {
+            let attr: PropertyAttr = attr
+                .parse_args()
+                .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
+
+            Some(ParsedAttribute::Property(Box::new(attr)))
         }
         _ => None,
     })
