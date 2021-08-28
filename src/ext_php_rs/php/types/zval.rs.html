@@ -829,11 +829,6 @@
 <span id="827">827</span>
 <span id="828">828</span>
 <span id="829">829</span>
-<span id="830">830</span>
-<span id="831">831</span>
-<span id="832">832</span>
-<span id="833">833</span>
-<span id="834">834</span>
 </pre><pre class="rust">
 <span class="doccomment">//! The base value in PHP. A Zval can contain any PHP type, and the type that it contains is</span>
 <span class="doccomment">//! determined by a property inside the struct. The content of the Zval is stored in a union.</span>
@@ -1195,11 +1190,6 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_array</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">val</span>: <span class="ident">ZendHashTable</span>) {
         <span class="self">self</span>.<span class="ident">u1</span>.<span class="ident">type_info</span> <span class="op">=</span> <span class="ident">ZvalTypeFlags::ArrayEx</span>.<span class="ident">bits</span>();
         <span class="self">self</span>.<span class="ident">value</span>.<span class="ident">arr</span> <span class="op">=</span> <span class="ident">val</span>.<span class="ident">into_ptr</span>();
-    }
-
-    <span class="doccomment">/// Sets the reference count of the Zval.</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_refcount</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">rc</span>: <span class="ident">u32</span>) {
-        <span class="kw">unsafe</span> { (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">value</span>.<span class="ident">counted</span>).<span class="ident">gc</span>.<span class="ident">refcount</span> <span class="op">=</span> <span class="ident">rc</span> }
     }
 
     <span class="doccomment">/// Used to drop the Zval but keep the value of the zval intact.</span>
