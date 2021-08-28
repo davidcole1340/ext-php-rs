@@ -101,19 +101,21 @@ pub fn test_str(input: &str) -> &str {
 //     info_table_end!();
 // }
 
-#[php_class(name = "Redis\\Exception\\RedisClientException")]
-#[extends(ClassEntry::exception())]
-#[derive(Default)]
-struct RedisException;
+// #[php_class(name = "Redis\\Exception\\RedisClientException")]
+// #[extends(ClassEntry::exception())]
+// #[derive(Default)]
+// struct RedisException;
 
-#[php_function]
-pub fn test_exception() -> Result<i32, PhpException<'static>> {
-    Err(PhpException::from_class::<RedisException>(
-        "Hello world".into(),
-    ))
-}
+// #[php_function]
+// pub fn test_exception() -> Result<i32, PhpException<'static>> {
+//     Err(PhpException::from_class::<RedisException>(
+//         "Hello world".into(),
+//     ))
+// }
 
 #[php_class]
+#[property(test = 0)]
+#[property(another = "Hello world")]
 #[derive(Default)]
 pub struct Test {
     test: String,
@@ -122,6 +124,10 @@ pub struct Test {
 #[php_impl]
 impl Test {
     pub fn get(&mut self) -> &Test {
+        use ext_php_rs::php::types::object::ZendObjectOverride;
+
+        dbg!(unsafe { self.get_property::<String>("test") });
+        unsafe { self.set_property("test", "another string") };
         self
     }
 

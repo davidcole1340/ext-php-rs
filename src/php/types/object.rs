@@ -26,7 +26,7 @@ use crate::{
 
 use super::{
     array::ZendHashTable,
-    zval::{IntoZval, Zval},
+    zval::{FromZval, IntoZval, Zval},
 };
 
 pub type ZendObject = zend_object;
@@ -96,10 +96,6 @@ impl ZendObject {
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<&Zval> {
         let name = ZendString::new(name, false)?;
         let mut value = value.as_zval(false)?;
-
-        if value.is_string() {
-            value.set_refcount(0);
-        }
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
@@ -207,6 +203,49 @@ pub trait ZendObjectOverride: Default {
     /// the class with PHP.
     #[doc(hidden)]
     fn set_class(ce: &'static ClassEntry);
+
+    /// Attempts to retrieve a property from the class object.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the property.
+    ///
+    /// # Returns
+    ///
+    /// Returns a given type `T` inside an option which is the value of the zval, or [`None`]
+    /// if the property could not be found.
+    ///
+    /// # Safety
+    ///
+    /// Caller must guarantee that the object the function is called on is immediately followed
+    /// by a [`zend_object`], which is true when the object was instantiated from  [`ZendClassObject`].
+    unsafe fn get_property<'a, T: FromZval<'a>>(&'a self, name: &str) -> Option<T> {
+        let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
+        let zv = obj.std.get_property(name).ok()?;
+        zv.try_into().ok()
+    }
+
+    /// Attempts to set the value of a property on the class object.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the property to set.
+    /// * `value` - The value to set the property to.
+    ///
+    /// # Returns
+    ///
+    /// Returns nothing in an option if the property was successfully set. Returns none if setting
+    /// the value failed.
+    ///
+    /// # Safety
+    ///
+    /// Caller must guarantee that the object the function is called on is immediately followed
+    /// by a [`zend_object`], which is true when the object was instantiated from  [`ZendClassObject`].
+    unsafe fn set_property(&mut self, name: &str, value: impl IntoZval) -> Option<()> {
+        let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
+        obj.std.set_property(name, value).ok()?;
+        Some(())
+    }
 }
 
 impl<T: ZendObjectOverride> IntoZval for &T {

@@ -27,13 +27,13 @@ unsafe impl GlobalAlloc for PhpAllocator {
             0,
         ) as *mut u8;
 
-        eprintln!("allocating {} bytes at {:?}", layout.size(), ptr);
+        // eprintln!("allocating {} bytes at {:?}", layout.size(), ptr);
 
         ptr
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: std::alloc::Layout) {
-        eprintln!("deallocating {} bytes at {:?}", layout.size(), ptr);
+        // eprintln!("deallocating {} bytes at {:?}", layout.size(), ptr);
 
         _efree(
             ptr as *mut _,
