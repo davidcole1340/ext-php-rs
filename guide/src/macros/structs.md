@@ -30,15 +30,20 @@ placed underneath the `#[php_class]` attribute.
 - `#[implements(ce)]` - Implements the given interface on the class. Can be used
   multiple times. `ce` must be a valid Rust expression when it is called inside
   the `#[php_module]` function.
+- `#[property(name = default[, flags])]` - Adds a PHP property to the class. Can
+  be get and set through functions defined through the trait
+  `ZendObjectOverride`.
 
 ## Example
 
-This example creates a PHP class `Human`:
+This example creates a PHP class `Human`, adding a PHP property `address` with
+an empty string as the default value.
 
 ```rust
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_class]
+#[property(address = "")]
 #[derive(Default)]
 pub struct Human {
     name: String,
@@ -64,4 +69,15 @@ pub struct RedisException;
 pub fn throw_exception() -> Result<i32, PhpException<'static>> {
     Err(PhpException::from_class::<RedisException>("Not good!".into()))
 }
+```
+
+Creating a class with a private property called `test`:
+
+```rust
+# extern crate ext_php_rs;
+# use ext_php_rs::prelude::*;
+#[php_class]
+#[property(test = "Default value", PropertyFlags::Private)]
+#[derive(Default)]
+pub struct TestClass;
 ```

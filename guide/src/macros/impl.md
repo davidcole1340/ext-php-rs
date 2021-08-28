@@ -69,7 +69,11 @@ impl Human {
     }
 
     pub fn introduce(&self) {
-        println!("My name is {} and I am {} years old.", self.name, self.age);
+        use ext_php_rs::php::types::object::ZendObjectOverride;
+        
+        // SAFETY: The `Human` struct is only constructed from PHP.
+        let address: String = unsafe { self.get_property("address") }.unwrap();
+        println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, address);
     }
 
     pub fn get_max_age() -> i32 {
