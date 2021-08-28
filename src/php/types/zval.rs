@@ -360,11 +360,6 @@ impl<'a> Zval {
         self.value.arr = val.into_ptr();
     }
 
-    /// Sets the reference count of the Zval.
-    pub(crate) fn set_refcount(&mut self, rc: u32) {
-        unsafe { (*self.value.counted).gc.refcount = rc }
-    }
-
     /// Used to drop the Zval but keep the value of the zval intact.
     ///
     /// This is important when copying the value of the zval, as the actual value
