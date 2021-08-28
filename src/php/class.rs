@@ -204,23 +204,28 @@ impl<'a> ClassBuilder<'a> {
     /// Adds a property to the class. The initial type of the property is given by the type
     /// of the given default. Note that the user can change the type.
     ///
-    /// Returns a result containing the class builder if the property was successfully added.
-    ///
     /// # Parameters
     ///
     /// * `name` - The name of the property to add to the class.
     /// * `default` - The default value of the property.
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
+    ///
+    /// # Panics
+    ///
+    /// Function will panic if the given `default` cannot be converted into a [`Zval`].
     pub fn property<T: Into<String>>(
         mut self,
         name: T,
         default: impl IntoZval,
         flags: PropertyFlags,
-    ) -> Result<Self> {
-        let default = default.as_zval(true)?;
+    ) -> Self {
+        let default = match default.as_zval(true) {
+            Ok(default) => default,
+            Err(_) => panic!("Invalid default value for property `{}`.", name.into()),
+        };
 
         self.properties.push((name.into(), default, flags));
-        Ok(self)
+        self
     }
 
     /// Adds a constant to the class. The type of the constant is defined by the type of the given
