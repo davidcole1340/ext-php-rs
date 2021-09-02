@@ -1,5 +1,8 @@
 //! Objects relating to PHP and the Zend engine.
 
+#[cfg(feature = "alloc")]
+pub mod alloc;
+
 pub mod args;
 pub mod class;
 pub mod constants;

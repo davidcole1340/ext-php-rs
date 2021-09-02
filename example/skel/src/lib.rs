@@ -1,14 +1,7 @@
 mod allocator;
 
 use allocator::PhpAllocator;
-use ext_php_rs::{
-    php::{class::ClassEntry, exceptions::PhpException},
-    php_class,
-    prelude::*,
-};
-
-#[global_allocator]
-static GLOBAL: PhpAllocator = PhpAllocator::new();
+use ext_php_rs::{php_class, prelude::*};
 
 // #[php_function]
 // pub fn hello_world() -> String {
@@ -112,6 +105,9 @@ pub fn test_str(input: &str) -> &str {
 //         "Hello world".into(),
 //     ))
 // }
+
+#[global_allocator]
+static GLOBAL: PhpAllocator = PhpAllocator::new();
 
 #[php_class]
 #[property(test = 0)]
