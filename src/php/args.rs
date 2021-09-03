@@ -127,12 +127,12 @@ pub type ArgInfo = zend_internal_arg_info;
 pub struct ArgParser<'a, 'arg, 'zval> {
     args: Vec<&'arg mut Arg<'zval>>,
     min_num_args: Option<u32>,
-    execute_data: &'a mut ExecutionData,
+    execute_data: &'a ExecutionData,
 }
 
 impl<'a, 'arg, 'zval> ArgParser<'a, 'arg, 'zval> {
     /// Builds a new function argument parser.
-    pub fn new(execute_data: &'a mut ExecutionData) -> Self {
+    pub fn new(execute_data: &'a ExecutionData) -> Self {
         ArgParser {
             args: vec![],
             min_num_args: None,

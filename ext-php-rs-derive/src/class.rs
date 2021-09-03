@@ -67,38 +67,16 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     let ItemStruct { ident, .. } = &input;
     let class_name = args.name.unwrap_or_else(|| ident.to_string());
-    let handlers = Ident::new(
-        &format!("_{}_OBJECT_HANDLERS", ident.to_string()),
-        Span::call_site(),
-    );
-    let class_entry = Ident::new(
-        &format!("_{}_CLASS_ENTRY", ident.to_string()),
-        Span::call_site(),
-    );
+    let meta = Ident::new(&format!("_{}_META", ident.to_string()), Span::call_site());
 
     let output = quote! {
         #input
 
-        static #handlers: ::ext_php_rs::php::types::object::Handlers<#ident> = ::ext_php_rs::php::types::object::Handlers::new();
-        static mut #class_entry: ::std::option::Option<&'static ::ext_php_rs::php::class::ClassEntry> = None;
+        static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#ident> = ::ext_php_rs::php::types::object::ClassMetadata::new();
 
-        impl ::ext_php_rs::php::types::object::ZendObjectOverride for #ident {
-            unsafe extern "C" fn create_object(
-                ce: *mut ::ext_php_rs::php::class::ClassEntry,
-            ) -> *mut ::ext_php_rs::php::types::object::ZendObject {
-                ::ext_php_rs::php::types::object::ZendClassObject::<#ident>::new_ptr(ce, #handlers.get())
-                    .expect("Failed to allocate memory for new Zend object.")
-            }
-
-            fn get_class() -> &'static ::ext_php_rs::php::class::ClassEntry {
-                unsafe {
-                    #class_entry
-                        .expect(concat!("Class `", #class_name, "` has not been initialized yet."))
-                }
-            }
-
-            fn set_class(ce: &'static ::ext_php_rs::php::class::ClassEntry) {
-                unsafe { #class_entry.replace(ce) };
+        impl ::ext_php_rs::php::types::object::RegisteredClass for #ident {
+            fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
+                &#meta
             }
         }
     };

@@ -2,7 +2,7 @@
 
 use std::ffi::CString;
 
-use super::{class::ClassEntry, types::object::ZendObjectOverride};
+use super::{class::ClassEntry, types::object::RegisteredClass};
 use crate::{
     bindings::{
         zend_ce_argument_count_error, zend_ce_arithmetic_error, zend_ce_compile_error,
@@ -55,8 +55,8 @@ impl<'a> PhpException<'a> {
     /// # Parameters
     ///
     /// * `message` - Message to contain in the exception.
-    pub fn from_class<T: ZendObjectOverride>(message: String) -> Self {
-        Self::new(message, 0, T::get_class())
+    pub fn from_class<T: RegisteredClass>(message: String) -> Self {
+        Self::new(message, 0, T::get_metadata().ce())
     }
 
     /// Throws the exception, returning nothing inside a result if successful and an error

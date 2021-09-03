@@ -29,6 +29,9 @@ use super::{array::ZendHashTable, callable::Callable, object::ZendObject};
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
 
+unsafe impl Send for Zval {}
+unsafe impl Sync for Zval {}
+
 impl<'a> Zval {
     /// Creates a new, empty zval.
     pub(crate) const fn new() -> Self {
@@ -266,7 +269,9 @@ impl<'a> Zval {
         Ok(())
     }
 
-    /// Sets the value of the zval as a binary string.
+    /// Sets the value of the zval as a binary string, which is represented in Rust as an array.
+    ///
+    /// The data is cloned before being packed into a string.
     ///
     /// # Parameters
     ///
@@ -417,7 +422,7 @@ impl Drop for Zval {
 /// Provides implementations for converting Rust primitive types into PHP zvals. Alternative to the
 /// built-in Rust [`From`] and [`TryFrom`] implementations, allowing the caller to specify whether
 /// the Zval contents will persist between requests.
-pub trait IntoZval {
+pub trait IntoZval: Sized {
     /// The corresponding type of the implemented value in PHP.
     const TYPE: DataType;
 
@@ -427,7 +432,7 @@ pub trait IntoZval {
     /// # Parameters
     ///
     /// * `persistent` - Whether the contents of the Zval will persist between requests.
-    fn as_zval(&self, persistent: bool) -> Result<Zval> {
+    fn as_zval(self, persistent: bool) -> Result<Zval> {
         let mut zval = Zval::new();
         self.set_zval(&mut zval, persistent)?;
         Ok(zval)
@@ -440,11 +445,13 @@ pub trait IntoZval {
     ///
     /// * `zv` - The Zval to set the content of.
     /// * `persistent` - Whether the contents of the Zval will persist between requests.
-    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()>;
+    fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
-/// An object-safe version of the [`IntoZval`] trait. This trait is automatically implemented on any
-/// type that implements [`IntoZval`], and therefore should not be implemented directly.
+/// An object-safe version of the [`IntoZval`] trait.
+///
+/// This trait is automatically implemented on any type that implements both [`IntoZval`] and [`Clone`].
+/// You avoid implementing this trait directly, rather implement these two other traits.
 pub trait IntoZvalDyn {
     /// Converts a Rust primitive type into a Zval. Returns a result containing the Zval if
     /// successful.
@@ -452,28 +459,15 @@ pub trait IntoZvalDyn {
     /// # Parameters
     ///
     /// * `persistent` - Whether the contents of the Zval will persist between requests.
-    fn as_zval(&self, persistent: bool) -> Result<Zval> {
-        let mut zval = Zval::new();
-        self.set_zval(&mut zval, persistent)?;
-        Ok(zval)
-    }
-
-    /// Sets the content of a pre-existing zval. Returns a result containing nothing if setting
-    /// the content was successful.
-    ///
-    /// # Parameters
-    ///
-    /// * `zv` - The Zval to set the content of.
-    /// * `persistent` - Whether the contents of the Zval will persist between requests.
-    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()>;
+    fn as_zval(&self, persistent: bool) -> Result<Zval>;
 
     /// Returns the PHP type of the type.
     fn get_type(&self) -> DataType;
 }
 
-impl<T: IntoZval> IntoZvalDyn for T {
-    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
-        self.set_zval(zv, persistent)
+impl<T: IntoZval + Clone> IntoZvalDyn for T {
+    fn as_zval(&self, persistent: bool) -> Result<Zval> {
+        self.clone().as_zval(persistent)
     }
 
     fn get_type(&self) -> DataType {
@@ -494,8 +488,8 @@ macro_rules! into_zval {
         impl IntoZval for $type {
             const TYPE: DataType = DataType::$dt;
 
-            fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
-                zv.$fn(*self);
+            fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+                zv.$fn(self);
                 Ok(())
             }
         }
@@ -530,8 +524,8 @@ macro_rules! try_into_zval_int {
         impl IntoZval for $type {
             const TYPE: DataType = DataType::Long;
 
-            fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
-                let val: ZendLong = (*self).try_into().map_err(|_| Error::IntegerOverflow)?;
+            fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+                let val: ZendLong = self.try_into().map_err(|_| Error::IntegerOverflow)?;
                 zv.set_long(val);
                 Ok(())
             }
@@ -561,8 +555,8 @@ macro_rules! try_into_zval_str {
         impl IntoZval for $type {
             const TYPE: DataType = DataType::String;
 
-            fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
-                zv.set_string(self, persistent)
+            fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
+                zv.set_string(&self, persistent)
             }
         }
     };
@@ -571,13 +565,22 @@ macro_rules! try_into_zval_str {
 try_into_zval_str!(String);
 try_into_zval_str!(&str);
 
+impl IntoZval for () {
+    const TYPE: DataType = DataType::Null;
+
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        zv.set_null();
+        Ok(())
+    }
+}
+
 impl<T> IntoZval for Option<T>
 where
     T: IntoZval,
 {
     const TYPE: DataType = T::TYPE;
 
-    fn set_zval(&self, zv: &mut Zval, persistent: bool) -> Result<()> {
+    fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
         match self {
             Some(val) => val.set_zval(zv, persistent),
             None => {
@@ -591,7 +594,7 @@ where
 impl<'a> IntoZval for ZendHashTable<'a> {
     const TYPE: DataType = DataType::Array;
 
-    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         zv.set_array(self.clone());
         Ok(())
     }
@@ -603,7 +606,7 @@ where
 {
     const TYPE: DataType = DataType::Array;
 
-    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         let hm = self
             .try_into()
             .map_err(|_| Error::ZvalConversion(DataType::Array))?;
@@ -619,7 +622,7 @@ where
 {
     const TYPE: DataType = DataType::Array;
 
-    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         let hm = self.try_into()?;
         zv.set_array(hm);
         Ok(())

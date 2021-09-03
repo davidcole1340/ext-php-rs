@@ -1,6 +1,9 @@
 //! Builder and objects for creating classes in the PHP world.
 
-use crate::errors::{Error, Result};
+use crate::{
+    errors::{Error, Result},
+    php::types::object::{ZendClassObject, ZendObject},
+};
 use std::{alloc::Layout, convert::TryInto, ffi::CString, fmt::Debug};
 
 use crate::bindings::{
@@ -13,7 +16,7 @@ use super::{
     function::FunctionEntry,
     globals::ExecutorGlobals,
     types::{
-        object::{ZendObject, ZendObjectOverride},
+        object::RegisteredClass,
         string::ZendString,
         zval::{IntoZval, Zval},
     },
@@ -259,10 +262,17 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// # Parameters
     ///
-    /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
+    /// * `T` - The type which will override the Zend object. Must implement [`RegisteredClass`]
     /// which can be derived using the [`php_class`](crate::php_class) attribute macro.
-    pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
-        self.object_override = Some(T::create_object);
+    pub fn object_override<T: RegisteredClass>(mut self) -> Self {
+        unsafe extern "C" fn create_object<T: RegisteredClass>(
+            _: *mut ClassEntry,
+        ) -> *mut ZendObject {
+            let ptr = ZendClassObject::<T>::new_ptr(None);
+            &mut (*ptr).std
+        }
+
+        self.object_override = Some(create_object::<T>);
         self
     }
 

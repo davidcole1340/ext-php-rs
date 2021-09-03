@@ -1,7 +1,17 @@
 mod allocator;
 
 use allocator::PhpAllocator;
-use ext_php_rs::{php_class, prelude::*};
+use ext_php_rs::{
+    php::{
+        exceptions::PhpException,
+        types::{
+            callable::Callable,
+            object::{ClassObject, ClassRef},
+        },
+    },
+    php_class,
+    prelude::*,
+};
 
 // #[php_function]
 // pub fn hello_world() -> String {
@@ -112,21 +122,49 @@ static GLOBAL: PhpAllocator = PhpAllocator::new();
 #[php_class]
 #[property(test = 0)]
 #[property(another = "Hello world")]
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct Test {
-    test: String,
+    pub test: String,
+}
+
+#[php_class]
+#[derive(Default)]
+struct PhpFuture {
+    then: Option<Callable<'static>>,
+}
+
+#[php_impl]
+impl PhpFuture {
+    pub fn then(&mut self, then: Callable<'static>) {
+        self.then = Some(then);
+    }
+
+    pub fn now(&self) -> Result<(), PhpException> {
+        if let Some(then) = &self.then {
+            then.try_call(vec![&"Hello"]).unwrap();
+            Ok(())
+        } else {
+            Err(PhpException::default("No `then`".into()))
+        }
+    }
+
+    pub fn obj(&self) -> ClassObject<Test> {
+        let obj = ClassObject::new(Test {
+            test: "Hello world from class entry :)".into(),
+        });
+
+        dbg!(&obj);
+
+        obj
+    }
+
+    pub fn return_self(&self) -> ClassRef<PhpFuture> {
+        ClassRef::from_ref(self).unwrap()
+    }
 }
 
 #[php_impl]
 impl Test {
-    pub fn get(&mut self) -> &Test {
-        use ext_php_rs::php::types::object::ZendObjectOverride;
-
-        dbg!(unsafe { self.get_property::<String>("test") });
-        unsafe { self.set_property("test", "another string") };
-        self
-    }
-
     pub fn set_str(&mut self, str: String) {
         self.test = str;
     }
@@ -138,6 +176,5 @@ impl Test {
 
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    // module.info_function(php_module_info)
     module
 }

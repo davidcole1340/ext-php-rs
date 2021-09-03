@@ -183,7 +183,7 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `key` - The key to insert the value at in the hash table.
     /// * `value` - The value to insert into the hash table.
-    pub fn insert<V>(&mut self, key: &str, val: &V) -> Result<HashTableInsertResult>
+    pub fn insert<V>(&mut self, key: &str, val: V) -> Result<HashTableInsertResult>
     where
         V: IntoZval,
     {
@@ -243,7 +243,7 @@ impl<'a> ZendHashTable<'a> {
     /// # Parameters
     ///
     /// * `val` - The value to insert into the hash table.
-    pub fn push<V>(&mut self, val: &V) -> Result<()>
+    pub fn push<V>(&mut self, val: V) -> Result<()>
     where
         V: IntoZval,
     {
@@ -388,19 +388,39 @@ where
     }
 }
 
-/// Implementation converting a Rust HashTable into a ZendHashTable.
-impl<'a, 'b, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable<'b>
+impl<'a, K, V> TryFrom<HashMap<K, V>> for ZendHashTable<'a>
 where
     K: AsRef<str>,
     V: IntoZval,
 {
     type Error = Error;
 
+    fn try_from(hm: HashMap<K, V>) -> Result<Self> {
+        let mut ht =
+            ZendHashTable::with_capacity(hm.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+
+        for (k, v) in hm.into_iter() {
+            ht.insert(k.as_ref(), v)?;
+        }
+
+        Ok(ht)
+    }
+}
+
+/// Implementation converting a Rust HashTable into a ZendHashTable.
+impl<'a, 'b, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable<'b>
+where
+    K: AsRef<str>,
+    V: IntoZval + Clone,
+{
+    type Error = Error;
+
     fn try_from(hm: &'a HashMap<K, V>) -> Result<Self> {
-        let mut ht = ZendHashTable::with_capacity(hm.len() as u32);
+        let mut ht =
+            ZendHashTable::with_capacity(hm.len().try_into().map_err(|_| Error::IntegerOverflow)?);
 
         for (k, v) in hm.iter() {
-            ht.insert(k.as_ref(), v)?;
+            ht.insert(k.as_ref(), v.clone())?;
         }
 
         Ok(ht)
@@ -426,23 +446,6 @@ where
     }
 }
 
-impl<'a, V> TryFrom<&'_ Vec<V>> for ZendHashTable<'a>
-where
-    V: IntoZval,
-{
-    type Error = Error;
-
-    fn try_from(value: &'_ Vec<V>) -> Result<Self> {
-        let mut ht = ZendHashTable::with_capacity(value.len() as u32);
-
-        for v in value.iter() {
-            ht.push(v)?;
-        }
-
-        Ok(ht)
-    }
-}
-
 impl<'a, V> TryFrom<Vec<V>> for ZendHashTable<'a>
 where
     V: IntoZval,
@@ -450,6 +453,13 @@ where
     type Error = Error;
 
     fn try_from(vec: Vec<V>) -> Result<Self> {
-        (&vec).try_into()
+        let mut ht =
+            ZendHashTable::with_capacity(vec.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+
+        for val in vec.into_iter() {
+            ht.push(val)?;
+        }
+
+        Ok(ht)
     }
 }
