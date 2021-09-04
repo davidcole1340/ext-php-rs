@@ -15,13 +15,21 @@ have been implemented on most regular Rust types:
 - `HashMap<String, T>` where T implements `IntoZval` and/or `FromZval`.
 - `Binary<T>` where T implements `Pack`, used for transferring binary string
   data.
+- A PHP callable closure or function wrapped with `Callable`.
 - `Option<T>` where T implements `IntoZval` and/or `FromZval`, and where `None`
   is converted to a PHP `null`.
 
-There is one special case - `Result<T, E>`, where T implements `IntoZval` and
-`E` implements `Into<PhpException>`. This can only be used as a function/method
-return type. If the error variant is encountered, `E` is converted into a
-`PhpException` and thrown.
+Return types can also include:
+
+- Any class type which implements `RegisteredClass` (i.e. any struct you have
+  registered with PHP).
+- An immutable reference to `self` when used in a method, through the `ClassRef`
+  type.
+- A Rust closure wrapped with `Closure`.
+- `Result<T, E>`, where `T: IntoZval` and `E: Into<PhpException>`. When the
+  error variant is encountered, it is converted into a `PhpException` and thrown
+  as an exception.
 
 For a type to be returnable, it must implement `IntoZval`, while for it to be
-valid as a parameter, it must implement `FromZval`.
+valid as a parameter, it must implement `FromZval` (and `TryFrom<&Zval>` by
+proxy).

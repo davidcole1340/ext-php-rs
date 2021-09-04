@@ -22,7 +22,9 @@ cc = "1.0.67"
 [features]
 zts = []
 debug = []
+
 alloc = []
+closure = []
 
 [workspace]
 members = [

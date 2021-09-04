@@ -28,6 +28,8 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
                 #(#stmts)*
             }
 
+            ::ext_php_rs::php::module::ext_php_rs_startup();
+
             #(#classes)*
             #(#constants)*
 

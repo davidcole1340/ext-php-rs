@@ -12,6 +12,8 @@
   - [`HashMap`](./types/hashmap.md)
   - [`Binary`](./types/binary.md)
   - [`Option`](./types/option.md)
+  - [`Object`](./types/object.md)
+  - [`Closure`](./types/closure.md)
 - [Macros](./macros/index.md)
   - [Module](./macros/module.md)
   - [Module Startup Function](./macros/module_startup.md)

@@ -191,9 +191,20 @@ pub fn fn_once() -> Closure {
     }) as Box<dyn FnOnce() -> String>)
 }
 
-#[php_startup]
-pub fn startup() {
-    Closure::build();
+#[php_function]
+pub fn closure_get_string() -> Closure {
+    // Return a closure which takes two integers and returns a string
+    Closure::wrap(Box::new(|a, b| format!("A: {} B: {}", a, b)) as Box<dyn Fn(i32, i32) -> String>)
+}
+
+#[php_function]
+pub fn closure_count() -> Closure {
+    let mut count = 0i32;
+
+    Closure::wrap(Box::new(move |a| {
+        count += a;
+        count
+    }) as Box<dyn FnMut(i32) -> i32>)
 }
 
 #[php_module]

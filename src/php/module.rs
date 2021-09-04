@@ -178,3 +178,14 @@ impl ModuleEntry {
         Box::into_raw(Box::new(self))
     }
 }
+
+/// Called by startup functions registered with the `#[php_startup]` macro. Initializes all
+/// classes that are defined by ext-php-rs (i.e. [`Closure`]).
+///
+/// [`Closure`]: ext_php_rs::php::types::closure::Closure
+#[doc(hidden)]
+#[inline(always)]
+pub fn ext_php_rs_startup() {
+    #[cfg(feature = "closure")]
+    crate::php::types::closure::Closure::build();
+}
