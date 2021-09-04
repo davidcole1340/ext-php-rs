@@ -269,15 +269,13 @@ impl<'a> Zval {
         Ok(())
     }
 
-    /// Sets the value of the zval as a binary string, which is represented in Rust as an array.
-    ///
-    /// The data is cloned before being packed into a string.
+    /// Sets the value of the zval as a binary string, which is represented in Rust as a vector.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_binary<T: Pack, U: AsRef<[T]>>(&mut self, val: U) {
-        let ptr = T::pack_into(val.as_ref().to_vec());
+    pub fn set_binary<T: Pack>(&mut self, val: Vec<T>) {
+        let ptr = T::pack_into(val);
         self.value.str_ = ptr;
         self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
@@ -595,7 +593,7 @@ impl<'a> IntoZval for ZendHashTable<'a> {
     const TYPE: DataType = DataType::Array;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        zv.set_array(self.clone());
+        zv.set_array(self);
         Ok(())
     }
 }
