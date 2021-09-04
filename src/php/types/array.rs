@@ -463,3 +463,21 @@ where
         Ok(ht)
     }
 }
+
+impl<'a, V> TryFrom<&Vec<V>> for ZendHashTable<'a>
+where
+    V: IntoZval + Clone,
+{
+    type Error = Error;
+
+    fn try_from(vec: &Vec<V>) -> Result<Self> {
+        let mut ht =
+            ZendHashTable::with_capacity(vec.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+
+        for val in vec.iter() {
+            ht.push(val.clone())?;
+        }
+
+        Ok(ht)
+    }
+}
