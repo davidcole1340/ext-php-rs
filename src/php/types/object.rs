@@ -99,7 +99,7 @@ impl ZendObject {
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<&Zval> {
         let name = ZendString::new(name, false)?;
-        let mut value = value.as_zval(false)?;
+        let mut value = value.into_zval(false)?;
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(

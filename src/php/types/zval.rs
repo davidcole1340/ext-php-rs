@@ -430,7 +430,7 @@ pub trait IntoZval: Sized {
     /// # Parameters
     ///
     /// * `persistent` - Whether the contents of the Zval will persist between requests.
-    fn as_zval(self, persistent: bool) -> Result<Zval> {
+    fn into_zval(self, persistent: bool) -> Result<Zval> {
         let mut zval = Zval::new();
         self.set_zval(&mut zval, persistent)?;
         Ok(zval)
@@ -452,7 +452,7 @@ pub trait IntoZval: Sized {
 /// You avoid implementing this trait directly, rather implement these two other traits.
 pub trait IntoZvalDyn {
     /// Converts a Rust primitive type into a Zval. Returns a result containing the Zval if
-    /// successful.
+    /// successful. `self` is cloned before being converted into a zval.
     ///
     /// # Parameters
     ///
@@ -465,7 +465,7 @@ pub trait IntoZvalDyn {
 
 impl<T: IntoZval + Clone> IntoZvalDyn for T {
     fn as_zval(&self, persistent: bool) -> Result<Zval> {
-        self.clone().as_zval(persistent)
+        self.clone().into_zval(persistent)
     }
 
     fn get_type(&self) -> DataType {

@@ -222,7 +222,7 @@ impl<'a> ClassBuilder<'a> {
         default: impl IntoZval,
         flags: PropertyFlags,
     ) -> Self {
-        let default = match default.as_zval(true) {
+        let default = match default.into_zval(true) {
             Ok(default) => default,
             Err(_) => panic!("Invalid default value for property `{}`.", name.into()),
         };
@@ -241,7 +241,7 @@ impl<'a> ClassBuilder<'a> {
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
     pub fn constant<T: Into<String>>(mut self, name: T, value: impl IntoZval) -> Result<Self> {
-        let value = value.as_zval(true)?;
+        let value = value.into_zval(true)?;
 
         self.constants.push((name.into(), value));
         Ok(self)

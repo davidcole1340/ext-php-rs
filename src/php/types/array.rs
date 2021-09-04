@@ -187,7 +187,7 @@ impl<'a> ZendHashTable<'a> {
     where
         V: IntoZval,
     {
-        let mut val = val.as_zval(false)?;
+        let mut val = val.into_zval(false)?;
         let existing_ptr = unsafe {
             zend_hash_str_update(
                 self.ptr,
@@ -225,7 +225,7 @@ impl<'a> ZendHashTable<'a> {
     where
         V: IntoZval,
     {
-        let mut val = val.as_zval(false)?;
+        let mut val = val.into_zval(false)?;
         let existing_ptr = unsafe { zend_hash_index_update(self.ptr, key, &mut val) };
         val.release();
 
@@ -247,7 +247,7 @@ impl<'a> ZendHashTable<'a> {
     where
         V: IntoZval,
     {
-        let mut val = val.as_zval(false)?;
+        let mut val = val.into_zval(false)?;
         unsafe { zend_hash_next_index_insert(self.ptr, &mut val) };
         val.release();
 
