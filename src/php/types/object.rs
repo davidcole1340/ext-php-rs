@@ -293,19 +293,22 @@ impl<T: RegisteredClass> Deref for ClassObject<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.ptr.obj
+        // SAFETY: Class object constructor guarantees memory is allocated.
+        unsafe { &*self.ptr.obj.as_ptr() }
     }
 }
 
 impl<T: RegisteredClass> DerefMut for ClassObject<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ptr.obj
+        // SAFETY: Class object constructor guarantees memory is allocated.
+        unsafe { &mut *self.ptr.obj.as_mut_ptr() }
     }
 }
 
 impl<T: RegisteredClass + Clone> Clone for ClassObject<'_, T> {
     fn clone(&self) -> Self {
-        let mut new = Self::new(self.internal().obj.clone());
+        // SAFETY: Class object constructor guarantees memory is allocated.
+        let mut new = Self::new(unsafe { &*self.internal().obj.as_ptr() }.clone());
         unsafe {
             zend_objects_clone_members(
                 &mut new.internal_mut().std,
@@ -400,8 +403,8 @@ where
 /// of [`ClassObject`].
 #[repr(C)]
 pub(crate) struct ZendClassObject<T: RegisteredClass> {
-    pub obj: T,
-    pub std: zend_object,
+    obj: MaybeUninit<T>,
+    std: zend_object,
 }
 
 impl<T: RegisteredClass> ZendClassObject<T> {
@@ -419,7 +422,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
             zend_object_std_init(&mut obj.std, ce);
             object_properties_init(&mut obj.std, ce);
 
-            obj.obj = val.unwrap_or_default();
+            obj.obj = MaybeUninit::new(val.unwrap_or_default());
             obj.std.handlers = meta.handlers();
             obj
         }
@@ -444,6 +447,18 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         } else {
             None
         }
+    }
+
+    /// Returns a mutable reference to the underlying Zend object.
+    pub(crate) fn get_mut_zend_obj(&mut self) -> &mut zend_object {
+        &mut self.std
+    }
+}
+
+impl<T: RegisteredClass> Drop for ZendClassObject<T> {
+    fn drop(&mut self) {
+        // SAFETY: All constructors guarantee that `obj` is valid.
+        unsafe { std::ptr::drop_in_place(self.obj.as_mut_ptr()) };
     }
 }
 
@@ -473,6 +488,11 @@ impl<T> ClassMetadata<T> {
 
         // SAFETY: `check_handlers` guarantees that `handlers` has been initialized.
         unsafe { &*self.handlers.as_ptr() }
+    }
+
+    /// Checks if the class entry has been stored, returning a boolean.
+    pub fn has_ce(&self) -> bool {
+        !self.ce.load(Ordering::SeqCst).is_null()
     }
 
     /// Retrieves a reference to the stored class entry.

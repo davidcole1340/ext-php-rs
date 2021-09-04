@@ -393,7 +393,7 @@ impl Debug for Zval {
                 DataType::True => field!(true),
                 DataType::Long => field!(self.long()),
                 DataType::Double => field!(self.double()),
-                DataType::String => field!(self.string()),
+                DataType::String | DataType::Mixed => field!(self.string()),
                 DataType::Array => field!(self.array()),
                 DataType::Object => field!(self.object()),
                 DataType::Resource => field!(self.resource()),

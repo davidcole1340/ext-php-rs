@@ -154,8 +154,6 @@ impl PhpFuture {
             test: "Hello world from class entry :)".into(),
         });
 
-        dbg!(&obj);
-
         obj
     }
 
@@ -177,7 +175,20 @@ impl Test {
 
 #[php_function]
 pub fn get_closure() -> Closure {
-    Closure::wrap(Box::new(|a| format!("Hello {}", a)) as Box<dyn Fn(i32) -> String>)
+    let mut x = 100;
+    Closure::wrap(Box::new(move || {
+        x += 5;
+        format!("x: {}", x)
+    }) as Box<dyn FnMut() -> String>)
+}
+
+#[php_function]
+pub fn fn_once() -> Closure {
+    let x = "Hello".to_string();
+    Closure::wrap_once(Box::new(move || {
+        println!("val here: {}", &x);
+        x
+    }) as Box<dyn FnOnce() -> String>)
 }
 
 #[php_startup]

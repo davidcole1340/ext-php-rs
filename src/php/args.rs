@@ -1,11 +1,18 @@
 //! Builder and objects relating to function and method arguments.
 
-use std::convert::{TryFrom, TryInto};
+use std::{
+    convert::{TryFrom, TryInto},
+    ffi::CString,
+    ptr,
+};
 
 use super::{
     enums::DataType,
     execution_data::ExecutionData,
-    types::zval::{IntoZvalDyn, Zval},
+    types::{
+        zval::{IntoZvalDyn, Zval},
+        ZendType,
+    },
 };
 
 use crate::{
@@ -22,12 +29,13 @@ use crate::{
 /// Represents an argument to a function.
 #[derive(Debug, Clone)]
 pub struct Arg<'a> {
-    pub(crate) name: String,
-    pub(crate) _type: DataType,
-    pub(crate) as_ref: bool,
-    pub(crate) allow_null: bool,
-    pub(crate) default_value: Option<String>,
-    pub(crate) zval: Option<&'a Zval>,
+    name: String,
+    _type: DataType,
+    as_ref: bool,
+    allow_null: bool,
+    variadic: bool,
+    default_value: Option<String>,
+    zval: Option<&'a Zval>,
 }
 
 impl<'a> Arg<'a> {
@@ -43,6 +51,7 @@ impl<'a> Arg<'a> {
             _type,
             as_ref: false,
             allow_null: false,
+            variadic: false,
             default_value: None,
             zval: None,
         }
@@ -52,6 +61,12 @@ impl<'a> Arg<'a> {
     #[allow(clippy::wrong_self_convention)]
     pub fn as_ref(mut self) -> Self {
         self.as_ref = true;
+        self
+    }
+
+    /// Sets the argument as variadic.
+    pub fn is_variadic(mut self) -> Self {
+        self.variadic = true;
         self
     }
 
@@ -96,6 +111,23 @@ impl<'a> Arg<'a> {
     /// * `params` - A list of parameters to call the function with.
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.zval().ok_or(Error::Callable)?.try_call(params)
+    }
+
+    /// Returns the internal PHP argument info.
+    pub(crate) fn as_arg_info(&self) -> Result<ArgInfo> {
+        Ok(ArgInfo {
+            name: CString::new(self.name.as_str())?.into_raw(),
+            type_: ZendType::empty_from_type(
+                self._type,
+                self.as_ref,
+                self.variadic,
+                self.allow_null,
+            ),
+            default_value: match &self.default_value {
+                Some(val) => CString::new(val.as_str())?.into_raw(),
+                None => ptr::null(),
+            },
+        })
     }
 }
 

@@ -269,7 +269,7 @@ impl ClassBuilder {
             _: *mut ClassEntry,
         ) -> *mut ZendObject {
             let ptr = ZendClassObject::<T>::new_ptr(None);
-            &mut (*ptr).std
+            (*ptr).get_mut_zend_obj()
         }
 
         self.object_override = Some(create_object::<T>);
