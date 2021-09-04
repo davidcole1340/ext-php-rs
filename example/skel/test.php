@@ -1,5 +1,9 @@
 <?php
 
+echo 'start';
+$y = get_closure();
+echo 'got';
+
 $x = new PhpFuture();
 var_dump($x->obj()->get_str());
 $x->then(function ($h) {

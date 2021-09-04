@@ -123,9 +123,9 @@ impl ClassEntry {
 }
 
 /// Builds a class to be exported as a PHP class.
-pub struct ClassBuilder<'a> {
+pub struct ClassBuilder {
     name: String,
-    ptr: &'a mut ClassEntry,
+    ptr: &'static mut ClassEntry,
     extends: Option<&'static ClassEntry>,
     interfaces: Vec<&'static ClassEntry>,
     methods: Vec<FunctionEntry>,
@@ -134,7 +134,7 @@ pub struct ClassBuilder<'a> {
     constants: Vec<(String, Zval)>,
 }
 
-impl<'a> ClassBuilder<'a> {
+impl ClassBuilder {
     /// Creates a new class builder, used to build classes
     /// to be exported to PHP.
     ///

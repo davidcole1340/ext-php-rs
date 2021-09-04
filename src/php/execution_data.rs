@@ -29,7 +29,7 @@ impl ExecutionData {
     ///
     /// 1. Contains an object.
     /// 2. The object was originally derived from `T`.
-    pub unsafe fn get_object<T: RegisteredClass>(&self) -> Option<ClassObject<T>> {
+    pub unsafe fn get_object<T: RegisteredClass>(&self) -> Option<ClassObject<'static, T>> {
         let ptr = self.This.object()? as *const ZendObject as *mut u8;
         let offset = mem::size_of::<T>();
         let ptr = ptr.offset(0 - offset as isize) as *mut ZendClassObject<T>;

@@ -6,6 +6,7 @@ use ext_php_rs::{
         exceptions::PhpException,
         types::{
             callable::Callable,
+            closure::Closure,
             object::{ClassObject, ClassRef},
         },
     },
@@ -172,6 +173,16 @@ impl Test {
     pub fn get_str(&self) -> String {
         self.test.clone()
     }
+}
+
+#[php_function]
+pub fn get_closure() -> Closure {
+    Closure::wrap(Box::new(|a| format!("Hello {}", a)) as Box<dyn Fn(i32) -> String>)
+}
+
+#[php_startup]
+pub fn startup() {
+    Closure::build();
 }
 
 #[php_module]
