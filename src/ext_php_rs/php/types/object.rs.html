@@ -430,6 +430,7 @@
 <span id="428">428</span>
 <span id="429">429</span>
 <span id="430">430</span>
+<span id="431">431</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Represents an object in PHP. Allows for overriding the internal object used by classes,</span>
 <span class="doccomment">//! allowing users to store Rust data inside a PHP object.</span>
@@ -441,6 +442,7 @@
     <span class="ident">marker::PhantomData</span>,
     <span class="ident">mem::MaybeUninit</span>,
     <span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>},
+    <span class="ident">ptr</span>,
     <span class="ident">sync::atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">Ordering</span>},
 };
 
@@ -847,7 +849,7 @@
 
             <span class="comment">// Cast to *mut u8 to work in byte offsets</span>
             <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> (<span class="ident">object</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>).<span class="ident">offset</span>(<span class="number">0</span> <span class="op">-</span> <span class="ident">offset</span> <span class="kw">as</span> <span class="ident">isize</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">T</span>;
-            <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">Box::from_raw</span>(<span class="ident">ptr</span>);
+            <span class="ident">ptr::drop_in_place</span>(<span class="ident">ptr</span>);
 
             <span class="kw">match</span> <span class="ident">std_object_handlers</span>.<span class="ident">free_obj</span> {
                 <span class="prelude-val">Some</span>(<span class="ident">free</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">free</span>(<span class="ident">object</span>),
