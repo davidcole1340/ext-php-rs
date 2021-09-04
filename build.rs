@@ -121,25 +121,43 @@ fn main() {
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Unable to write bindings file.");
 
-    if has_zts() {
+    let configure = Configure::get();
+
+    if configure.has_zts() {
         println!("cargo:rustc-cfg=feature=\"zts\"");
+    }
+
+    if configure.debug() {
+        println!("cargo:rustc-cfg=feature=\"debug\"");
     }
 }
 
-/// Checks if ZTS is enabled.
-fn has_zts() -> bool {
-    let cmd = Command::new("php-config")
+struct Configure(String);
+
+impl Configure {
+    pub fn get() -> Self {
+        let cmd = Command::new("php-config")
         .arg("--configure-options")
         .output()
         .expect("Unable to run `php-config --configure-options`. Please ensure it is visible in your PATH.");
 
-    if !cmd.status.success() {
-        let stderr =
-            String::from_utf8(cmd.stderr).unwrap_or_else(|_| String::from("Unable to read stderr"));
-        panic!("Error running `php -i`: {}", stderr);
+        if !cmd.status.success() {
+            let stderr = String::from_utf8(cmd.stderr)
+                .unwrap_or_else(|_| String::from("Unable to read stderr"));
+            panic!("Error running `php -i`: {}", stderr);
+        }
+
+        // check for the ZTS feature flag in configure
+        let stdout =
+            String::from_utf8(cmd.stdout).expect("Unable to read stdout from `php-config`.");
+        Self(stdout)
     }
 
-    // check for the ZTS feature flag in configure
-    let stdout = String::from_utf8(cmd.stdout).expect("Unable to read stdout from `php-config`.");
-    stdout.contains("--enable-zts")
+    pub fn has_zts(&self) -> bool {
+        self.0.contains("--enable-zts")
+    }
+
+    pub fn debug(&self) -> bool {
+        self.0.contains("--enable-debug")
+    }
 }

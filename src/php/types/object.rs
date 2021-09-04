@@ -8,6 +8,7 @@ use std::{
     marker::PhantomData,
     mem::MaybeUninit,
     ops::{Deref, DerefMut},
+    ptr,
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -414,7 +415,7 @@ impl ZendObjectHandlers {
 
             // Cast to *mut u8 to work in byte offsets
             let ptr = (object as *mut u8).offset(0 - offset as isize) as *mut T;
-            let _ = Box::from_raw(ptr);
+            ptr::drop_in_place(ptr);
 
             match std_object_handlers.free_obj {
                 Some(free) => free(object),
