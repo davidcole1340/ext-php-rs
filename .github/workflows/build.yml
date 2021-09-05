@@ -32,6 +32,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust-toolchain }}
+          override: true
       - name: Setup LLVM & Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
@@ -45,7 +46,7 @@ jobs:
         env:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
           EXT_PHP_RS_TEST:
-        run: cargo +${{ matrix.rust-toolchain }} build --release --features alloc,closure
+        run: cargo build --release --features alloc,closure
       - name: Test guide examples
         run: |
           mdbook test guide -L target/release/deps

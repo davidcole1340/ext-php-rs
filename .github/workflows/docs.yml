@@ -28,6 +28,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust-toolchain }}
+          override: true
       - name: Setup LLVM & Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
@@ -41,7 +42,7 @@ jobs:
         env:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
           RUSTDOCFLAGS: --cfg docs
-        run: cargo +nightly doc --release
+        run: cargo --release
       - name: Build guide
         run: |
           mdbook build guide
