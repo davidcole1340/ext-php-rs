@@ -17,11 +17,11 @@ pub fn emalloc(layout: Layout) -> *mut u8 {
     let size = layout.size();
 
     (unsafe {
-        #[cfg(feature = "debug")]
+        #[cfg(php_debug)]
         {
             _emalloc(size as _, std::ptr::null_mut(), 0, std::ptr::null_mut(), 0)
         }
-        #[cfg(not(feature = "debug"))]
+        #[cfg(not(php_debug))]
         {
             _emalloc(size as _)
         }
@@ -39,7 +39,7 @@ pub fn emalloc(layout: Layout) -> *mut u8 {
 /// Caller must guarantee that the given pointer is valid (aligned and non-null) and
 /// was originally allocated through the Zend memory manager.
 pub unsafe fn efree(ptr: *mut u8) {
-    #[cfg(feature = "debug")]
+    #[cfg(php_debug)]
     {
         _efree(
             ptr as *mut c_void,
@@ -49,7 +49,7 @@ pub unsafe fn efree(ptr: *mut u8) {
             0,
         )
     }
-    #[cfg(not(feature = "debug"))]
+    #[cfg(not(php_debug))]
     {
         _efree(ptr as *mut c_void)
     }

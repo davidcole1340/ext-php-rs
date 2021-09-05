@@ -20,9 +20,6 @@ regex = "1"
 cc = "1.0.67"
 
 [features]
-zts = []
-debug = []
-
 alloc = []
 closure = []
 
