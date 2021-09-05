@@ -272,9 +272,9 @@
                 <span class="ident">info_func</span>: <span class="prelude-val">None</span>,
                 <span class="ident">version</span>: <span class="ident">ptr::null</span>(),
                 <span class="ident">globals_size</span>: <span class="number">0</span>,
-                <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;zts&quot;</span>))]</span>
+                <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">php_zts</span>))]</span>
                 <span class="ident">globals_ptr</span>: <span class="ident">ptr::null</span>::<span class="op">&lt;</span><span class="ident">c_void</span><span class="op">&gt;</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>,
-                <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;zts&quot;</span>)]</span>
+                <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">php_zts</span>)]</span>
                 <span class="ident">globals_id_ptr</span>: <span class="ident">ptr::null</span>::<span class="op">&lt;</span><span class="ident">c_void</span><span class="op">&gt;</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident"><span class="kw">crate</span>::bindings::ts_rsrc_id</span>,
                 <span class="ident">globals_ctor</span>: <span class="prelude-val">None</span>,
                 <span class="ident">globals_dtor</span>: <span class="prelude-val">None</span>,

@@ -73,11 +73,11 @@
     <span class="kw">let</span> <span class="ident">size</span> <span class="op">=</span> <span class="ident">layout</span>.<span class="ident">size</span>();
 
     (<span class="kw">unsafe</span> {
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">php_debug</span>)]</span>
         {
             <span class="ident">_emalloc</span>(<span class="ident">size</span> <span class="kw">as</span> <span class="kw">_</span>, <span class="ident">std::ptr::null_mut</span>(), <span class="number">0</span>, <span class="ident">std::ptr::null_mut</span>(), <span class="number">0</span>)
         }
-        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>))]</span>
+        <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">php_debug</span>))]</span>
         {
             <span class="ident">_emalloc</span>(<span class="ident">size</span> <span class="kw">as</span> <span class="kw">_</span>)
         }
@@ -95,7 +95,7 @@
 <span class="doccomment">/// Caller must guarantee that the given pointer is valid (aligned and non-null) and</span>
 <span class="doccomment">/// was originally allocated through the Zend memory manager.</span>
 <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">efree</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>) {
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>)]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">php_debug</span>)]</span>
     {
         <span class="ident">_efree</span>(
             <span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>,
@@ -105,7 +105,7 @@
             <span class="number">0</span>,
         )
     }
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;debug&quot;</span>))]</span>
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">php_debug</span>))]</span>
     {
         <span class="ident">_efree</span>(<span class="ident">ptr</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">c_void</span>)
     }
