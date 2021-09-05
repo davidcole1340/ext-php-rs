@@ -55,7 +55,7 @@ pub fn closure_count() -> Closure {
 
     // Return a closure which takes an integer, adds it to a persistent integer,
     // and returns the updated value.
-    Closure::wrap(Box::new(move |a| {
+    Closure::wrap(Box::new(move |a: i32| {
         count += a;
         count
     }) as Box<dyn FnMut(i32) -> i32>)

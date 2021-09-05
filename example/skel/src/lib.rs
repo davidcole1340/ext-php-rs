@@ -201,7 +201,7 @@ pub fn closure_get_string() -> Closure {
 pub fn closure_count() -> Closure {
     let mut count = 0i32;
 
-    Closure::wrap(Box::new(move |a| {
+    Closure::wrap(Box::new(move |a: i32| {
         count += a;
         count
     }) as Box<dyn FnMut(i32) -> i32>)
