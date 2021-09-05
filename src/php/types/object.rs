@@ -6,23 +6,20 @@ use std::{
     convert::TryInto,
     fmt::Debug,
     marker::PhantomData,
-    mem::MaybeUninit,
+    mem::{self, MaybeUninit},
     ops::{Deref, DerefMut},
     ptr,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicPtr, Ordering},
 };
 
 use crate::{
     bindings::{
-        ext_php_rs_zend_object_alloc, object_properties_init, std_object_handlers, zend_object,
-        zend_object_handlers, zend_object_std_init, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS,
-        ZEND_PROPERTY_ISSET,
+        ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_release, object_properties_init,
+        std_object_handlers, zend_object, zend_object_handlers, zend_object_std_init,
+        zend_objects_clone_members, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     errors::{Error, Result},
-    php::{
-        class::ClassEntry, enums::DataType, execution_data::ExecutionData,
-        types::string::ZendString,
-    },
+    php::{class::ClassEntry, enums::DataType, types::string::ZendString},
 };
 
 use super::{
@@ -56,6 +53,12 @@ impl ZendObject {
         }?;
 
         name.try_into()
+    }
+
+    /// Checks if the given object is an instance of a registered class with Rust
+    /// type `T`.
+    pub fn is_instance<T: RegisteredClass>(&self) -> bool {
+        (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
 
     /// Attempts to read a property from the Object. Returns a result returning an
@@ -96,7 +99,7 @@ impl ZendObject {
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<&Zval> {
         let name = ZendString::new(name, false)?;
-        let mut value = value.as_zval(false)?;
+        let mut value = value.into_zval(false)?;
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
@@ -179,31 +182,178 @@ impl Debug for ZendObject {
     }
 }
 
-/// Implemented by the [`php_class`](crate::php_class) attribute macro on a type T which is
-/// used as the T type for [`ZendClassObject`].
-///
-/// Implements a function `create_object` which is passed to a PHP class entry to instantiate the
-/// object that will represent an object.
-pub trait ZendObjectOverride: Default {
-    /// Creates a new Zend object. Also allocates space for type T on which the trait is
-    /// implemented on.
+pub struct ClassRef<'a, T: RegisteredClass> {
+    ptr: &'a mut ZendClassObject<T>,
+}
+
+impl<'a, T: RegisteredClass> ClassRef<'a, T> {
+    /// Creates a new class reference from a Rust type reference.
+    pub fn from_ref(obj: &'a T) -> Option<Self> {
+        let ptr = unsafe { ZendClassObject::from_obj_ptr(obj)? };
+        Some(Self { ptr })
+    }
+}
+
+impl<'a, T: RegisteredClass> IntoZval for ClassRef<'a, T> {
+    const TYPE: DataType = DataType::Object;
+
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        zv.set_object(&mut self.ptr.std);
+        Ok(())
+    }
+}
+
+pub struct ClassObject<'a, T: RegisteredClass> {
+    ptr: &'a mut ZendClassObject<T>,
+    free: bool,
+}
+
+impl<T: RegisteredClass> Default for ClassObject<'_, T> {
+    fn default() -> Self {
+        let ptr = unsafe {
+            ZendClassObject::new_ptr(None)
+                .as_mut()
+                .expect("Failed to allocate memory for class object.")
+        };
+
+        Self { ptr, free: true }
+    }
+}
+
+impl<T: RegisteredClass> ClassObject<'_, T> {
+    /// Creates a class object from a pre-existing Rust object.
     ///
     /// # Parameters
     ///
-    /// * `ce` - The class entry that we are creating an object for.
+    /// * `obj` - The object to create a class object for.
+    pub fn new(obj: T) -> Self {
+        let ptr = unsafe {
+            ZendClassObject::new_ptr(Some(obj))
+                .as_mut()
+                .expect("Failed to allocate memory for class object.")
+        };
+
+        Self { ptr, free: true }
+    }
+
+    /// Consumes the class object, releasing the internal pointer without releasing the internal object.
+    ///
+    /// Used to transfer ownership of the object to PHP.
+    pub(crate) fn into_raw(mut self) -> *mut ZendClassObject<T> {
+        self.free = false;
+        self.ptr
+    }
+
+    /// Returns an immutable reference to the underlying class object.
+    pub(crate) fn internal(&self) -> &ZendClassObject<T> {
+        self.ptr
+    }
+
+    /// Returns a mutable reference to the underlying class object.
+    pub(crate) fn internal_mut(&mut self) -> &mut ZendClassObject<T> {
+        self.ptr
+    }
+
+    /// Creates a new instance of [`ClassObject`] around a pre-existing class object.
+    ///
+    /// # Parameters
+    ///
+    /// * `ptr` - Pointer to the class object.
+    /// * `free` - Whether to release the underlying object which `ptr` points to.
     ///
     /// # Safety
     ///
-    /// Caller needs to ensure that the given `ce` is a valid pointer to a [`ClassEntry`].
-    unsafe extern "C" fn create_object(ce: *mut ClassEntry) -> *mut ZendObject;
+    /// Caller must guarantee that `ptr` points to an aligned, non-null instance of
+    /// [`ZendClassObject`]. Caller must also guarantee that `ptr` will at least live for
+    /// the lifetime `'a` (as long as the resulting object lives).
+    ///
+    /// Caller must also guarantee that it is expected to free `ptr` after dropping the
+    /// resulting [`ClassObject`] to prevent use-after-free situations.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the given `ptr` is null.
+    pub(crate) unsafe fn from_zend_class_object(ptr: *mut ZendClassObject<T>, free: bool) -> Self {
+        Self {
+            ptr: ptr.as_mut().expect("Given pointer was null"),
+            free,
+        }
+    }
+}
 
-    /// Returns a reference to the class entry of the struct.
-    fn get_class() -> &'static ClassEntry;
+impl<T: RegisteredClass> Drop for ClassObject<'_, T> {
+    fn drop(&mut self) {
+        if self.free {
+            unsafe { ext_php_rs_zend_object_release(&mut (*self.ptr).std) };
+        }
+    }
+}
 
-    /// Sets the reference to the class entry. Not for public use, only used after initializing
-    /// the class with PHP.
-    #[doc(hidden)]
-    fn set_class(ce: &'static ClassEntry);
+impl<T: RegisteredClass> Deref for ClassObject<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        // SAFETY: Class object constructor guarantees memory is allocated.
+        unsafe { &*self.ptr.obj.as_ptr() }
+    }
+}
+
+impl<T: RegisteredClass> DerefMut for ClassObject<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: Class object constructor guarantees memory is allocated.
+        unsafe { &mut *self.ptr.obj.as_mut_ptr() }
+    }
+}
+
+impl<T: RegisteredClass + Clone> Clone for ClassObject<'_, T> {
+    fn clone(&self) -> Self {
+        // SAFETY: Class object constructor guarantees memory is allocated.
+        let mut new = Self::new(unsafe { &*self.internal().obj.as_ptr() }.clone());
+        unsafe {
+            zend_objects_clone_members(
+                &mut new.internal_mut().std,
+                &self.internal().std as *const _ as *mut _,
+            )
+        }
+        new
+    }
+}
+
+impl<T: RegisteredClass + Debug> Debug for ClassObject<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.internal().obj.fmt(f)
+    }
+}
+
+impl<T: RegisteredClass> IntoZval for ClassObject<'_, T> {
+    const TYPE: DataType = DataType::Object;
+
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        unsafe { zv.set_object(&mut (*self.into_raw()).std) };
+
+        Ok(())
+    }
+}
+
+impl<T: RegisteredClass> IntoZval for T {
+    const TYPE: DataType = DataType::Object;
+
+    fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
+        ClassObject::new(self).set_zval(zv, persistent)
+    }
+}
+
+/// Implemented on Rust types which are exported to PHP. Allows users to get and set PHP properties on
+/// the object.
+pub trait RegisteredClass: Default + Sized
+where
+    Self: 'static,
+{
+    /// Returns a reference to the class metadata, which stores the class entry and handlers.
+    ///
+    /// This must be statically allocated, and is usually done through the [`macro@php_class`]
+    /// macro.
+    fn get_metadata() -> &'static ClassMetadata<Self>;
 
     /// Attempts to retrieve a property from the class object.
     ///
@@ -249,82 +399,37 @@ pub trait ZendObjectOverride: Default {
     }
 }
 
-impl<T: ZendObjectOverride> IntoZval for &T {
-    const TYPE: DataType = DataType::Object;
-
-    fn set_zval(&self, zv: &mut Zval, _: bool) -> Result<()> {
-        unsafe {
-            let obj = ZendClassObject::from_obj_ptr(*self).ok_or(Error::InvalidPointer)?;
-            zv.set_object(&mut obj.std);
-        }
-
-        Ok(())
-    }
-}
-
-/// A Zend class object which is allocated when a PHP
-/// class object is instantiated. Overrides the default
-/// handler when the user provides a type T of the struct
-/// they want to override with.
+/// Representation of a Zend class object in memory. Usually seen through its managed variant
+/// of [`ClassObject`].
 #[repr(C)]
-pub struct ZendClassObject<T: Default> {
-    obj: T,
+pub(crate) struct ZendClassObject<T: RegisteredClass> {
+    obj: MaybeUninit<T>,
     std: zend_object,
 }
 
-impl<T: Default> ZendClassObject<T> {
-    /// Allocates a new object when an instance of the class is created in the PHP world.
-    ///
-    /// Internal function. The end user functions are generated by the [`php_class`](crate::php_class)
-    /// attribute macro which generates a function that wraps this function to be exported to C.
-    ///
-    /// # Parameters
-    ///
-    /// * `ce` - The class entry that was created.
-    /// * `handlers` - A pointer to the object handlers for the class.
-    ///
-    /// # Safety
-    ///
-    /// This function is an internal function which is only called from code which is derived using
-    /// the [`php_class`](crate::php_class) attribute macro. PHP will guarantee that any pointers
-    /// given to this function will be valid, therefore we can dereference them with safety.
-    pub unsafe fn new_ptr(
-        ce: *mut ClassEntry,
-        handlers: &ZendObjectHandlers,
-    ) -> Result<*mut zend_object> {
-        let obj = {
-            let obj = (ext_php_rs_zend_object_alloc(std::mem::size_of::<Self>() as _, ce)
-                as *mut Self)
+impl<T: RegisteredClass> ZendClassObject<T> {
+    /// Allocates memory for a new PHP object. The memory is allocated using the Zend memory manager,
+    /// and therefore it is returned as a pointer.
+    pub(crate) fn new_ptr(val: Option<T>) -> *mut Self {
+        let size = mem::size_of::<Self>();
+        let meta = T::get_metadata();
+        let ce = meta.ce() as *const _ as *mut _;
+        unsafe {
+            let obj = (ext_php_rs_zend_object_alloc(size as _, ce) as *mut Self)
                 .as_mut()
-                .ok_or(Error::InvalidPointer)?;
+                .expect("Failed to allocate memory for new class object.");
 
             zend_object_std_init(&mut obj.std, ce);
             object_properties_init(&mut obj.std, ce);
+
+            obj.obj = MaybeUninit::new(val.unwrap_or_default());
+            obj.std.handlers = meta.handlers();
             obj
-        };
-
-        obj.obj = T::default();
-        obj.std.handlers = handlers;
-        Ok(&mut obj.std)
-    }
-
-    /// Attempts to retrieve the Zend class object container from the
-    /// zend object contained in the execution data of a function.
-    ///
-    /// # Parameters
-    ///
-    /// * `ex` - The execution data of the function.
-    pub fn get(ex: &ExecutionData) -> Option<&'static mut Self> {
-        // cast to u8 to work in terms of bytes
-        let ptr = (ex.This.object()? as *const ZendObject) as *mut u8;
-        let offset = std::mem::size_of::<T>();
-        unsafe {
-            let ptr = ptr.offset(0 - offset as isize) as *mut Self;
-            ptr.as_mut()
         }
     }
 
-    /// Returns a reference to the [`ZendClassObject`] of a given object `T`.
+    /// Returns a reference to the [`ZendClassObject`] of a given object `T`. Returns [`None`]
+    /// if the given object is not of the type `T`.
     ///
     /// # Parameters
     ///
@@ -335,64 +440,97 @@ impl<T: Default> ZendClassObject<T> {
     /// Caller must guarantee that the given `obj` was created by Zend, which means that it
     /// is immediately followed by a [`zend_object`].
     pub(crate) unsafe fn from_obj_ptr(obj: &T) -> Option<&mut Self> {
-        ((obj as *const T) as *mut Self).as_mut()
+        let ptr = (obj as *const T as *mut Self).as_mut()?;
+
+        if ptr.std.is_instance::<T>() {
+            Some(ptr)
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable reference to the underlying Zend object.
+    pub(crate) fn get_mut_zend_obj(&mut self) -> &mut zend_object {
+        &mut self.std
     }
 }
 
-impl<T: Default + Debug> Debug for ZendClassObject<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.obj.fmt(f)
+impl<T: RegisteredClass> Drop for ZendClassObject<T> {
+    fn drop(&mut self) {
+        // SAFETY: All constructors guarantee that `obj` is valid.
+        unsafe { std::ptr::drop_in_place(self.obj.as_mut_ptr()) };
     }
 }
 
-impl<T: Default> Deref for ZendClassObject<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.obj
-    }
-}
-
-impl<T: Default> DerefMut for ZendClassObject<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.obj
-    }
-}
-
-/// Lazy-loading wrapper around the [`ZendObjectHandlers`] type.
-pub struct Handlers<T> {
-    init: AtomicBool,
+/// Stores the class entry and handlers for a Rust type which has been exported to PHP.
+pub struct ClassMetadata<T> {
+    handlers_init: AtomicBool,
     handlers: MaybeUninit<ZendObjectHandlers>,
+    ce: AtomicPtr<ClassEntry>,
+
     phantom: PhantomData<T>,
 }
 
-impl<T> Handlers<T> {
-    /// Creates a new instance of object handlers.
+impl<T> ClassMetadata<T> {
+    /// Creates a new class metadata instance.
     pub const fn new() -> Self {
         Self {
-            init: AtomicBool::new(false),
+            handlers_init: AtomicBool::new(false),
             handlers: MaybeUninit::uninit(),
+            ce: AtomicPtr::new(std::ptr::null_mut()),
             phantom: PhantomData,
         }
     }
 
-    /// Returns an immutable reference to the object handlers, initializing them in the process
-    /// if they have not already been initialized.
-    pub fn get(&self) -> &ZendObjectHandlers {
-        self.check_uninit();
+    /// Returns an immutable reference to the object handlers contained inside the class metadata.
+    pub fn handlers(&self) -> &ZendObjectHandlers {
+        self.check_handlers();
 
-        // SAFETY: `check_uninit` guarantees that the handlers have been initialized.
+        // SAFETY: `check_handlers` guarantees that `handlers` has been initialized.
         unsafe { &*self.handlers.as_ptr() }
     }
 
-    /// Checks if the handlers have been initialized, and initializes them if they have not been.
-    fn check_uninit(&self) {
-        if !self.init.load(Ordering::Acquire) {
-            // SAFETY: Memory location has been initialized therefore given pointer is valid.
-            unsafe {
-                ZendObjectHandlers::init::<T>(self.handlers.as_ptr() as *mut _);
-            };
-            self.init.store(true, Ordering::Release);
+    /// Checks if the class entry has been stored, returning a boolean.
+    pub fn has_ce(&self) -> bool {
+        !self.ce.load(Ordering::SeqCst).is_null()
+    }
+
+    /// Retrieves a reference to the stored class entry.
+    ///
+    /// # Panics
+    ///
+    /// Panics if there is no class entry stored inside the class metadata.
+    pub fn ce(&self) -> &'static ClassEntry {
+        // SAFETY: There are only two values that can be stored in the atomic ptr: null or a static reference
+        // to a class entry. On the latter case, `as_ref()` will return `None` and the function will panic.
+        unsafe { self.ce.load(Ordering::SeqCst).as_ref() }
+            .expect("Attempted to retrieve class entry before it has been stored.")
+    }
+
+    /// Stores a reference to a class entry inside the class metadata.
+    ///
+    /// # Parameters
+    ///
+    /// * `ce` - The class entry to store.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry has already been set in the class metadata. This function should
+    /// only be called once.
+    pub fn set_ce(&self, ce: &'static mut ClassEntry) {
+        if !self.ce.load(Ordering::SeqCst).is_null() {
+            panic!("Class entry has already been set.");
+        }
+
+        self.ce.store(ce, Ordering::SeqCst);
+    }
+
+    /// Checks if the handlers have been initialized, and initializes them if they are not.
+    fn check_handlers(&self) {
+        if !self.handlers_init.load(Ordering::Acquire) {
+            // SAFETY: `MaybeUninit` has the same size as the handlers.
+            unsafe { ZendObjectHandlers::init::<T>(self.handlers.as_ptr() as *mut _) };
+            self.handlers_init.store(true, Ordering::Release);
         }
     }
 }

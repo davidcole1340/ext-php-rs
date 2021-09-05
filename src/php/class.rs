@@ -1,6 +1,9 @@
 //! Builder and objects for creating classes in the PHP world.
 
-use crate::errors::{Error, Result};
+use crate::{
+    errors::{Error, Result},
+    php::types::object::{ZendClassObject, ZendObject},
+};
 use std::{alloc::Layout, convert::TryInto, ffi::CString, fmt::Debug};
 
 use crate::bindings::{
@@ -13,7 +16,7 @@ use super::{
     function::FunctionEntry,
     globals::ExecutorGlobals,
     types::{
-        object::{ZendObject, ZendObjectOverride},
+        object::RegisteredClass,
         string::ZendString,
         zval::{IntoZval, Zval},
     },
@@ -120,9 +123,9 @@ impl ClassEntry {
 }
 
 /// Builds a class to be exported as a PHP class.
-pub struct ClassBuilder<'a> {
+pub struct ClassBuilder {
     name: String,
-    ptr: &'a mut ClassEntry,
+    ptr: &'static mut ClassEntry,
     extends: Option<&'static ClassEntry>,
     interfaces: Vec<&'static ClassEntry>,
     methods: Vec<FunctionEntry>,
@@ -131,7 +134,7 @@ pub struct ClassBuilder<'a> {
     constants: Vec<(String, Zval)>,
 }
 
-impl<'a> ClassBuilder<'a> {
+impl ClassBuilder {
     /// Creates a new class builder, used to build classes
     /// to be exported to PHP.
     ///
@@ -219,7 +222,7 @@ impl<'a> ClassBuilder<'a> {
         default: impl IntoZval,
         flags: PropertyFlags,
     ) -> Self {
-        let default = match default.as_zval(true) {
+        let default = match default.into_zval(true) {
             Ok(default) => default,
             Err(_) => panic!("Invalid default value for property `{}`.", name.into()),
         };
@@ -238,7 +241,7 @@ impl<'a> ClassBuilder<'a> {
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
     pub fn constant<T: Into<String>>(mut self, name: T, value: impl IntoZval) -> Result<Self> {
-        let value = value.as_zval(true)?;
+        let value = value.into_zval(true)?;
 
         self.constants.push((name.into(), value));
         Ok(self)
@@ -259,10 +262,17 @@ impl<'a> ClassBuilder<'a> {
     ///
     /// # Parameters
     ///
-    /// * `T` - The type which will override the Zend object. Must implement [`ZendObjectOverride`]
+    /// * `T` - The type which will override the Zend object. Must implement [`RegisteredClass`]
     /// which can be derived using the [`php_class`](crate::php_class) attribute macro.
-    pub fn object_override<T: ZendObjectOverride>(mut self) -> Self {
-        self.object_override = Some(T::create_object);
+    pub fn object_override<T: RegisteredClass>(mut self) -> Self {
+        unsafe extern "C" fn create_object<T: RegisteredClass>(
+            _: *mut ClassEntry,
+        ) -> *mut ZendObject {
+            let ptr = ZendClassObject::<T>::new_ptr(None);
+            (*ptr).get_mut_zend_obj()
+        }
+
+        self.object_override = Some(create_object::<T>);
         self
     }
 

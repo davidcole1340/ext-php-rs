@@ -1,11 +1,7 @@
 //! Represents a string in the PHP world. Similar to a C string, but is reference counted and
 //! contains the length of the string, meaning the string can contain the NUL character.
 
-use std::{
-    convert::{TryFrom, TryInto},
-    ffi::CString,
-    fmt::Debug,
-};
+use std::{convert::TryFrom, ffi::CString, fmt::Debug};
 
 use crate::{
     bindings::{
@@ -141,10 +137,9 @@ impl TryFrom<&ZendString> for String {
 
 impl Debug for ZendString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s: Result<String> = self.try_into();
-        match s {
-            Ok(s) => s.fmt(f),
-            Err(_) => Option::<()>::None.fmt(f),
+        match self.as_str() {
+            Some(str) => str.fmt(f),
+            None => Option::<()>::None.fmt(f),
         }
     }
 }

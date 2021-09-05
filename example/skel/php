@@ -6,4 +6,4 @@ case "$(uname)" in
     *) EXT="so" ;;
 esac
 
-php -dextension=$PWD/../../target/debug/libskel.$EXT "${@}"
+cargo build && php -dextension=$PWD/../../target/debug/libskel.$EXT "${@}"

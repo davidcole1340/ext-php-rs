@@ -69,7 +69,7 @@ impl Human {
     }
 
     pub fn introduce(&self) {
-        use ext_php_rs::php::types::object::ZendObjectOverride;
+        use ext_php_rs::php::types::object::RegisteredClass;
         
         // SAFETY: The `Human` struct is only constructed from PHP.
         let address: String = unsafe { self.get_property("address") }.unwrap();

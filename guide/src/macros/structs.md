@@ -1,12 +1,12 @@
 # Structs
 
 Structs can be exported to PHP as classes with the `#[php_class]` attribute
-macro. This attribute derives the `ZendObjectOverride` trait on your struct, as
+macro. This attribute derives the `RegisteredClass` trait on your struct, as
 well as registering the class to be registered with the `#[php_module]` macro.
 
-The implementation of `ZendObjectOverride` requires the implementation of
-`Default` on the struct. This is because the struct is initialized before the
-constructor is called, therefore it must have default values for all properties.
+The implementation of `RegisteredClass` requires the implementation of `Default`
+on the struct. This is because the struct is initialized before the constructor
+is called, therefore it must have default values for all properties.
 
 Note that Rust struct properties **are not** PHP properties, so if you want the
 user to be able to access these, you must provide getters and/or setters.
@@ -31,8 +31,7 @@ placed underneath the `#[php_class]` attribute.
   multiple times. `ce` must be a valid Rust expression when it is called inside
   the `#[php_module]` function.
 - `#[property(name = default[, flags])]` - Adds a PHP property to the class. Can
-  be get and set through functions defined through the trait
-  `ZendObjectOverride`.
+  be get and set through functions defined through the trait `RegisteredClass`.
 
 ## Example
 

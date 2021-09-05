@@ -432,6 +432,9 @@ pub use ext_php_rs_derive::php_startup;
 /// A module typically glob-imported containing the typically required macros and imports.
 pub mod prelude {
     pub use crate::php::module::ModuleBuilder;
+    pub use crate::php::types::callable::Callable;
+    #[cfg(feature = "closure")]
+    pub use crate::php::types::closure::Closure;
     pub use crate::php_class;
     pub use crate::php_const;
     pub use crate::php_extern;

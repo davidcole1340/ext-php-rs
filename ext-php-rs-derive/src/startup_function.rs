@@ -28,6 +28,8 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
                 #(#stmts)*
             }
 
+            ::ext_php_rs::php::module::ext_php_rs_startup();
+
             #(#classes)*
             #(#constants)*
 
@@ -48,7 +50,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
         .map(|(name, class)| {
             let Class { class_name, .. } = &class;
             let ident = Ident::new(name, Span::call_site());
-            let class_entry = Ident::new(&format!("_{}_CLASS_ENTRY", name), Span::call_site());
+            let meta = Ident::new(&format!("_{}_META", name), Span::call_site());
             let methods = class.methods.iter().map(|method| {
                 let builder = method.get_builder(&ident);
                 let flags = method.get_flags();
@@ -122,7 +124,8 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                     .object_override::<#ident>()
                     .build()
                     .expect(concat!("Unable to build class `", #class_name, "`"));
-                unsafe { #class_entry.replace(class) };
+
+                #meta.set_ce(class);
             }})
         })
         .collect::<Result<Vec<_>>>()

@@ -139,16 +139,12 @@ impl<'a> FunctionBuilder<'a> {
         });
 
         // arguments
-        for arg in self.args.iter() {
-            args.push(ArgInfo {
-                name: CString::new(arg.name.as_str())?.into_raw(),
-                type_: ZendType::empty_from_type(arg._type, arg.as_ref, false, arg.allow_null),
-                default_value: match &arg.default_value {
-                    Some(val) => CString::new(val.as_str())?.into_raw(),
-                    None => ptr::null(),
-                },
-            });
-        }
+        args.extend(
+            self.args
+                .iter()
+                .map(|arg| arg.as_arg_info())
+                .collect::<Result<Vec<_>>>()?,
+        );
 
         self.function.fname = CString::new(self.name)?.into_raw();
         self.function.num_args = (args.len() - 1) as u32;

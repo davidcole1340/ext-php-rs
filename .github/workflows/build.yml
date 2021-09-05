@@ -47,7 +47,7 @@ jobs:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
         with:
           command: build
-          args: --release
+          args: --release --features alloc,closure
       - name: Test guide examples
         run: |
           mdbook test guide -L target/release/deps

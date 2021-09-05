@@ -4,6 +4,8 @@
 pub mod array;
 pub mod binary;
 pub mod callable;
+#[cfg(feature = "closure")]
+pub mod closure;
 pub mod long;
 pub mod object;
 pub mod string;

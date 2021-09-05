@@ -142,7 +142,8 @@ fn build_arg_definitions(args: &[Arg]) -> (Vec<TokenStream>, bool) {
                 _static = false;
 
                 quote! {
-                    let #mutability this = match ::ext_php_rs::php::types::object::ZendClassObject::<Self>::get(ex) {
+                    // SAFETY: We are calling this on an execution data from a class method.
+                    let #mutability this = match unsafe { ex.get_object::<Self>() } {
                         Some(this) => this,
                         None => return ::ext_php_rs::php::exceptions::throw(
                             ::ext_php_rs::php::class::ClassEntry::exception(),
