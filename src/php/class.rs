@@ -350,6 +350,12 @@ impl Debug for ClassEntry {
         f.debug_struct("ClassEntry")
             .field("name", &name)
             .field("flags", &self.flags())
+            .field("is_interface", &self.is_interface())
+            .field(
+                "interfaces",
+                &self.interfaces().map(|iter| iter.collect::<Vec<_>>()),
+            )
+            .field("parent", &self.parent())
             .finish()
     }
 }
