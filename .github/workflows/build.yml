@@ -45,9 +45,8 @@ jobs:
         uses: actions-rs/cargo@v1
         env:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
-        with:
-          command: build
-          args: --release --features alloc,closure
+          EXT_PHP_RS_TEST:
+        run: cargo +${{ matrix.rust-toolchain }} build --release --features alloc,closure
       - name: Test guide examples
         run: |
           mdbook test guide -L target/release/deps
