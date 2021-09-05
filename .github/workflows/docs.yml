@@ -9,51 +9,33 @@ jobs:
   docs:
     name: Build and Deploy
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust-toolchain:
-          - nightly
-        php:
-          - '8.0'
-        llvm:
-          - '11.0'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: 8.0
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust-toolchain }}
+          toolchain: nightly 
           override: true
       - name: Setup LLVM & Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: ${{ matrix.llvm }}
-          directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
+          version: 11.0
+          directory: ${{ runner.temp }}/llvm-11.0
       - name: Install mdbook
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: latest
-      - name: Build docs
-        env:
-          LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
-          RUSTDOCFLAGS: --cfg docs
-        run: cargo doc --release
       - name: Build guide
-        run: |
-          mdbook build guide
-          mv guide/book target/doc/guide
-      - name: Create index redirect
-        run: |
-          echo '<meta http-equiv=refresh content=0;url=/ext-php-rs/ext_php_rs>' > target/doc/index.html
+        run: mdbook build guide
       - name: Publish docs
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: gh-pages
-          FOLDER: target/doc
+          FOLDER: guide/book
           CLEAN: true

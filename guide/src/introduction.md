@@ -35,4 +35,4 @@ future. It's recommended to lock the version at the patch level.
 ## Documentation
 
 - This guide!
-- [Rust docs](https://davidcole1340.github.io/ext-php-rs)
+- [Rust docs](https://docs.rs/ext-php-rs)

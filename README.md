@@ -62,14 +62,7 @@ The library guide can be read
 [here](https://davidcole1340.github.io/ext-php-rs/guide).
 
 The project is documented in-line, so viewing the `cargo` documentation is the
-best resource at the moment.
-
-We are currently unable to deploy our documentation to `docs.rs` due to the
-crate requiring PHP 8.0, which is unavailable in the default Ubuntu
-repositories. Documentation can be viewed
-[here](https://davidcole1340.github.io/ext-php-rs/). It is generated from the
-latest `master` branch. Documentation will be moved to `docs.rs` when Ubuntu
-updates its repositories to PHP 8.0.
+best resource at the moment. This can be viewed at [docs.rs].
 
 ## Requirements
 
@@ -132,3 +125,4 @@ at your option.
 
 [LICENSE_APACHE]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_APACHE
 [LICENSE_MIT]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_MIT
+[docs.rs]: https://docs.rs/ext-php-rs
