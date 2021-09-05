@@ -1,29 +1,11 @@
 use std::{
-    collections::HashSet,
     env,
     path::{Path, PathBuf},
     process::Command,
     str,
 };
 
-use bindgen::callbacks::{MacroParsingBehavior, ParseCallbacks};
 use regex::Regex;
-
-extern crate bindgen;
-
-// https://github.com/rust-lang/rust-bindgen/issues/687#issuecomment-450750547
-#[derive(Debug)]
-struct IgnoreMacros(HashSet<String>);
-
-impl ParseCallbacks for IgnoreMacros {
-    fn will_parse_macro(&self, name: &str) -> MacroParsingBehavior {
-        if self.0.contains(name) {
-            MacroParsingBehavior::Ignore
-        } else {
-            MacroParsingBehavior::Default
-        }
-    }
-}
 
 const MIN_PHP_API_VER: u32 = 20200930;
 const MAX_PHP_API_VER: u32 = 20200930;
@@ -32,6 +14,18 @@ fn main() {
     // rerun if wrapper header is changed
     println!("cargo:rerun-if-changed=src/wrapper/wrapper.h");
     println!("cargo:rerun-if-changed=src/wrapper/wrapper.c");
+
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");
+
+    // check for docs.rs and use stub bindings if required
+    if env::var("DOCS_RS").is_ok() {
+        println!("cargo:warning=docs.rs detected - using stub bindings");
+        println!("cargo:rustc-cfg=php_debug");
+
+        std::fs::copy("docsrs_bindings.rs", out_path)
+            .expect("Unable to copy docs.rs stub bindings to output directory.");
+        return;
+    }
 
     // use php-config to fetch includes
     let includes_cmd = Command::new("php-config")
@@ -85,31 +79,10 @@ fn main() {
         )
         .compile("wrapper");
 
-    let ignore_math_h_macros = IgnoreMacros(
-        vec![
-            // math.h:914 - enum which uses #define for values
-            "FP_NAN".into(),
-            "FP_INFINITE".into(),
-            "FP_ZERO".into(),
-            "FP_SUBNORMAL".into(),
-            "FP_NORMAL".into(),
-            // math.h:237 - enum which uses #define for values
-            "FP_INT_UPWARD".into(),
-            "FP_INT_DOWNWARD".into(),
-            "FP_INT_TOWARDZERO".into(),
-            "FP_INT_TONEARESTFROMZERO".into(),
-            "FP_INT_TONEAREST".into(),
-        ]
-        .into_iter()
-        .collect(),
-    );
-
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let mut bindgen = bindgen::Builder::default()
         .header("src/wrapper/wrapper.h")
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-        .parse_callbacks(Box::new(ignore_math_h_macros))
         .rustfmt_bindings(true)
         .no_copy("_zend_value")
         .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
@@ -124,7 +97,7 @@ fn main() {
     bindgen
         .generate()
         .expect("Unable to generate bindings for PHP")
-        .write_to_file(out_path.join("bindings.rs"))
+        .write_to_file(out_path)
         .expect("Unable to write bindings file.");
 
     let configure = Configure::get();
