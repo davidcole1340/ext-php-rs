@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["ZendString","A wrapper around the [`zend_string`] used within the Zend API. Essentially a C string, except that the structure contains the length of the string as well as the string being refcounted."]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Callable","Acts as a wrapper around a callable [`Zval`]. Allows the owner to call the [`Zval`] as if it was a PHP function through the `try_call` method."]]});

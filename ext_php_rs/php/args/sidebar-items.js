@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Arg","Represents an argument to a function."],["ArgParser","Parses the arguments of a function."]],"type":[["ArgInfo","Internal argument information used by Zend."]]});

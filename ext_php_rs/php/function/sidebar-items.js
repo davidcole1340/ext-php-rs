@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["FunctionBuilder","Builds a function to be exported as a PHP function."]],"type":[["FunctionEntry","A Zend function entry. Alias."],["FunctionHandler","Function representation in Rust."]]});

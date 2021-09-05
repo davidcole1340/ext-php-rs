@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Closure","Wrapper around a Rust closure, which can be exported to PHP."]],"trait":[["PhpClosure","Implemented on types which can be used as PHP closures."],["PhpOnceClosure","Implemented on [`FnOnce`] types which can be used as PHP closures. See [`Closure`]."]]});

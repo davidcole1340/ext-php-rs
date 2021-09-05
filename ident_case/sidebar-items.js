@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["RenameRule","A casing rule for renaming Rust identifiers."]]});

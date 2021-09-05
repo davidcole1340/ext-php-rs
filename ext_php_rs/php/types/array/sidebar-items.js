@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["HashTableInsertResult","Result type returned after attempting to insert an element into a hash table."]],"struct":[["IntoIter",""],["Iter",""],["ZendHashTable","A PHP array, which internally is a hash table."]]});

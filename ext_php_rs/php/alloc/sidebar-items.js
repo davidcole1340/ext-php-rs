@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["efree","Frees a given memory pointer which was allocated through the PHP memory manager."],["emalloc","Uses the PHP memory allocator to allocate request-bound memory."]]});
