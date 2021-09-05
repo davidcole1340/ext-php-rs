@@ -4,7 +4,8 @@
 pub mod array;
 pub mod binary;
 pub mod callable;
-#[cfg(feature = "closure")]
+#[cfg(any(docs, feature = "closure"))]
+#[cfg_attr(docs, doc(cfg(feature = "closure")))]
 pub mod closure;
 pub mod long;
 pub mod object;

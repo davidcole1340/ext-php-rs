@@ -3,6 +3,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+#![cfg_attr(docs, feature(doc_cfg))]
 
 #[macro_use]
 pub mod macros;
@@ -433,7 +434,8 @@ pub use ext_php_rs_derive::php_startup;
 pub mod prelude {
     pub use crate::php::module::ModuleBuilder;
     pub use crate::php::types::callable::Callable;
-    #[cfg(feature = "closure")]
+    #[cfg(any(docs, feature = "closure"))]
+    #[cfg_attr(docs, doc(cfg(feature = "closure")))]
     pub use crate::php::types::closure::Closure;
     pub use crate::php_class;
     pub use crate::php_const;

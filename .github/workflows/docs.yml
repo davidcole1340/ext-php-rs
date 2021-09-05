@@ -41,6 +41,7 @@ jobs:
         uses: actions-rs/cargo@v1
         env:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
+          RUSTDOCFLAGS: --cfg docs
         with:
           command: doc
           args: --release

@@ -353,6 +353,8 @@ where
     ///
     /// This must be statically allocated, and is usually done through the [`macro@php_class`]
     /// macro.
+    ///
+    /// [`macro@php_class`]: crate::php_class
     fn get_metadata() -> &'static ClassMetadata<Self>;
 
     /// Attempts to retrieve a property from the class object.
@@ -369,7 +371,7 @@ where
     /// # Safety
     ///
     /// Caller must guarantee that the object the function is called on is immediately followed
-    /// by a [`zend_object`], which is true when the object was instantiated from  [`ZendClassObject`].
+    /// by a [`zend_object`], which is true when the object was instantiated by PHP.
     unsafe fn get_property<'a, T: FromZval<'a>>(&'a self, name: &str) -> Option<T> {
         let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
         let zv = obj.std.get_property(name).ok()?;
@@ -391,7 +393,7 @@ where
     /// # Safety
     ///
     /// Caller must guarantee that the object the function is called on is immediately followed
-    /// by a [`zend_object`], which is true when the object was instantiated from  [`ZendClassObject`].
+    /// by a [`zend_object`], which is true when the object was instantiated by PHP.
     unsafe fn set_property(&mut self, name: &str, value: impl IntoZval) -> Option<()> {
         let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
         obj.std.set_property(name, value).ok()?;
