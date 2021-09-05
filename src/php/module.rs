@@ -81,9 +81,9 @@ impl ModuleBuilder {
                 info_func: None,
                 version: ptr::null(),
                 globals_size: 0,
-                #[cfg(not(feature = "zts"))]
+                #[cfg(not(php_zts))]
                 globals_ptr: ptr::null::<c_void>() as *mut c_void,
-                #[cfg(feature = "zts")]
+                #[cfg(php_zts)]
                 globals_id_ptr: ptr::null::<c_void>() as *mut crate::bindings::ts_rsrc_id,
                 globals_ctor: None,
                 globals_dtor: None,

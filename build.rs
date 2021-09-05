@@ -124,11 +124,11 @@ fn main() {
     let configure = Configure::get();
 
     if configure.has_zts() {
-        println!("cargo:rustc-cfg=feature=\"zts\"");
+        println!("cargo:rustc-cfg=php_zts");
     }
 
     if configure.debug() {
-        println!("cargo:rustc-cfg=feature=\"debug\"");
+        println!("cargo:rustc-cfg=php_debug");
     }
 }
 
