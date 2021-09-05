@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="../types/index.html" class="active"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="../types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="../types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="../types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="../types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="../types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="../types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="../types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="../macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="../macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="../macros/structs.html"><strong aria-hidden="true">4.4.</strong> Structs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="../types/index.html" class="active"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="../types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="../types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="../types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="../types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="../types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="../types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="../types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="../types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="../types/closure.html"><strong aria-hidden="true">3.10.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="../macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="../macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="../macros/structs.html"><strong aria-hidden="true">4.4.</strong> Structs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -159,15 +159,24 @@ have been implemented on most regular Rust types:</p>
 <li><code>HashMap&lt;String, T&gt;</code> where T implements <code>IntoZval</code> and/or <code>FromZval</code>.</li>
 <li><code>Binary&lt;T&gt;</code> where T implements <code>Pack</code>, used for transferring binary string
 data.</li>
+<li>A PHP callable closure or function wrapped with <code>Callable</code>.</li>
 <li><code>Option&lt;T&gt;</code> where T implements <code>IntoZval</code> and/or <code>FromZval</code>, and where <code>None</code>
 is converted to a PHP <code>null</code>.</li>
 </ul>
-<p>There is one special case - <code>Result&lt;T, E&gt;</code>, where T implements <code>IntoZval</code> and
-<code>E</code> implements <code>Into&lt;PhpException&gt;</code>. This can only be used as a function/method
-return type. If the error variant is encountered, <code>E</code> is converted into a
-<code>PhpException</code> and thrown.</p>
+<p>Return types can also include:</p>
+<ul>
+<li>Any class type which implements <code>RegisteredClass</code> (i.e. any struct you have
+registered with PHP).</li>
+<li>An immutable reference to <code>self</code> when used in a method, through the <code>ClassRef</code>
+type.</li>
+<li>A Rust closure wrapped with <code>Closure</code>.</li>
+<li><code>Result&lt;T, E&gt;</code>, where <code>T: IntoZval</code> and <code>E: Into&lt;PhpException&gt;</code>. When the
+error variant is encountered, it is converted into a <code>PhpException</code> and thrown
+as an exception.</li>
+</ul>
 <p>For a type to be returnable, it must implement <code>IntoZval</code>, while for it to be
-valid as a parameter, it must implement <code>FromZval</code>.</p>
+valid as a parameter, it must implement <code>FromZval</code> (and <code>TryFrom&lt;&amp;Zval&gt;</code> by
+proxy).</p>
 
                     </main>
 

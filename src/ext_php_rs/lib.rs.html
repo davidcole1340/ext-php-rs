@@ -442,6 +442,9 @@
 <span id="440">440</span>
 <span id="441">441</span>
 <span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
 </pre><pre class="rust">
 <span class="attribute">#![<span class="ident">doc</span> <span class="op">=</span> <span class="macro">include_str!</span>(<span class="string">&quot;../README.md&quot;</span>)]</span>
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">clippy::unwrap_used</span>)]</span>
@@ -877,6 +880,9 @@
 <span class="doccomment">/// A module typically glob-imported containing the typically required macros and imports.</span>
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">prelude</span> {
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php::module::ModuleBuilder</span>;
+    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php::types::callable::Callable</span>;
+    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;closure&quot;</span>)]</span>
+    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php::types::closure::Closure</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_class</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_const</span>;
     <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::php_extern</span>;

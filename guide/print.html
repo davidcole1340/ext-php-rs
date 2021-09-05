@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li></ol></li><li class="chapter-item expanded "><a href="macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="macros/structs.html"><strong aria-hidden="true">4.4.</strong> Structs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li></ol></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="types/closure.html"><strong aria-hidden="true">3.10.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="macros/structs.html"><strong aria-hidden="true">4.4.</strong> Structs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li></ol></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -266,15 +266,24 @@ have been implemented on most regular Rust types:</p>
 <li><code>HashMap&lt;String, T&gt;</code> where T implements <code>IntoZval</code> and/or <code>FromZval</code>.</li>
 <li><code>Binary&lt;T&gt;</code> where T implements <code>Pack</code>, used for transferring binary string
 data.</li>
+<li>A PHP callable closure or function wrapped with <code>Callable</code>.</li>
 <li><code>Option&lt;T&gt;</code> where T implements <code>IntoZval</code> and/or <code>FromZval</code>, and where <code>None</code>
 is converted to a PHP <code>null</code>.</li>
 </ul>
-<p>There is one special case - <code>Result&lt;T, E&gt;</code>, where T implements <code>IntoZval</code> and
-<code>E</code> implements <code>Into&lt;PhpException&gt;</code>. This can only be used as a function/method
-return type. If the error variant is encountered, <code>E</code> is converted into a
-<code>PhpException</code> and thrown.</p>
+<p>Return types can also include:</p>
+<ul>
+<li>Any class type which implements <code>RegisteredClass</code> (i.e. any struct you have
+registered with PHP).</li>
+<li>An immutable reference to <code>self</code> when used in a method, through the <code>ClassRef</code>
+type.</li>
+<li>A Rust closure wrapped with <code>Closure</code>.</li>
+<li><code>Result&lt;T, E&gt;</code>, where <code>T: IntoZval</code> and <code>E: Into&lt;PhpException&gt;</code>. When the
+error variant is encountered, it is converted into a <code>PhpException</code> and thrown
+as an exception.</li>
+</ul>
 <p>For a type to be returnable, it must implement <code>IntoZval</code>, while for it to be
-valid as a parameter, it must implement <code>FromZval</code>.</p>
+valid as a parameter, it must implement <code>FromZval</code> (and <code>TryFrom&lt;&amp;Zval&gt;</code> by
+proxy).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="primitive-numbers"><a class="header" href="#primitive-numbers">Primitive Numbers</a></h1>
 <p>Primitive integers include <code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code>, <code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>,
 <code>isize</code>, <code>usize</code>, <code>f32</code> and <code>f64</code>.</p>
@@ -562,6 +571,161 @@ pub fn test_option_null(input: Option&lt;String&gt;) -&gt; Option&lt;String&gt; 
 var_dump(test_option_null(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
 var_dump(test_option_null()); // null
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="object"><a class="header" href="#object">Object</a></h1>
+<p>Objects can be returned from functions as instances or references. You can only
+return a reference when you are returning an immutable reference to the object
+the method is implemented on.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>No</td><td>No</td><td>Yes</td><td>Yes, as <code>ClassRef&lt;T&gt;</code></td><td>A Rust struct and a Zend object.</td></tr>
+</tbody></table>
+<h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
+<h3 id="returning-a-reference-to-self"><a class="header" href="#returning-a-reference-to-self">Returning a reference to <code>self</code></a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+use ext_php_rs::php::types::object::ClassRef;
+
+#[php_class]
+#[derive(Default)]
+pub struct Example {
+    foo: i32,
+    bar: i32
+}
+
+#[php_impl]
+impl Example {
+    pub fn builder_pattern(&amp;self) -&gt; ClassRef&lt;Example&gt; {
+        // As long as you return `self` from a method, you can unwrap this option.
+        ClassRef::from_ref(self).unwrap()
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h3 id="creating-a-new-class-instance"><a class="header" href="#creating-a-new-class-instance">Creating a new class instance</a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+
+#[php_class]
+#[derive(Default)]
+pub struct Example {
+    foo: i32,
+    bar: i32
+}
+
+#[php_impl]
+impl Example {
+    pub fn make_new(&amp;self, foo: i32, bar: i32) -&gt; Example {
+        Example { foo, bar }
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="closure"><a class="header" href="#closure">Closure</a></h1>
+<p>Rust closures can be passed to PHP through a wrapper class <code>PhpClosure</code>. The
+Rust closure must be static (i.e. can only reference things with a <code>static</code>
+lifetime, so not <code>self</code> in methods), and can take up to 8 parameters, all of
+which must implement <code>FromZval</code>. The return type must implement <code>IntoZval</code>.</p>
+<p>Passing closures from Rust to PHP is feature-gated behind the <code>closure</code> feature.</p>
+<p>PHP callables (which includes closures) can be passed to Rust through the
+<code>Callable</code> type. When calling a callable, you must provide it with a <code>Vec</code> of
+arguemnts, all of which must implement <code>IntoZval</code> and <code>Clone</code>.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td><code>Callable</code></td><td>No</td><td><code>Closure</code> and <code>Callable</code> for functions</td><td>No</td><td>Callables are implemented in PHP, closures are represented as an instance of <code>PhpClosure</code>.</td></tr>
+</tbody></table>
+<p>Internally, when you enable the <code>closure</code> feature, a class <code>PhpClosure</code> is
+registered alongside your other classes:</p>
+<pre><code class="language-php">&lt;?php
+
+class PhpClosure
+{
+    public function __invoke(..$args): mixed;
+}
+</code></pre>
+<p>This class cannot be instantiated from PHP. When the class is invoked, the
+underlying Rust closure is called. There are three types of closures in Rust:</p>
+<h2 id="fn-and-fnmut"><a class="header" href="#fn-and-fnmut"><code>Fn</code> and <code>FnMut</code></a></h2>
+<p>These closures can be called multiple times. <code>FnMut</code> differs from <code>Fn</code> in the
+fact that it can modify variables in its scope.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+
+#[php_function]
+pub fn closure_get_string() -&gt; Closure {
+    // Return a closure which takes two integers and returns a string
+    Closure::wrap(Box::new(|a, b| {
+        format!(&quot;A: {} B: {}&quot;, a, b)
+    }) as Box&lt;dyn Fn(i32, i32) -&gt; String&gt;)
+}
+
+#[php_function]
+pub fn closure_count() -&gt; Closure {
+    let mut count = 0i32;
+
+    // Return a closure which takes an integer, adds it to a persistent integer,
+    // and returns the updated value.
+    Closure::wrap(Box::new(move |a: i32| {
+        count += a;
+        count
+    }) as Box&lt;dyn FnMut(i32) -&gt; i32&gt;)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="fnonce"><a class="header" href="#fnonce"><code>FnOnce</code></a></h2>
+<p>Closures that implement <code>FnOnce</code> can only be called once. They consume some sort
+of value. Calling these closures more than once will cause them to throw an
+exception. They must be wrapped using the <code>wrap_once</code> function instead of
+<code>wrap</code>.</p>
+<p>Internally, the <code>FnOnce</code> closure is wrapped again by an <code>FnMut</code> closure, which
+owns the <code>FnOnce</code> closure until it is called. If the <code>FnMut</code> closure is called
+again, the <code>FnOnce</code> closure would have already been consumed, and an exception
+will be thrown.</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+
+#[php_function]
+pub fn closure_return_string() -&gt; Closure {
+    let example: String = &quot;Hello, world!&quot;.into();
+
+    // This closure consumes `example` and therefore cannot be called more than once.
+    Closure::wrap_once(Box::new(move || {
+        example
+    }) as Box&lt;dyn FnOnce() -&gt; String&gt;)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Closures must be boxed as PHP classes cannot support generics, therefore trait
+objects must be used. These must be boxed to have a compile time size.</p>
+<h2 id="callable"><a class="header" href="#callable"><code>Callable</code></a></h2>
+<p>Callables are simply represented as zvals. You can attempt to get a callable
+function by its name, or as a parameter. They can be called through the
+<code>try_call</code> method implemented on <code>Callable</code>, which returns a zval in a result.</p>
+<h3 id="callable-parameter"><a class="header" href="#callable-parameter">Callable parameter</a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+
+#[php_function]
+pub fn callable_parameter(call: Callable) {
+    let val = call.try_call(vec![&amp;0, &amp;1, &amp;&quot;Hello&quot;]).expect(&quot;Failed to call function&quot;);
+    dbg!(val);
+}
+<span class="boring">}
+</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="macros"><a class="header" href="#macros">Macros</a></h1>
 <p><code>ext-php-rs</code> comes with a set of macros that are used to annotate types which
 are to be exported to PHP. This allows you to write Rust-like APIs that can be
@@ -650,7 +814,7 @@ will be automatically registered in the <code>get_module</code> function when yo
 be automatically generated when required (if not already defined).</p>
 <p>Read more about what the module startup function is used for
 <a href="https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html#module-initialization-minit">here.</a></p>
-<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -772,11 +936,11 @@ pub fn example_exception() -&gt; Result&lt;i64, &amp;'static str&gt; {
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="structs"><a class="header" href="#structs">Structs</a></h1>
 <p>Structs can be exported to PHP as classes with the <code>#[php_class]</code> attribute
-macro. This attribute derives the <code>ZendObjectOverride</code> trait on your struct, as
+macro. This attribute derives the <code>RegisteredClass</code> trait on your struct, as
 well as registering the class to be registered with the <code>#[php_module]</code> macro.</p>
-<p>The implementation of <code>ZendObjectOverride</code> requires the implementation of
-<code>Default</code> on the struct. This is because the struct is initialized before the
-constructor is called, therefore it must have default values for all properties.</p>
+<p>The implementation of <code>RegisteredClass</code> requires the implementation of <code>Default</code>
+on the struct. This is because the struct is initialized before the constructor
+is called, therefore it must have default values for all properties.</p>
 <p>Note that Rust struct properties <strong>are not</strong> PHP properties, so if you want the
 user to be able to access these, you must provide getters and/or setters.
 Properties are supported internally, however, they are not usable through the
@@ -798,10 +962,9 @@ placed underneath the <code>#[php_class]</code> attribute.</p>
 multiple times. <code>ce</code> must be a valid Rust expression when it is called inside
 the <code>#[php_module]</code> function.</li>
 <li><code>#[property(name = default[, flags])]</code> - Adds a PHP property to the class. Can
-be get and set through functions defined through the trait
-<code>ZendObjectOverride</code>.</li>
+be get and set through functions defined through the trait <code>RegisteredClass</code>.</li>
 </ul>
-<h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
+<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
 <p>This example creates a PHP class <code>Human</code>, adding a PHP property <code>address</code> with
 an empty string as the default value.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -880,7 +1043,7 @@ equivalent function attribute parameters.</p>
 <p>Constants are defined as regular Rust <code>impl</code> constants. Any type that implements
 <code>IntoZval</code> can be used as a constant. Constant visibility is not supported at
 the moment, and therefore no attributes are valid on constants.</p>
-<h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
+<h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
 <p>Continuing on from our <code>Human</code> example in the structs section, we will define a
 constructor, as well as getters for the properties. We will also define a
 constant for the maximum age of a <code>Human</code>.</p>
@@ -913,7 +1076,7 @@ impl Human {
     }
 
     pub fn introduce(&amp;self) {
-        use ext_php_rs::php::types::object::ZendObjectOverride;
+        use ext_php_rs::php::types::object::RegisteredClass;
         
         // SAFETY: The `Human` struct is only constructed from PHP.
         let address: String = unsafe { self.get_property(&quot;address&quot;) }.unwrap();
@@ -938,7 +1101,7 @@ var_dump(Human::MAX_AGE); // int(100)
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_const"><a class="header" href="#php_const"><code>#[php_const]</code></a></h1>
 <p>Exports a Rust constant as a global PHP constant. The constant can be any type
 that implements <code>IntoConst</code>.</p>
-<h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
+<h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

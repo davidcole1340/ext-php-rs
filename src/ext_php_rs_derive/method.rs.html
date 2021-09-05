@@ -248,6 +248,7 @@
 <span id="246">246</span>
 <span id="247">247</span>
 <span id="248">248</span>
+<span id="249">249</span>
 </pre><pre class="rust">
 <span class="kw">use</span> <span class="ident">anyhow</span>::{<span class="ident">anyhow</span>, <span class="ident">bail</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use</span> <span class="ident">quote::ToTokens</span>;
@@ -393,7 +394,8 @@
                 <span class="ident">_static</span> <span class="op">=</span> <span class="bool-val">false</span>;
 
                 <span class="macro">quote!</span> {
-                    <span class="kw">let</span> #<span class="ident">mutability</span> <span class="ident">this</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">::ext_php_rs::php::types::object::ZendClassObject</span>::<span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span><span class="ident">::get</span>(<span class="ident">ex</span>) {
+                    <span class="comment">// SAFETY: We are calling this on an execution data from a class method.</span>
+                    <span class="kw">let</span> #<span class="ident">mutability</span> <span class="ident">this</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw">unsafe</span> { <span class="ident">ex</span>.<span class="ident">get_object</span>::<span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>() } {
                         <span class="prelude-val">Some</span>(<span class="ident">this</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">this</span>,
                         <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="ident">::ext_php_rs::php::exceptions::throw</span>(
                             <span class="ident">::ext_php_rs::php::class::ClassEntry::exception</span>(),

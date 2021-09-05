@@ -205,7 +205,7 @@
 
 <span class="kw">use</span> <span class="ident">std::ffi::CString</span>;
 
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">class::ClassEntry</span>, <span class="ident">types::object::ZendObjectOverride</span>};
+<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">class::ClassEntry</span>, <span class="ident">types::object::RegisteredClass</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
         <span class="ident">zend_ce_argument_count_error</span>, <span class="ident">zend_ce_arithmetic_error</span>, <span class="ident">zend_ce_compile_error</span>,
@@ -258,8 +258,8 @@
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `message` - Message to contain in the exception.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_class</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">ZendObjectOverride</span><span class="op">&gt;</span>(<span class="ident">message</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
-        <span class="self">Self</span><span class="ident">::new</span>(<span class="ident">message</span>, <span class="number">0</span>, <span class="ident">T::get_class</span>())
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_class</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span>(<span class="ident">message</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span><span class="ident">::new</span>(<span class="ident">message</span>, <span class="number">0</span>, <span class="ident">T::get_metadata</span>().<span class="ident">ce</span>())
     }
 
     <span class="doccomment">/// Throws the exception, returning nothing inside a result if successful and an error</span>

@@ -95,6 +95,8 @@
 <span id="93">93</span>
 <span id="94">94</span>
 <span id="95">95</span>
+<span id="96">96</span>
+<span id="97">97</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Contains all the different types that are introduced into PHP.</span>
 <span class="doccomment">//! Introduces functions for converting between Zend values and Rust values.</span>
@@ -102,6 +104,8 @@
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">array</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">binary</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">callable</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;closure&quot;</span>)]</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">closure</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">long</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">object</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">string</span>;

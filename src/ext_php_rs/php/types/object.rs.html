@@ -431,6 +431,144 @@
 <span id="429">429</span>
 <span id="430">430</span>
 <span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Represents an object in PHP. Allows for overriding the internal object used by classes,</span>
 <span class="doccomment">//! allowing users to store Rust data inside a PHP object.</span>
@@ -440,23 +578,20 @@
     <span class="ident">convert::TryInto</span>,
     <span class="ident">fmt::Debug</span>,
     <span class="ident">marker::PhantomData</span>,
-    <span class="ident">mem::MaybeUninit</span>,
+    <span class="ident">mem</span>::{<span class="self">self</span>, <span class="ident">MaybeUninit</span>},
     <span class="ident">ops</span>::{<span class="ident">Deref</span>, <span class="ident">DerefMut</span>},
     <span class="ident">ptr</span>,
-    <span class="ident">sync::atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">Ordering</span>},
+    <span class="ident">sync::atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">AtomicPtr</span>, <span class="ident">Ordering</span>},
 };
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
-        <span class="ident">ext_php_rs_zend_object_alloc</span>, <span class="ident">object_properties_init</span>, <span class="ident">std_object_handlers</span>, <span class="ident">zend_object</span>,
-        <span class="ident">zend_object_handlers</span>, <span class="ident">zend_object_std_init</span>, <span class="ident">ZEND_ISEMPTY</span>, <span class="ident">ZEND_PROPERTY_EXISTS</span>,
-        <span class="ident">ZEND_PROPERTY_ISSET</span>,
+        <span class="ident">ext_php_rs_zend_object_alloc</span>, <span class="ident">ext_php_rs_zend_object_release</span>, <span class="ident">object_properties_init</span>,
+        <span class="ident">std_object_handlers</span>, <span class="ident">zend_object</span>, <span class="ident">zend_object_handlers</span>, <span class="ident">zend_object_std_init</span>,
+        <span class="ident">zend_objects_clone_members</span>, <span class="ident">ZEND_ISEMPTY</span>, <span class="ident">ZEND_PROPERTY_EXISTS</span>, <span class="ident">ZEND_PROPERTY_ISSET</span>,
     },
     <span class="ident">errors</span>::{<span class="ident">Error</span>, <span class="prelude-ty">Result</span>},
-    <span class="ident">php</span>::{
-        <span class="ident">class::ClassEntry</span>, <span class="ident">enums::DataType</span>, <span class="ident">execution_data::ExecutionData</span>,
-        <span class="ident">types::string::ZendString</span>,
-    },
+    <span class="ident">php</span>::{<span class="ident">class::ClassEntry</span>, <span class="ident">enums::DataType</span>, <span class="ident">types::string::ZendString</span>},
 };
 
 <span class="kw">use</span> <span class="kw">super</span>::{
@@ -490,6 +625,12 @@
         }<span class="question-mark">?</span>;
 
         <span class="ident">name</span>.<span class="ident">try_into</span>()
+    }
+
+    <span class="doccomment">/// Checks if the given object is an instance of a registered class with Rust</span>
+    <span class="doccomment">/// type `T`.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_instance</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        (<span class="self">self</span>.<span class="ident">ce</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">ClassEntry</span>).<span class="ident">eq</span>(<span class="kw-2">&amp;</span>(<span class="ident">T::get_metadata</span>().<span class="ident">ce</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span>))
     }
 
     <span class="doccomment">/// Attempts to read a property from the Object. Returns a result returning an</span>
@@ -530,7 +671,7 @@
     <span class="doccomment">/// * `value` - The value to set the property to.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_property</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">value</span>: <span class="kw">impl</span> <span class="ident">IntoZval</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="ident">ZendString::new</span>(<span class="ident">name</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">as_zval</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">into_zval</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
 
         <span class="kw">unsafe</span> {
             <span class="self">self</span>.<span class="ident">handlers</span>()<span class="question-mark">?</span>.<span class="ident">write_property</span>.<span class="ident">ok_or</span>(<span class="ident">Error::InvalidScope</span>)<span class="question-mark">?</span>(
@@ -613,31 +754,178 @@
     }
 }
 
-<span class="doccomment">/// Implemented by the [`php_class`](crate::php_class) attribute macro on a type T which is</span>
-<span class="doccomment">/// used as the T type for [`ZendClassObject`].</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Implements a function `create_object` which is passed to a PHP class entry to instantiate the</span>
-<span class="doccomment">/// object that will represent an object.</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ZendObjectOverride</span>: <span class="ident">Default</span> {
-    <span class="doccomment">/// Creates a new Zend object. Also allocates space for type T on which the trait is</span>
-    <span class="doccomment">/// implemented on.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ClassRef</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> {
+    <span class="ident">ptr</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">ClassRef</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Creates a new class reference from a Rust type reference.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_ref</span>(<span class="ident">obj</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">T</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> { <span class="ident">ZendClassObject::from_obj_ptr</span>(<span class="ident">obj</span>)<span class="question-mark">?</span> };
+        <span class="prelude-val">Some</span>(<span class="self">Self</span> { <span class="ident">ptr</span> })
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">IntoZval</span> <span class="kw">for</span> <span class="ident">ClassRef</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::Object</span>;
+
+    <span class="kw">fn</span> <span class="ident">set_zval</span>(<span class="self">self</span>, <span class="ident">zv</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Zval</span>, <span class="kw">_</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+        <span class="ident">zv</span>.<span class="ident">set_object</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">ptr</span>.<span class="ident">std</span>);
+        <span class="prelude-val">Ok</span>(())
+    }
+}
+
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> {
+    <span class="ident">ptr</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
+    <span class="ident">free</span>: <span class="ident">bool</span>,
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+            <span class="ident">ZendClassObject::new_ptr</span>(<span class="prelude-val">None</span>)
+                .<span class="ident">as_mut</span>()
+                .<span class="ident">expect</span>(<span class="string">&quot;Failed to allocate memory for class object.&quot;</span>)
+        };
+
+        <span class="self">Self</span> { <span class="ident">ptr</span>, <span class="ident">free</span>: <span class="bool-val">true</span> }
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Creates a class object from a pre-existing Rust object.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// * `ce` - The class entry that we are creating an object for.</span>
+    <span class="doccomment">/// * `obj` - The object to create a class object for.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">obj</span>: <span class="ident">T</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+            <span class="ident">ZendClassObject::new_ptr</span>(<span class="prelude-val">Some</span>(<span class="ident">obj</span>))
+                .<span class="ident">as_mut</span>()
+                .<span class="ident">expect</span>(<span class="string">&quot;Failed to allocate memory for class object.&quot;</span>)
+        };
+
+        <span class="self">Self</span> { <span class="ident">ptr</span>, <span class="ident">free</span>: <span class="bool-val">true</span> }
+    }
+
+    <span class="doccomment">/// Consumes the class object, releasing the internal pointer without releasing the internal object.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Used to transfer ownership of the object to PHP.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">into_raw</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">free</span> <span class="op">=</span> <span class="bool-val">false</span>;
+        <span class="self">self</span>.<span class="ident">ptr</span>
+    }
+
+    <span class="doccomment">/// Returns an immutable reference to the underlying class object.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">internal</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">ptr</span>
+    }
+
+    <span class="doccomment">/// Returns a mutable reference to the underlying class object.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">internal_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">ptr</span>
+    }
+
+    <span class="doccomment">/// Creates a new instance of [`ClassObject`] around a pre-existing class object.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `ptr` - Pointer to the class object.</span>
+    <span class="doccomment">/// * `free` - Whether to release the underlying object which `ptr` points to.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Safety</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Caller needs to ensure that the given `ce` is a valid pointer to a [`ClassEntry`].</span>
-    <span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">create_object</span>(<span class="ident">ce</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ZendObject</span>;
+    <span class="doccomment">/// Caller must guarantee that `ptr` points to an aligned, non-null instance of</span>
+    <span class="doccomment">/// [`ZendClassObject`]. Caller must also guarantee that `ptr` will at least live for</span>
+    <span class="doccomment">/// the lifetime `&#39;a` (as long as the resulting object lives).</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Caller must also guarantee that it is expected to free `ptr` after dropping the</span>
+    <span class="doccomment">/// resulting [`ClassObject`] to prevent use-after-free situations.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Panics when the given `ptr` is null.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">from_zend_class_object</span>(<span class="ident">ptr</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>, <span class="ident">free</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">Self</span> {
+            <span class="ident">ptr</span>: <span class="ident">ptr</span>.<span class="ident">as_mut</span>().<span class="ident">expect</span>(<span class="string">&quot;Given pointer was null&quot;</span>),
+            <span class="ident">free</span>,
+        }
+    }
+}
 
-    <span class="doccomment">/// Returns a reference to the class entry of the struct.</span>
-    <span class="kw">fn</span> <span class="ident">get_class</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassEntry</span>;
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">free</span> {
+            <span class="kw">unsafe</span> { <span class="ident">ext_php_rs_zend_object_release</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">ptr</span>).<span class="ident">std</span>) };
+        }
+    }
+}
 
-    <span class="doccomment">/// Sets the reference to the class entry. Not for public use, only used after initializing</span>
-    <span class="doccomment">/// the class with PHP.</span>
-    <span class="attribute">#[<span class="ident">doc</span>(<span class="ident">hidden</span>)]</span>
-    <span class="kw">fn</span> <span class="ident">set_class</span>(<span class="ident">ce</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassEntry</span>);
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> <span class="ident">T</span>;
+
+    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="self">Self</span><span class="ident">::Target</span> {
+        <span class="comment">// SAFETY: Class object constructor guarantees memory is allocated.</span>
+        <span class="kw">unsafe</span> { <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">ptr</span>.<span class="ident">obj</span>.<span class="ident">as_ptr</span>() }
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">DerefMut</span> <span class="kw">for</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">deref_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="ident">::Target</span> {
+        <span class="comment">// SAFETY: Class object constructor guarantees memory is allocated.</span>
+        <span class="kw">unsafe</span> { <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">ptr</span>.<span class="ident">obj</span>.<span class="ident">as_mut_ptr</span>() }
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span> <span class="op">+</span> <span class="ident">Clone</span><span class="op">&gt;</span> <span class="ident">Clone</span> <span class="kw">for</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">clone</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="comment">// SAFETY: Class object constructor guarantees memory is allocated.</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">new</span> <span class="op">=</span> <span class="self">Self</span><span class="ident">::new</span>(<span class="kw">unsafe</span> { <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">internal</span>().<span class="ident">obj</span>.<span class="ident">as_ptr</span>() }.<span class="ident">clone</span>());
+        <span class="kw">unsafe</span> {
+            <span class="ident">zend_objects_clone_members</span>(
+                <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">new</span>.<span class="ident">internal_mut</span>().<span class="ident">std</span>,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">internal</span>().<span class="ident">std</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>,
+            )
+        }
+        <span class="ident">new</span>
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span> <span class="op">+</span> <span class="ident">Debug</span><span class="op">&gt;</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std::fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::fmt::Result</span> {
+        <span class="self">self</span>.<span class="ident">internal</span>().<span class="ident">obj</span>.<span class="ident">fmt</span>(<span class="ident">f</span>)
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">IntoZval</span> <span class="kw">for</span> <span class="ident">ClassObject</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::Object</span>;
+
+    <span class="kw">fn</span> <span class="ident">set_zval</span>(<span class="self">self</span>, <span class="ident">zv</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Zval</span>, <span class="kw">_</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+        <span class="kw">unsafe</span> { <span class="ident">zv</span>.<span class="ident">set_object</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">into_raw</span>()).<span class="ident">std</span>) };
+
+        <span class="prelude-val">Ok</span>(())
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">IntoZval</span> <span class="kw">for</span> <span class="ident">T</span> {
+    <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::Object</span>;
+
+    <span class="kw">fn</span> <span class="ident">set_zval</span>(<span class="self">self</span>, <span class="ident">zv</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Zval</span>, <span class="ident">persistent</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+        <span class="ident">ClassObject::new</span>(<span class="self">self</span>).<span class="ident">set_zval</span>(<span class="ident">zv</span>, <span class="ident">persistent</span>)
+    }
+}
+
+<span class="doccomment">/// Implemented on Rust types which are exported to PHP. Allows users to get and set PHP properties on</span>
+<span class="doccomment">/// the object.</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">RegisteredClass</span>: <span class="ident">Default</span> <span class="op">+</span> <span class="ident">Sized</span>
+<span class="kw">where</span>
+    <span class="self">Self</span>: <span class="lifetime">&#39;static</span>,
+{
+    <span class="doccomment">/// Returns a reference to the class metadata, which stores the class entry and handlers.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This must be statically allocated, and is usually done through the [`macro@php_class`]</span>
+    <span class="doccomment">/// macro.</span>
+    <span class="kw">fn</span> <span class="ident">get_metadata</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassMetadata</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>;
 
     <span class="doccomment">/// Attempts to retrieve a property from the class object.</span>
     <span class="doccomment">///</span>
@@ -683,82 +971,37 @@
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">ZendObjectOverride</span><span class="op">&gt;</span> <span class="ident">IntoZval</span> <span class="kw">for</span> <span class="kw-2">&amp;</span><span class="ident">T</span> {
-    <span class="kw">const</span> <span class="ident">TYPE</span>: <span class="ident">DataType</span> <span class="op">=</span> <span class="ident">DataType::Object</span>;
-
-    <span class="kw">fn</span> <span class="ident">set_zval</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">zv</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Zval</span>, <span class="kw">_</span>: <span class="ident">bool</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">unsafe</span> {
-            <span class="kw">let</span> <span class="ident">obj</span> <span class="op">=</span> <span class="ident">ZendClassObject::from_obj_ptr</span>(<span class="kw-2">*</span><span class="self">self</span>).<span class="ident">ok_or</span>(<span class="ident">Error::InvalidPointer</span>)<span class="question-mark">?</span>;
-            <span class="ident">zv</span>.<span class="ident">set_object</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">obj</span>.<span class="ident">std</span>);
-        }
-
-        <span class="prelude-val">Ok</span>(())
-    }
-}
-
-<span class="doccomment">/// A Zend class object which is allocated when a PHP</span>
-<span class="doccomment">/// class object is instantiated. Overrides the default</span>
-<span class="doccomment">/// handler when the user provides a type T of the struct</span>
-<span class="doccomment">/// they want to override with.</span>
+<span class="doccomment">/// Representation of a Zend class object in memory. Usually seen through its managed variant</span>
+<span class="doccomment">/// of [`ClassObject`].</span>
 <span class="attribute">#[<span class="ident">repr</span>(<span class="ident">C</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Default</span><span class="op">&gt;</span> {
-    <span class="ident">obj</span>: <span class="ident">T</span>,
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> {
+    <span class="ident">obj</span>: <span class="ident">MaybeUninit</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
     <span class="ident">std</span>: <span class="ident">zend_object</span>,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Default</span><span class="op">&gt;</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Allocates a new object when an instance of the class is created in the PHP world.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Internal function. The end user functions are generated by the [`php_class`](crate::php_class)</span>
-    <span class="doccomment">/// attribute macro which generates a function that wraps this function to be exported to C.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// # Parameters</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// * `ce` - The class entry that was created.</span>
-    <span class="doccomment">/// * `handlers` - A pointer to the object handlers for the class.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// # Safety</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// This function is an internal function which is only called from code which is derived using</span>
-    <span class="doccomment">/// the [`php_class`](crate::php_class) attribute macro. PHP will guarantee that any pointers</span>
-    <span class="doccomment">/// given to this function will be valid, therefore we can dereference them with safety.</span>
-    <span class="kw">pub</span> <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">new_ptr</span>(
-        <span class="ident">ce</span>: <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">ClassEntry</span>,
-        <span class="ident">handlers</span>: <span class="kw-2">&amp;</span><span class="ident">ZendObjectHandlers</span>,
-    ) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">zend_object</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">obj</span> <span class="op">=</span> {
-            <span class="kw">let</span> <span class="ident">obj</span> <span class="op">=</span> (<span class="ident">ext_php_rs_zend_object_alloc</span>(<span class="ident">std::mem::size_of</span>::<span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>() <span class="kw">as</span> <span class="kw">_</span>, <span class="ident">ce</span>)
-                <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Allocates memory for a new PHP object. The memory is allocated using the Zend memory manager,</span>
+    <span class="doccomment">/// and therefore it is returned as a pointer.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new_ptr</span>(<span class="ident">val</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span> {
+        <span class="kw">let</span> <span class="ident">size</span> <span class="op">=</span> <span class="ident">mem::size_of</span>::<span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span>();
+        <span class="kw">let</span> <span class="ident">meta</span> <span class="op">=</span> <span class="ident">T::get_metadata</span>();
+        <span class="kw">let</span> <span class="ident">ce</span> <span class="op">=</span> <span class="ident">meta</span>.<span class="ident">ce</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="kw">_</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>;
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">obj</span> <span class="op">=</span> (<span class="ident">ext_php_rs_zend_object_alloc</span>(<span class="ident">size</span> <span class="kw">as</span> <span class="kw">_</span>, <span class="ident">ce</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span>)
                 .<span class="ident">as_mut</span>()
-                .<span class="ident">ok_or</span>(<span class="ident">Error::InvalidPointer</span>)<span class="question-mark">?</span>;
+                .<span class="ident">expect</span>(<span class="string">&quot;Failed to allocate memory for new class object.&quot;</span>);
 
             <span class="ident">zend_object_std_init</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">obj</span>.<span class="ident">std</span>, <span class="ident">ce</span>);
             <span class="ident">object_properties_init</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">obj</span>.<span class="ident">std</span>, <span class="ident">ce</span>);
+
+            <span class="ident">obj</span>.<span class="ident">obj</span> <span class="op">=</span> <span class="ident">MaybeUninit::new</span>(<span class="ident">val</span>.<span class="ident">unwrap_or_default</span>());
+            <span class="ident">obj</span>.<span class="ident">std</span>.<span class="ident">handlers</span> <span class="op">=</span> <span class="ident">meta</span>.<span class="ident">handlers</span>();
             <span class="ident">obj</span>
-        };
-
-        <span class="ident">obj</span>.<span class="ident">obj</span> <span class="op">=</span> <span class="ident">T::default</span>();
-        <span class="ident">obj</span>.<span class="ident">std</span>.<span class="ident">handlers</span> <span class="op">=</span> <span class="ident">handlers</span>;
-        <span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">obj</span>.<span class="ident">std</span>)
-    }
-
-    <span class="doccomment">/// Attempts to retrieve the Zend class object container from the</span>
-    <span class="doccomment">/// zend object contained in the execution data of a function.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// # Parameters</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// * `ex` - The execution data of the function.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="ident">ex</span>: <span class="kw-2">&amp;</span><span class="ident">ExecutionData</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span> {
-        <span class="comment">// cast to u8 to work in terms of bytes</span>
-        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> (<span class="ident">ex</span>.<span class="ident">This</span>.<span class="ident">object</span>()<span class="question-mark">?</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">ZendObject</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="ident">u8</span>;
-        <span class="kw">let</span> <span class="ident">offset</span> <span class="op">=</span> <span class="ident">std::mem::size_of</span>::<span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>();
-        <span class="kw">unsafe</span> {
-            <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="ident">ptr</span>.<span class="ident">offset</span>(<span class="number">0</span> <span class="op">-</span> <span class="ident">offset</span> <span class="kw">as</span> <span class="ident">isize</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span>;
-            <span class="ident">ptr</span>.<span class="ident">as_mut</span>()
         }
     }
 
-    <span class="doccomment">/// Returns a reference to the [`ZendClassObject`] of a given object `T`.</span>
+    <span class="doccomment">/// Returns a reference to the [`ZendClassObject`] of a given object `T`. Returns [`None`]</span>
+    <span class="doccomment">/// if the given object is not of the type `T`.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Parameters</span>
     <span class="doccomment">///</span>
@@ -769,64 +1012,97 @@
     <span class="doccomment">/// Caller must guarantee that the given `obj` was created by Zend, which means that it</span>
     <span class="doccomment">/// is immediately followed by a [`zend_object`].</span>
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">unsafe</span> <span class="kw">fn</span> <span class="ident">from_obj_ptr</span>(<span class="ident">obj</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="op">&gt;</span> {
-        ((<span class="ident">obj</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">T</span>) <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span>).<span class="ident">as_mut</span>()
+        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> (<span class="ident">obj</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw">const</span> <span class="ident">T</span> <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="self">Self</span>).<span class="ident">as_mut</span>()<span class="question-mark">?</span>;
+
+        <span class="kw">if</span> <span class="ident">ptr</span>.<span class="ident">std</span>.<span class="ident">is_instance</span>::<span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>() {
+            <span class="prelude-val">Some</span>(<span class="ident">ptr</span>)
+        } <span class="kw">else</span> {
+            <span class="prelude-val">None</span>
+        }
+    }
+
+    <span class="doccomment">/// Returns a mutable reference to the underlying Zend object.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">get_mut_zend_obj</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">zend_object</span> {
+        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">std</span>
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Default</span> <span class="op">+</span> <span class="ident">Debug</span><span class="op">&gt;</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std::fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::fmt::Result</span> {
-        <span class="self">self</span>.<span class="ident">obj</span>.<span class="ident">fmt</span>(<span class="ident">f</span>)
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RegisteredClass</span><span class="op">&gt;</span> <span class="ident">Drop</span> <span class="kw">for</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="kw">fn</span> <span class="ident">drop</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
+        <span class="comment">// SAFETY: All constructors guarantee that `obj` is valid.</span>
+        <span class="kw">unsafe</span> { <span class="ident">std::ptr::drop_in_place</span>(<span class="self">self</span>.<span class="ident">obj</span>.<span class="ident">as_mut_ptr</span>()) };
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Default</span><span class="op">&gt;</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> <span class="ident">T</span>;
-
-    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="self">Self</span><span class="ident">::Target</span> {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">obj</span>
-    }
-}
-
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Default</span><span class="op">&gt;</span> <span class="ident">DerefMut</span> <span class="kw">for</span> <span class="ident">ZendClassObject</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">deref_mut</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">Self</span><span class="ident">::Target</span> {
-        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">obj</span>
-    }
-}
-
-<span class="doccomment">/// Lazy-loading wrapper around the [`ZendObjectHandlers`] type.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Handlers</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="ident">init</span>: <span class="ident">AtomicBool</span>,
+<span class="doccomment">/// Stores the class entry and handlers for a Rust type which has been exported to PHP.</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ClassMetadata</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="ident">handlers_init</span>: <span class="ident">AtomicBool</span>,
     <span class="ident">handlers</span>: <span class="ident">MaybeUninit</span><span class="op">&lt;</span><span class="ident">ZendObjectHandlers</span><span class="op">&gt;</span>,
+    <span class="ident">ce</span>: <span class="ident">AtomicPtr</span><span class="op">&lt;</span><span class="ident">ClassEntry</span><span class="op">&gt;</span>,
+
     <span class="ident">phantom</span>: <span class="ident">PhantomData</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">Handlers</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Creates a new instance of object handlers.</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">ClassMetadata</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Creates a new class metadata instance.</span>
     <span class="kw">pub</span> <span class="kw">const</span> <span class="kw">fn</span> <span class="ident">new</span>() <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">Self</span> {
-            <span class="ident">init</span>: <span class="ident">AtomicBool::new</span>(<span class="bool-val">false</span>),
+            <span class="ident">handlers_init</span>: <span class="ident">AtomicBool::new</span>(<span class="bool-val">false</span>),
             <span class="ident">handlers</span>: <span class="ident">MaybeUninit::uninit</span>(),
+            <span class="ident">ce</span>: <span class="ident">AtomicPtr::new</span>(<span class="ident">std::ptr::null_mut</span>()),
             <span class="ident">phantom</span>: <span class="ident">PhantomData</span>,
         }
     }
 
-    <span class="doccomment">/// Returns an immutable reference to the object handlers, initializing them in the process</span>
-    <span class="doccomment">/// if they have not already been initialized.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">ZendObjectHandlers</span> {
-        <span class="self">self</span>.<span class="ident">check_uninit</span>();
+    <span class="doccomment">/// Returns an immutable reference to the object handlers contained inside the class metadata.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">handlers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">ZendObjectHandlers</span> {
+        <span class="self">self</span>.<span class="ident">check_handlers</span>();
 
-        <span class="comment">// SAFETY: `check_uninit` guarantees that the handlers have been initialized.</span>
+        <span class="comment">// SAFETY: `check_handlers` guarantees that `handlers` has been initialized.</span>
         <span class="kw">unsafe</span> { <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">as_ptr</span>() }
     }
 
-    <span class="doccomment">/// Checks if the handlers have been initialized, and initializes them if they have not been.</span>
-    <span class="kw">fn</span> <span class="ident">check_uninit</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">init</span>.<span class="ident">load</span>(<span class="ident">Ordering::Acquire</span>) {
-            <span class="comment">// SAFETY: Memory location has been initialized therefore given pointer is valid.</span>
-            <span class="kw">unsafe</span> {
-                <span class="ident">ZendObjectHandlers::init</span>::<span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>);
-            };
-            <span class="self">self</span>.<span class="ident">init</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">Ordering::Release</span>);
+    <span class="doccomment">/// Checks if the class entry has been stored, returning a boolean.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_ce</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
+        <span class="op">!</span><span class="self">self</span>.<span class="ident">ce</span>.<span class="ident">load</span>(<span class="ident">Ordering::SeqCst</span>).<span class="ident">is_null</span>()
+    }
+
+    <span class="doccomment">/// Retrieves a reference to the stored class entry.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Panics if there is no class entry stored inside the class metadata.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ce</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">ClassEntry</span> {
+        <span class="comment">// SAFETY: There are only two values that can be stored in the atomic ptr: null or a static reference</span>
+        <span class="comment">// to a class entry. On the latter case, `as_ref()` will return `None` and the function will panic.</span>
+        <span class="kw">unsafe</span> { <span class="self">self</span>.<span class="ident">ce</span>.<span class="ident">load</span>(<span class="ident">Ordering::SeqCst</span>).<span class="ident">as_ref</span>() }
+            .<span class="ident">expect</span>(<span class="string">&quot;Attempted to retrieve class entry before it has been stored.&quot;</span>)
+    }
+
+    <span class="doccomment">/// Stores a reference to a class entry inside the class metadata.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Parameters</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// * `ce` - The class entry to store.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// # Panics</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Panics if the class entry has already been set in the class metadata. This function should</span>
+    <span class="doccomment">/// only be called once.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_ce</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ce</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="kw-2">mut</span> <span class="ident">ClassEntry</span>) {
+        <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">ce</span>.<span class="ident">load</span>(<span class="ident">Ordering::SeqCst</span>).<span class="ident">is_null</span>() {
+            <span class="macro">panic!</span>(<span class="string">&quot;Class entry has already been set.&quot;</span>);
+        }
+
+        <span class="self">self</span>.<span class="ident">ce</span>.<span class="ident">store</span>(<span class="ident">ce</span>, <span class="ident">Ordering::SeqCst</span>);
+    }
+
+    <span class="doccomment">/// Checks if the handlers have been initialized, and initializes them if they are not.</span>
+    <span class="kw">fn</span> <span class="ident">check_handlers</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+        <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">handlers_init</span>.<span class="ident">load</span>(<span class="ident">Ordering::Acquire</span>) {
+            <span class="comment">// SAFETY: `MaybeUninit` has the same size as the handlers.</span>
+            <span class="kw">unsafe</span> { <span class="ident">ZendObjectHandlers::init</span>::<span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="self">self</span>.<span class="ident">handlers</span>.<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*</span><span class="kw-2">mut</span> <span class="kw">_</span>) };
+            <span class="self">self</span>.<span class="ident">handlers_init</span>.<span class="ident">store</span>(<span class="bool-val">true</span>, <span class="ident">Ordering::Release</span>);
         }
     }
 }

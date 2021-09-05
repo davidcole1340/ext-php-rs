@@ -194,15 +194,54 @@
 <span id="192">192</span>
 <span id="193">193</span>
 <span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Builder and objects relating to function and method arguments.</span>
 
-<span class="kw">use</span> <span class="ident">std::convert</span>::{<span class="ident">TryFrom</span>, <span class="ident">TryInto</span>};
+<span class="kw">use</span> <span class="ident">std</span>::{
+    <span class="ident">convert</span>::{<span class="ident">TryFrom</span>, <span class="ident">TryInto</span>},
+    <span class="ident">ffi::CString</span>,
+    <span class="ident">ptr</span>,
+};
 
 <span class="kw">use</span> <span class="kw">super</span>::{
     <span class="ident">enums::DataType</span>,
     <span class="ident">execution_data::ExecutionData</span>,
-    <span class="ident">types::zval</span>::{<span class="ident">IntoZvalDyn</span>, <span class="ident">Zval</span>},
+    <span class="ident">types</span>::{
+        <span class="ident">zval</span>::{<span class="ident">IntoZvalDyn</span>, <span class="ident">Zval</span>},
+        <span class="ident">ZendType</span>,
+    },
 };
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
@@ -219,12 +258,13 @@
 <span class="doccomment">/// Represents an argument to a function.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Arg</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">name</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">_type</span>: <span class="ident">DataType</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">as_ref</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">allow_null</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">default_value</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">zval</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Zval</span><span class="op">&gt;</span>,
+    <span class="ident">name</span>: <span class="ident">String</span>,
+    <span class="ident">_type</span>: <span class="ident">DataType</span>,
+    <span class="ident">as_ref</span>: <span class="ident">bool</span>,
+    <span class="ident">allow_null</span>: <span class="ident">bool</span>,
+    <span class="ident">variadic</span>: <span class="ident">bool</span>,
+    <span class="ident">default_value</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="ident">zval</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">Zval</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">Arg</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
@@ -240,6 +280,7 @@
             <span class="ident">_type</span>,
             <span class="ident">as_ref</span>: <span class="bool-val">false</span>,
             <span class="ident">allow_null</span>: <span class="bool-val">false</span>,
+            <span class="ident">variadic</span>: <span class="bool-val">false</span>,
             <span class="ident">default_value</span>: <span class="prelude-val">None</span>,
             <span class="ident">zval</span>: <span class="prelude-val">None</span>,
         }
@@ -249,6 +290,12 @@
     <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::wrong_self_convention</span>)]</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_ref</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="self">self</span>.<span class="ident">as_ref</span> <span class="op">=</span> <span class="bool-val">true</span>;
+        <span class="self">self</span>
+    }
+
+    <span class="doccomment">/// Sets the argument as variadic.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_variadic</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+        <span class="self">self</span>.<span class="ident">variadic</span> <span class="op">=</span> <span class="bool-val">true</span>;
         <span class="self">self</span>
     }
 
@@ -294,6 +341,23 @@
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">try_call</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">params</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="kw">dyn</span> <span class="ident">IntoZvalDyn</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Zval</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">zval</span>().<span class="ident">ok_or</span>(<span class="ident">Error::Callable</span>)<span class="question-mark">?</span>.<span class="ident">try_call</span>(<span class="ident">params</span>)
     }
+
+    <span class="doccomment">/// Returns the internal PHP argument info.</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">as_arg_info</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ArgInfo</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Ok</span>(<span class="ident">ArgInfo</span> {
+            <span class="ident">name</span>: <span class="ident">CString::new</span>(<span class="self">self</span>.<span class="ident">name</span>.<span class="ident">as_str</span>())<span class="question-mark">?</span>.<span class="ident">into_raw</span>(),
+            <span class="ident">type_</span>: <span class="ident">ZendType::empty_from_type</span>(
+                <span class="self">self</span>.<span class="ident">_type</span>,
+                <span class="self">self</span>.<span class="ident">as_ref</span>,
+                <span class="self">self</span>.<span class="ident">variadic</span>,
+                <span class="self">self</span>.<span class="ident">allow_null</span>,
+            ),
+            <span class="ident">default_value</span>: <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">default_value</span> {
+                <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">CString::new</span>(<span class="ident">val</span>.<span class="ident">as_str</span>())<span class="question-mark">?</span>.<span class="ident">into_raw</span>(),
+                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ptr::null</span>(),
+            },
+        })
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Arg</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">_zend_expected_type</span> {
@@ -324,12 +388,12 @@
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ArgParser</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;arg</span>, <span class="lifetime">&#39;zval</span><span class="op">&gt;</span> {
     <span class="ident">args</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;arg</span> <span class="kw-2">mut</span> <span class="ident">Arg</span><span class="op">&lt;</span><span class="lifetime">&#39;zval</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">min_num_args</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
-    <span class="ident">execute_data</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">ExecutionData</span>,
+    <span class="ident">execute_data</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">ExecutionData</span>,
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;arg</span>, <span class="lifetime">&#39;zval</span><span class="op">&gt;</span> <span class="ident">ArgParser</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="lifetime">&#39;arg</span>, <span class="lifetime">&#39;zval</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Builds a new function argument parser.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">execute_data</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">ExecutionData</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">execute_data</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">ExecutionData</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="self">Self</span> {
         <span class="ident">ArgParser</span> {
             <span class="ident">args</span>: <span class="macro">vec!</span>[],
             <span class="ident">min_num_args</span>: <span class="prelude-val">None</span>,

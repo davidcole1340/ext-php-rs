@@ -145,20 +145,11 @@
 <span id="143">143</span>
 <span id="144">144</span>
 <span id="145">145</span>
-<span id="146">146</span>
-<span id="147">147</span>
-<span id="148">148</span>
-<span id="149">149</span>
-<span id="150">150</span>
 </pre><pre class="rust">
 <span class="doccomment">//! Represents a string in the PHP world. Similar to a C string, but is reference counted and</span>
 <span class="doccomment">//! contains the length of the string, meaning the string can contain the NUL character.</span>
 
-<span class="kw">use</span> <span class="ident">std</span>::{
-    <span class="ident">convert</span>::{<span class="ident">TryFrom</span>, <span class="ident">TryInto</span>},
-    <span class="ident">ffi::CString</span>,
-    <span class="ident">fmt::Debug</span>,
-};
+<span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">convert::TryFrom</span>, <span class="ident">ffi::CString</span>, <span class="ident">fmt::Debug</span>};
 
 <span class="kw">use</span> <span class="kw">crate</span>::{
     <span class="ident">bindings</span>::{
@@ -294,10 +285,9 @@
 
 <span class="kw">impl</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">ZendString</span> {
     <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">std::fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">std::fmt::Result</span> {
-        <span class="kw">let</span> <span class="ident">s</span>: <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">try_into</span>();
-        <span class="kw">match</span> <span class="ident">s</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">s</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">s</span>.<span class="ident">fmt</span>(<span class="ident">f</span>),
-            <span class="prelude-val">Err</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span>::<span class="op">&lt;</span>()<span class="op">&gt;</span><span class="ident">::None</span>.<span class="ident">fmt</span>(<span class="ident">f</span>),
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">as_str</span>() {
+            <span class="prelude-val">Some</span>(<span class="ident">str</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">str</span>.<span class="ident">fmt</span>(<span class="ident">f</span>),
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span>::<span class="op">&lt;</span>()<span class="op">&gt;</span><span class="ident">::None</span>.<span class="ident">fmt</span>(<span class="ident">f</span>),
         }
     }
 }
