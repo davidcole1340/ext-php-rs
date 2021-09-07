@@ -629,12 +629,16 @@ where
 
 /// Allows zvals to be converted into Rust types in a fallible way. Reciprocal of the [`IntoZval`]
 /// trait.
-///
-/// This trait requires the [`TryFrom`] trait to be implemented. All this trait does is contain the
-/// type of data that is expected when parsing the value, which is used when parsing arguments.
-pub trait FromZval<'a>: TryFrom<&'a Zval> {
+pub trait FromZval<'a>: Sized {
     /// The corresponding type of the implemented value in PHP.
     const TYPE: DataType;
+
+    /// Attempts to retrieve an instance of `Self` from a reference to a [`Zval`].
+    ///
+    /// # Parameters
+    ///
+    /// * `zval` - Zval to get value from.
+    fn from_zval(zval: &'a Zval) -> Option<Self>;
 }
 
 impl<'a, T> FromZval<'a> for Option<T>
@@ -642,32 +646,19 @@ where
     T: FromZval<'a>,
 {
     const TYPE: DataType = T::TYPE;
-}
 
-// Converting to an option is infallible.
-impl<'a, T> From<&'a Zval> for Option<T>
-where
-    T: FromZval<'a>,
-{
-    fn from(val: &'a Zval) -> Self {
-        val.try_into().ok()
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        Some(T::from_zval(zval))
     }
 }
 
 macro_rules! try_from_zval {
     ($type: ty, $fn: ident, $dt: ident) => {
-        impl<'a> FromZval<'a> for $type {
+        impl FromZval<'_> for $type {
             const TYPE: DataType = DataType::$dt;
-        }
 
-        impl TryFrom<&Zval> for $type {
-            type Error = Error;
-
-            fn try_from(value: &Zval) -> Result<Self> {
-                value
-                    .$fn()
-                    .and_then(|val| val.try_into().ok())
-                    .ok_or(Error::ZvalConversion(value.get_type()?))
+            fn from_zval(zval: &Zval) -> Option<Self> {
+                zval.$fn().and_then(|val| val.try_into().ok())
             }
         }
 
@@ -675,7 +666,7 @@ macro_rules! try_from_zval {
             type Error = Error;
 
             fn try_from(value: Zval) -> Result<Self> {
-                (&value).try_into()
+                Self::from_zval(&value).ok_or(Error::ZvalConversion(value.get_type()?))
             }
         }
     };
@@ -698,44 +689,27 @@ try_from_zval!(f64, double, Double);
 try_from_zval!(bool, bool, Bool);
 try_from_zval!(String, string, String);
 
-impl<'a> FromZval<'a> for f32 {
+impl FromZval<'_> for f32 {
     const TYPE: DataType = DataType::Double;
-}
 
-impl<'a> TryFrom<&'a Zval> for f32 {
-    type Error = Error;
-
-    fn try_from(value: &'a Zval) -> Result<Self> {
-        value
-            .double()
-            .map(|v| v as f32)
-            .ok_or(Error::ZvalConversion(value.get_type()?))
+    fn from_zval(zval: &Zval) -> Option<Self> {
+        zval.double().map(|v| v as f32)
     }
 }
 
 impl<'a> FromZval<'a> for &'a str {
     const TYPE: DataType = DataType::String;
-}
 
-impl<'a> TryFrom<&'a Zval> for &'a str {
-    type Error = Error;
-
-    fn try_from(value: &'a Zval) -> Result<Self> {
-        value.str().ok_or(Error::ZvalConversion(value.get_type()?))
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        zval.str()
     }
 }
 
 impl<'a> FromZval<'a> for ZendHashTable<'a> {
     const TYPE: DataType = DataType::Array;
-}
 
-impl<'a> TryFrom<&'a Zval> for ZendHashTable<'a> {
-    type Error = Error;
-
-    fn try_from(value: &'a Zval) -> Result<Self> {
-        value
-            .array()
-            .ok_or(Error::ZvalConversion(value.get_type()?))
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        zval.array()
     }
 }
 
@@ -744,19 +718,9 @@ where
     T: FromZval<'a>,
 {
     const TYPE: DataType = DataType::Array;
-}
 
-impl<'a, T> TryFrom<&'a Zval> for Vec<T>
-where
-    T: FromZval<'a>,
-{
-    type Error = Error;
-
-    fn try_from(value: &'a Zval) -> Result<Self> {
-        value
-            .array()
-            .ok_or(Error::ZvalConversion(value.get_type()?))?
-            .try_into()
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        zval.array().and_then(|arr| arr.try_into().ok())
     }
 }
 
@@ -779,19 +743,9 @@ where
     T: FromZval<'a>,
 {
     const TYPE: DataType = DataType::Array;
-}
 
-impl<'a, T> TryFrom<&'a Zval> for HashMap<String, T>
-where
-    T: FromZval<'a>,
-{
-    type Error = Error;
-
-    fn try_from(value: &'a Zval) -> Result<Self> {
-        value
-            .array()
-            .ok_or(Error::ZvalConversion(value.get_type()?))?
-            .try_into()
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        zval.array().and_then(|arr| arr.try_into().ok())
     }
 }
 
@@ -811,13 +765,9 @@ where
 
 impl<'a> FromZval<'a> for Callable<'a> {
     const TYPE: DataType = DataType::Callable;
-}
 
-impl<'a> TryFrom<&'a Zval> for Callable<'a> {
-    type Error = Error;
-
-    fn try_from(value: &'a Zval) -> Result<Self> {
-        Callable::new(value)
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        Callable::new(zval).ok()
     }
 }
 
