@@ -128,6 +128,11 @@ pub struct Test {
     pub test: String,
 }
 
+#[php_function]
+pub fn take_test(test: &Test) -> String {
+    test.test.clone()
+}
+
 #[php_class]
 #[derive(Default)]
 struct PhpFuture {
@@ -150,11 +155,9 @@ impl PhpFuture {
     }
 
     pub fn obj(&self) -> ClassObject<Test> {
-        let obj = ClassObject::new(Test {
+        ClassObject::new(Test {
             test: "Hello world from class entry :)".into(),
-        });
-
-        obj
+        })
     }
 
     pub fn return_self(&self) -> ClassRef<PhpFuture> {

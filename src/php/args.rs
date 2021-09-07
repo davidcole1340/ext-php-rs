@@ -1,16 +1,12 @@
 //! Builder and objects relating to function and method arguments.
 
-use std::{
-    convert::{TryFrom, TryInto},
-    ffi::CString,
-    ptr,
-};
+use std::{ffi::CString, ptr};
 
 use super::{
     enums::DataType,
     execution_data::ExecutionData,
     types::{
-        zval::{IntoZvalDyn, Zval},
+        zval::{FromZval, IntoZvalDyn, Zval},
         ZendType,
     },
 };
@@ -85,8 +81,8 @@ impl<'a> Arg<'a> {
     /// Attempts to retrieve the value of the argument.
     /// This will be None until the ArgParser is used to parse
     /// the arguments.
-    pub fn val<T: TryFrom<&'a Zval>>(&self) -> Option<T> {
-        self.zval.and_then(|zv| zv.try_into().ok())
+    pub fn val<T: FromZval<'a>>(&self) -> Option<T> {
+        self.zval.and_then(|zv| T::from_zval(zv))
     }
 
     /// Attempts to return a reference to the arguments internal Zval.

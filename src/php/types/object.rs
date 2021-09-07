@@ -343,6 +343,38 @@ impl<T: RegisteredClass> IntoZval for T {
     }
 }
 
+impl<'a, T: RegisteredClass> FromZval<'a> for &'a T {
+    const TYPE: DataType = DataType::Object;
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        let obj = zval.object()?;
+
+        if obj.is_instance::<T>() {
+            // SAFETY: If the zend object is an instance of `T`, we can guarantee that the memory before
+            // it is occupied by an instance of `T`.
+            unsafe { ((obj as *mut ZendObject) as *mut T).offset(-1).as_ref() }
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a, T: RegisteredClass> FromZval<'a> for &'a mut T {
+    const TYPE: DataType = DataType::Object;
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        let obj = zval.object()?;
+
+        if obj.is_instance::<T>() {
+            // SAFETY: If the zend object is an instance of `T`, we can guarantee that the memory before
+            // it is occupied by an instance of `T`.
+            unsafe { ((obj as *mut ZendObject) as *mut T).offset(-1).as_mut() }
+        } else {
+            None
+        }
+    }
+}
+
 /// Implemented on Rust types which are exported to PHP. Allows users to get and set PHP properties on
 /// the object.
 pub trait RegisteredClass: Default + Sized
@@ -375,7 +407,7 @@ where
     unsafe fn get_property<'a, T: FromZval<'a>>(&'a self, name: &str) -> Option<T> {
         let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
         let zv = obj.std.get_property(name).ok()?;
-        zv.try_into().ok()
+        T::from_zval(zv)
     }
 
     /// Attempts to set the value of a property on the class object.

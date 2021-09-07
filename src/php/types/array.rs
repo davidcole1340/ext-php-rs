@@ -18,12 +18,11 @@ use crate::{
         HT_MIN_SIZE,
     },
     errors::{Error, Result},
-    php::enums::DataType,
 };
 
 use super::{
     string::ZendString,
-    zval::{IntoZval, Zval},
+    zval::{FromZval, IntoZval, Zval},
 };
 
 /// Result type returned after attempting to insert an element into a hash table.
@@ -369,7 +368,7 @@ build_iter!(IntoIter, ZendHashTable<'a>);
 
 impl<'a, V> TryFrom<ZendHashTable<'a>> for HashMap<String, V>
 where
-    V: TryFrom<&'a Zval>,
+    V: FromZval<'a>,
 {
     type Error = Error;
 
@@ -379,8 +378,7 @@ where
         for (idx, key, val) in zht.into_iter() {
             hm.insert(
                 key.unwrap_or_else(|| idx.to_string()),
-                val.try_into()
-                    .map_err(|_| Error::ZvalConversion(DataType::Null))?,
+                V::from_zval(val).ok_or(Error::ZvalConversion(val.get_type()?))?,
             );
         }
 
@@ -432,16 +430,13 @@ where
 /// a type `T`.
 impl<'a, V> TryFrom<ZendHashTable<'a>> for Vec<V>
 where
-    V: TryFrom<&'a Zval>,
+    V: FromZval<'a>,
 {
     type Error = Error;
 
     fn try_from(ht: ZendHashTable<'a>) -> Result<Self> {
         ht.into_iter()
-            .map(|(_, _, v)| {
-                v.try_into()
-                    .map_err(|_| Error::ZvalConversion(DataType::Null))
-            })
+            .map(|(_, _, v)| V::from_zval(v).ok_or(Error::ZvalConversion(v.get_type()?)))
             .collect::<Result<Vec<_>>>()
     }
 }
