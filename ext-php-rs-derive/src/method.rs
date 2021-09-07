@@ -1,4 +1,5 @@
 use anyhow::{anyhow, bail, Result};
+use ident_case::RenameRule;
 use quote::ToTokens;
 use std::collections::HashMap;
 
@@ -32,6 +33,29 @@ pub struct Method {
     pub output: Option<(String, bool)>,
     pub _static: bool,
     pub visibility: Visibility,
+}
+
+fn camel_case_identifier(field: &str) -> String {
+    match field {
+        "__construct" => "__construct".to_string(),
+        "__destruct" => "__destruct".to_string(),
+        "__call" => "__call".to_string(),
+        "__call_static" => "__callStatic".to_string(),
+        "__get" => "__get".to_string(),
+        "__set" => "__set".to_string(),
+        "__isset" => "__isset".to_string(),
+        "__unset" => "__unset".to_string(),
+        "__sleep" => "__sleep".to_string(),
+        "__wakeup" => "__wakeup".to_string(),
+        "__serialize" => "__serialize".to_string(),
+        "__unserialize" => "__unserialize".to_string(),
+        "__to_string" => "__toString".to_string(),
+        "__invoke" => "__invoke".to_string(),
+        "__set_state" => "__set_state".to_string(),
+        "__clone" => "__clone".to_string(),
+        "__debug_info" => "__debugInfo".to_string(),
+        field => RenameRule::CamelCase.apply_to_field(field),
+    }
 }
 
 pub fn parser(input: &mut ImplItemMethod) -> Result<(TokenStream, Method)> {
@@ -93,7 +117,7 @@ pub fn parser(input: &mut ImplItemMethod) -> Result<(TokenStream, Method)> {
     };
 
     let method = Method {
-        name: ident.to_string(),
+        name: camel_case_identifier(&ident.to_string()),
         ident: internal_ident.to_string(),
         args,
         optional,
@@ -245,5 +269,36 @@ impl Method {
             .map(|flag| quote! { ::ext_php_rs::php::flags::MethodFlags::#flag })
             .collect::<Punctuated<TokenStream, Token![|]>>()
             .to_token_stream()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::camel_case_identifier;
+
+    #[test]
+    fn test_rename_php_methods() {
+        for &(original, expected) in &[
+            ("__construct", "__construct"),
+            ("__destruct", "__destruct"),
+            ("__call", "__call"),
+            ("__call_static", "__callStatic"),
+            ("__get", "__get"),
+            ("__set", "__set"),
+            ("__isset", "__isset"),
+            ("__unset", "__unset"),
+            ("__sleep", "__sleep"),
+            ("__wakeup", "__wakeup"),
+            ("__serialize", "__serialize"),
+            ("__unserialize", "__unserialize"),
+            ("__to_string", "__toString"),
+            ("__invoke", "__invoke"),
+            ("__set_state", "__set_state"),
+            ("__clone", "__clone"),
+            ("__debug_info", "__debugInfo"),
+            ("get_name", "getName"),
+        ] {
+            assert_eq!(camel_case_identifier(original), expected);
+        }
     }
 }
