@@ -564,7 +564,7 @@ try_into_zval_str!(String);
 try_into_zval_str!(&str);
 
 impl IntoZval for () {
-    const TYPE: DataType = DataType::Null;
+    const TYPE: DataType = DataType::Void;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         zv.set_null();
