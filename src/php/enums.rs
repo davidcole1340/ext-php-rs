@@ -132,11 +132,12 @@ impl TryFrom<u32> for DataType {
         contains!(IS_TRUE, True);
         contains!(IS_FALSE, False);
         contains!(IS_NULL, Null);
-        contains!(IS_UNDEF, Undef);
 
         if (value & IS_OBJECT) == IS_OBJECT {
             return Ok(DataType::Object(None));
         }
+
+        contains!(IS_UNDEF, Undef);
 
         Err(Error::UnknownDatatype(value))
     }
