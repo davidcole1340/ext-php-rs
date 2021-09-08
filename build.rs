@@ -62,7 +62,7 @@ fn main() {
         .and_then(|ver| ver.as_str().parse::<u32>().ok())
         .expect("Unable to retrieve PHP API version from `php -i`.");
 
-    if api_ver < MIN_PHP_API_VER || api_ver > MAX_PHP_API_VER {
+    if !(MIN_PHP_API_VER..=MAX_PHP_API_VER).contains(&api_ver) {
         panic!("The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}", api_ver, MIN_PHP_API_VER, MAX_PHP_API_VER);
     }
 
