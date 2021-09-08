@@ -2,8 +2,8 @@
 
 use std::{ffi::CString, mem, os::raw::c_char, ptr};
 
-use crate::bindings::zend_function_entry;
 use crate::errors::Result;
+use crate::{bindings::zend_function_entry, errors::Error};
 
 use super::{
     args::{Arg, ArgInfo},
@@ -132,6 +132,7 @@ impl<'a> FunctionBuilder<'a> {
             type_: match self.retval {
                 Some(retval) => {
                     ZendType::empty_from_type(retval, self.ret_as_ref, false, self.ret_as_null)
+                        .ok_or(Error::InvalidCString)?
                 }
                 None => ZendType::empty(false, false),
             },

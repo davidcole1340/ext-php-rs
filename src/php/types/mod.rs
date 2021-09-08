@@ -12,11 +12,14 @@ pub mod object;
 pub mod string;
 pub mod zval;
 
-use std::{ffi::c_void, ptr};
+use std::{
+    ffi::{c_void, CString},
+    ptr,
+};
 
 use crate::bindings::{
     zend_type, IS_MIXED, MAY_BE_ANY, MAY_BE_BOOL, _IS_BOOL, _ZEND_IS_VARIADIC_BIT,
-    _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NULLABLE_BIT,
+    _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NAME_BIT, _ZEND_TYPE_NULLABLE_BIT,
 };
 
 use super::enums::DataType;
@@ -38,12 +41,84 @@ impl ZendType {
         }
     }
 
+    /// Attempts to create a zend type for a given datatype. Returns an option containing the type.
+    ///
+    /// Returns [`None`] if the data type was a class object where the class name could not be converted
+    /// into a C string (i.e. contained NUL-bytes).
+    ///
+    /// # Parameters
+    ///
+    /// * `type_` - Data type to create zend type for.
+    /// * `pass_by_ref` - Whether the type should be passed by reference.
+    /// * `is_variadic` - Whether the type is for a variadic argument.
+    /// * `allow_null` - Whether the type should allow null to be passed in place.
     pub fn empty_from_type(
         type_: DataType,
         pass_by_ref: bool,
         is_variadic: bool,
         allow_null: bool,
+    ) -> Option<Self> {
+        match type_ {
+            DataType::Object(Some(class)) => {
+                Self::empty_from_class_type(class, pass_by_ref, is_variadic, allow_null)
+            }
+            type_ => Some(Self::empty_from_primitive_type(
+                type_,
+                pass_by_ref,
+                is_variadic,
+                allow_null,
+            )),
+        }
+    }
+
+    /// Attempts to create a zend type for a class object type. Returns an option containing the type if successful.
+    ///
+    /// Returns [`None`] if the data type was a class object where the class name could not be converted
+    /// into a C string (i.e. contained NUL-bytes).
+    ///
+    /// # Parameters
+    ///
+    /// * `class_name` - Name of the class parameter.
+    /// * `pass_by_ref` - Whether the type should be passed by reference.
+    /// * `is_variadic` - Whether the type is for a variadic argument.
+    /// * `allow_null` - Whether the type should allow null to be passed in place.
+    fn empty_from_class_type(
+        class_name: &str,
+        pass_by_ref: bool,
+        is_variadic: bool,
+        allow_null: bool,
+    ) -> Option<Self> {
+        Some(Self {
+            ptr: CString::new(class_name).ok()?.into_raw() as *mut c_void,
+            type_mask: _ZEND_TYPE_NAME_BIT
+                | (if allow_null {
+                    _ZEND_TYPE_NULLABLE_BIT
+                } else {
+                    0
+                })
+                | Self::arg_info_flags(pass_by_ref, is_variadic),
+        })
+    }
+
+    /// Attempts to create a zend type for a primitive PHP type.
+    ///
+    /// # Parameters
+    ///
+    /// * `type_` - Data type to create zend type for.
+    /// * `pass_by_ref` - Whether the type should be passed by reference.
+    /// * `is_variadic` - Whether the type is for a variadic argument.
+    /// * `allow_null` - Whether the type should allow null to be passed in place.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given `type_` is for a class object type.
+    fn empty_from_primitive_type(
+        type_: DataType,
+        pass_by_ref: bool,
+        is_variadic: bool,
+        allow_null: bool,
     ) -> Self {
+        assert!(!matches!(type_, DataType::Object(Some(_))));
         Self {
             ptr: ptr::null::<c_void>() as *mut c_void,
             type_mask: Self::type_init_code(type_, pass_by_ref, is_variadic, allow_null),
@@ -81,7 +156,7 @@ impl ZendType {
         is_variadic: bool,
         allow_null: bool,
     ) -> u32 {
-        let type_ = type_ as u32;
+        let type_ = type_.as_u32();
 
         (if type_ == _IS_BOOL {
             MAY_BE_BOOL

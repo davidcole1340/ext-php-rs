@@ -35,12 +35,14 @@ unsafe impl Sync for Zval {}
 impl<'a> Zval {
     /// Creates a new, empty zval.
     pub(crate) const fn new() -> Self {
+        // NOTE: Once the `Drop` implementation has been improved this can be public.
+        // At the moment, if we were to create a new zval with an array it wouldn't drop the array.
         Self {
             value: zend_value {
                 ptr: ptr::null_mut(),
             },
             u1: _zval_struct__bindgen_ty_1 {
-                type_info: DataType::Null as u32,
+                type_info: DataType::Null.as_u32(),
             },
             u2: _zval_struct__bindgen_ty_2 { next: 0 },
         }
@@ -197,22 +199,22 @@ impl<'a> Zval {
 
     /// Returns true if the zval is a long, false otherwise.
     pub fn is_long(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::Long as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::Long.as_u32() }
     }
 
     /// Returns true if the zval is null, false otherwise.
     pub fn is_null(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::Null as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::Null.as_u32() }
     }
 
     /// Returns true if the zval is true, false otherwise.
     pub fn is_true(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::True as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::True.as_u32() }
     }
 
     /// Returns true if the zval is false, false otherwise.
     pub fn is_false(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::False as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::False.as_u32() }
     }
 
     /// Returns true if the zval is a bool, false otherwise.
@@ -222,32 +224,32 @@ impl<'a> Zval {
 
     /// Returns true if the zval is a double, false otherwise.
     pub fn is_double(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::Double as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::Double.as_u32() }
     }
 
     /// Returns true if the zval is a string, false otherwise.
     pub fn is_string(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::String as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::String.as_u32() }
     }
 
     /// Returns true if the zval is a resource, false otherwise.
     pub fn is_resource(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::Resource as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::Resource.as_u32() }
     }
 
     /// Returns true if the zval is an array, false otherwise.
     pub fn is_array(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::Array as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::Array.as_u32() }
     }
 
     /// Returns true if the zval is an object, false otherwise.
     pub fn is_object(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::Object as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::Object(None).as_u32() }
     }
 
     /// Returns true if the zval is a reference, false otherwise.
     pub fn is_reference(&self) -> bool {
-        unsafe { self.u1.v.type_ == DataType::Reference as u8 }
+        unsafe { self.u1.v.type_ as u32 == DataType::Reference.as_u32() }
     }
 
     /// Returns true if the zval is callable, false otherwise.
@@ -319,9 +321,9 @@ impl<'a> Zval {
     /// * `val` - The value to set the zval as.
     pub fn set_bool<T: Into<bool>>(&mut self, val: T) {
         self.u1.type_info = if val.into() {
-            DataType::True as u32
+            DataType::True.as_u32()
         } else {
-            DataType::False as u32
+            DataType::False.as_u32()
         };
     }
 
@@ -395,7 +397,7 @@ impl Debug for Zval {
                 DataType::Double => field!(self.double()),
                 DataType::String | DataType::Mixed => field!(self.string()),
                 DataType::Array => field!(self.array()),
-                DataType::Object => field!(self.object()),
+                DataType::Object(_) => field!(self.object()),
                 DataType::Resource => field!(self.resource()),
                 DataType::Reference => field!(self.reference()),
                 DataType::Callable => field!(self.string()),

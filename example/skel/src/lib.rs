@@ -117,8 +117,8 @@ pub fn test_str(input: &str) -> &str {
 //     ))
 // }
 
-#[global_allocator]
-static GLOBAL: PhpAllocator = PhpAllocator::new();
+// #[global_allocator]
+// static GLOBAL: PhpAllocator = PhpAllocator::new();
 
 #[php_class]
 #[property(test = 0)]

@@ -312,4 +312,5 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "_ZEND_SEND_MODE_SHIFT",
     "_ZEND_TYPE_NULLABLE_BIT",
     "ts_rsrc_id",
+    "_ZEND_TYPE_NAME_BIT",
 ];

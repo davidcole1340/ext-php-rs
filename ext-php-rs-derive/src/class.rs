@@ -75,6 +75,8 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#ident> = ::ext_php_rs::php::types::object::ClassMetadata::new();
 
         impl ::ext_php_rs::php::types::object::RegisteredClass for #ident {
+            const CLASS_NAME: &'static str = #class_name;
+
             fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
                 &#meta
             }

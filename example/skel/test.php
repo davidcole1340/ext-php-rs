@@ -1,5 +1,11 @@
 <?php
 
+include 'vendor/autoload.php';
+
+$ext = new ReflectionExtension('skel');
+
+dd($ext);
+
 $x = fn_once();
 $x();
 $x();

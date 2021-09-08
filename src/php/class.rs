@@ -264,6 +264,11 @@ impl ClassBuilder {
     ///
     /// * `T` - The type which will override the Zend object. Must implement [`RegisteredClass`]
     /// which can be derived using the [`php_class`](crate::php_class) attribute macro.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class name associated with `T` is not the same as the class name specified
+    /// when creating the builder.
     pub fn object_override<T: RegisteredClass>(mut self) -> Self {
         unsafe extern "C" fn create_object<T: RegisteredClass>(
             _: *mut ClassEntry,
@@ -272,6 +277,7 @@ impl ClassBuilder {
             (*ptr).get_mut_zend_obj()
         }
 
+        assert_eq!(self.name.as_str(), T::CLASS_NAME);
         self.object_override = Some(create_object::<T>);
         self
     }

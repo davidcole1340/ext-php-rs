@@ -12,29 +12,54 @@ use crate::{
 };
 
 /// Valid data types for PHP.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DataType {
-    Undef = IS_UNDEF,
+    Undef,
+    Null,
+    False,
+    True,
+    Long,
+    Double,
+    String,
+    Array,
+    Object(Option<&'static str>),
+    Resource,
+    Reference,
+    Callable,
+    ConstantExpression,
+    Void,
+    Mixed,
+    Bool,
+}
 
-    Null = IS_NULL,
-    False = IS_FALSE,
-    True = IS_TRUE,
-    Long = IS_LONG,
-    Double = IS_DOUBLE,
-    String = IS_STRING,
-    Array = IS_ARRAY,
-    Object = IS_OBJECT,
-    Resource = IS_RESOURCE,
-    Reference = IS_REFERENCE,
-    Callable = IS_CALLABLE,
+impl Default for DataType {
+    fn default() -> Self {
+        Self::Void
+    }
+}
 
-    ConstantExpression = IS_CONSTANT_AST,
-    Void = IS_VOID,
-    Mixed = IS_MIXED,
-
-    /// Only used when creating arguments.
-    Bool = _IS_BOOL,
+impl DataType {
+    /// Returns the integer representation of the data type.
+    pub const fn as_u32(&self) -> u32 {
+        match self {
+            DataType::Undef => IS_UNDEF,
+            DataType::Null => IS_NULL,
+            DataType::False => IS_FALSE,
+            DataType::True => IS_TRUE,
+            DataType::Long => IS_LONG,
+            DataType::Double => IS_DOUBLE,
+            DataType::String => IS_STRING,
+            DataType::Array => IS_ARRAY,
+            DataType::Object(_) => IS_OBJECT,
+            DataType::Resource => IS_RESOURCE,
+            DataType::Reference => IS_RESOURCE,
+            DataType::Callable => IS_CALLABLE,
+            DataType::ConstantExpression => IS_CONSTANT_AST,
+            DataType::Void => IS_VOID,
+            DataType::Mixed => IS_MIXED,
+            DataType::Bool => _IS_BOOL,
+        }
+    }
 }
 
 // TODO: Ideally want something like this
@@ -69,11 +94,14 @@ impl TryFrom<ZvalTypeFlags> for DataType {
         contains!(Double);
         contains!(String);
         contains!(Array);
-        contains!(Object);
         contains!(Resource);
         contains!(Callable);
         contains!(ConstantExpression);
         contains!(Void);
+
+        if value.contains(ZvalTypeFlags::Object) {
+            return Ok(DataType::Object(None));
+        }
 
         Err(Error::UnknownDatatype(0))
     }
@@ -95,11 +123,8 @@ impl TryFrom<u32> for DataType {
         contains!(IS_VOID, Void);
         contains!(IS_CALLABLE, Callable);
         contains!(IS_CONSTANT_AST, ConstantExpression);
-        contains!(IS_CONSTANT_AST, ConstantExpression);
-        contains!(IS_CONSTANT_AST, ConstantExpression);
         contains!(IS_REFERENCE, Reference);
         contains!(IS_RESOURCE, Resource);
-        contains!(IS_OBJECT, Object);
         contains!(IS_ARRAY, Array);
         contains!(IS_STRING, String);
         contains!(IS_DOUBLE, Double);
@@ -108,6 +133,10 @@ impl TryFrom<u32> for DataType {
         contains!(IS_FALSE, False);
         contains!(IS_NULL, Null);
         contains!(IS_UNDEF, Undef);
+
+        if (value & IS_OBJECT) == IS_OBJECT {
+            return Ok(DataType::Object(None));
+        }
 
         Err(Error::UnknownDatatype(value))
     }
@@ -124,7 +153,7 @@ impl Display for DataType {
             DataType::Double => write!(f, "Double"),
             DataType::String => write!(f, "String"),
             DataType::Array => write!(f, "Array"),
-            DataType::Object => write!(f, "Object"),
+            DataType::Object(obj) => write!(f, "{}", obj.as_deref().unwrap_or("Object")),
             DataType::Resource => write!(f, "Resource"),
             DataType::Reference => write!(f, "Reference"),
             DataType::Callable => write!(f, "Callable"),
@@ -163,7 +192,7 @@ mod tests {
         test!(IS_DOUBLE, Double);
         test!(IS_STRING, String);
         test!(IS_ARRAY, Array);
-        test!(IS_OBJECT, Object);
+        assert_eq!(DataType::try_from(IS_OBJECT), Ok(DataType::Object(None)));
         test!(IS_RESOURCE, Resource);
         test!(IS_REFERENCE, Reference);
         test!(IS_CONSTANT_AST, ConstantExpression);
@@ -173,7 +202,7 @@ mod tests {
         test!(IS_INTERNED_STRING_EX, String);
         test!(IS_STRING_EX, String);
         test!(IS_ARRAY_EX, Array);
-        test!(IS_OBJECT_EX, Object);
+        assert_eq!(DataType::try_from(IS_OBJECT_EX), Ok(DataType::Object(None)));
         test!(IS_RESOURCE_EX, Resource);
         test!(IS_REFERENCE_EX, Reference);
         test!(IS_CONSTANT_AST_EX, ConstantExpression);
