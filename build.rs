@@ -8,7 +8,7 @@ use std::{
 use regex::Regex;
 
 const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20200930;
+const MAX_PHP_API_VER: u32 = 20210902;
 
 fn main() {
     // rerun if wrapper header is changed
