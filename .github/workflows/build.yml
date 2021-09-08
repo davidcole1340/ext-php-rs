@@ -19,6 +19,7 @@ jobs:
           - nightly
         php:
           - '8.0'
+          - '8.1'
         llvm:
           - '11.0'
     steps:
