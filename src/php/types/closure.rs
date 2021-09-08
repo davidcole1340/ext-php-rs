@@ -151,6 +151,8 @@ impl Default for Closure {
 }
 
 impl RegisteredClass for Closure {
+    const CLASS_NAME: &'static str = "RustClosure";
+
     fn get_metadata() -> &'static super::object::ClassMetadata<Self> {
         &CLOSURE_META
     }

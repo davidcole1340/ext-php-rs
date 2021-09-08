@@ -118,7 +118,8 @@ impl<'a> Arg<'a> {
                 self.as_ref,
                 self.variadic,
                 self.allow_null,
-            ),
+            )
+            .ok_or(Error::InvalidCString)?,
             default_value: match &self.default_value {
                 Some(val) => CString::new(val.as_str())?.into_raw(),
                 None => ptr::null(),
@@ -135,7 +136,7 @@ impl From<Arg<'_>> for _zend_expected_type {
             DataType::Double => _zend_expected_type_Z_EXPECTED_DOUBLE,
             DataType::String => _zend_expected_type_Z_EXPECTED_STRING,
             DataType::Array => _zend_expected_type_Z_EXPECTED_ARRAY,
-            DataType::Object => _zend_expected_type_Z_EXPECTED_OBJECT,
+            DataType::Object(_) => _zend_expected_type_Z_EXPECTED_OBJECT,
             DataType::Resource => _zend_expected_type_Z_EXPECTED_RESOURCE,
             _ => unreachable!(),
         };

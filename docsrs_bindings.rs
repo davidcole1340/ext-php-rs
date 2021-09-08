@@ -14,6 +14,7 @@
 
 pub const ZEND_DEBUG: u32 = 1;
 pub const ZEND_MM_ALIGNMENT: u32 = 8;
+pub const _ZEND_TYPE_NAME_BIT: u32 = 8388608;
 pub const _ZEND_TYPE_NULLABLE_BIT: u32 = 2;
 pub const HT_MIN_SIZE: u32 = 8;
 pub const IS_UNDEF: u32 = 0;

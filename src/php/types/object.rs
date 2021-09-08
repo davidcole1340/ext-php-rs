@@ -195,7 +195,7 @@ impl<'a, T: RegisteredClass> ClassRef<'a, T> {
 }
 
 impl<'a, T: RegisteredClass> IntoZval for ClassRef<'a, T> {
-    const TYPE: DataType = DataType::Object;
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         zv.set_object(&mut self.ptr.std);
@@ -326,7 +326,7 @@ impl<T: RegisteredClass + Debug> Debug for ClassObject<'_, T> {
 }
 
 impl<T: RegisteredClass> IntoZval for ClassObject<'_, T> {
-    const TYPE: DataType = DataType::Object;
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         unsafe { zv.set_object(&mut (*self.into_raw()).std) };
@@ -336,7 +336,7 @@ impl<T: RegisteredClass> IntoZval for ClassObject<'_, T> {
 }
 
 impl<T: RegisteredClass> IntoZval for T {
-    const TYPE: DataType = DataType::Object;
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
         ClassObject::new(self).set_zval(zv, persistent)
@@ -344,7 +344,7 @@ impl<T: RegisteredClass> IntoZval for T {
 }
 
 impl<'a, T: RegisteredClass> FromZval<'a> for &'a T {
-    const TYPE: DataType = DataType::Object;
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
         let obj = zval.object()?;
@@ -360,7 +360,7 @@ impl<'a, T: RegisteredClass> FromZval<'a> for &'a T {
 }
 
 impl<'a, T: RegisteredClass> FromZval<'a> for &'a mut T {
-    const TYPE: DataType = DataType::Object;
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
         let obj = zval.object()?;
@@ -381,6 +381,9 @@ pub trait RegisteredClass: Default + Sized
 where
     Self: 'static,
 {
+    /// PHP class name of the registered class.
+    const CLASS_NAME: &'static str;
+
     /// Returns a reference to the class metadata, which stores the class entry and handlers.
     ///
     /// This must be statically allocated, and is usually done through the [`macro@php_class`]
