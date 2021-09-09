@@ -2,13 +2,12 @@
 //! allowing users to store Rust data inside a PHP object.
 
 use std::{
-    alloc::Layout,
     convert::TryInto,
     fmt::Debug,
     marker::PhantomData,
     mem::{self, MaybeUninit},
     ops::{Deref, DerefMut},
-    ptr,
+    ptr::{self, NonNull},
     sync::atomic::{AtomicBool, AtomicPtr, Ordering},
 };
 
@@ -347,15 +346,9 @@ impl<'a, T: RegisteredClass> FromZval<'a> for &'a T {
     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
-        let obj = zval.object()?;
+        let cobj = ZendClassObject::<T>::from_zend_obj_ptr(zval.object()?)?;
 
-        if obj.is_instance::<T>() {
-            // SAFETY: If the zend object is an instance of `T`, we can guarantee that the memory before
-            // it is occupied by an instance of `T`.
-            unsafe { ((obj as *mut ZendObject) as *mut T).offset(-1).as_ref() }
-        } else {
-            None
-        }
+        Some(unsafe { &*cobj.obj.as_mut_ptr() })
     }
 }
 
@@ -363,15 +356,9 @@ impl<'a, T: RegisteredClass> FromZval<'a> for &'a mut T {
     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
-        let obj = zval.object()?;
+        let cobj = ZendClassObject::<T>::from_zend_obj_ptr(zval.object()?)?;
 
-        if obj.is_instance::<T>() {
-            // SAFETY: If the zend object is an instance of `T`, we can guarantee that the memory before
-            // it is occupied by an instance of `T`.
-            unsafe { ((obj as *mut ZendObject) as *mut T).offset(-1).as_mut() }
-        } else {
-            None
-        }
+        Some(unsafe { &mut *cobj.obj.as_mut_ptr() })
     }
 }
 
@@ -439,7 +426,7 @@ where
 /// Representation of a Zend class object in memory. Usually seen through its managed variant
 /// of [`ClassObject`].
 #[repr(C)]
-pub(crate) struct ZendClassObject<T: RegisteredClass> {
+pub(crate) struct ZendClassObject<T> {
     obj: MaybeUninit<T>,
     std: zend_object,
 }
@@ -486,13 +473,46 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         }
     }
 
+    /// Returns a reference to the [`ZendClassObject`] of a given zend object `obj`. Returns [`None`]
+    /// if the given object is not of the type `T`.
+    ///
+    /// # Parameters
+    ///
+    /// * `obj` - The zend object to get the [`ZendClassObject`] for.
+    pub(crate) fn from_zend_obj_ptr(obj: &zend_object) -> Option<&mut Self> {
+        let ptr = obj as *const zend_object as *const i8;
+        let ptr = unsafe {
+            let ptr = ptr.offset(0 - Self::std_offset() as isize) as *const Self;
+            (ptr as *mut Self).as_mut()?
+        };
+
+        if ptr.std.is_instance::<T>() {
+            Some(ptr)
+        } else {
+            None
+        }
+    }
+
     /// Returns a mutable reference to the underlying Zend object.
     pub(crate) fn get_mut_zend_obj(&mut self) -> &mut zend_object {
         &mut self.std
     }
 }
 
-impl<T: RegisteredClass> Drop for ZendClassObject<T> {
+impl<T> ZendClassObject<T> {
+    /// Returns the offset of the `std` property in the class object.
+    pub(crate) fn std_offset() -> usize {
+        unsafe {
+            let null = NonNull::<Self>::dangling();
+            let base = null.as_ref() as *const Self;
+            let std = &null.as_ref().std as *const zend_object;
+
+            (std as usize) - (base as usize)
+        }
+    }
+}
+
+impl<T> Drop for ZendClassObject<T> {
     fn drop(&mut self) {
         // SAFETY: All constructors guarantee that `obj` is valid.
         unsafe { std::ptr::drop_in_place(self.obj.as_mut_ptr()) };
@@ -585,8 +605,7 @@ impl ZendObjectHandlers {
     /// Caller must guarantee that the `ptr` given is a valid memory location.
     pub unsafe fn init<T>(ptr: *mut ZendObjectHandlers) {
         pub unsafe extern "C" fn free_obj<T>(object: *mut zend_object) {
-            let layout = Layout::new::<T>();
-            let offset = layout.size();
+            let offset = ZendClassObject::<T>::std_offset();
 
             // Cast to *mut u8 to work in byte offsets
             let ptr = (object as *mut u8).offset(0 - offset as isize) as *mut T;
@@ -599,7 +618,7 @@ impl ZendObjectHandlers {
         }
 
         std::ptr::copy_nonoverlapping(&std_object_handlers, ptr, 1);
-        let offset = std::mem::size_of::<T>();
+        let offset = ZendClassObject::<T>::std_offset();
         (*ptr).offset = offset as _;
         (*ptr).free_obj = Some(free_obj::<T>);
     }
