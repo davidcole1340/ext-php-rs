@@ -17,12 +17,18 @@ use std::{
 use crate::{
     bindings::{
         ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_release, object_properties_init,
-        std_object_handlers, zend_is_true, zend_object, zend_object_handlers, zend_object_std_init,
-        zend_objects_clone_members, zend_string, HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS,
-        ZEND_PROPERTY_ISSET,
+        std_object_handlers, zend_is_true, zend_object, zend_object_handlers, zend_object_std_dtor,
+        zend_object_std_init, zend_objects_clone_members, zend_std_get_properties,
+        zend_std_has_property, zend_std_read_property, zend_std_write_property, zend_string,
+        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     errors::{Error, Result},
-    php::{class::ClassEntry, enums::DataType, types::string::ZendString},
+    php::{
+        class::ClassEntry,
+        enums::DataType,
+        exceptions::PhpException,
+        types::{array::OwnedHashTable, string::ZendString},
+    },
 };
 
 use super::zval::{FromZval, IntoZval, Zval};
@@ -643,108 +649,171 @@ impl ZendObjectHandlers {
     ///
     /// Caller must guarantee that the `ptr` given is a valid memory location.
     pub unsafe fn init<T: RegisteredClass>(ptr: *mut ZendObjectHandlers) {
-        pub unsafe extern "C" fn free_obj<T: RegisteredClass>(object: *mut zend_object) {
-            let offset = ZendClassObject::<T>::std_offset();
+        std::ptr::copy_nonoverlapping(&std_object_handlers, ptr, 1);
+        let offset = ZendClassObject::<T>::std_offset();
+        (*ptr).offset = offset as _;
+        (*ptr).free_obj = Some(Self::free_obj::<T>);
+        (*ptr).read_property = Some(Self::read_property::<T>);
+        (*ptr).write_property = Some(Self::write_property::<T>);
+        (*ptr).get_properties = Some(Self::get_properties::<T>);
+        (*ptr).has_property = Some(Self::has_property::<T>);
+    }
 
-            // Cast to *mut u8 to work in byte offsets
-            let ptr = (object as *mut u8).offset(0 - offset as isize) as *mut T;
-            ptr::drop_in_place(ptr);
+    unsafe extern "C" fn free_obj<T: RegisteredClass>(object: *mut zend_object) {
+        let offset = ZendClassObject::<T>::std_offset();
 
-            match std_object_handlers.free_obj {
-                Some(free) => free(object),
-                None => core::hint::unreachable_unchecked(),
-            }
-        }
+        // Cast to *mut u8 to work in byte offsets
+        let ptr = (object as *mut u8).offset(0 - offset as isize) as *mut T;
+        ptr::drop_in_place(ptr);
 
-        pub unsafe extern "C" fn read_property<T: RegisteredClass>(
+        zend_object_std_dtor(object)
+    }
+
+    unsafe extern "C" fn read_property<T: RegisteredClass>(
+        object: *mut zend_object,
+        member: *mut zend_string,
+        type_: c_int,
+        cache_slot: *mut *mut c_void,
+        rv: *mut Zval,
+    ) -> *mut Zval {
+        #[inline(always)]
+        unsafe fn internal<T: RegisteredClass>(
             object: *mut zend_object,
             member: *mut zend_string,
             type_: c_int,
             cache_slot: *mut *mut c_void,
             rv: *mut Zval,
-        ) -> *mut Zval {
-            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
-                object.as_ref().expect("Invalid object pointer given"),
-            )
-            .unwrap();
-            let prop_name = ZendString::from_ptr(member, false).unwrap();
+        ) -> std::result::Result<*mut Zval, PhpException<'static>> {
+            let obj = object
+                .as_ref()
+                .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
+                .ok_or("Invalid object pointer given")?;
+            let prop_name = ZendString::from_ptr(member, false)
+                .map_err(|e| format!("Invalid property name given: {:?}", e))?;
             let props = &mut *obj.properties.as_mut_ptr();
-            let prop = props.get(prop_name.as_str().unwrap());
+            let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
 
-            match prop {
+            Ok(match prop {
                 Some(prop) => {
-                    prop.get(rv.as_mut().unwrap()).unwrap();
+                    prop.get(rv.as_mut().ok_or("Invalid return zval given")?)
+                        .map_err(|e| format!("Failed to read property value into zval: {:?}", e))?;
                     rv
                 }
-                None => match std_object_handlers.read_property {
-                    Some(read) => read(object, member, type_, cache_slot, rv),
-                    None => core::hint::unreachable_unchecked(),
-                },
-            }
+                None => zend_std_read_property(object, member, type_, cache_slot, rv),
+            })
         }
 
-        pub unsafe extern "C" fn write_property<T: RegisteredClass>(
+        match internal::<T>(object, member, type_, cache_slot, rv) {
+            Ok(rv) => rv,
+            Err(e) => {
+                let _ = e.throw();
+                std::ptr::null_mut()
+            }
+        }
+    }
+
+    unsafe extern "C" fn write_property<T: RegisteredClass>(
+        object: *mut zend_object,
+        member: *mut zend_string,
+        value: *mut Zval,
+        cache_slot: *mut *mut c_void,
+    ) -> *mut Zval {
+        #[inline(always)]
+        unsafe fn internal<T: RegisteredClass>(
             object: *mut zend_object,
             member: *mut zend_string,
             value: *mut Zval,
             cache_slot: *mut *mut c_void,
-        ) -> *mut Zval {
-            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
-                object.as_ref().expect("Invalid object pointer given"),
-            )
-            .unwrap();
-            let prop_name = ZendString::from_ptr(member, false).unwrap();
+        ) -> std::result::Result<*mut Zval, PhpException<'static>> {
+            let obj = object
+                .as_ref()
+                .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
+                .ok_or("Invalid object pointer given")?;
+            let prop_name = ZendString::from_ptr(member, false)
+                .map_err(|e| format!("Invalid property name given: {:?}", e))?;
             let props = &mut *obj.properties.as_mut_ptr();
-            let prop = props.get_mut(prop_name.as_str().unwrap());
+            let prop = props.get_mut(prop_name.as_str().ok_or("Invalid property name given")?);
 
-            match prop {
+            Ok(match prop {
                 Some(prop) => {
-                    prop.set(value.as_mut().unwrap()).unwrap();
+                    prop.set(value.as_mut().ok_or("Invalid value zval given")?)
+                        .map_err(|e| {
+                            format!("Failed to write property value from zval: {:?}", e)
+                        })?;
                     value
                 }
-                None => match std_object_handlers.write_property {
-                    Some(write) => write(object, member, value, cache_slot),
-                    None => core::hint::unreachable_unchecked(),
-                },
-            }
+                None => zend_std_write_property(object, member, value, cache_slot),
+            })
         }
 
-        pub unsafe extern "C" fn get_properties<T: RegisteredClass>(
-            object: *mut zend_object,
-        ) -> *mut HashTable {
-            let props = match std_object_handlers.get_properties {
-                Some(props) => props(object).as_mut(),
-                None => core::hint::unreachable_unchecked(),
+        match internal::<T>(object, member, value, cache_slot) {
+            Ok(rv) => rv,
+            Err(e) => {
+                let _ = e.throw();
+                std::ptr::null_mut()
             }
-            .unwrap();
-            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
-                object.as_ref().expect("Invalid object pointer given"),
-            )
-            .unwrap();
+        }
+    }
+
+    unsafe extern "C" fn get_properties<T: RegisteredClass>(
+        object: *mut zend_object,
+    ) -> *mut HashTable {
+        #[inline(always)]
+        unsafe fn internal<T: RegisteredClass>(
+            object: *mut zend_object,
+        ) -> std::result::Result<*mut HashTable, PhpException<'static>> {
+            let obj = object
+                .as_ref()
+                .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
+                .ok_or("Invalid object pointer given")?;
+            let props = zend_std_get_properties(object)
+                .as_mut()
+                .or_else(|| OwnedHashTable::new().into_inner().as_mut())
+                .ok_or("Invalid property hashtable given")?;
             let struct_props = &mut *obj.properties.as_mut_ptr();
 
-            for (name, val) in struct_props.into_iter() {
+            for (name, val) in struct_props.iter_mut() {
                 let mut zv = Zval::new();
-                val.get(&mut zv).unwrap();
-                props.insert(name, zv).unwrap();
+                val.get(&mut zv)
+                    .map_err(|e| format!("Failed to get value from zval: {:?}", e))?;
+                props.insert(name, zv).map_err(|e| {
+                    format!("Failed to insert value into properties hashtable: {:?}", e)
+                })?;
             }
 
-            props
+            Ok(props)
         }
 
-        pub unsafe extern "C" fn has_property<T: RegisteredClass>(
+        match internal::<T>(object) {
+            Ok(rv) => rv,
+            Err(e) => {
+                let _ = e.throw();
+                std::ptr::null_mut()
+            }
+        }
+    }
+
+    unsafe extern "C" fn has_property<T: RegisteredClass>(
+        object: *mut zend_object,
+        member: *mut zend_string,
+        has_set_exists: c_int,
+        cache_slot: *mut *mut c_void,
+    ) -> c_int {
+        #[inline(always)]
+        unsafe fn internal<T: RegisteredClass>(
             object: *mut zend_object,
             member: *mut zend_string,
             has_set_exists: c_int,
             cache_slot: *mut *mut c_void,
-        ) -> c_int {
-            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
-                object.as_ref().expect("Invalid object pointer given"),
-            )
-            .unwrap();
-            let prop_name = ZendString::from_ptr(member, false).unwrap();
+        ) -> std::result::Result<c_int, PhpException<'static>> {
+            let obj = object
+                .as_ref()
+                .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
+                .ok_or("Invalid object pointer given")?;
+            let prop_name = ZendString::from_ptr(member, false)
+                .map_err(|e| format!("Invalid property name given: {:?}", e))?;
             let props = &mut *obj.properties.as_mut_ptr();
-            let prop = props.get(prop_name.as_str().unwrap());
+            let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
 
             match has_set_exists {
                 // * 0 (has) whether property exists and is not NULL
@@ -753,7 +822,7 @@ impl ZendObjectHandlers {
                         let mut zv = Zval::new();
                         val.get(&mut zv).unwrap();
                         if !zv.is_null() {
-                            return 1;
+                            return Ok(1);
                         }
                     }
                 }
@@ -764,34 +833,36 @@ impl ZendObjectHandlers {
                         val.get(&mut zv).unwrap();
 
                         if zend_is_true(&mut zv) == 1 {
-                            return 1;
+                            return Ok(1);
                         }
                     }
                 }
                 // * 2 (exists) whether property exists
                 2 => {
                     if prop.is_some() {
-                        return 1;
+                        return Ok(1);
                     }
                 }
-                _ => panic!(
+                _ => return Err(
                     "Invalid value given for `has_set_exists` in struct `has_property` function."
+                        .into(),
                 ),
             };
 
-            match std_object_handlers.has_property {
-                Some(has) => has(object, member, has_set_exists, cache_slot),
-                None => core::hint::unreachable_unchecked(),
-            }
+            Ok(zend_std_has_property(
+                object,
+                member,
+                has_set_exists,
+                cache_slot,
+            ))
         }
 
-        std::ptr::copy_nonoverlapping(&std_object_handlers, ptr, 1);
-        let offset = ZendClassObject::<T>::std_offset();
-        (*ptr).offset = offset as _;
-        (*ptr).free_obj = Some(free_obj::<T>);
-        (*ptr).read_property = Some(read_property::<T>);
-        (*ptr).write_property = Some(write_property::<T>);
-        (*ptr).get_properties = Some(get_properties::<T>);
-        (*ptr).has_property = Some(has_property::<T>);
+        match internal::<T>(object, member, has_set_exists, cache_slot) {
+            Ok(rv) => rv,
+            Err(e) => {
+                let _ = e.throw();
+                0
+            }
+        }
     }
 }
