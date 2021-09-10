@@ -80,6 +80,11 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
             fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
                 &#meta
             }
+
+            fn get_properties(&mut self) -> ::std::collections::HashMap<&'static str, &mut dyn ::ext_php_rs::php::types::object::Prop> {
+                // TODO generate properties
+                ::std::collections::HashMap::new()
+            }
         }
     };
 
