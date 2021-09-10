@@ -573,7 +573,7 @@ pub struct ClassMetadata<T> {
     phantom: PhantomData<T>,
 }
 
-impl<T: RegisteredClass> ClassMetadata<T> {
+impl<T> ClassMetadata<T> {
     /// Creates a new class metadata instance.
     pub const fn new() -> Self {
         Self {
@@ -583,7 +583,9 @@ impl<T: RegisteredClass> ClassMetadata<T> {
             phantom: PhantomData,
         }
     }
+}
 
+impl<T: RegisteredClass> ClassMetadata<T> {
     /// Returns an immutable reference to the object handlers contained inside the class metadata.
     pub fn handlers(&self) -> &ZendObjectHandlers {
         self.check_handlers();

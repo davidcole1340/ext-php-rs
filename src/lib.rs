@@ -4,8 +4,6 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![cfg_attr(docs, feature(doc_cfg))]
-// TODO: Remove
-#![feature(const_fn_trait_bound)]
 
 #[macro_use]
 pub mod macros;
