@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Attribute, ItemImpl, Lit, Meta, NestedMeta};
+use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
 use crate::{constant::Constant, method};
 
@@ -15,14 +15,64 @@ pub enum Visibility {
     Private,
 }
 
+#[derive(Debug, Copy, Clone, FromMeta)]
+pub enum RenameRule {
+    #[darling(rename = "camelCase")]
+    Camel,
+    #[darling(rename = "snake_case")]
+    Snake,
+}
+
+impl RenameRule {
+    /// Change case of an identifier.
+    ///
+    /// Magic methods are handled specially to make sure they're always cased
+    /// correctly.
+    pub fn rename(&self, name: impl AsRef<str>) -> String {
+        match name.as_ref() {
+            "__construct" => "__construct".to_string(),
+            "__destruct" => "__destruct".to_string(),
+            "__call" => "__call".to_string(),
+            "__call_static" => "__callStatic".to_string(),
+            "__get" => "__get".to_string(),
+            "__set" => "__set".to_string(),
+            "__isset" => "__isset".to_string(),
+            "__unset" => "__unset".to_string(),
+            "__sleep" => "__sleep".to_string(),
+            "__wakeup" => "__wakeup".to_string(),
+            "__serialize" => "__serialize".to_string(),
+            "__unserialize" => "__unserialize".to_string(),
+            "__to_string" => "__toString".to_string(),
+            "__invoke" => "__invoke".to_string(),
+            "__set_state" => "__set_state".to_string(),
+            "__clone" => "__clone".to_string(),
+            "__debug_info" => "__debugInfo".to_string(),
+            field => match self {
+                Self::Camel => ident_case::RenameRule::CamelCase.apply_to_field(field),
+                Self::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(field),
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ParsedAttribute {
     Default(HashMap<String, Lit>),
     Optional(String),
     Visibility(Visibility),
+    Rename(String),
 }
 
-pub fn parser(input: ItemImpl) -> Result<TokenStream> {
+#[derive(Default, Debug, FromMeta)]
+#[darling(default)]
+pub struct AttrArgs {
+    rename_methods: Option<RenameRule>,
+}
+
+pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
+    let args = AttrArgs::from_list(&args)
+        .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
+
     let ItemImpl { self_ty, items, .. } = input;
     let class_name = self_ty.to_token_stream().to_string();
 
@@ -61,7 +111,7 @@ pub fn parser(input: ItemImpl) -> Result<TokenStream> {
                     }
                 }
                 syn::ImplItem::Method(mut method) => {
-                    let (sig, method) = method::parser(&mut method)?;
+                    let (sig, method) = method::parser(&mut method, args.rename_methods.unwrap_or(RenameRule::Camel))?;
                     class.methods.push(method);
                     sig
                 }
@@ -107,6 +157,61 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
         "public" => ParsedAttribute::Visibility(Visibility::Public),
         "protected" => ParsedAttribute::Visibility(Visibility::Protected),
         "private" => ParsedAttribute::Visibility(Visibility::Private),
+        "rename" => {
+            let ident = if let Meta::List(list) = meta {
+                if let Some(NestedMeta::Lit(lit)) = list.nested.first() {
+                    String::from_value(lit).ok()
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+            .ok_or_else(|| anyhow!("Invalid argument given for `#[rename] macro."))?;
+
+            ParsedAttribute::Rename(ident)
+        }
         attr => bail!("Invalid attribute `#[{}]`.", attr),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RenameRule;
+
+    #[test]
+    fn test_rename_magic() {
+        for &(magic, expected) in &[
+            ("__construct", "__construct"),
+            ("__destruct", "__destruct"),
+            ("__call", "__call"),
+            ("__call_static", "__callStatic"),
+            ("__get", "__get"),
+            ("__set", "__set"),
+            ("__isset", "__isset"),
+            ("__unset", "__unset"),
+            ("__sleep", "__sleep"),
+            ("__wakeup", "__wakeup"),
+            ("__serialize", "__serialize"),
+            ("__unserialize", "__unserialize"),
+            ("__to_string", "__toString"),
+            ("__invoke", "__invoke"),
+            ("__set_state", "__set_state"),
+            ("__clone", "__clone"),
+            ("__debug_info", "__debugInfo"),
+        ] {
+            assert_eq!(expected, RenameRule::Camel.rename(magic));
+            assert_eq!(expected, RenameRule::Snake.rename(magic));
+        }
+    }
+
+    #[test]
+    fn test_rename_php_methods() {
+        for &(original, camel, snake) in &[
+            ("get_name", "getName", "get_name"),
+        ] {
+            assert_eq!(camel, RenameRule::Camel.rename(original));
+            assert_eq!(snake, RenameRule::Snake.rename(original));
+        }
+    }
 }
