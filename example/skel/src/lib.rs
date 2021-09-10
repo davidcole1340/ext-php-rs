@@ -1,113 +1,89 @@
 mod allocator;
 
+use std::{collections::HashMap, iter::FromIterator, sync::Mutex};
+
+use allocator::PhpAllocator;
 use ext_php_rs::{
     parse_args,
     php::{
         args::Arg,
+        class::ClassBuilder,
         enums::DataType,
         exceptions::PhpException,
         execution_data::ExecutionData,
+        flags::{MethodFlags, PropertyFlags},
         function::FunctionBuilder,
         types::{
             array::OwnedHashTable,
             callable::Callable,
             closure::Closure,
-            object::{ClassObject, ClassRef},
-            zval::{FromZval, IntoZval, Zval},
+            object::{ClassMetadata, ClassObject, ClassRef, Prop, RegisteredClass},
+            zval::Zval,
         },
     },
     php_class,
     prelude::*,
 };
 
-#[php_class]
-#[property(test = 0)]
-#[property(another = "Hello world")]
-#[derive(Default, Debug, Clone)]
-pub struct Test {
-    pub test: String,
+struct TestClass {
+    a: i32,
+    b: i64,
+    c: String,
 }
 
-#[php_function]
-pub fn take_test(test: &Test) -> String {
-    test.test.clone()
+pub extern "C" fn test_class_change(ex: &mut ExecutionData, retval: &mut Zval) {
+    let mut new = Arg::new("c", DataType::String);
+
+    parse_args!(ex, new);
+
+    let mut obj = unsafe { ex.get_object::<TestClass>() }.unwrap();
+    obj.c = new.val().unwrap();
+    retval.set_null();
 }
 
-#[php_class]
-#[derive(Default)]
-struct PhpFuture {
-    then: Option<Callable<'static>>,
-}
-
-#[php_impl]
-impl PhpFuture {
-    pub fn then(&mut self, then: Callable<'static>) {
-        self.then = Some(then);
-    }
-
-    pub fn now(&self) -> Result<(), PhpException> {
-        if let Some(then) = &self.then {
-            then.try_call(vec![&"Hello"]).unwrap();
-            Ok(())
-        } else {
-            Err(PhpException::default("No `then`".into()))
+impl Default for TestClass {
+    fn default() -> Self {
+        Self {
+            a: 100,
+            b: 123,
+            c: "Hello, world!".into(),
         }
     }
-
-    pub fn obj(&self) -> ClassObject<Test> {
-        ClassObject::new(Test {
-            test: "Hello world from class entry :)".into(),
-        })
-    }
-
-    pub fn return_self(&self) -> ClassRef<PhpFuture> {
-        ClassRef::from_ref(self).unwrap()
-    }
 }
 
-#[php_impl]
-impl Test {
-    pub fn set_str(&mut self, str: String) {
-        self.test = str;
+static TEST_CLASS_META: ClassMetadata<TestClass> = ClassMetadata::new();
+
+impl RegisteredClass for TestClass {
+    const CLASS_NAME: &'static str = "TestClass";
+
+    fn get_metadata() -> &'static ext_php_rs::php::types::object::ClassMetadata<Self> {
+        &TEST_CLASS_META
     }
 
-    pub fn get_str(&self) -> String {
-        self.test.clone()
+    fn get_properties(&mut self) -> HashMap<&'static str, &mut dyn Prop> {
+        HashMap::from_iter([
+            ("a", &mut self.a as &mut dyn Prop),
+            ("b", &mut self.b as &mut dyn Prop),
+            ("c", &mut self.c as &mut dyn Prop),
+        ])
     }
 }
 
-#[php_function]
-pub fn get_closure() -> Closure {
-    let mut x = 100;
-    Closure::wrap(Box::new(move || {
-        x += 5;
-        format!("x: {}", x)
-    }) as Box<dyn FnMut() -> String>)
-}
-
-#[php_function]
-pub fn fn_once() -> Closure {
-    let x = "Hello".to_string();
-    Closure::wrap_once(Box::new(move || {
-        println!("val here: {}", &x);
-        x
-    }) as Box<dyn FnOnce() -> String>)
-}
-
-#[php_function]
-pub fn closure_get_string() -> Closure {
-    // Return a closure which takes two integers and returns a string
-    Closure::wrap(Box::new(|a, b| format!("A: {} B: {}", a, b)) as Box<dyn Fn(i32, i32) -> String>)
-}
-
-#[php_function]
-pub fn closure_count() -> Closure {
-    let mut count = 0i32;
-
-    Closure::wrap(Box::new(move |a: i32| {
-        count += a;
-        count
-    }) as Box<dyn FnMut(i32) -> i32>)
+#[php_startup]
+pub fn startup() {
+    let ce = ClassBuilder::new("TestClass")
+        .method(
+            FunctionBuilder::new("set_c", test_class_change)
+                .arg(Arg::new("c", DataType::String))
+                .build()
+                .unwrap(),
+            MethodFlags::Public,
+        )
+        .property("test", 5, PropertyFlags::Public)
+        .object_override::<TestClass>()
+        .build()
+        .unwrap();
+    TEST_CLASS_META.set_ce(ce);
 }
 
 #[php_module]

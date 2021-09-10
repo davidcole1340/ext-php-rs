@@ -2,11 +2,14 @@
 //! allowing users to store Rust data inside a PHP object.
 
 use std::{
+    collections::HashMap,
     convert::TryInto,
+    ffi::c_void,
     fmt::Debug,
     marker::PhantomData,
     mem::{self, MaybeUninit},
     ops::{Deref, DerefMut},
+    os::raw::c_int,
     ptr::{self, NonNull},
     sync::atomic::{AtomicBool, AtomicPtr, Ordering},
 };
@@ -14,15 +17,12 @@ use std::{
 use crate::{
     bindings::{
         ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_release, object_properties_init,
-        std_object_handlers, zend_object, zend_object_handlers, zend_object_std_init,
-        zend_objects_clone_members, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
+        std_object_handlers, zend_is_true, zend_object, zend_object_handlers, zend_object_std_init,
+        zend_objects_clone_members, zend_string, HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS,
+        ZEND_PROPERTY_ISSET,
     },
     errors::{Error, Result},
-    php::{
-        class::ClassEntry,
-        enums::DataType,
-        types::{array::HashTable, string::ZendString},
-    },
+    php::{class::ClassEntry, enums::DataType, types::string::ZendString},
 };
 
 use super::zval::{FromZval, IntoZval, Zval};
@@ -216,7 +216,7 @@ impl<T: RegisteredClass> Default for ClassObject<'_, T> {
     }
 }
 
-impl<T: RegisteredClass> ClassObject<'_, T> {
+impl<'a, T: RegisteredClass + 'a> ClassObject<'a, T> {
     /// Creates a class object from a pre-existing Rust object.
     ///
     /// # Parameters
@@ -418,6 +418,45 @@ where
         obj.std.set_property(name, value).ok()?;
         Some(())
     }
+
+    /// Returns a hash table containing the properties of the class.
+    ///
+    /// The key should be the name of the property and the value should be a reference to the property
+    /// with reference to `self`. The value is a trait object for [`Prop`].
+    fn get_properties(&mut self) -> HashMap<&'static str, &mut dyn Prop>;
+}
+
+/// Implemented on types which can be used as PHP properties.
+///
+/// Generally, this should not be directly implemented on types, as it is automatically implemented on
+/// types that implement [`Clone`], [`IntoZval`] and [`FromZval`], which will be required to implement
+/// this trait regardless.
+pub trait Prop<'a> {
+    /// Gets the value of `self` by setting the value of `zv`.
+    ///
+    /// # Parameters
+    ///
+    /// * `zv` - The zval to set the value of.
+    fn get(&self, zv: &mut Zval) -> Result<()>;
+
+    /// Sets the value of `self` with the contents of a given zval `zv`.
+    ///
+    /// # Parameters
+    ///
+    /// * `zv` - The zval containing the new value of `self`.
+    fn set(&mut self, zv: &'a mut Zval) -> Result<()>;
+}
+
+impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
+    fn get(&self, zv: &mut Zval) -> Result<()> {
+        self.clone().set_zval(zv, false)
+    }
+
+    fn set(&mut self, zv: &'a mut Zval) -> Result<()> {
+        let x = Self::from_zval(zv).ok_or_else(|| Error::ZvalConversion(zv.get_type()))?;
+        *self = x;
+        Ok(())
+    }
 }
 
 /// Representation of a Zend class object in memory. Usually seen through its managed variant
@@ -476,7 +515,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Parameters
     ///
     /// * `obj` - The zend object to get the [`ZendClassObject`] for.
-    pub(crate) fn from_zend_obj_ptr(obj: &zend_object) -> Option<&mut Self> {
+    pub(crate) fn from_zend_obj_ptr<'a>(obj: *const zend_object) -> Option<&'a mut Self> {
         let ptr = obj as *const zend_object as *const i8;
         let ptr = unsafe {
             let ptr = ptr.offset(0 - Self::std_offset() as isize) as *const Self;
@@ -494,9 +533,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     pub(crate) fn get_mut_zend_obj(&mut self) -> &mut zend_object {
         &mut self.std
     }
-}
 
-impl<T> ZendClassObject<T> {
     /// Returns the offset of the `std` property in the class object.
     pub(crate) fn std_offset() -> usize {
         unsafe {
@@ -525,7 +562,7 @@ pub struct ClassMetadata<T> {
     phantom: PhantomData<T>,
 }
 
-impl<T> ClassMetadata<T> {
+impl<T: RegisteredClass> ClassMetadata<T> {
     /// Creates a new class metadata instance.
     pub const fn new() -> Self {
         Self {
@@ -600,8 +637,8 @@ impl ZendObjectHandlers {
     /// # Safety
     ///
     /// Caller must guarantee that the `ptr` given is a valid memory location.
-    pub unsafe fn init<T>(ptr: *mut ZendObjectHandlers) {
-        pub unsafe extern "C" fn free_obj<T>(object: *mut zend_object) {
+    pub unsafe fn init<T: RegisteredClass>(ptr: *mut ZendObjectHandlers) {
+        pub unsafe extern "C" fn free_obj<T: RegisteredClass>(object: *mut zend_object) {
             let offset = ZendClassObject::<T>::std_offset();
 
             // Cast to *mut u8 to work in byte offsets
@@ -614,9 +651,142 @@ impl ZendObjectHandlers {
             }
         }
 
+        pub unsafe extern "C" fn read_property<T: RegisteredClass>(
+            object: *mut zend_object,
+            member: *mut zend_string,
+            type_: c_int,
+            cache_slot: *mut *mut c_void,
+            rv: *mut Zval,
+        ) -> *mut Zval {
+            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
+                object.as_ref().expect("Invalid object pointer given"),
+            )
+            .unwrap();
+            let prop_name = ZendString::from_ptr(member, false).unwrap();
+            let props = (&mut *obj.obj.as_mut_ptr()).get_properties();
+            let prop = props.get(prop_name.as_str().unwrap());
+
+            match prop {
+                Some(prop) => {
+                    prop.get(rv.as_mut().unwrap()).unwrap();
+                    rv
+                }
+                None => match std_object_handlers.read_property {
+                    Some(read) => read(object, member, type_, cache_slot, rv),
+                    None => core::hint::unreachable_unchecked(),
+                },
+            }
+        }
+
+        pub unsafe extern "C" fn write_property<T: RegisteredClass>(
+            object: *mut zend_object,
+            member: *mut zend_string,
+            value: *mut Zval,
+            cache_slot: *mut *mut c_void,
+        ) -> *mut Zval {
+            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
+                object.as_ref().expect("Invalid object pointer given"),
+            )
+            .unwrap();
+            let prop_name = ZendString::from_ptr(member, false).unwrap();
+            let mut props = (&mut *obj.obj.as_mut_ptr()).get_properties();
+            let prop = props.get_mut(prop_name.as_str().unwrap());
+
+            match prop {
+                Some(prop) => {
+                    prop.set(value.as_mut().unwrap()).unwrap();
+                    value
+                }
+                None => match std_object_handlers.write_property {
+                    Some(write) => write(object, member, value, cache_slot),
+                    None => core::hint::unreachable_unchecked(),
+                },
+            }
+        }
+
+        pub unsafe extern "C" fn get_properties<T: RegisteredClass>(
+            object: *mut zend_object,
+        ) -> *mut HashTable {
+            let props = match std_object_handlers.get_properties {
+                Some(props) => props(object).as_mut(),
+                None => core::hint::unreachable_unchecked(),
+            }
+            .unwrap();
+            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
+                object.as_ref().expect("Invalid object pointer given"),
+            )
+            .unwrap();
+            let struct_props = (&mut *obj.obj.as_mut_ptr()).get_properties();
+
+            for (name, val) in struct_props.into_iter() {
+                let mut zv = Zval::new();
+                val.get(&mut zv).unwrap();
+                props.insert(name, zv).unwrap();
+            }
+
+            props
+        }
+
+        pub unsafe extern "C" fn has_property<T: RegisteredClass>(
+            object: *mut zend_object,
+            member: *mut zend_string,
+            has_set_exists: c_int,
+            cache_slot: *mut *mut c_void,
+        ) -> c_int {
+            let obj = ZendClassObject::<T>::from_zend_obj_ptr(
+                object.as_ref().expect("Invalid object pointer given"),
+            )
+            .unwrap();
+            let prop_name = ZendString::from_ptr(member, false).unwrap();
+            let props = (&mut *obj.obj.as_mut_ptr()).get_properties();
+            let prop = props.get(prop_name.as_str().unwrap());
+
+            match has_set_exists {
+                // * 0 (has) whether property exists and is not NULL
+                0 => {
+                    if let Some(val) = prop {
+                        let mut zv = Zval::new();
+                        val.get(&mut zv).unwrap();
+                        if !zv.is_null() {
+                            return 1;
+                        }
+                    }
+                }
+                // * 1 (set) whether property exists and is true
+                1 => {
+                    if let Some(val) = prop {
+                        let mut zv = Zval::new();
+                        val.get(&mut zv).unwrap();
+
+                        if zend_is_true(&mut zv) == 1 {
+                            return 1;
+                        }
+                    }
+                }
+                // * 2 (exists) whether property exists
+                2 => {
+                    if prop.is_some() {
+                        return 1;
+                    }
+                }
+                _ => panic!(
+                    "Invalid value given for `has_set_exists` in struct `has_property` function."
+                ),
+            };
+
+            match std_object_handlers.has_property {
+                Some(has) => has(object, member, has_set_exists, cache_slot),
+                None => core::hint::unreachable_unchecked(),
+            }
+        }
+
         std::ptr::copy_nonoverlapping(&std_object_handlers, ptr, 1);
         let offset = ZendClassObject::<T>::std_offset();
         (*ptr).offset = offset as _;
         (*ptr).free_obj = Some(free_obj::<T>);
+        (*ptr).read_property = Some(read_property::<T>);
+        (*ptr).write_property = Some(write_property::<T>);
+        (*ptr).get_properties = Some(get_properties::<T>);
+        (*ptr).has_property = Some(has_property::<T>);
     }
 }
