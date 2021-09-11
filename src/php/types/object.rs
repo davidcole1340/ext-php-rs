@@ -74,7 +74,6 @@ impl ZendObject {
     /// # Parameters
     ///
     /// * `name` - The name of the property.
-    /// * `query` - The type of query to use when attempting to get a property.
     pub fn get_property(&self, name: &str) -> Result<&Zval> {
         if !self.has_property(name, PropertyQuery::Exists)? {
             return Err(Error::InvalidProperty);
@@ -185,7 +184,7 @@ impl Debug for ZendObject {
 
 /// Wrapper struct used to return a reference to a PHP object.
 pub struct ClassRef<'a, T: RegisteredClass + 'a> {
-    ptr: &'a mut ZendClassObject<'a, T>,
+    ptr: &'a mut ZendClassObject<T>,
 }
 
 impl<'a, T: RegisteredClass> ClassRef<'a, T> {
@@ -205,8 +204,8 @@ impl<'a, T: RegisteredClass> IntoZval for ClassRef<'a, T> {
     }
 }
 
-pub struct ClassObject<'a, T: RegisteredClass + 'a> {
-    ptr: &'a mut ZendClassObject<'a, T>,
+pub struct ClassObject<'a, T: RegisteredClass> {
+    ptr: &'a mut ZendClassObject<T>,
     free: bool,
 }
 
@@ -241,18 +240,18 @@ impl<'a, T: RegisteredClass + 'a> ClassObject<'a, T> {
     /// Consumes the class object, releasing the internal pointer without releasing the internal object.
     ///
     /// Used to transfer ownership of the object to PHP.
-    pub(crate) fn into_raw(mut self) -> *mut ZendClassObject<'a, T> {
+    pub(crate) fn into_raw(mut self) -> *mut ZendClassObject<T> {
         self.free = false;
         self.ptr
     }
 
     /// Returns an immutable reference to the underlying class object.
-    pub(crate) fn internal(&self) -> &ZendClassObject<'a, T> {
+    pub(crate) fn internal(&self) -> &ZendClassObject<T> {
         self.ptr
     }
 
     /// Returns a mutable reference to the underlying class object.
-    pub(crate) fn internal_mut(&mut self) -> &mut ZendClassObject<'a, T> {
+    pub(crate) fn internal_mut(&mut self) -> &mut ZendClassObject<T> {
         self.ptr
     }
 
@@ -275,10 +274,7 @@ impl<'a, T: RegisteredClass + 'a> ClassObject<'a, T> {
     /// # Panics
     ///
     /// Panics when the given `ptr` is null.
-    pub(crate) unsafe fn from_zend_class_object(
-        ptr: *mut ZendClassObject<'a, T>,
-        free: bool,
-    ) -> Self {
+    pub(crate) unsafe fn from_zend_class_object(ptr: *mut ZendClassObject<T>, free: bool) -> Self {
         Self {
             ptr: ptr.as_mut().expect("Given pointer was null"),
             free,
@@ -471,13 +467,12 @@ impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
 /// Representation of a Zend class object in memory. Usually seen through its managed variant
 /// of [`ClassObject`].
 #[repr(C)]
-pub(crate) struct ZendClassObject<'a, T: 'a> {
+pub(crate) struct ZendClassObject<T> {
     obj: MaybeUninit<T>,
-    properties: MaybeUninit<HashMap<&'static str, &'a mut dyn Prop<'a>>>,
     std: zend_object,
 }
 
-impl<'a, T: RegisteredClass + 'a> ZendClassObject<'a, T> {
+impl<T: RegisteredClass> ZendClassObject<T> {
     /// Allocates memory for a new PHP object. The memory is allocated using the Zend memory manager,
     /// and therefore it is returned as a pointer.
     pub(crate) fn new_ptr(val: Option<T>) -> *mut Self {
@@ -493,7 +488,6 @@ impl<'a, T: RegisteredClass + 'a> ZendClassObject<'a, T> {
             object_properties_init(&mut obj.std, ce);
 
             obj.obj = MaybeUninit::new(val.unwrap_or_default());
-            obj.properties = MaybeUninit::new((&mut *obj.obj.as_mut_ptr()).get_properties());
             obj.std.handlers = meta.handlers();
             obj
         }
@@ -526,7 +520,7 @@ impl<'a, T: RegisteredClass + 'a> ZendClassObject<'a, T> {
     /// # Parameters
     ///
     /// * `obj` - The zend object to get the [`ZendClassObject`] for.
-    pub(crate) fn from_zend_obj_ptr(obj: *const zend_object) -> Option<&'a mut Self> {
+    pub(crate) fn from_zend_obj_ptr<'a>(obj: *const zend_object) -> Option<&'a mut Self> {
         let ptr = obj as *const zend_object as *const i8;
         let ptr = unsafe {
             let ptr = ptr.offset(0 - Self::std_offset() as isize) as *const Self;
@@ -557,7 +551,7 @@ impl<'a, T: RegisteredClass + 'a> ZendClassObject<'a, T> {
     }
 }
 
-impl<'a, T: 'a> Drop for ZendClassObject<'a, T> {
+impl<T> Drop for ZendClassObject<T> {
     fn drop(&mut self) {
         // SAFETY: All constructors guarantee that `obj` is valid.
         unsafe { std::ptr::drop_in_place(self.obj.as_mut_ptr()) };
@@ -662,11 +656,11 @@ impl ZendObjectHandlers {
     }
 
     unsafe extern "C" fn free_obj<T: RegisteredClass>(object: *mut zend_object) {
-        let offset = ZendClassObject::<T>::std_offset();
+        let obj = ZendClassObject::<T>::from_zend_obj_ptr(object)
+            .expect("Invalid object pointer given for `free_obj`");
 
-        // Cast to *mut u8 to work in byte offsets
-        let ptr = (object as *mut u8).offset(0 - offset as isize) as *mut T;
-        ptr::drop_in_place(ptr);
+        // Manually drop the object as it is wrapped with `MaybeUninit`.
+        ptr::drop_in_place(obj.obj.as_mut_ptr());
 
         zend_object_std_dtor(object)
     }
@@ -692,7 +686,7 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid object pointer given")?;
             let prop_name = ZendString::from_ptr(member, false)
                 .map_err(|e| format!("Invalid property name given: {:?}", e))?;
-            let props = &mut *obj.properties.as_mut_ptr();
+            let props = obj.obj.assume_init_mut().get_properties();
             let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
 
             Ok(match prop {
@@ -733,7 +727,7 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid object pointer given")?;
             let prop_name = ZendString::from_ptr(member, false)
                 .map_err(|e| format!("Invalid property name given: {:?}", e))?;
-            let props = &mut *obj.properties.as_mut_ptr();
+            let mut props = obj.obj.assume_init_mut().get_properties();
             let prop = props.get_mut(prop_name.as_str().ok_or("Invalid property name given")?);
 
             Ok(match prop {
@@ -772,9 +766,9 @@ impl ZendObjectHandlers {
                 .as_mut()
                 .or_else(|| OwnedHashTable::new().into_inner().as_mut())
                 .ok_or("Invalid property hashtable given")?;
-            let struct_props = &mut *obj.properties.as_mut_ptr();
+            let struct_props = obj.obj.assume_init_mut().get_properties();
 
-            for (name, val) in struct_props.iter_mut() {
+            for (name, val) in struct_props.into_iter() {
                 let mut zv = Zval::new();
                 val.get(&mut zv)
                     .map_err(|e| format!("Failed to get value from zval: {:?}", e))?;
@@ -814,7 +808,7 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid object pointer given")?;
             let prop_name = ZendString::from_ptr(member, false)
                 .map_err(|e| format!("Invalid property name given: {:?}", e))?;
-            let props = &mut *obj.properties.as_mut_ptr();
+            let props = obj.obj.assume_init_mut().get_properties();
             let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
 
             match has_set_exists {
