@@ -67,55 +67,56 @@ impl ZendObject {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
 
-    /// Attempts to read a property from the Object. Returns a result returning an
-    /// immutable reference to the [`Zval`] if the property exists and can be read,
-    /// and an [`Error`] otherwise.
+    /// Attempts to read a property from the Object. Returns a result containing the
+    /// value of the property if it exists and can be read, and an [`Error`] otherwise.
     ///
     /// # Parameters
     ///
     /// * `name` - The name of the property.
-    pub fn get_property(&self, name: &str) -> Result<&Zval> {
+    pub fn get_property<'a, T: FromZval<'a>>(&self, name: &str) -> Result<T> {
         if !self.has_property(name, PropertyQuery::Exists)? {
             return Err(Error::InvalidProperty);
         }
 
-        let name = ZendString::new(name, false)?;
+        let mut name = ZendString::new(name, false)?;
         let mut rv = Zval::new();
 
-        unsafe {
+        let zv = unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.borrow_ptr(),
+                name.as_ptr(),
                 1,
                 std::ptr::null_mut(),
                 &mut rv,
             )
             .as_ref()
         }
-        .ok_or(Error::InvalidScope)
+        .ok_or(Error::InvalidScope)?;
+
+        T::from_zval(&zv).ok_or_else(|| Error::ZvalConversion(zv.get_type()))
     }
 
-    /// Attempts to set a property on the object, returning an immutable reference to
-    /// the [`Zval`] if the property can be set.
+    /// Attempts to set a property on the object.
     ///
     /// # Parameters
     ///
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
-    pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<&Zval> {
-        let name = ZendString::new(name, false)?;
+    pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<()> {
+        let mut name = ZendString::new(name, false)?;
         let mut value = value.into_zval(false)?;
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                name.borrow_ptr(),
+                name.as_ptr(),
                 &mut value,
                 std::ptr::null_mut(),
             )
             .as_ref()
         }
-        .ok_or(Error::InvalidScope)
+        .ok_or(Error::InvalidScope)?;
+        Ok(())
     }
 
     /// Checks if a property exists on an object. Takes a property name and query parameter,
@@ -127,12 +128,12 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `query` - The 'query' to classify if a property exists.
     pub fn has_property(&self, name: &str, query: PropertyQuery) -> Result<bool> {
-        let name = ZendString::new(name, false)?;
+        let mut name = ZendString::new(name, false)?;
 
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.borrow_ptr(),
+                name.as_ptr(),
                 query as _,
                 std::ptr::null_mut(),
             )
@@ -398,8 +399,7 @@ where
     /// by a [`zend_object`], which is true when the object was instantiated by PHP.
     unsafe fn get_property<'a, T: FromZval<'a>>(&'a self, name: &str) -> Option<T> {
         let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
-        let zv = obj.std.get_property(name).ok()?;
-        T::from_zval(zv)
+        obj.std.get_property(name).ok()
     }
 
     /// Attempts to set the value of a property on the class object.

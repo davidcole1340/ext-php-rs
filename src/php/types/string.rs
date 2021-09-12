@@ -13,12 +13,12 @@ use crate::{
 
 /// A wrapper around the [`zend_string`] used within the Zend API. Essentially a C string, except
 /// that the structure contains the length of the string as well as the string being refcounted.
-pub struct ZendString {
-    ptr: *mut zend_string,
+pub struct ZendString<'a> {
+    ptr: &'a mut zend_string,
     free: bool,
 }
 
-impl ZendString {
+impl<'a> ZendString<'a> {
     /// Creates a new Zend string. Returns a result containin the string.
     ///
     /// # Parameters
@@ -29,7 +29,9 @@ impl ZendString {
         Ok(Self {
             ptr: unsafe {
                 ext_php_rs_zend_string_init(CString::new(str)?.as_ptr(), str.len() as _, persistent)
-            },
+                    .as_mut()
+            }
+            .ok_or(Error::InvalidPointer)?,
             free: true,
         })
     }
@@ -50,7 +52,9 @@ impl ZendString {
                     str_.len() as _,
                     true,
                 )
-            },
+                .as_mut()
+            }
+            .ok_or(Error::InvalidPointer)?,
             free: true,
         })
     }
@@ -68,11 +72,10 @@ impl ZendString {
     /// As a raw pointer is given this function is unsafe, you must ensure the pointer is valid when calling
     /// the function. A simple null check is done but this is not sufficient in most places.
     pub unsafe fn from_ptr(ptr: *mut zend_string, free: bool) -> Result<Self> {
-        if ptr.is_null() {
-            return Err(Error::InvalidPointer);
-        }
-
-        Ok(Self { ptr, free })
+        Ok(Self {
+            ptr: ptr.as_mut().ok_or(Error::InvalidPointer)?,
+            free,
+        })
     }
 
     /// Releases the Zend string, returning the raw pointer to the `zend_string` object
@@ -83,33 +86,52 @@ impl ZendString {
     }
 
     /// Extracts a string slice containing the contents of the [`ZendString`].
-    pub fn as_str(&self) -> Option<&str> {
+    pub fn as_str(&self) -> Option<&'a str> {
         // SAFETY: Zend strings have a length that we know we can read.
         // By reading this many bytes we should not run into any issues.
         // The value of the string is represented in C as a `char` array of
         // length 1, but the data can be read up to `ptr.len` bytes.
         unsafe {
-            let ptr = self.ptr.as_ref()?;
-            let slice = std::slice::from_raw_parts(ptr.val.as_ptr() as *const u8, ptr.len as _);
+            let slice =
+                std::slice::from_raw_parts(self.ptr.val.as_ptr() as *const u8, self.ptr.len as _);
             std::str::from_utf8(slice).ok()
         }
     }
 
+    /// Returns the number of references that exist to this string.
+    pub(crate) fn refs(&self) -> u32 {
+        self.ptr.gc.refcount
+    }
+
+    /// Increments the reference counter by 1.
+    // pub(crate) fn add_ref(&mut self) {
+    //     self.ptr.gc.refcount += 1;
+    // }
+
+    /// Decrements the reference counter by 1.
+    pub(crate) fn del_ref(&mut self) {
+        self.ptr.gc.refcount -= 1;
+    }
+
     /// Borrows the underlying internal pointer of the Zend string.
-    pub(crate) fn borrow_ptr(&self) -> *mut zend_string {
+    pub(crate) fn as_ptr(&mut self) -> *mut zend_string {
         self.ptr
     }
 }
 
-impl Drop for ZendString {
+impl Drop for ZendString<'_> {
     fn drop(&mut self) {
-        if self.free && !self.ptr.is_null() {
-            unsafe { ext_php_rs_zend_string_release(self.ptr) };
+        if self.free {
+            self.del_ref();
+
+            if self.refs() < 1 {
+                unsafe { ext_php_rs_zend_string_release(self.ptr) };
+            }
         }
     }
 }
 
-impl TryFrom<String> for ZendString {
+impl TryFrom<String> for ZendString<'_> {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self> {
@@ -117,7 +139,7 @@ impl TryFrom<String> for ZendString {
     }
 }
 
-impl TryFrom<ZendString> for String {
+impl TryFrom<ZendString<'_>> for String {
     type Error = Error;
 
     fn try_from(value: ZendString) -> Result<Self> {
@@ -125,7 +147,7 @@ impl TryFrom<ZendString> for String {
     }
 }
 
-impl TryFrom<&ZendString> for String {
+impl TryFrom<&ZendString<'_>> for String {
     type Error = Error;
 
     fn try_from(s: &ZendString) -> Result<Self> {
@@ -135,7 +157,7 @@ impl TryFrom<&ZendString> for String {
     }
 }
 
-impl Debug for ZendString {
+impl Debug for ZendString<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_str() {
             Some(str) => str.fmt(f),

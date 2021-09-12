@@ -251,6 +251,7 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "IS_TYPE_REFCOUNTED",
     "IS_UNDEF",
     "IS_VOID",
+    "IS_PTR",
     "MAY_BE_ANY",
     "MAY_BE_BOOL",
     "USING_ZTS",
