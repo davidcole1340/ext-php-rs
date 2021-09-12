@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use crate::STATE;
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{Attribute, AttributeArgs, Expr, ItemStruct, Token};
+use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitStr, Token};
 
 #[derive(Debug, Default)]
 pub struct Class {
@@ -14,14 +12,14 @@ pub struct Class {
     pub interfaces: Vec<String>,
     pub methods: Vec<crate::method::Method>,
     pub constants: Vec<crate::constant::Constant>,
-    pub properties: HashMap<String, (String, Option<String>)>,
+    pub properties: Vec<Property>,
 }
 
 #[derive(Debug)]
 pub enum ParsedAttribute {
     Extends(Expr),
     Implements(Expr),
-    Property(Box<PropertyAttr>),
+    Property(PropertyAttr),
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -36,7 +34,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     let mut parent = None;
     let mut interfaces = vec![];
-    let mut properties = HashMap::<String, (String, Option<String>)>::new();
+    let mut properties = vec![];
 
     input.attrs = {
         let mut unused = vec![];
@@ -49,15 +47,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
                     ParsedAttribute::Implements(class) => {
                         interfaces.push(class.to_token_stream().to_string());
                     }
-                    ParsedAttribute::Property(attr) => {
-                        properties.insert(
-                            attr.name.to_string(),
-                            (
-                                attr.default.to_token_stream().to_string(),
-                                attr.flags.map(|flags| flags.to_token_stream().to_string()),
-                            ),
-                        );
-                    }
+                    attr => bail!("Attribute `{:?}` is not valid for structs.", attr),
                 },
                 None => unused.push(attr),
             }
@@ -65,9 +55,53 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         unused
     };
 
+    if let Fields::Named(FieldsNamed {
+        brace_token: _,
+        named,
+    }) = &mut input.fields
+    {
+        for field in named.iter_mut() {
+            let mut attrs = vec![];
+            attrs.append(&mut field.attrs);
+            for attr in attrs.into_iter() {
+                match parse_attribute(&attr)? {
+                    Some(parsed) => match parsed {
+                        ParsedAttribute::Property(prop) => {
+                            let field_name = field
+                                .ident
+                                .as_ref()
+                                .ok_or_else(|| anyhow!("Only named fields can be properties."))?
+                                .to_string();
+                            let prop_name = prop.rename.unwrap_or_else(|| field_name.clone());
+                            properties.push(Property {
+                                field_name,
+                                prop_name,
+                                flags: prop.flags.map(|flags| flags.to_token_stream().to_string()),
+                            });
+                        }
+                        _ => bail!("Attribute {:?} is not valid for struct fields.", attr),
+                    },
+                    None => field.attrs.push(attr),
+                }
+            }
+        }
+    }
+
     let ItemStruct { ident, .. } = &input;
     let class_name = args.name.unwrap_or_else(|| ident.to_string());
     let meta = Ident::new(&format!("_{}_META", ident.to_string()), Span::call_site());
+    let prop_tuples = properties.iter().map(
+        |Property {
+             field_name,
+             prop_name,
+             flags: _
+         }| {
+            let field_name = Ident::new(field_name, Span::call_site());
+            quote! {
+                (#prop_name, &mut self.#field_name as &mut dyn ::ext_php_rs::php::types::object::Prop),
+            }
+        },
+    );
 
     let output = quote! {
         #input
@@ -82,8 +116,11 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
             }
 
             fn get_properties(&mut self) -> ::std::collections::HashMap<&'static str, &mut dyn ::ext_php_rs::php::types::object::Prop> {
-                // TODO generate properties
-                ::std::collections::HashMap::new()
+                use ::std::iter::FromIterator;
+
+                ::std::collections::HashMap::from_iter([
+                    #(#prop_tuples)*
+                ])
             }
         }
     };
@@ -112,27 +149,39 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 }
 
 #[derive(Debug)]
+pub struct Property {
+    field_name: String,
+    prop_name: String,
+    flags: Option<String>,
+}
+
+#[derive(Debug, Default)]
 pub struct PropertyAttr {
-    pub name: Ident,
-    pub default: Expr,
-    pub flags: Option<Expr>,
+    rename: Option<String>,
+    flags: Option<Expr>,
 }
 
 impl syn::parse::Parse for PropertyAttr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let name: Ident = input.parse()?;
-        let _: Token![=] = input.parse()?;
-        let default: Expr = input.parse()?;
-        let flags = input
-            .parse::<Token![,]>()
-            .and_then(|_| input.parse::<Expr>())
-            .ok();
+        let mut this = Self::default();
+        while !input.is_empty() {
+            let field = input.parse::<Ident>()?.to_string();
+            input.parse::<Token![=]>()?;
 
-        Ok(PropertyAttr {
-            name,
-            default,
-            flags,
-        })
+            match field.as_str() {
+                "rename" => {
+                    this.rename.replace(input.parse::<LitStr>()?.value());
+                }
+                "flags" => {
+                    this.flags.replace(input.parse::<Expr>()?);
+                }
+                _ => return Err(input.error("invalid attribute field")),
+            }
+
+            let _ = input.parse::<Token![,]>();
+        }
+
+        Ok(this)
     }
 }
 
@@ -152,12 +201,15 @@ fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
                 .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
             Some(ParsedAttribute::Implements(meta))
         }
-        "property" => {
-            let attr: PropertyAttr = attr
-                .parse_args()
-                .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
+        "prop" | "property" => {
+            let attr = if attr.tokens.is_empty() {
+                PropertyAttr::default()
+            } else {
+                attr.parse_args()
+                    .map_err(|e| anyhow!("Unable to parse `#[{}]` attribute: {}", name, e))?
+            };
 
-            Some(ParsedAttribute::Property(Box::new(attr)))
+            Some(ParsedAttribute::Property(attr))
         }
         _ => None,
     })

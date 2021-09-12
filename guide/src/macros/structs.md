@@ -30,8 +30,16 @@ placed underneath the `#[php_class]` attribute.
 - `#[implements(ce)]` - Implements the given interface on the class. Can be used
   multiple times. `ce` must be a valid Rust expression when it is called inside
   the `#[php_module]` function.
-- `#[property(name = default[, flags])]` - Adds a PHP property to the class. Can
-  be get and set through functions defined through the trait `RegisteredClass`.
+
+You may also use the `#[prop]` attribute on a struct field to use the field as a
+PHP property. By default, the field will be accessible from PHP publically with
+the same name as the field. You can rename the property and/or set the flags of
+the property with options:
+
+- `rename` - Allows you to rename the property, e.g.
+  `#[prop(rename = "new_name")]`
+- `flags` - Allows you to set flags for the property, e.g.
+  `#[prop(flags = PropertyFlags::Public)]`
 
 ## Example
 
@@ -42,11 +50,12 @@ an empty string as the default value.
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_class]
-#[property(address = "")]
 #[derive(Default)]
 pub struct Human {
     name: String,
-    age: i32
+    age: i32,
+    #[prop]
+    address: String,
 }
 ```
 
@@ -76,7 +85,14 @@ Creating a class with a private property called `test`:
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_class]
-#[property(test = "Default value", PropertyFlags::Private)]
-#[derive(Default)]
-pub struct TestClass;
+pub struct TestClass {
+    #[prop(flags = PropertyFlags::Private)]
+    test: String,
+}
+
+impl Default for TestClass {
+    fn default() -> Self {
+        TestClass { test: "Default value".into() }
+    }
+}
 ```

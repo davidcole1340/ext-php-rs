@@ -469,6 +469,12 @@ impl Drop for Zval {
     }
 }
 
+impl Default for Zval {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Provides implementations for converting Rust primitive types into PHP zvals. Alternative to the
 /// built-in Rust [`From`] and [`TryFrom`] implementations, allowing the caller to specify whether
 /// the Zval contents will persist between requests.
