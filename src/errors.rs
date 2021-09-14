@@ -1,11 +1,12 @@
 //! Error and result types returned from the library functions.
 
-use std::{error::Error as ErrorTrait, ffi::NulError, fmt::Display};
+use std::{error::Error as ErrorTrait, ffi::NulError, fmt::Display, rc::Rc};
 
 use crate::php::{
     enums::DataType,
     exceptions::PhpException,
     flags::{ClassFlags, ZvalTypeFlags},
+    types::object::ZendObject,
 };
 
 /// The main result type which is passed by the library.
@@ -13,7 +14,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// The main error type which is passed by the library inside the custom
 /// [`Result`] type.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Error {
     /// An incorrect number of arguments was given to a PHP function.
@@ -50,6 +51,8 @@ pub enum Error {
     InvalidException(ClassFlags),
     /// Converting integer arguments resulted in an overflow.
     IntegerOverflow,
+    CompileFailed,
+    UncaughtException(Rc<Box<ZendObject>>),
 }
 
 impl Display for Error {
@@ -83,6 +86,8 @@ impl Display for Error {
             Error::IntegerOverflow => {
                 write!(f, "Converting integer arguments resulted in an overflow.")
             }
+            Error::CompileFailed => write!(f, "Syntax error."),
+            Error::UncaughtException(exception) => write!(f, "Uncaught Exception: {:?}", exception),
         }
     }
 }
