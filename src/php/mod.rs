@@ -16,3 +16,4 @@ pub mod globals;
 pub mod module;
 pub mod pack;
 pub mod types;
+pub mod eval;

@@ -191,6 +191,7 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "zend_declare_property",
     "zend_do_implement_interface",
     "zend_execute_data",
+    "zend_eval_stringl",
     "zend_function_entry",
     "zend_hash_clean",
     "zend_hash_index_del",

@@ -371,6 +371,13 @@ impl<'a> Zval {
     pub(crate) fn release(mut self) {
         self.u1.type_info = ZvalTypeFlags::Null.bits();
     }
+
+    pub fn extract<T>(self) -> Result<T>
+    where
+        T: TryFrom<Self, Error = Error>,
+    {
+        T::try_from(self)
+    }
 }
 
 impl Debug for Zval {
