@@ -32,7 +32,7 @@ pub type Zval = zval;
 unsafe impl Send for Zval {}
 unsafe impl Sync for Zval {}
 
-impl<'a> Zval {
+impl Zval {
     /// Creates a new, empty zval.
     pub(crate) const fn new() -> Self {
         // NOTE: Once the `Drop` implementation has been improved this can be public.
@@ -94,7 +94,7 @@ impl<'a> Zval {
     /// Note that this functions output will not be the same as [`string()`](#method.string), as
     /// this function does not attempt to convert other types into a [`String`], as it could not
     /// pass back a [`&str`] in those cases.
-    pub fn str(&'a self) -> Option<&'a str> {
+    pub fn str(&self) -> Option<&str> {
         if self.is_string() {
             // SAFETY: Zend strings have a length that we know we can read.
             // By reading this many bytes we will not run into any issues.
@@ -146,7 +146,7 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is an array.
-    pub fn array(&self) -> Option<ZendHashTable<'a>> {
+    pub fn array(&self) -> Option<ZendHashTable> {
         if self.is_array() {
             unsafe { ZendHashTable::from_ptr(self.value.arr, false) }.ok()
         } else {
@@ -173,7 +173,7 @@ impl<'a> Zval {
     }
 
     /// Returns the value of the zval if it is callable.
-    pub fn callable(&'a self) -> Option<Callable<'a>> {
+    pub fn callable(&self) -> Option<Callable> {
         // The Zval is checked if it is callable in the `new` function.
         Callable::new(self).ok()
     }
@@ -726,9 +726,9 @@ where
     }
 }
 
-impl<'a, T> TryFrom<Zval> for Vec<T>
+impl<T> TryFrom<Zval> for Vec<T>
 where
-    T: FromZval<'a>,
+    for<'a> T: FromZval<'a>,
 {
     type Error = Error;
 
@@ -751,9 +751,9 @@ where
     }
 }
 
-impl<'a, T> TryFrom<Zval> for HashMap<String, T>
+impl<T> TryFrom<Zval> for HashMap<String, T>
 where
-    T: FromZval<'a>,
+    for<'a> T: FromZval<'a>,
 {
     type Error = Error;
 
