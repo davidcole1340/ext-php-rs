@@ -31,7 +31,10 @@ use crate::{
     },
 };
 
-use super::zval::{FromZval, IntoZval, Zval};
+use super::{
+    props::Property,
+    zval::{FromZval, IntoZval, Zval},
+};
 
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
@@ -428,40 +431,7 @@ where
     ///
     /// The key should be the name of the property and the value should be a reference to the property
     /// with reference to `self`. The value is a trait object for [`Prop`].
-    fn get_properties(&mut self) -> HashMap<&'static str, &mut dyn Prop>;
-}
-
-/// Implemented on types which can be used as PHP properties.
-///
-/// Generally, this should not be directly implemented on types, as it is automatically implemented on
-/// types that implement [`Clone`], [`IntoZval`] and [`FromZval`], which will be required to implement
-/// this trait regardless.
-pub trait Prop<'a> {
-    /// Gets the value of `self` by setting the value of `zv`.
-    ///
-    /// # Parameters
-    ///
-    /// * `zv` - The zval to set the value of.
-    fn get(&self, zv: &mut Zval) -> Result<()>;
-
-    /// Sets the value of `self` with the contents of a given zval `zv`.
-    ///
-    /// # Parameters
-    ///
-    /// * `zv` - The zval containing the new value of `self`.
-    fn set(&mut self, zv: &'a mut Zval) -> Result<()>;
-}
-
-impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
-    fn get(&self, zv: &mut Zval) -> Result<()> {
-        self.clone().set_zval(zv, false)
-    }
-
-    fn set(&mut self, zv: &'a mut Zval) -> Result<()> {
-        let x = Self::from_zval(zv).ok_or_else(|| Error::ZvalConversion(zv.get_type()))?;
-        *self = x;
-        Ok(())
-    }
+    fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
 }
 
 /// Representation of a Zend class object in memory. Usually seen through its managed variant
@@ -686,13 +656,14 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid object pointer given")?;
             let prop_name = ZendString::from_ptr(member, false)
                 .map_err(|e| format!("Invalid property name given: {:?}", e))?;
-            let props = obj.obj.assume_init_mut().get_properties();
-            let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
+            let self_ = obj.obj.assume_init_mut();
+            let mut props = T::get_properties();
+            let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
+            let rv_mut = rv.as_mut().ok_or("Invalid return zval given")?;
 
             Ok(match prop {
                 Some(prop) => {
-                    prop.get(rv.as_mut().ok_or("Invalid return zval given")?)
-                        .map_err(|e| format!("Failed to read property value into zval: {:?}", e))?;
+                    prop.get(self_, rv_mut)?;
                     rv
                 }
                 None => zend_std_read_property(object, member, type_, cache_slot, rv),
@@ -703,7 +674,8 @@ impl ZendObjectHandlers {
             Ok(rv) => rv,
             Err(e) => {
                 let _ = e.throw();
-                std::ptr::null_mut()
+                (&mut *rv).set_null();
+                rv
             }
         }
     }
@@ -727,15 +699,14 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid object pointer given")?;
             let prop_name = ZendString::from_ptr(member, false)
                 .map_err(|e| format!("Invalid property name given: {:?}", e))?;
-            let mut props = obj.obj.assume_init_mut().get_properties();
-            let prop = props.get_mut(prop_name.as_str().ok_or("Invalid property name given")?);
+            let self_ = obj.obj.assume_init_mut();
+            let mut props = T::get_properties();
+            let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
+            let value_mut = value.as_mut().ok_or("Invalid return zval given")?;
 
             Ok(match prop {
                 Some(prop) => {
-                    prop.set(value.as_mut().ok_or("Invalid value zval given")?)
-                        .map_err(|e| {
-                            format!("Failed to write property value from zval: {:?}", e)
-                        })?;
+                    prop.set(self_, value_mut)?;
                     value
                 }
                 None => zend_std_write_property(object, member, value, cache_slot),
@@ -746,7 +717,7 @@ impl ZendObjectHandlers {
             Ok(rv) => rv,
             Err(e) => {
                 let _ = e.throw();
-                std::ptr::null_mut()
+                value
             }
         }
     }
@@ -757,36 +728,38 @@ impl ZendObjectHandlers {
         #[inline(always)]
         unsafe fn internal<T: RegisteredClass>(
             object: *mut zend_object,
-        ) -> std::result::Result<*mut HashTable, PhpException<'static>> {
+            props: &mut HashTable,
+        ) -> std::result::Result<(), PhpException<'static>> {
             let obj = object
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
                 .ok_or("Invalid object pointer given")?;
-            let props = zend_std_get_properties(object)
-                .as_mut()
-                .or_else(|| OwnedHashTable::new().into_inner().as_mut())
-                .ok_or("Invalid property hashtable given")?;
-            let struct_props = obj.obj.assume_init_mut().get_properties();
+            let self_ = obj.obj.assume_init_mut();
+            let struct_props = T::get_properties();
 
             for (name, val) in struct_props.into_iter() {
                 let mut zv = Zval::new();
-                val.get(&mut zv)
-                    .map_err(|e| format!("Failed to get value from zval: {:?}", e))?;
+                if val.get(self_, &mut zv).is_err() {
+                    continue;
+                }
                 props.insert(name, zv).map_err(|e| {
                     format!("Failed to insert value into properties hashtable: {:?}", e)
                 })?;
             }
 
-            Ok(props)
+            Ok(())
         }
 
-        match internal::<T>(object) {
-            Ok(rv) => rv,
-            Err(e) => {
-                let _ = e.throw();
-                std::ptr::null_mut()
-            }
+        let props = zend_std_get_properties(object)
+            .as_mut()
+            .or_else(|| OwnedHashTable::new().into_inner().as_mut())
+            .expect("Failed to get property hashtable");
+
+        if let Err(e) = internal::<T>(object, &mut props) {
+            let _ = e.throw();
         }
+
+        props
     }
 
     unsafe extern "C" fn has_property<T: RegisteredClass>(
@@ -808,15 +781,16 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid object pointer given")?;
             let prop_name = ZendString::from_ptr(member, false)
                 .map_err(|e| format!("Invalid property name given: {:?}", e))?;
-            let props = obj.obj.assume_init_mut().get_properties();
+            let props = T::get_properties();
             let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
+            let self_ = obj.obj.assume_init_mut();
 
             match has_set_exists {
                 // * 0 (has) whether property exists and is not NULL
                 0 => {
                     if let Some(val) = prop {
                         let mut zv = Zval::new();
-                        val.get(&mut zv).unwrap();
+                        val.get(self_, &mut zv).unwrap();
                         if !zv.is_null() {
                             return Ok(1);
                         }
@@ -826,7 +800,7 @@ impl ZendObjectHandlers {
                 1 => {
                     if let Some(val) = prop {
                         let mut zv = Zval::new();
-                        val.get(&mut zv).unwrap();
+                        val.get(self_, &mut zv).unwrap();
 
                         if zend_is_true(&mut zv) == 1 {
                             return Ok(1);

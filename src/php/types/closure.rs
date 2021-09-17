@@ -9,7 +9,8 @@ use crate::php::{
 };
 
 use super::{
-    object::{Prop, RegisteredClass},
+    object::RegisteredClass,
+    props::Property,
     zval::{FromZval, IntoZval, Zval},
 };
 
@@ -159,7 +160,7 @@ impl RegisteredClass for Closure {
         &CLOSURE_META
     }
 
-    fn get_properties(&mut self) -> HashMap<&'static str, &mut dyn Prop> {
+    fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>> {
         HashMap::new()
     }
 }

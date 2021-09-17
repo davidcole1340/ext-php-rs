@@ -14,6 +14,9 @@ use crate::{
     php::flags::ClassFlags,
 };
 
+/// Result type with the error variant as a [`PhpException`].
+pub type PhpResult<T = ()> = std::result::Result<T, PhpException<'static>>;
+
 /// Represents a PHP exception which can be thrown using the `throw()` function. Primarily used to
 /// return from a [`Result<T, PhpException>`] which can immediately be thrown by the `ext-php-rs`
 /// macro API.
