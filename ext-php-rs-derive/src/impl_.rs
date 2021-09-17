@@ -111,7 +111,10 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                     }
                 }
                 syn::ImplItem::Method(mut method) => {
-                    let (sig, method) = method::parser(&mut method, args.rename_methods.unwrap_or(RenameRule::Camel))?;
+                    let (sig, method) = method::parser(
+                        &mut method,
+                        args.rename_methods.unwrap_or(RenameRule::Camel),
+                    )?;
                     class.methods.push(method);
                     sig
                 }
@@ -207,9 +210,7 @@ mod tests {
 
     #[test]
     fn test_rename_php_methods() {
-        for &(original, camel, snake) in &[
-            ("get_name", "getName", "get_name"),
-        ] {
+        for &(original, camel, snake) in &[("get_name", "getName", "get_name")] {
             assert_eq!(camel, RenameRule::Camel.rename(original));
             assert_eq!(snake, RenameRule::Snake.rename(original));
         }

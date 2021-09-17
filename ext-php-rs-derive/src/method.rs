@@ -2,7 +2,10 @@ use anyhow::{anyhow, bail, Result};
 use quote::ToTokens;
 use std::collections::HashMap;
 
-use crate::{function, impl_::{ParsedAttribute, RenameRule, Visibility, parse_attribute}};
+use crate::{
+    function,
+    impl_::{parse_attribute, ParsedAttribute, RenameRule, Visibility},
+};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{punctuated::Punctuated, FnArg, ImplItemMethod, Lit, Pat, Signature, Token, Type};
@@ -31,7 +34,10 @@ pub struct Method {
     pub visibility: Visibility,
 }
 
-pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<(TokenStream, Method)> {
+pub fn parser(
+    input: &mut ImplItemMethod,
+    rename_rule: RenameRule,
+) -> Result<(TokenStream, Method)> {
     let mut defaults = HashMap::new();
     let mut optional = None;
     let mut visibility = Visibility::Public;
@@ -93,7 +99,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<(To
 
     let name = identifier.unwrap_or_else(|| rename_rule.rename(ident.to_string()));
     let method = Method {
-        name, 
+        name,
         ident: internal_ident.to_string(),
         args,
         optional,
