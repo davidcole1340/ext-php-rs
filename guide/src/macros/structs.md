@@ -33,8 +33,7 @@ placed underneath the `#[php_class]` attribute.
 
 You may also use the `#[prop]` attribute on a struct field to use the field as a
 PHP property. By default, the field will be accessible from PHP publically with
-the same name as the field. You can rename the property and/or set the flags of
-the property with options:
+the same name as the field. You can rename the property with options:
 
 - `rename` - Allows you to rename the property, e.g.
   `#[prop(rename = "new_name")]`

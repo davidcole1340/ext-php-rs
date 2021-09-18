@@ -98,21 +98,6 @@ impl<'a> ZendString<'a> {
         }
     }
 
-    /// Returns the number of references that exist to this string.
-    pub(crate) fn refs(&self) -> u32 {
-        self.ptr.gc.refcount
-    }
-
-    /// Increments the reference counter by 1.
-    // pub(crate) fn add_ref(&mut self) {
-    //     self.ptr.gc.refcount += 1;
-    // }
-
-    /// Decrements the reference counter by 1.
-    pub(crate) fn del_ref(&mut self) {
-        self.ptr.gc.refcount -= 1;
-    }
-
     /// Borrows the underlying internal pointer of the Zend string.
     pub(crate) fn as_ptr(&mut self) -> *mut zend_string {
         self.ptr
@@ -122,11 +107,7 @@ impl<'a> ZendString<'a> {
 impl Drop for ZendString<'_> {
     fn drop(&mut self) {
         if self.free {
-            self.del_ref();
-
-            if self.refs() < 1 {
-                unsafe { ext_php_rs_zend_string_release(self.ptr) };
-            }
+            unsafe { ext_php_rs_zend_string_release(self.ptr) };
         }
     }
 }
