@@ -38,8 +38,9 @@ the property with options:
 
 - `rename` - Allows you to rename the property, e.g.
   `#[prop(rename = "new_name")]`
-- `flags` - Allows you to set flags for the property, e.g.
-  `#[prop(flags = PropertyFlags::Public)]`
+
+<!-- - `flags` - Allows you to set flags for the property, e.g.
+  `#[prop(flags = PropertyFlags::Public)]` -->
 
 ## Example
 
