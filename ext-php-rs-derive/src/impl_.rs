@@ -1,12 +1,16 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
-use crate::{constant::Constant, method};
+use crate::{
+    class::{Property, PropertyAttr, PropertyType},
+    constant::Constant,
+    method,
+};
 
 #[derive(Debug, Clone)]
 pub enum Visibility {
@@ -74,12 +78,22 @@ pub enum ParsedAttribute {
     Optional(String),
     Visibility(Visibility),
     Rename(String),
+    Property {
+        prop_name: Option<String>,
+        ty: PropAttrTy,
+    },
 }
 
 #[derive(Default, Debug, FromMeta)]
 #[darling(default)]
 pub struct AttrArgs {
     rename_methods: Option<RenameRule>,
+}
+
+#[derive(Debug)]
+pub enum PropAttrTy {
+    Getter,
+    Setter,
 }
 
 pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
@@ -107,6 +121,12 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
         )
     })?;
 
+    if class.has_impl {
+        bail!("Only one impl block may be tagged with the `#[php_impl]` attribute per class.");
+    }
+
+    class.has_impl = true;
+
     let tokens = items
         .into_iter()
         .map(|item| {
@@ -124,8 +144,19 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                     }
                 }
                 syn::ImplItem::Method(mut method) => {
-                    let (sig, method) =
+                    let (sig, method, is_prop) =
                         method::parser(&mut method, args.rename_methods.unwrap_or_default())?;
+                    if let Some((prop, ty)) = is_prop {
+                        let prop = match class.properties.entry(prop) {
+                            Entry::Occupied(entry) => entry.into_mut(),
+                            Entry::Vacant(vacant) => vacant.insert(Property::method(None)),
+                        };
+                        let ident = method.orig_ident.clone();
+                        match ty {
+                            PropAttrTy::Getter => prop.add_getter(ident)?,
+                            PropAttrTy::Setter => prop.add_setter(ident)?,
+                        }
+                    }
                     class.methods.push(method);
                     sig
                 }
@@ -133,10 +164,34 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
             })
         })
         .collect::<Result<Vec<_>>>()?;
+    let class_name = &class.class_name;
+    let meta = Ident::new(&format!("_{}_META", class_name), Span::call_site());
+    let prop_tuples = class
+        .properties
+        .iter()
+        .map(|(name, prop)| prop.as_prop_tuple(name));
 
     let output = quote! {
         impl #self_ty {
             #(#tokens)*
+        }
+
+        static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#self_ty> = ::ext_php_rs::php::types::object::ClassMetadata::new();
+
+        impl ::ext_php_rs::php::types::object::RegisteredClass for #self_ty {
+            const CLASS_NAME: &'static str = #class_name;
+
+            fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
+                &#meta
+            }
+
+            fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::php::types::props::Property<'a, Self>> {
+                use ::std::iter::FromIterator;
+
+                ::std::collections::HashMap::from_iter([
+                    #(#prop_tuples)*
+                ])
+            }
         }
     };
     Ok(output)
@@ -184,6 +239,34 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
             .ok_or_else(|| anyhow!("Invalid argument given for `#[rename] macro."))?;
 
             ParsedAttribute::Rename(ident)
+        }
+        "getter" => {
+            let prop_name = if attr.tokens.is_empty() {
+                None
+            } else {
+                let parsed: PropertyAttr = attr
+                    .parse_args()
+                    .map_err(|e| anyhow!("Unable to parse `#[getter]` attribute: {}", e))?;
+                parsed.rename
+            };
+            ParsedAttribute::Property {
+                prop_name,
+                ty: PropAttrTy::Getter,
+            }
+        }
+        "setter" => {
+            let prop_name = if attr.tokens.is_empty() {
+                None
+            } else {
+                let parsed: PropertyAttr = attr
+                    .parse_args()
+                    .map_err(|e| anyhow!("Unable to parse `#[setter]` attribute: {}", e))?;
+                parsed.rename
+            };
+            ParsedAttribute::Property {
+                prop_name,
+                ty: PropAttrTy::Setter,
+            }
         }
         attr => bail!("Invalid attribute `#[{}]`.", attr),
     })

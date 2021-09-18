@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::STATE;
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
@@ -8,11 +10,12 @@ use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitSt
 #[derive(Debug, Default)]
 pub struct Class {
     pub class_name: String,
+    pub has_impl: bool,
     pub parent: Option<String>,
     pub interfaces: Vec<String>,
     pub methods: Vec<crate::method::Method>,
     pub constants: Vec<crate::constant::Constant>,
-    pub properties: Vec<Property>,
+    pub properties: HashMap<String, Property>,
 }
 
 #[derive(Debug)]
@@ -34,7 +37,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     let mut parent = None;
     let mut interfaces = vec![];
-    let mut properties = vec![];
+    let mut properties = HashMap::new();
 
     input.attrs = {
         let mut unused = vec![];
@@ -73,11 +76,13 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
                                 .ok_or_else(|| anyhow!("Only named fields can be properties."))?
                                 .to_string();
                             let prop_name = prop.rename.unwrap_or_else(|| field_name.clone());
-                            properties.push(Property {
-                                field_name,
+                            properties.insert(
                                 prop_name,
-                                flags: prop.flags.map(|flags| flags.to_token_stream().to_string()),
-                            });
+                                Property::field(
+                                    field_name,
+                                    prop.flags.map(|flags| flags.to_token_stream().to_string()),
+                                ),
+                            );
                         }
                         _ => bail!("Attribute {:?} is not valid for struct fields.", attr),
                     },
@@ -89,42 +94,6 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     let ItemStruct { ident, .. } = &input;
     let class_name = args.name.unwrap_or_else(|| ident.to_string());
-    let meta = Ident::new(&format!("_{}_META", ident.to_string()), Span::call_site());
-    let prop_tuples = properties.iter().map(
-        |Property {
-             field_name,
-             prop_name,
-             flags: _
-         }| {
-            let field_name = Ident::new(field_name, Span::call_site());
-            quote! {
-                (#prop_name, &mut self.#field_name as &mut dyn ::ext_php_rs::php::types::object::Prop),
-            }
-        },
-    );
-
-    let output = quote! {
-        #input
-
-        static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#ident> = ::ext_php_rs::php::types::object::ClassMetadata::new();
-
-        impl ::ext_php_rs::php::types::object::RegisteredClass for #ident {
-            const CLASS_NAME: &'static str = #class_name;
-
-            fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
-                &#meta
-            }
-
-            fn get_properties(&mut self) -> ::std::collections::HashMap<&'static str, &mut dyn ::ext_php_rs::php::types::object::Prop> {
-                use ::std::iter::FromIterator;
-
-                ::std::collections::HashMap::from_iter([
-                    #(#prop_tuples)*
-                ])
-            }
-        }
-    };
-
     let class = Class {
         class_name,
         parent,
@@ -145,20 +114,112 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     state.classes.insert(ident.to_string(), class);
 
-    Ok(output)
+    Ok(quote! { #input })
 }
 
 #[derive(Debug)]
 pub struct Property {
-    field_name: String,
-    prop_name: String,
+    ty: PropertyType,
+    #[allow(dead_code)]
     flags: Option<String>,
+}
+
+#[derive(Debug)]
+pub enum PropertyType {
+    Field {
+        field_name: String,
+    },
+    Method {
+        getter: Option<String>,
+        setter: Option<String>,
+    },
+}
+
+impl Property {
+    pub fn add_getter(&mut self, new_getter: String) -> Result<()> {
+        match &mut self.ty {
+            PropertyType::Field { .. } => bail!("Cannot add getter to field property."),
+            PropertyType::Method { getter, setter: _ } => match getter {
+                Some(getter) => bail!(
+                    "Attempted to add getter `{}` to property that already has a getter `{}`.",
+                    new_getter,
+                    getter
+                ),
+                None => {
+                    getter.replace(new_getter);
+                    Ok(())
+                }
+            },
+        }
+    }
+
+    pub fn add_setter(&mut self, new_setter: String) -> Result<()> {
+        match &mut self.ty {
+            PropertyType::Field { .. } => bail!("Cannot add setter to field property."),
+            PropertyType::Method { getter: _, setter } => match setter {
+                Some(getter) => bail!(
+                    "Attempted to add setter `{}` to property that already has a setter `{}`.",
+                    new_setter,
+                    getter
+                ),
+                None => {
+                    setter.replace(new_setter);
+                    Ok(())
+                }
+            },
+        }
+    }
+
+    pub fn field(field_name: String, flags: Option<String>) -> Self {
+        Self {
+            ty: PropertyType::Field { field_name },
+            flags,
+        }
+    }
+
+    pub fn method(flags: Option<String>) -> Self {
+        Self {
+            ty: PropertyType::Method {
+                getter: None,
+                setter: None,
+            },
+            flags,
+        }
+    }
+
+    pub fn as_prop_tuple(&self, name: &str) -> TokenStream {
+        match &self.ty {
+            PropertyType::Field { field_name } => {
+                let field_name = Ident::new(field_name, Span::call_site());
+                quote! {
+                    (#name, ::ext_php_rs::php::types::props::Property::field(|obj: &mut Self| &mut obj.#field_name)),
+                }
+            }
+            PropertyType::Method { getter, setter } => {
+                let getter = if let Some(getter) = getter {
+                    let ident = Ident::new(getter, Span::call_site());
+                    quote! { Some(Self::#ident) }
+                } else {
+                    quote! { None }
+                };
+                let setter = if let Some(setter) = setter {
+                    let ident = Ident::new(setter, Span::call_site());
+                    quote! { Some(Self::#ident) }
+                } else {
+                    quote! { None }
+                };
+                quote! {
+                    (#name, ::ext_php_rs::php::types::props::Property::method(#getter, #setter)),
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Default)]
 pub struct PropertyAttr {
-    rename: Option<String>,
-    flags: Option<Expr>,
+    pub rename: Option<String>,
+    pub flags: Option<Expr>,
 }
 
 impl syn::parse::Parse for PropertyAttr {

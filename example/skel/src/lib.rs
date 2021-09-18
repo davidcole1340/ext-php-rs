@@ -22,7 +22,13 @@ impl Default for TestClass {
 
 #[php_impl]
 impl TestClass {
-    fn set_c(&mut self, c: String) {
+    #[getter]
+    fn get_test_name(&self) -> String {
+        self.c.clone()
+    }
+
+    #[setter]
+    fn set_test_name(&mut self, c: String) {
         self.c = c;
     }
 }
