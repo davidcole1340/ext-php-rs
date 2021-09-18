@@ -38,16 +38,27 @@ pub struct Method {
     pub visibility: Visibility,
 }
 
-#[derive(Debug)]
-pub enum Property {
-    Getter(String),
-    Setter(String),
+pub struct ParsedMethod {
+    pub tokens: TokenStream,
+    pub method: Method,
+    pub property: Option<(String, PropAttrTy)>,
 }
 
-pub fn parser(
-    input: &mut ImplItemMethod,
-    rename_rule: RenameRule,
-) -> Result<(TokenStream, Method, Option<(String, PropAttrTy)>)> {
+impl ParsedMethod {
+    pub fn new(
+        tokens: TokenStream,
+        method: Method,
+        property: Option<(String, PropAttrTy)>,
+    ) -> Self {
+        Self {
+            tokens,
+            method,
+            property,
+        }
+    }
+}
+
+pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<ParsedMethod> {
     let mut defaults = HashMap::new();
     let mut optional = None;
     let mut visibility = Visibility::Public;
@@ -138,7 +149,7 @@ pub fn parser(
         visibility,
     };
 
-    Ok((func, method, as_prop))
+    Ok(ParsedMethod::new(func, method, as_prop))
 }
 
 fn build_args(

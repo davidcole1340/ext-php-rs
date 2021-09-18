@@ -96,7 +96,7 @@ impl ZendObject {
         }
         .ok_or(Error::InvalidScope)?;
 
-        T::from_zval(&zv).ok_or_else(|| Error::ZvalConversion(zv.get_type()))
+        T::from_zval(zv).ok_or_else(|| Error::ZvalConversion(zv.get_type()))
     }
 
     /// Attempts to set a property on the object.
@@ -755,7 +755,7 @@ impl ZendObjectHandlers {
             .or_else(|| OwnedHashTable::new().into_inner().as_mut())
             .expect("Failed to get property hashtable");
 
-        if let Err(e) = internal::<T>(object, &mut props) {
+        if let Err(e) = internal::<T>(object, props) {
             let _ = e.throw();
         }
 
@@ -790,7 +790,7 @@ impl ZendObjectHandlers {
                 0 => {
                     if let Some(val) = prop {
                         let mut zv = Zval::new();
-                        val.get(self_, &mut zv).unwrap();
+                        val.get(self_, &mut zv)?;
                         if !zv.is_null() {
                             return Ok(1);
                         }
@@ -800,7 +800,7 @@ impl ZendObjectHandlers {
                 1 => {
                     if let Some(val) = prop {
                         let mut zv = Zval::new();
-                        val.get(self_, &mut zv).unwrap();
+                        val.get(self_, &mut zv)?;
 
                         if zend_is_true(&mut zv) == 1 {
                             return Ok(1);

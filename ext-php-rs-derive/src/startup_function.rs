@@ -85,8 +85,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                     Ok(quote! { .implements(#expr) })
                 })
                 .collect::<Result<Vec<_>>>()?;
-            dbg!(&class.properties);
-            // TODO: register properties for reflection (somehow)
+            // TODO(david): register properties for reflection (somehow)
             // let properties = class
             //     .properties
             //     .iter()

@@ -7,7 +7,7 @@ use quote::quote;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
 use crate::{
-    class::{Property, PropertyAttr, PropertyType},
+    class::{Property, PropertyAttr},
     constant::Constant,
     method,
 };
@@ -144,21 +144,21 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                     }
                 }
                 syn::ImplItem::Method(mut method) => {
-                    let (sig, method, is_prop) =
+                    let parsed_method =
                         method::parser(&mut method, args.rename_methods.unwrap_or_default())?;
-                    if let Some((prop, ty)) = is_prop {
+                    if let Some((prop, ty)) = parsed_method.property {
                         let prop = match class.properties.entry(prop) {
                             Entry::Occupied(entry) => entry.into_mut(),
                             Entry::Vacant(vacant) => vacant.insert(Property::method(None)),
                         };
-                        let ident = method.orig_ident.clone();
+                        let ident = parsed_method.method.orig_ident.clone();
                         match ty {
                             PropAttrTy::Getter => prop.add_getter(ident)?,
                             PropAttrTy::Setter => prop.add_setter(ident)?,
                         }
                     }
-                    class.methods.push(method);
-                    sig
+                    class.methods.push(parsed_method.method);
+                    parsed_method.tokens
                 }
                 item => item.to_token_stream(),
             })

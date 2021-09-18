@@ -50,8 +50,8 @@ impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
 pub enum Property<'a, T> {
     Field(Box<dyn Fn(&mut T) -> &mut dyn Prop>),
     Method {
-        get: Option<Box<dyn Fn(&T, &mut Zval) + 'a>>,
-        set: Option<Box<dyn Fn(&mut T, &Zval) + 'a>>,
+        get: Option<Box<dyn Fn(&T, &mut Zval) -> PhpResult + 'a>>,
+        set: Option<Box<dyn Fn(&mut T, &Zval) -> PhpResult + 'a>>,
     },
 }
 
@@ -112,17 +112,22 @@ impl<'a, T: 'a> Property<'a, T> {
         for<'b> V: IntoZval + FromZval<'b> + 'a,
     {
         let get = get.map(|get| {
-            Box::new(move |self_: &T, retval: &mut Zval| {
+            Box::new(move |self_: &T, retval: &mut Zval| -> PhpResult {
                 let value = get(self_);
-                let _ = value.set_zval(retval, false);
-            }) as Box<dyn Fn(&T, &mut Zval) + 'a>
+                value
+                    .set_zval(retval, false)
+                    .map_err(|e| format!("Failed to return property value to PHP: {:?}", e))?;
+                Ok(())
+            }) as Box<dyn Fn(&T, &mut Zval) -> PhpResult + 'a>
         });
 
         let set = set.map(|set| {
-            Box::new(move |self_: &mut T, value: &Zval| {
-                let val = V::from_zval(value).unwrap();
+            Box::new(move |self_: &mut T, value: &Zval| -> PhpResult {
+                let val = V::from_zval(value)
+                    .ok_or("Unable to convert property value into required type.")?;
                 set(self_, val);
-            }) as Box<dyn Fn(&mut T, &Zval) + 'a>
+                Ok(())
+            }) as Box<dyn Fn(&mut T, &Zval) -> PhpResult + 'a>
         });
 
         Self::Method { get, set }
@@ -166,10 +171,7 @@ impl<'a, T: 'a> Property<'a, T> {
                 .get(retval)
                 .map_err(|e| format!("Failed to get property value: {:?}", e).into()),
             Property::Method { get, set: _ } => match get {
-                Some(get) => {
-                    get(self_, retval);
-                    Ok(())
-                }
+                Some(get) => get(self_, retval),
                 None => Err("No getter available for this property.".into()),
             },
         }
@@ -214,10 +216,7 @@ impl<'a, T: 'a> Property<'a, T> {
                 .set(value)
                 .map_err(|e| format!("Failed to set property value: {:?}", e).into()),
             Property::Method { get: _, set } => match set {
-                Some(set) => {
-                    set(self_, value);
-                    Ok(())
-                }
+                Some(set) => set(self_, value),
                 None => Err("No setter available for this property.".into()),
             },
         }
