@@ -17,10 +17,18 @@ pub enum Visibility {
 
 #[derive(Debug, Copy, Clone, FromMeta)]
 pub enum RenameRule {
+    #[darling(rename = "none")]
+    None,
     #[darling(rename = "camelCase")]
     Camel,
     #[darling(rename = "snake_case")]
     Snake,
+}
+
+impl Default for RenameRule {
+    fn default() -> Self {
+        RenameRule::Camel
+    }
 }
 
 impl RenameRule {
@@ -29,27 +37,32 @@ impl RenameRule {
     /// Magic methods are handled specially to make sure they're always cased
     /// correctly.
     pub fn rename(&self, name: impl AsRef<str>) -> String {
-        match name.as_ref() {
-            "__construct" => "__construct".to_string(),
-            "__destruct" => "__destruct".to_string(),
-            "__call" => "__call".to_string(),
-            "__call_static" => "__callStatic".to_string(),
-            "__get" => "__get".to_string(),
-            "__set" => "__set".to_string(),
-            "__isset" => "__isset".to_string(),
-            "__unset" => "__unset".to_string(),
-            "__sleep" => "__sleep".to_string(),
-            "__wakeup" => "__wakeup".to_string(),
-            "__serialize" => "__serialize".to_string(),
-            "__unserialize" => "__unserialize".to_string(),
-            "__to_string" => "__toString".to_string(),
-            "__invoke" => "__invoke".to_string(),
-            "__set_state" => "__set_state".to_string(),
-            "__clone" => "__clone".to_string(),
-            "__debug_info" => "__debugInfo".to_string(),
-            field => match self {
-                Self::Camel => ident_case::RenameRule::CamelCase.apply_to_field(field),
-                Self::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(field),
+        let name = name.as_ref();
+        match self {
+            RenameRule::None => name.to_string(),
+            rule => match name {
+                "__construct" => "__construct".to_string(),
+                "__destruct" => "__destruct".to_string(),
+                "__call" => "__call".to_string(),
+                "__call_static" => "__callStatic".to_string(),
+                "__get" => "__get".to_string(),
+                "__set" => "__set".to_string(),
+                "__isset" => "__isset".to_string(),
+                "__unset" => "__unset".to_string(),
+                "__sleep" => "__sleep".to_string(),
+                "__wakeup" => "__wakeup".to_string(),
+                "__serialize" => "__serialize".to_string(),
+                "__unserialize" => "__unserialize".to_string(),
+                "__to_string" => "__toString".to_string(),
+                "__invoke" => "__invoke".to_string(),
+                "__set_state" => "__set_state".to_string(),
+                "__clone" => "__clone".to_string(),
+                "__debug_info" => "__debugInfo".to_string(),
+                field => match rule {
+                    Self::Camel => ident_case::RenameRule::CamelCase.apply_to_field(field),
+                    Self::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(field),
+                    Self::None => unreachable!(),
+                },
             },
         }
     }
@@ -111,10 +124,8 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                     }
                 }
                 syn::ImplItem::Method(mut method) => {
-                    let (sig, method) = method::parser(
-                        &mut method,
-                        args.rename_methods.unwrap_or(RenameRule::Camel),
-                    )?;
+                    let (sig, method) =
+                        method::parser(&mut method, args.rename_methods.unwrap_or_default())?;
                     class.methods.push(method);
                     sig
                 }
@@ -203,6 +214,7 @@ mod tests {
             ("__clone", "__clone"),
             ("__debug_info", "__debugInfo"),
         ] {
+            assert_eq!(magic, RenameRule::None.rename(magic));
             assert_eq!(expected, RenameRule::Camel.rename(magic));
             assert_eq!(expected, RenameRule::Snake.rename(magic));
         }
@@ -211,6 +223,7 @@ mod tests {
     #[test]
     fn test_rename_php_methods() {
         for &(original, camel, snake) in &[("get_name", "getName", "get_name")] {
+            assert_eq!(original, RenameRule::None.rename(original));
             assert_eq!(camel, RenameRule::Camel.rename(original));
             assert_eq!(snake, RenameRule::Snake.rename(original));
         }
