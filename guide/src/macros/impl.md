@@ -68,7 +68,7 @@ constant for the maximum age of a `Human`.
 # #[derive(Default)]
 # pub struct Human {
 #     name: String,
-#     age: i32
+#     age: i32,
 #     #[prop]
 #     address: String,
 # }
@@ -106,6 +106,10 @@ impl Human {
         Self::MAX_AGE
     }
 }
+# #[php_module]
+# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+#     module
+# }
 ```
 
 Using our newly created class in PHP:

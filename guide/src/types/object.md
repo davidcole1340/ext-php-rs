@@ -31,6 +31,10 @@ impl Example {
         ClassRef::from_ref(self).unwrap()
     }
 }
+# #[php_module]
+# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+#     module
+# }
 ```
 
 ### Creating a new class instance
@@ -52,4 +56,8 @@ impl Example {
         Example { foo, bar }
     }
 }
+# #[php_module]
+# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+#     module
+# }
 ```

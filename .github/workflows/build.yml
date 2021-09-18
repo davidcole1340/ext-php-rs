@@ -48,6 +48,9 @@ jobs:
           EXT_PHP_RS_TEST:
         run: cargo build --release --features alloc,closure
       - name: Test guide examples
+        env:
+          CARGO_PKG_NAME: mdbook-tests
+          CARGO_PKG_VERSION: 0.1.0
         run: |
           mdbook test guide -L target/release/deps
       - name: Test inline examples

@@ -10,7 +10,7 @@ use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitSt
 #[derive(Debug, Default)]
 pub struct Class {
     pub class_name: String,
-    pub has_impl: bool,
+    pub struct_path: String,
     pub parent: Option<String>,
     pub interfaces: Vec<String>,
     pub methods: Vec<crate::method::Method>,
@@ -94,8 +94,10 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     let ItemStruct { ident, .. } = &input;
     let class_name = args.name.unwrap_or_else(|| ident.to_string());
+    let struct_path = ident.to_string();
     let class = Class {
         class_name,
+        struct_path,
         parent,
         interfaces,
         properties,

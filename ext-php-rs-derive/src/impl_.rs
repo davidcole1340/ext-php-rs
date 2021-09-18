@@ -2,7 +2,7 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
@@ -121,12 +121,6 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
         )
     })?;
 
-    if class.has_impl {
-        bail!("Only one impl block may be tagged with the `#[php_impl]` attribute per class.");
-    }
-
-    class.has_impl = true;
-
     let tokens = items
         .into_iter()
         .map(|item| {
@@ -164,36 +158,13 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
             })
         })
         .collect::<Result<Vec<_>>>()?;
-    let class_name = &class.class_name;
-    let meta = Ident::new(&format!("_{}_META", class_name), Span::call_site());
-    let prop_tuples = class
-        .properties
-        .iter()
-        .map(|(name, prop)| prop.as_prop_tuple(name));
 
     let output = quote! {
         impl #self_ty {
             #(#tokens)*
         }
-
-        static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#self_ty> = ::ext_php_rs::php::types::object::ClassMetadata::new();
-
-        impl ::ext_php_rs::php::types::object::RegisteredClass for #self_ty {
-            const CLASS_NAME: &'static str = #class_name;
-
-            fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
-                &#meta
-            }
-
-            fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::php::types::props::Property<'a, Self>> {
-                use ::std::iter::FromIterator;
-
-                ::std::collections::HashMap::from_iter([
-                    #(#prop_tuples)*
-                ])
-            }
-        }
     };
+
     Ok(output)
 }
 

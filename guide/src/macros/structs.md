@@ -38,9 +38,6 @@ the same name as the field. You can rename the property with options:
 - `rename` - Allows you to rename the property, e.g.
   `#[prop(rename = "new_name")]`
 
-<!-- - `flags` - Allows you to set flags for the property, e.g.
-  `#[prop(flags = PropertyFlags::Public)]` -->
-
 ## Example
 
 This example creates a PHP class `Human`, adding a PHP property `address` with
@@ -57,6 +54,10 @@ pub struct Human {
     #[prop]
     address: String,
 }
+# #[php_module]
+# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+#     module
+# }
 ```
 
 Create a custom exception `RedisException`, which extends `Exception`, and put
@@ -77,22 +78,8 @@ pub struct RedisException;
 pub fn throw_exception() -> Result<i32, PhpException<'static>> {
     Err(PhpException::from_class::<RedisException>("Not good!".into()))
 }
-```
-
-Creating a class with a private property called `test`:
-
-```rust
-# extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
-#[php_class]
-pub struct TestClass {
-    #[prop(flags = PropertyFlags::Private)]
-    test: String,
-}
-
-impl Default for TestClass {
-    fn default() -> Self {
-        TestClass { test: "Default value".into() }
-    }
-}
+# #[php_module]
+# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+#     module
+# }
 ```
