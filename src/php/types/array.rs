@@ -378,7 +378,7 @@ where
         for (idx, key, val) in zht.into_iter() {
             hm.insert(
                 key.unwrap_or_else(|| idx.to_string()),
-                V::from_zval(val).ok_or(Error::ZvalConversion(val.get_type()?))?,
+                V::from_zval(val).ok_or(Error::ZvalConversion(val.get_type()))?,
             );
         }
 
@@ -436,7 +436,7 @@ where
 
     fn try_from(ht: ZendHashTable<'a>) -> Result<Self> {
         ht.into_iter()
-            .map(|(_, _, v)| V::from_zval(v).ok_or(Error::ZvalConversion(v.get_type()?)))
+            .map(|(_, _, v)| V::from_zval(v).ok_or(Error::ZvalConversion(v.get_type())))
             .collect::<Result<Vec<_>>>()
     }
 }

@@ -1,13 +1,17 @@
 mod allocator;
 
+use std::convert::TryFrom;
+
 use allocator::PhpAllocator;
 use ext_php_rs::{
     php::{
         exceptions::PhpException,
         types::{
+            array::ZendHashTable,
             callable::Callable,
             closure::Closure,
             object::{ClassObject, ClassRef},
+            zval::Zval,
         },
     },
     php_class,
@@ -208,6 +212,23 @@ pub fn closure_count() -> Closure {
         count += a;
         count
     }) as Box<dyn FnMut(i32) -> i32>)
+}
+
+#[php_function]
+pub fn test_zval() {
+    let mut z = Zval::new();
+    z.set_long(5);
+    z.set_double(100.5);
+    z.set_bool(false);
+    z.set_null();
+    z.set_string("Hello world", false).unwrap();
+    z.set_array(ZendHashTable::try_from(vec![1, 2, 3, 4, 5]).unwrap());
+    drop(dbg!(z));
+
+    let mut x = ZendHashTable::new();
+    dbg!(x.insert("test", "Hello world"));
+    dbg!(x.insert("test", 1234));
+    dbg!(x.insert("test", "ok test"));
 }
 
 #[php_module]

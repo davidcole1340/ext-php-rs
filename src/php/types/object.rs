@@ -156,11 +156,6 @@ impl ZendObject {
     fn mut_ptr(&self) -> *mut Self {
         (self as *const Self) as *mut Self
     }
-
-    /// Increments the objects reference counter by 1.
-    pub(crate) fn refcount_inc(&mut self) {
-        self.gc.refcount += 1;
-    }
 }
 
 impl Debug for ZendObject {
