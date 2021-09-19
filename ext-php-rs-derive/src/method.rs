@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::{
     function,
-    impl_::{parse_attribute, ParsedAttribute, Visibility},
+    impl_::{parse_attribute, ParsedAttribute, RenameRule, Visibility},
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -34,16 +34,21 @@ pub struct Method {
     pub visibility: Visibility,
 }
 
-pub fn parser(input: &mut ImplItemMethod) -> Result<(TokenStream, Method)> {
+pub fn parser(
+    input: &mut ImplItemMethod,
+    rename_rule: RenameRule,
+) -> Result<(TokenStream, Method)> {
     let mut defaults = HashMap::new();
     let mut optional = None;
     let mut visibility = Visibility::Public;
+    let mut identifier = None;
 
     for attr in input.attrs.iter() {
         match parse_attribute(attr)? {
             ParsedAttribute::Default(list) => defaults = list,
             ParsedAttribute::Optional(name) => optional = Some(name),
             ParsedAttribute::Visibility(vis) => visibility = vis,
+            ParsedAttribute::Rename(ident) => identifier = Some(ident),
         }
     }
 
@@ -92,8 +97,9 @@ pub fn parser(input: &mut ImplItemMethod) -> Result<(TokenStream, Method)> {
         }
     };
 
+    let name = identifier.unwrap_or_else(|| rename_rule.rename(ident.to_string()));
     let method = Method {
-        name: ident.to_string(),
+        name,
         ident: internal_ident.to_string(),
         args,
         optional,

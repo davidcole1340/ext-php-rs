@@ -93,10 +93,11 @@ pub fn php_startup(_: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn php_impl(_: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
     let input = parse_macro_input!(input as ItemImpl);
 
-    match impl_::parser(input) {
+    match impl_::parser(args, input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }
