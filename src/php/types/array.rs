@@ -25,15 +25,6 @@ use super::{
     zval::{FromZval, IntoZval, Zval},
 };
 
-/// Result type returned after attempting to insert an element into a hash table.
-#[derive(Debug)]
-pub enum HashTableInsertResult<'a> {
-    /// The element was inserted into the hash table successfully.
-    Ok,
-    /// The element was inserted into the hash table successfully, over-writing an existing element.
-    OkWithOverwrite(&'a Zval),
-}
-
 /// A PHP array, which internally is a hash table.
 pub struct ZendHashTable<'a> {
     ptr: *mut HashTable,
@@ -175,19 +166,18 @@ impl<'a> ZendHashTable<'a> {
     }
 
     /// Attempts to insert an item into the hash table, or update if the key already exists.
-    /// Returns a result containing a [`HashTableInsertResult`], which will indicate a successful
-    /// insert, with the insert result variants either containing the overwritten value or nothing.
+    /// Returns nothing in a result if successful.
     ///
     /// # Parameters
     ///
     /// * `key` - The key to insert the value at in the hash table.
     /// * `value` - The value to insert into the hash table.
-    pub fn insert<V>(&mut self, key: &str, val: V) -> Result<HashTableInsertResult>
+    pub fn insert<V>(&mut self, key: &str, val: V) -> Result<()>
     where
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        let existing_ptr = unsafe {
+        unsafe {
             zend_hash_str_update(
                 self.ptr,
                 CString::new(key)?.as_ptr(),
@@ -196,44 +186,24 @@ impl<'a> ZendHashTable<'a> {
             )
         };
         val.release();
-
-        // Should we be claiming this Zval into rust?
-        // I'm not sure if the PHP GC will collect this.
-
-        // SAFETY: The `zend_hash_str_update` function will either return a valid pointer or a null pointer.
-        // In the latter case, `as_ref()` will return `None`.
-        Ok(match unsafe { existing_ptr.as_ref() } {
-            Some(ptr) => HashTableInsertResult::OkWithOverwrite(ptr),
-            None => HashTableInsertResult::Ok,
-        })
+        Ok(())
     }
 
-    /// Inserts an item into the hash table at a specified index,
-    /// or updates if the key already exists.
+    /// Inserts an item into the hash table at a specified index, or updates if the key already exists.
+    /// Returns nothing in a result if successful.
     ///
     /// # Parameters
     ///
     /// * `key` - The index at which the value should be inserted.
     /// * `val` - The value to insert into the hash table.
-    ///
-    /// # Returns
-    ///
-    /// * `Some(&Zval)` - The existing value in the hash table that was overriden.
-    /// * `None` - The element was inserted.
-    pub fn insert_at_index<V>(&mut self, key: u64, val: V) -> Result<HashTableInsertResult>
+    pub fn insert_at_index<V>(&mut self, key: u64, val: V) -> Result<()>
     where
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        let existing_ptr = unsafe { zend_hash_index_update(self.ptr, key, &mut val) };
+        unsafe { zend_hash_index_update(self.ptr, key, &mut val) };
         val.release();
-
-        // SAFETY: The `zend_hash_str_update` function will either return a valid pointer or a null pointer.
-        // In the latter case, `as_ref()` will return `None`.
-        Ok(match unsafe { existing_ptr.as_ref() } {
-            Some(ptr) => HashTableInsertResult::OkWithOverwrite(ptr),
-            None => HashTableInsertResult::Ok,
-        })
+        Ok(())
     }
 
     /// Pushes an item onto the end of the hash table. Returns a result containing nothing if the
