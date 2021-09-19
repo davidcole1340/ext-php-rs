@@ -1,6 +1,6 @@
 <?php
 
-test_zval();
+test_zval(['hello' => 'world']);
 //include 'vendor/autoload.php';
 
 //$ext = new ReflectionExtension('skel');

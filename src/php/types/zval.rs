@@ -3,7 +3,6 @@
 
 use core::slice;
 use std::{
-    collections::HashMap,
     convert::{TryFrom, TryInto},
     fmt::Debug,
     ptr,
@@ -24,7 +23,12 @@ use crate::php::{
     types::{long::ZendLong, string::ZendString},
 };
 
-use super::{array::ZendHashTable, callable::Callable, object::ZendObject, rc::PhpRc};
+use super::{
+    array::{HashTable, OwnedHashTable},
+    callable::Callable,
+    object::ZendObject,
+    rc::PhpRc,
+};
 
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
@@ -143,10 +147,19 @@ impl Zval {
         }
     }
 
-    /// Returns the value of the zval if it is an array.
-    pub fn array(&self) -> Option<ZendHashTable> {
+    /// Returns an immutable reference to the underlying zval hashtable if the zval contains an array.
+    pub fn array(&self) -> Option<&HashTable> {
         if self.is_array() {
-            unsafe { ZendHashTable::from_ptr(self.value.arr, false) }.ok()
+            unsafe { self.value.arr.as_ref() }
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable reference to the underlying zval hashtable if the zval contains an array.
+    pub fn array_mut(&mut self) -> Option<&mut HashTable> {
+        if self.is_array() {
+            unsafe { self.value.arr.as_mut() }
         } else {
             None
         }
@@ -312,7 +325,7 @@ impl Zval {
 
     fn _set_long(&mut self, val: ZendLong) {
         self.change_type(ZvalTypeFlags::Long);
-        self.value.lval = val.into();
+        self.value.lval = val;
     }
 
     /// Sets the value of the zval as a double.
@@ -374,14 +387,24 @@ impl Zval {
         self.value.obj = (val as *const ZendObject) as *mut ZendObject;
     }
 
-    /// Sets the value of the zval as an array. Returns nothng in a result on success.
+    /// Sets the value of the zval as an array. Returns nothing in a result on success.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_array(&mut self, val: ZendHashTable) {
+    pub fn set_array<T: TryInto<OwnedHashTable, Error = Error>>(&mut self, val: T) -> Result<()> {
+        self.set_hashtable(val.try_into()?);
+        Ok(())
+    }
+
+    /// Sets the value of the zval as an array. Returns nothing in a result on success.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to set the zval as.
+    pub fn set_hashtable(&mut self, val: OwnedHashTable) {
         self.change_type(ZvalTypeFlags::ArrayEx);
-        self.value.arr = val.into_ptr();
+        self.value.arr = val.into_inner();
     }
 
     /// Used to drop the Zval but keep the value of the zval intact.
@@ -618,44 +641,6 @@ where
     }
 }
 
-impl<'a> IntoZval for ZendHashTable<'a> {
-    const TYPE: DataType = DataType::Array;
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        zv.set_array(self);
-        Ok(())
-    }
-}
-
-impl<T> IntoZval for Vec<T>
-where
-    T: IntoZval,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        let hm = self
-            .try_into()
-            .map_err(|_| Error::ZvalConversion(DataType::Array))?;
-        zv.set_array(hm);
-        Ok(())
-    }
-}
-
-impl<K, V> IntoZval for HashMap<K, V>
-where
-    K: AsRef<str>,
-    V: IntoZval,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        let hm = self.try_into()?;
-        zv.set_array(hm);
-        Ok(())
-    }
-}
-
 /// Allows zvals to be converted into Rust types in a fallible way. Reciprocal of the [`IntoZval`]
 /// trait.
 pub trait FromZval<'a>: Sized {
@@ -731,64 +716,6 @@ impl<'a> FromZval<'a> for &'a str {
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
         zval.str()
-    }
-}
-
-impl<'a> FromZval<'a> for ZendHashTable<'a> {
-    const TYPE: DataType = DataType::Array;
-
-    fn from_zval(zval: &'a Zval) -> Option<Self> {
-        zval.array()
-    }
-}
-
-impl<'a, T> FromZval<'a> for Vec<T>
-where
-    T: FromZval<'a>,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn from_zval(zval: &'a Zval) -> Option<Self> {
-        zval.array().and_then(|arr| arr.try_into().ok())
-    }
-}
-
-impl<T> TryFrom<Zval> for Vec<T>
-where
-    for<'a> T: FromZval<'a>,
-{
-    type Error = Error;
-
-    fn try_from(value: Zval) -> Result<Self> {
-        value
-            .array()
-            .ok_or(Error::ZvalConversion(value.get_type()))?
-            .try_into()
-    }
-}
-
-impl<'a, T> FromZval<'a> for HashMap<String, T>
-where
-    T: FromZval<'a>,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn from_zval(zval: &'a Zval) -> Option<Self> {
-        zval.array().and_then(|arr| arr.try_into().ok())
-    }
-}
-
-impl<T> TryFrom<Zval> for HashMap<String, T>
-where
-    for<'a> T: FromZval<'a>,
-{
-    type Error = Error;
-
-    fn try_from(value: Zval) -> Result<Self> {
-        value
-            .array()
-            .ok_or(Error::ZvalConversion(value.get_type()))?
-            .try_into()
     }
 }
 

@@ -2,7 +2,7 @@
 
 use crate::bindings::{_zend_executor_globals, ext_php_rs_executor_globals};
 
-use super::types::array::ZendHashTable;
+use super::types::array::HashTable;
 
 /// Stores global variables used in the PHP executor.
 pub type ExecutorGlobals = _zend_executor_globals;
@@ -17,11 +17,7 @@ impl ExecutorGlobals {
     }
 
     /// Attempts to retrieve the global class hash table.
-    pub fn class_table(&self) -> Option<ZendHashTable> {
-        if self.class_table.is_null() {
-            return None;
-        }
-
-        unsafe { ZendHashTable::from_ptr(self.class_table, false) }.ok()
+    pub fn class_table(&self) -> Option<&HashTable> {
+        unsafe { self.class_table.as_ref() }
     }
 }

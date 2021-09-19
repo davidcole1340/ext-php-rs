@@ -6,18 +6,20 @@ use std::{
     convert::{TryFrom, TryInto},
     ffi::CString,
     fmt::Debug,
-    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    ptr::NonNull,
     u64,
 };
 
 use crate::{
     bindings::{
-        HashTable, _Bucket, _zend_new_array, zend_array_destroy, zend_array_dup, zend_hash_clean,
+        _Bucket, _zend_new_array, zend_array_destroy, zend_array_dup, zend_hash_clean,
         zend_hash_index_del, zend_hash_index_find, zend_hash_index_update,
         zend_hash_next_index_insert, zend_hash_str_del, zend_hash_str_find, zend_hash_str_update,
         HT_MIN_SIZE,
     },
     errors::{Error, Result},
+    php::enums::DataType,
 };
 
 use super::{
@@ -25,63 +27,13 @@ use super::{
     zval::{FromZval, IntoZval, Zval},
 };
 
-/// A PHP array, which internally is a hash table.
-pub struct ZendHashTable<'a> {
-    ptr: *mut HashTable,
-    free: bool,
-    phantom: PhantomData<&'a HashTable>,
-}
+/// PHP array, which is represented in memory as a hashtable.
+pub use crate::bindings::HashTable;
 
-impl<'a> ZendHashTable<'a> {
-    /// Creates a new, empty, PHP associative array.
-    pub fn new() -> Self {
-        Self::with_capacity(HT_MIN_SIZE)
-    }
-
-    /// Creates a new, empty, PHP associative array with an initial size.
-    ///
-    /// # Parameters
-    ///
-    /// * `size` - The size to initialize the array with.
-    pub fn with_capacity(size: u32) -> Self {
-        // SAFETY: PHP allocater handles the creation of the
-        // array.
-        let ptr = unsafe { _zend_new_array(size) };
-        Self {
-            ptr,
-            free: true,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Creates a new hash table wrapper.
-    /// This _will not_ be freed when it goes out of scope in Rust.
-    ///
-    /// # Parameters
-    ///
-    /// * `ptr` - The pointer of the actual hash table.
-    /// * `free` - Whether the pointer should be freed when the resulting [`ZendHashTable`]
-    /// goes out of scope.
-    ///
-    /// # Safety
-    ///
-    /// As a raw pointer is given this function is unsafe, you must ensure that the pointer is valid when calling
-    /// the function. A simple null check is done but this is not sufficient in most cases.
-    pub unsafe fn from_ptr(ptr: *mut HashTable, free: bool) -> Result<Self> {
-        if ptr.is_null() {
-            return Err(Error::InvalidPointer);
-        }
-
-        Ok(Self {
-            ptr,
-            free,
-            phantom: PhantomData,
-        })
-    }
-
+impl HashTable {
     /// Returns the current number of elements in the array.
     pub fn len(&self) -> usize {
-        unsafe { *self.ptr }.nNumOfElements as usize
+        self.nNumOfElements as usize
     }
 
     /// Returns whether the hash table is empty.
@@ -91,7 +43,7 @@ impl<'a> ZendHashTable<'a> {
 
     /// Clears the hash table, removing all values.
     pub fn clear(&mut self) {
-        unsafe { zend_hash_clean(self.ptr) }
+        unsafe { zend_hash_clean(self) }
     }
 
     /// Attempts to retrieve a value from the hash table with a string key.
@@ -104,9 +56,9 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
     /// * `None` - No value at the given position was found.
-    pub fn get(&self, key: &str) -> Option<&Zval> {
+    pub fn get(&self, key: &'_ str) -> Option<&Zval> {
         let str = CString::new(key).ok()?;
-        unsafe { zend_hash_str_find(self.ptr, str.as_ptr(), key.len() as _).as_ref() }
+        unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_ref() }
     }
 
     /// Attempts to retrieve a value from the hash table with an index.
@@ -120,7 +72,7 @@ impl<'a> ZendHashTable<'a> {
     /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
     /// * `None` - No value at the given position was found.
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
-        unsafe { zend_hash_index_find(self.ptr, key).as_ref() }
+        unsafe { zend_hash_index_find(self, key).as_ref() }
     }
 
     /// Attempts to remove a value from the hash table with a string key.
@@ -133,10 +85,9 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `Some(())` - Key was successfully removed.
     /// * `None` - No key was removed, did not exist.
-    pub fn remove<K>(&self, key: &str) -> Option<()> {
-        let result = unsafe {
-            zend_hash_str_del(self.ptr, CString::new(key).ok()?.as_ptr(), key.len() as _)
-        };
+    pub fn remove<K>(&mut self, key: &str) -> Option<()> {
+        let result =
+            unsafe { zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _) };
 
         if result < 0 {
             None
@@ -155,8 +106,8 @@ impl<'a> ZendHashTable<'a> {
     ///
     /// * `Ok(())` - Key was successfully removed.
     /// * `None` - No key was removed, did not exist.
-    pub fn remove_index(&self, key: u64) -> Option<()> {
-        let result = unsafe { zend_hash_index_del(self.ptr, key) };
+    pub fn remove_index(&mut self, key: u64) -> Option<()> {
+        let result = unsafe { zend_hash_index_del(self, key) };
 
         if result < 0 {
             None
@@ -179,7 +130,7 @@ impl<'a> ZendHashTable<'a> {
         let mut val = val.into_zval(false)?;
         unsafe {
             zend_hash_str_update(
-                self.ptr,
+                self,
                 CString::new(key)?.as_ptr(),
                 key.len() as u64,
                 &mut val,
@@ -201,7 +152,7 @@ impl<'a> ZendHashTable<'a> {
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        unsafe { zend_hash_index_update(self.ptr, key, &mut val) };
+        unsafe { zend_hash_index_update(self, key, &mut val) };
         val.release();
         Ok(())
     }
@@ -217,7 +168,7 @@ impl<'a> ZendHashTable<'a> {
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        unsafe { zend_hash_next_index_insert(self.ptr, &mut val) };
+        unsafe { zend_hash_next_index_insert(self, &mut val) };
         val.release();
 
         Ok(())
@@ -225,18 +176,18 @@ impl<'a> ZendHashTable<'a> {
 
     /// Returns an iterator over the hash table.
     #[inline]
-    pub fn iter(&self) -> Iter<'_> {
+    pub fn iter(&self) -> Iter {
         Iter::new(self)
     }
 
-    /// Converts the hash table into a raw pointer to be passed to Zend.
-    pub(crate) fn into_ptr(mut self) -> *mut HashTable {
-        self.free = false;
-        self.ptr
+    /// Clones the hash table, returning an [`OwnedHashTable`].
+    pub fn to_owned(&self) -> OwnedHashTable {
+        let ptr = unsafe { zend_array_dup(self as *const HashTable as *mut HashTable) };
+        unsafe { OwnedHashTable::from_ptr(ptr) }
     }
 }
 
-impl<'a> Debug for ZendHashTable<'a> {
+impl Debug for HashTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
             .entries(
@@ -247,108 +198,187 @@ impl<'a> Debug for ZendHashTable<'a> {
     }
 }
 
-impl<'a> Default for ZendHashTable<'a> {
+/// Immutable iterator upon a reference to a hashtable.
+pub struct Iter<'a> {
+    ht: &'a HashTable,
+    pos: Option<NonNull<_Bucket>>,
+    end: Option<NonNull<_Bucket>>,
+}
+
+impl<'a> Iter<'a> {
+    /// Creates a new iterator over a hashtable.
+    ///
+    /// # Parameters
+    ///
+    /// * `ht` - The hashtable to iterate.
+    pub fn new(ht: &'a HashTable) -> Self {
+        Self {
+            ht,
+            pos: NonNull::new(ht.arData),
+            end: NonNull::new(unsafe { ht.arData.offset(ht.nNumUsed as isize) }),
+        }
+    }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = (u64, Option<String>, &'a Zval);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let pos = self.pos?;
+
+        if pos == self.end? {
+            return None;
+        }
+
+        let bucket = unsafe { pos.as_ref() };
+        let key = unsafe { ZendString::from_ptr(bucket.key, false) }
+            .and_then(|s| s.try_into())
+            .ok();
+
+        self.pos = NonNull::new(unsafe { pos.as_ptr().offset(1) });
+
+        Some((bucket.h, key, &bucket.val))
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.ht.nNumUsed as usize
+    }
+}
+
+/// A container used to 'own' a Zend hashtable. Dereferences to a reference to [`HashTable`].
+///
+/// When this struct is dropped, it will also destroy the internal hashtable, unless the `into_raw`
+/// function is used.
+pub struct OwnedHashTable {
+    ptr: NonNull<HashTable>,
+    drop: bool,
+}
+
+impl OwnedHashTable {
+    /// Creates a new, empty, PHP associative array.
+    pub fn new() -> Self {
+        Self::with_capacity(HT_MIN_SIZE)
+    }
+
+    /// Creates a new, empty, PHP associative array with an initial size.
+    ///
+    /// # Parameters
+    ///
+    /// * `size` - The size to initialize the array with.
+    pub fn with_capacity(size: u32) -> Self {
+        // SAFETY: PHP allocater handles the creation of the array.
+        unsafe {
+            let ptr = _zend_new_array(size);
+            Self::from_ptr(ptr)
+        }
+    }
+
+    /// Creates an owned hashtable from a hashtable pointer, which will be freed when the
+    /// resulting Rust object is dropped.
+    ///
+    /// # Parameters
+    ///
+    /// * `ptr` - Hashtable pointer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given pointer is null.
+    ///
+    /// # Safety
+    ///
+    /// Caller must ensure that the given pointer is a valid hashtable pointer, including
+    /// non-null and properly aligned.
+    pub unsafe fn from_ptr(ptr: *mut HashTable) -> Self {
+        Self {
+            ptr: NonNull::new(ptr).expect("Invalid hashtable pointer given"),
+            drop: true,
+        }
+    }
+
+    /// Returns the inner pointer to the hashtable, without destroying the
+    pub fn into_inner(mut self) -> *mut HashTable {
+        self.drop = false;
+        self.ptr.as_ptr()
+    }
+}
+
+impl Deref for OwnedHashTable {
+    type Target = HashTable;
+
+    fn deref(&self) -> &Self::Target {
+        // SAFETY: all constructors ensure a valid ptr is present
+        unsafe { self.ptr.as_ref() }
+    }
+}
+
+impl DerefMut for OwnedHashTable {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: all constructors ensure a valid, owned ptr is present
+        unsafe { self.ptr.as_mut() }
+    }
+}
+
+impl Debug for OwnedHashTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.deref().fmt(f)
+    }
+}
+
+impl Default for OwnedHashTable {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a> Drop for ZendHashTable<'a> {
-    fn drop(&mut self) {
-        if self.free {
-            unsafe { zend_array_destroy(self.ptr) };
-        }
-    }
-}
-
-impl<'a> Clone for ZendHashTable<'a> {
+impl Clone for OwnedHashTable {
     fn clone(&self) -> Self {
-        // SAFETY: If this fails then `emalloc` failed - we are doomed anyway?
-        // `from_ptr()` checks if the ptr is null.
-        unsafe {
-            let ptr = zend_array_dup(self.ptr);
-            Self::from_ptr(ptr, true).expect("ZendHashTable cloning failed when duplicating array.")
-        }
+        self.deref().to_owned()
     }
 }
 
-impl<'a> IntoIterator for ZendHashTable<'a> {
-    type Item = (u64, Option<String>, &'a Zval);
-    type IntoIter = IntoIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        Self::IntoIter::new(self)
+impl Drop for OwnedHashTable {
+    fn drop(&mut self) {
+        unsafe { zend_array_destroy(self.ptr.as_mut()) };
     }
 }
 
-macro_rules! build_iter {
-    ($name: ident, $ht: ty) => {
-        pub struct $name<'a> {
-            ht: $ht,
-            pos: *mut _Bucket,
-            end: *mut _Bucket,
-        }
+impl IntoZval for OwnedHashTable {
+    const TYPE: DataType = DataType::Array;
 
-        impl<'a> $name<'a> {
-            pub fn new(ht: $ht) -> Self {
-                let ptr = unsafe { *ht.ptr };
-                let pos = ptr.arData;
-                let end = unsafe { ptr.arData.offset(ptr.nNumUsed as isize) };
-                Self { ht, pos, end }
-            }
-        }
-
-        impl<'a> Iterator for $name<'a> {
-            type Item = (u64, Option<String>, &'a Zval);
-
-            fn next(&mut self) -> Option<Self::Item> {
-                // iterator complete
-                if self.pos == self.end {
-                    return None;
-                }
-
-                let result = if let Some(val) = unsafe { self.pos.as_ref() } {
-                    // SAFETY: We can ensure safety further by checking if it is null before
-                    // converting it to a reference (val.key.as_ref() returns None if ptr == null)
-                    let str_key = unsafe { ZendString::from_ptr(val.key, false) }
-                        .and_then(|s| s.try_into())
-                        .ok();
-
-                    Some((val.h, str_key, &val.val))
-                } else {
-                    None
-                };
-
-                self.pos = unsafe { self.pos.offset(1) };
-                result
-            }
-
-            fn count(self) -> usize
-            where
-                Self: Sized,
-            {
-                unsafe { *self.ht.ptr }.nNumOfElements as usize
-            }
-        }
-    };
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        zv.set_hashtable(self);
+        Ok(())
+    }
 }
 
-build_iter!(Iter, &'a ZendHashTable<'a>);
-build_iter!(IntoIter, ZendHashTable<'a>);
+impl<'a> FromZval<'a> for &'a HashTable {
+    const TYPE: DataType = DataType::Array;
 
-impl<'a, V> TryFrom<ZendHashTable<'a>> for HashMap<String, V>
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        zval.array()
+    }
+}
+
+///////////////////////////////////////////
+//// HashMap
+///////////////////////////////////////////
+
+impl<V> TryFrom<&HashTable> for HashMap<String, V>
 where
-    V: FromZval<'a>,
+    for<'a> V: FromZval<'a>,
 {
     type Error = Error;
 
-    fn try_from(zht: ZendHashTable<'a>) -> Result<Self> {
-        let mut hm = HashMap::with_capacity(zht.len());
+    fn try_from(value: &HashTable) -> Result<Self> {
+        let mut hm = HashMap::with_capacity(value.len());
 
-        for (idx, key, val) in zht.into_iter() {
+        for (idx, key, val) in value.iter() {
             hm.insert(
                 key.unwrap_or_else(|| idx.to_string()),
-                V::from_zval(val).ok_or(Error::ZvalConversion(val.get_type()))?,
+                V::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?,
             );
         }
 
@@ -356,18 +386,19 @@ where
     }
 }
 
-impl<'a, K, V> TryFrom<HashMap<K, V>> for ZendHashTable<'a>
+impl<K, V> TryFrom<HashMap<K, V>> for OwnedHashTable
 where
     K: AsRef<str>,
     V: IntoZval,
 {
     type Error = Error;
 
-    fn try_from(hm: HashMap<K, V>) -> Result<Self> {
-        let mut ht =
-            ZendHashTable::with_capacity(hm.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+    fn try_from(value: HashMap<K, V>) -> Result<Self> {
+        let mut ht = OwnedHashTable::with_capacity(
+            value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
+        );
 
-        for (k, v) in hm.into_iter() {
+        for (k, v) in value.into_iter() {
             ht.insert(k.as_ref(), v)?;
         }
 
@@ -375,53 +406,64 @@ where
     }
 }
 
-/// Implementation converting a Rust HashTable into a ZendHashTable.
-impl<'a, 'b, K, V> TryFrom<&'a HashMap<K, V>> for ZendHashTable<'b>
+impl<K, V> IntoZval for HashMap<K, V>
 where
     K: AsRef<str>,
-    V: IntoZval + Clone,
-{
-    type Error = Error;
-
-    fn try_from(hm: &'a HashMap<K, V>) -> Result<Self> {
-        let mut ht =
-            ZendHashTable::with_capacity(hm.len().try_into().map_err(|_| Error::IntegerOverflow)?);
-
-        for (k, v) in hm.iter() {
-            ht.insert(k.as_ref(), v.clone())?;
-        }
-
-        Ok(ht)
-    }
-}
-
-/// Implementation for converting a reference to `ZendHashTable` into a `Vec` of given type.
-/// Will return an error type if one of the values inside the array cannot be converted into
-/// a type `T`.
-impl<'a, V> TryFrom<ZendHashTable<'a>> for Vec<V>
-where
-    V: FromZval<'a>,
-{
-    type Error = Error;
-
-    fn try_from(ht: ZendHashTable<'a>) -> Result<Self> {
-        ht.into_iter()
-            .map(|(_, _, v)| V::from_zval(v).ok_or(Error::ZvalConversion(v.get_type())))
-            .collect::<Result<Vec<_>>>()
-    }
-}
-
-impl<'a, V> TryFrom<Vec<V>> for ZendHashTable<'a>
-where
     V: IntoZval,
 {
+    const TYPE: DataType = DataType::Array;
+
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        let arr = self.try_into()?;
+        zv.set_hashtable(arr);
+        Ok(())
+    }
+}
+
+impl<T> FromZval<'_> for HashMap<String, T>
+where
+    for<'a> T: FromZval<'a>,
+{
+    const TYPE: DataType = DataType::Array;
+
+    fn from_zval(zval: &Zval) -> Option<Self> {
+        zval.array().and_then(|arr| arr.try_into().ok())
+    }
+}
+
+///////////////////////////////////////////
+//// Vec
+///////////////////////////////////////////
+
+impl<T> TryFrom<&HashTable> for Vec<T>
+where
+    for<'a> T: FromZval<'a>,
+{
     type Error = Error;
 
-    fn try_from(vec: Vec<V>) -> Result<Self> {
-        let mut ht =
-            ZendHashTable::with_capacity(vec.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+    fn try_from(value: &HashTable) -> Result<Self> {
+        let mut vec = Vec::with_capacity(value.len());
 
-        for val in vec.into_iter() {
+        for (_, _, val) in value.iter() {
+            vec.push(T::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?);
+        }
+
+        Ok(vec)
+    }
+}
+
+impl<T> TryFrom<Vec<T>> for OwnedHashTable
+where
+    T: IntoZval,
+{
+    type Error = Error;
+
+    fn try_from(value: Vec<T>) -> Result<Self> {
+        let mut ht = OwnedHashTable::with_capacity(
+            value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
+        );
+
+        for val in value.into_iter() {
             ht.push(val)?;
         }
 
@@ -429,20 +471,26 @@ where
     }
 }
 
-impl<'a, V> TryFrom<&Vec<V>> for ZendHashTable<'a>
+impl<T> IntoZval for Vec<T>
 where
-    V: IntoZval + Clone,
+    T: IntoZval,
 {
-    type Error = Error;
+    const TYPE: DataType = DataType::Array;
 
-    fn try_from(vec: &Vec<V>) -> Result<Self> {
-        let mut ht =
-            ZendHashTable::with_capacity(vec.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        let arr = self.try_into()?;
+        zv.set_hashtable(arr);
+        Ok(())
+    }
+}
 
-        for val in vec.iter() {
-            ht.push(val.clone())?;
-        }
+impl<T> FromZval<'_> for Vec<T>
+where
+    for<'a> T: FromZval<'a>,
+{
+    const TYPE: DataType = DataType::Array;
 
-        Ok(ht)
+    fn from_zval(zval: &Zval) -> Option<Self> {
+        zval.array().and_then(|arr| arr.try_into().ok())
     }
 }
