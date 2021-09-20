@@ -85,6 +85,7 @@ fn main() {
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .rustfmt_bindings(true)
         .no_copy("_zend_value")
+        .no_copy("_zend_string")
         .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
 
     for binding in ALLOWED_BINDINGS.iter() {
