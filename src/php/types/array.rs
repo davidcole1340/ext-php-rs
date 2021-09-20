@@ -6,6 +6,7 @@ use std::{
     convert::{TryFrom, TryInto},
     ffi::CString,
     fmt::Debug,
+    mem::ManuallyDrop,
     ops::{Deref, DerefMut},
     ptr::NonNull,
     u64,
@@ -254,7 +255,6 @@ impl<'a> Iterator for Iter<'a> {
 /// function is used.
 pub struct OwnedHashTable {
     ptr: NonNull<HashTable>,
-    drop: bool,
 }
 
 impl OwnedHashTable {
@@ -294,14 +294,13 @@ impl OwnedHashTable {
     pub unsafe fn from_ptr(ptr: *mut HashTable) -> Self {
         Self {
             ptr: NonNull::new(ptr).expect("Invalid hashtable pointer given"),
-            drop: true,
         }
     }
 
     /// Returns the inner pointer to the hashtable, without destroying the
-    pub fn into_inner(mut self) -> *mut HashTable {
-        self.drop = false;
-        self.ptr.as_ptr()
+    pub fn into_inner(self) -> *mut HashTable {
+        let this = ManuallyDrop::new(self);
+        this.ptr.as_ptr()
     }
 }
 
