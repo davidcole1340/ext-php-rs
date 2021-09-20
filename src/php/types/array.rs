@@ -175,10 +175,16 @@ impl HashTable {
         Ok(())
     }
 
-    /// Returns an iterator over the hash table.
+    /// Returns an iterator over the key(s) and value contained inside the hashtable.
     #[inline]
     pub fn iter(&self) -> Iter {
         Iter::new(self)
+    }
+
+    /// Returns an iterator over the values contained inside the hashtable, as if it was a set or list.
+    #[inline]
+    pub fn values(&self) -> Values {
+        Values::new(self)
     }
 
     /// Clones the hash table, returning an [`OwnedHashTable`].
@@ -246,6 +252,35 @@ impl<'a> Iterator for Iter<'a> {
         Self: Sized,
     {
         self.ht.nNumUsed as usize
+    }
+}
+
+/// Immutable iterator which iterates over the values of the hashtable, as it was a set or list.
+pub struct Values<'a>(Iter<'a>);
+
+impl<'a> Values<'a> {
+    /// Creates a new iterator over a hashtables values.
+    ///
+    /// # Parameters
+    ///
+    /// * `ht` - The hashtable to iterate.
+    pub fn new(ht: &'a HashTable) -> Self {
+        Self(Iter::new(ht))
+    }
+}
+
+impl<'a> Iterator for Values<'a> {
+    type Item = &'a Zval;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|(_, _, zval)| zval)
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.0.count()
     }
 }
 
