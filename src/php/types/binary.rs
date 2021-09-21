@@ -56,7 +56,7 @@ impl<T: Pack> TryFrom<Zval> for Binary<T> {
     type Error = Error;
 
     fn try_from(value: Zval) -> Result<Self> {
-        Self::from_zval(&value).ok_or(Error::ZvalConversion(value.get_type()?))
+        Self::from_zval(&value).ok_or_else(|| Error::ZvalConversion(value.get_type()))
     }
 }
 

@@ -18,13 +18,14 @@ use crate::{
         zend_objects_clone_members, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     errors::{Error, Result},
-    php::{class::ClassEntry, enums::DataType, types::string::ZendString},
+    php::{
+        class::ClassEntry,
+        enums::DataType,
+        types::{array::HashTable, string::ZendString},
+    },
 };
 
-use super::{
-    array::ZendHashTable,
-    zval::{FromZval, IntoZval, Zval},
-};
+use super::zval::{FromZval, IntoZval, Zval};
 
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
@@ -134,12 +135,12 @@ impl ZendObject {
     }
 
     /// Attempts to retrieve the properties of the object. Returned inside a Zend Hashtable.
-    pub fn get_properties(&self) -> Result<ZendHashTable> {
+    pub fn get_properties(&self) -> Result<&HashTable> {
         unsafe {
-            ZendHashTable::from_ptr(
-                self.handlers()?.get_properties.ok_or(Error::InvalidScope)?(self.mut_ptr()),
-                false,
-            )
+            self.handlers()?
+                .get_properties
+                .and_then(|props| props(self.mut_ptr()).as_ref())
+                .ok_or(Error::InvalidScope)
         }
     }
 
@@ -156,11 +157,6 @@ impl ZendObject {
     fn mut_ptr(&self) -> *mut Self {
         (self as *const Self) as *mut Self
     }
-
-    /// Increments the objects reference counter by 1.
-    pub(crate) fn refcount_inc(&mut self) {
-        self.gc.refcount += 1;
-    }
 }
 
 impl Debug for ZendObject {
@@ -172,7 +168,7 @@ impl Debug for ZendObject {
         );
 
         if let Ok(props) = self.get_properties() {
-            for (id, key, val) in props.into_iter() {
+            for (id, key, val) in props.iter() {
                 dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
             }
         }
@@ -181,6 +177,7 @@ impl Debug for ZendObject {
     }
 }
 
+/// Wrapper struct used to return a reference to a PHP object.
 pub struct ClassRef<'a, T: RegisteredClass> {
     ptr: &'a mut ZendClassObject<T>,
 }

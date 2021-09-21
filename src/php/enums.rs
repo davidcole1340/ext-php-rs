@@ -107,15 +107,13 @@ impl TryFrom<ZvalTypeFlags> for DataType {
     }
 }
 
-impl TryFrom<u32> for DataType {
-    type Error = Error;
-
+impl From<u32> for DataType {
     #[allow(clippy::bad_bit_mask)]
-    fn try_from(value: u32) -> Result<Self> {
+    fn from(value: u32) -> Self {
         macro_rules! contains {
             ($c: ident, $t: ident) => {
                 if (value & $c) == $c {
-                    return Ok(DataType::$t);
+                    return DataType::$t;
                 }
             };
         }
@@ -134,12 +132,12 @@ impl TryFrom<u32> for DataType {
         contains!(IS_NULL, Null);
 
         if (value & IS_OBJECT) == IS_OBJECT {
-            return Ok(DataType::Object(None));
+            return DataType::Object(None);
         }
 
         contains!(IS_UNDEF, Undef);
 
-        Err(Error::UnknownDatatype(value))
+        DataType::Mixed
     }
 }
 

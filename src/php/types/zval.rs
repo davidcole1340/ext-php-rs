@@ -3,7 +3,6 @@
 
 use core::slice;
 use std::{
-    collections::HashMap,
     convert::{TryFrom, TryInto},
     fmt::Debug,
     ptr,
@@ -11,8 +10,8 @@ use std::{
 
 use crate::{
     bindings::{
-        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, ext_php_rs_zend_string_release,
-        zend_is_callable, zend_resource, zend_value, zval,
+        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_is_callable, zend_resource,
+        zend_value, zval, zval_ptr_dtor,
     },
     errors::{Error, Result},
     php::pack::Pack,
@@ -24,7 +23,12 @@ use crate::php::{
     types::{long::ZendLong, string::ZendString},
 };
 
-use super::{array::ZendHashTable, callable::Callable, object::ZendObject};
+use super::{
+    array::{HashTable, OwnedHashTable},
+    callable::Callable,
+    object::ZendObject,
+    rc::PhpRc,
+};
 
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
@@ -34,9 +38,7 @@ unsafe impl Sync for Zval {}
 
 impl Zval {
     /// Creates a new, empty zval.
-    pub(crate) const fn new() -> Self {
-        // NOTE: Once the `Drop` implementation has been improved this can be public.
-        // At the moment, if we were to create a new zval with an array it wouldn't drop the array.
+    pub const fn new() -> Self {
         Self {
             value: zend_value {
                 ptr: ptr::null_mut(),
@@ -145,10 +147,19 @@ impl Zval {
         }
     }
 
-    /// Returns the value of the zval if it is an array.
-    pub fn array(&self) -> Option<ZendHashTable> {
+    /// Returns an immutable reference to the underlying zval hashtable if the zval contains an array.
+    pub fn array(&self) -> Option<&HashTable> {
         if self.is_array() {
-            unsafe { ZendHashTable::from_ptr(self.value.arr, false) }.ok()
+            unsafe { self.value.arr.as_ref() }
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable reference to the underlying zval hashtable if the zval contains an array.
+    pub fn array_mut(&mut self) -> Option<&mut HashTable> {
+        if self.is_array() {
+            unsafe { self.value.arr.as_mut() }
         } else {
             None
         }
@@ -164,7 +175,16 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is a reference.
-    pub fn reference(&self) -> Option<&mut Zval> {
+    pub fn reference(&self) -> Option<&Zval> {
+        if self.is_reference() {
+            Some(&unsafe { self.value.ref_.as_ref() }?.val)
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable reference to the underlying zval if it is a reference.
+    pub fn reference_mut(&mut self) -> Option<&mut Zval> {
         if self.is_reference() {
             Some(&mut unsafe { self.value.ref_.as_mut() }?.val)
         } else {
@@ -193,8 +213,8 @@ impl Zval {
     }
 
     /// Returns the type of the Zval.
-    pub fn get_type(&self) -> Result<DataType> {
-        DataType::try_from(unsafe { self.u1.v.type_ } as u32)
+    pub fn get_type(&self) -> DataType {
+        DataType::from(unsafe { self.u1.v.type_ } as u32)
     }
 
     /// Returns true if the zval is a long, false otherwise.
@@ -265,9 +285,9 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
+        self.change_type(ZvalTypeFlags::StringEx);
         let zend_str = ZendString::new(val, persistent)?;
         self.value.str_ = zend_str.release();
-        self.u1.type_info = ZvalTypeFlags::StringEx.bits();
         Ok(())
     }
 
@@ -277,9 +297,9 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_binary<T: Pack>(&mut self, val: Vec<T>) {
+        self.change_type(ZvalTypeFlags::StringEx);
         let ptr = T::pack_into(val);
         self.value.str_ = ptr;
-        self.u1.type_info = ZvalTypeFlags::StringEx.bits();
     }
 
     /// Sets the value of the zval as a interned string. Returns nothing in a result when successful.
@@ -288,9 +308,9 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_interned_string(&mut self, val: &str) -> Result<()> {
+        self.change_type(ZvalTypeFlags::InternedStringEx);
         let zend_str = ZendString::new_interned(val)?;
         self.value.str_ = zend_str.release();
-        self.u1.type_info = ZvalTypeFlags::InternedStringEx.bits();
         Ok(())
     }
 
@@ -300,8 +320,12 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_long<T: Into<ZendLong>>(&mut self, val: T) {
-        self.value.lval = val.into();
-        self.u1.type_info = ZvalTypeFlags::Long.bits();
+        self._set_long(val.into())
+    }
+
+    fn _set_long(&mut self, val: ZendLong) {
+        self.change_type(ZvalTypeFlags::Long);
+        self.value.lval = val;
     }
 
     /// Sets the value of the zval as a double.
@@ -310,8 +334,12 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_double<T: Into<f64>>(&mut self, val: T) {
-        self.value.dval = val.into();
-        self.u1.type_info = ZvalTypeFlags::Double.bits();
+        self._set_double(val.into())
+    }
+
+    fn _set_double(&mut self, val: f64) {
+        self.change_type(ZvalTypeFlags::Double);
+        self.value.dval = val;
     }
 
     /// Sets the value of the zval as a boolean.
@@ -320,18 +348,22 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_bool<T: Into<bool>>(&mut self, val: T) {
-        self.u1.type_info = if val.into() {
-            DataType::True.as_u32()
+        self._set_bool(val.into())
+    }
+
+    fn _set_bool(&mut self, val: bool) {
+        self.change_type(if val {
+            ZvalTypeFlags::True
         } else {
-            DataType::False.as_u32()
-        };
+            ZvalTypeFlags::False
+        });
     }
 
     /// Sets the value of the zval as null.
     ///
     /// This is the default of a zval.
     pub fn set_null(&mut self) {
-        self.u1.type_info = ZvalTypeFlags::Null.bits();
+        self.change_type(ZvalTypeFlags::Null);
     }
 
     /// Sets the value of the zval as a resource.
@@ -340,7 +372,7 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_resource(&mut self, val: *mut zend_resource) {
-        self.u1.type_info = ZvalTypeFlags::ResourceEx.bits();
+        self.change_type(ZvalTypeFlags::ResourceEx);
         self.value.res = val;
     }
 
@@ -350,19 +382,29 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_object(&mut self, val: &mut ZendObject) {
-        val.refcount_inc();
-        self.u1.type_info = ZvalTypeFlags::ObjectEx.bits();
+        self.change_type(ZvalTypeFlags::ObjectEx);
+        val.inc_count(); // TODO(david): not sure if this is needed :/
         self.value.obj = (val as *const ZendObject) as *mut ZendObject;
     }
 
-    /// Sets the value of the zval as an array. Returns nothng in a result on success.
+    /// Sets the value of the zval as an array. Returns nothing in a result on success.
     ///
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_array(&mut self, val: ZendHashTable) {
-        self.u1.type_info = ZvalTypeFlags::ArrayEx.bits();
-        self.value.arr = val.into_ptr();
+    pub fn set_array<T: TryInto<OwnedHashTable, Error = Error>>(&mut self, val: T) -> Result<()> {
+        self.set_hashtable(val.try_into()?);
+        Ok(())
+    }
+
+    /// Sets the value of the zval as an array. Returns nothing in a result on success.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to set the zval as.
+    pub fn set_hashtable(&mut self, val: OwnedHashTable) {
+        self.change_type(ZvalTypeFlags::ArrayEx);
+        self.value.arr = val.into_inner();
     }
 
     /// Used to drop the Zval but keep the value of the zval intact.
@@ -371,7 +413,19 @@ impl Zval {
     /// will not be copied, but the pointer to the value (string for example) will be
     /// copied.
     pub(crate) fn release(mut self) {
+        // NOTE(david): don't use `change_type` here as we are wanting to keep the contents intact.
         self.u1.type_info = ZvalTypeFlags::Null.bits();
+    }
+
+    /// Changes the type of the zval, freeing the current contents when applicable.
+    ///
+    /// # Parameters
+    ///
+    /// * `ty` - The new type of the zval.
+    fn change_type(&mut self, ty: ZvalTypeFlags) {
+        // SAFETY: we have exclusive mutable access to this zval so can free the contents.
+        unsafe { zval_ptr_dtor(self) };
+        self.u1.type_info = ty.bits();
     }
 }
 
@@ -381,31 +435,29 @@ impl Debug for Zval {
         let ty = self.get_type();
         dbg.field("type", &ty);
 
-        if let Ok(ty) = ty {
-            macro_rules! field {
-                ($value: expr) => {
-                    dbg.field("val", &$value)
-                };
-            }
-
-            match ty {
-                DataType::Undef => field!(Option::<()>::None),
-                DataType::Null => field!(Option::<()>::None),
-                DataType::False => field!(false),
-                DataType::True => field!(true),
-                DataType::Long => field!(self.long()),
-                DataType::Double => field!(self.double()),
-                DataType::String | DataType::Mixed => field!(self.string()),
-                DataType::Array => field!(self.array()),
-                DataType::Object(_) => field!(self.object()),
-                DataType::Resource => field!(self.resource()),
-                DataType::Reference => field!(self.reference()),
-                DataType::Callable => field!(self.string()),
-                DataType::ConstantExpression => field!(Option::<()>::None),
-                DataType::Void => field!(Option::<()>::None),
-                DataType::Bool => field!(self.bool()),
+        macro_rules! field {
+            ($value: expr) => {
+                dbg.field("val", &$value)
             };
         }
+
+        match ty {
+            DataType::Undef => field!(Option::<()>::None),
+            DataType::Null => field!(Option::<()>::None),
+            DataType::False => field!(false),
+            DataType::True => field!(true),
+            DataType::Long => field!(self.long()),
+            DataType::Double => field!(self.double()),
+            DataType::String | DataType::Mixed => field!(self.string()),
+            DataType::Array => field!(self.array()),
+            DataType::Object(_) => field!(self.object()),
+            DataType::Resource => field!(self.resource()),
+            DataType::Reference => field!(self.reference()),
+            DataType::Callable => field!(self.string()),
+            DataType::ConstantExpression => field!(Option::<()>::None),
+            DataType::Void => field!(Option::<()>::None),
+            DataType::Bool => field!(self.bool()),
+        };
 
         dbg.finish()
     }
@@ -413,9 +465,7 @@ impl Debug for Zval {
 
 impl Drop for Zval {
     fn drop(&mut self) {
-        if self.is_string() {
-            unsafe { ext_php_rs_zend_string_release(self.value.str_) };
-        }
+        self.change_type(ZvalTypeFlags::Null);
     }
 }
 
@@ -446,6 +496,15 @@ pub trait IntoZval: Sized {
     /// * `zv` - The Zval to set the content of.
     /// * `persistent` - Whether the contents of the Zval will persist between requests.
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()>;
+}
+
+impl IntoZval for Zval {
+    const TYPE: DataType = DataType::Mixed;
+
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        *zv = self;
+        Ok(())
+    }
 }
 
 /// An object-safe version of the [`IntoZval`] trait.
@@ -591,44 +650,6 @@ where
     }
 }
 
-impl<'a> IntoZval for ZendHashTable<'a> {
-    const TYPE: DataType = DataType::Array;
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        zv.set_array(self);
-        Ok(())
-    }
-}
-
-impl<T> IntoZval for Vec<T>
-where
-    T: IntoZval,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        let hm = self
-            .try_into()
-            .map_err(|_| Error::ZvalConversion(DataType::Array))?;
-        zv.set_array(hm);
-        Ok(())
-    }
-}
-
-impl<K, V> IntoZval for HashMap<K, V>
-where
-    K: AsRef<str>,
-    V: IntoZval,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        let hm = self.try_into()?;
-        zv.set_array(hm);
-        Ok(())
-    }
-}
-
 /// Allows zvals to be converted into Rust types in a fallible way. Reciprocal of the [`IntoZval`]
 /// trait.
 pub trait FromZval<'a>: Sized {
@@ -668,7 +689,7 @@ macro_rules! try_from_zval {
             type Error = Error;
 
             fn try_from(value: Zval) -> Result<Self> {
-                Self::from_zval(&value).ok_or(Error::ZvalConversion(value.get_type()?))
+                Self::from_zval(&value).ok_or(Error::ZvalConversion(value.get_type()))
             }
         }
     };
@@ -704,64 +725,6 @@ impl<'a> FromZval<'a> for &'a str {
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
         zval.str()
-    }
-}
-
-impl<'a> FromZval<'a> for ZendHashTable<'a> {
-    const TYPE: DataType = DataType::Array;
-
-    fn from_zval(zval: &'a Zval) -> Option<Self> {
-        zval.array()
-    }
-}
-
-impl<'a, T> FromZval<'a> for Vec<T>
-where
-    T: FromZval<'a>,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn from_zval(zval: &'a Zval) -> Option<Self> {
-        zval.array().and_then(|arr| arr.try_into().ok())
-    }
-}
-
-impl<T> TryFrom<Zval> for Vec<T>
-where
-    for<'a> T: FromZval<'a>,
-{
-    type Error = Error;
-
-    fn try_from(value: Zval) -> Result<Self> {
-        value
-            .array()
-            .ok_or(Error::ZvalConversion(value.get_type()?))?
-            .try_into()
-    }
-}
-
-impl<'a, T> FromZval<'a> for HashMap<String, T>
-where
-    T: FromZval<'a>,
-{
-    const TYPE: DataType = DataType::Array;
-
-    fn from_zval(zval: &'a Zval) -> Option<Self> {
-        zval.array().and_then(|arr| arr.try_into().ok())
-    }
-}
-
-impl<T> TryFrom<Zval> for HashMap<String, T>
-where
-    for<'a> T: FromZval<'a>,
-{
-    type Error = Error;
-
-    fn try_from(value: Zval) -> Result<Self> {
-        value
-            .array()
-            .ok_or(Error::ZvalConversion(value.get_type()?))?
-            .try_into()
     }
 }
 
