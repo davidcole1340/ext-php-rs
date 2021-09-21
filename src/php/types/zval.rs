@@ -498,6 +498,15 @@ pub trait IntoZval: Sized {
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
+impl IntoZval for Zval {
+    const TYPE: DataType = DataType::Mixed;
+
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        *zv = self;
+        Ok(())
+    }
+}
+
 /// An object-safe version of the [`IntoZval`] trait.
 ///
 /// This trait is automatically implemented on any type that implements both [`IntoZval`] and [`Clone`].

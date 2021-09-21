@@ -6,6 +6,7 @@ use std::{
     convert::{TryFrom, TryInto},
     ffi::CString,
     fmt::Debug,
+    iter::FromIterator,
     mem::ManuallyDrop,
     ops::{Deref, DerefMut},
     ptr::NonNull,
@@ -251,7 +252,32 @@ impl<'a> Iterator for Iter<'a> {
     where
         Self: Sized,
     {
-        self.ht.nNumUsed as usize
+        self.ht.len()
+    }
+}
+
+impl<'a> ExactSizeIterator for Iter<'a> {
+    fn len(&self) -> usize {
+        self.ht.len()
+    }
+}
+
+impl<'a> DoubleEndedIterator for Iter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let end = self.end?;
+
+        if end == self.pos? {
+            return None;
+        }
+
+        let new_end = NonNull::new(unsafe { end.as_ptr().offset(-1) })?;
+        let bucket = unsafe { new_end.as_ref() };
+        let key = unsafe { ZendString::from_ptr(bucket.key, false) }
+            .and_then(|s| s.try_into())
+            .ok();
+        self.end = Some(new_end);
+
+        Some((bucket.h, key, &bucket.val))
     }
 }
 
@@ -281,6 +307,18 @@ impl<'a> Iterator for Values<'a> {
         Self: Sized,
     {
         self.0.count()
+    }
+}
+
+impl<'a> ExactSizeIterator for Values<'a> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl<'a> DoubleEndedIterator for Values<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|(_, _, zval)| zval)
     }
 }
 
@@ -526,5 +564,41 @@ where
 
     fn from_zval(zval: &Zval) -> Option<Self> {
         zval.array().and_then(|arr| arr.try_into().ok())
+    }
+}
+
+impl FromIterator<Zval> for OwnedHashTable {
+    fn from_iter<T: IntoIterator<Item = Zval>>(iter: T) -> Self {
+        let mut ht = OwnedHashTable::new();
+        for item in iter.into_iter() {
+            // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
+            // fails.
+            let _ = ht.push(item);
+        }
+        ht
+    }
+}
+
+impl FromIterator<(u64, Zval)> for OwnedHashTable {
+    fn from_iter<T: IntoIterator<Item = (u64, Zval)>>(iter: T) -> Self {
+        let mut ht = OwnedHashTable::new();
+        for (key, val) in iter.into_iter() {
+            // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
+            // fails.
+            let _ = ht.insert_at_index(key, val);
+        }
+        ht
+    }
+}
+
+impl<'a> FromIterator<(&'a str, Zval)> for OwnedHashTable {
+    fn from_iter<T: IntoIterator<Item = (&'a str, Zval)>>(iter: T) -> Self {
+        let mut ht = OwnedHashTable::new();
+        for (key, val) in iter.into_iter() {
+            // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
+            // fails.
+            let _ = ht.insert(key, val);
+        }
+        ht
     }
 }

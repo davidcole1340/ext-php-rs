@@ -9,10 +9,11 @@ use ext_php_rs::{
         execution_data::ExecutionData,
         function::FunctionBuilder,
         types::{
+            array::OwnedHashTable,
             callable::Callable,
             closure::Closure,
             object::{ClassObject, ClassRef},
-            zval::Zval,
+            zval::{FromZval, IntoZval, Zval},
         },
     },
     php_class,
@@ -109,42 +110,7 @@ pub fn closure_count() -> Closure {
     }) as Box<dyn FnMut(i32) -> i32>)
 }
 
-// #[php_function]
-// pub fn test_zval(t: Zval) {
-// let mut z = Zval::new();
-// z.set_long(5);
-// z.set_double(100.5);
-// z.set_bool(false);
-// z.set_null();
-// z.set_string("Hello world", false).unwrap();
-// z.set_array(ZendHashTable::try_from(vec![1, 2, 3, 4, 5]).unwrap());
-// drop(dbg!(z));
-
-// let mut x = ZendHashTable::new();
-// dbg!(x.insert("test", "Hello world"));
-// dbg!(x.insert("test", 1234));
-// dbg!(x.insert("test", "ok test"));
-// }
-
-extern "C" fn test_zval(ex: &mut ExecutionData, retval: &mut Zval) {
-    let mut a = Arg::new("test", DataType::Array);
-
-    parse_args!(ex, a);
-    let zv = a.zval().unwrap();
-    let arr = zv.array().unwrap();
-    let mut new = arr.clone();
-
-    new.insert("hello", "a new fvalue");
-    dbg!(&arr);
-    dbg!(&new);
-}
-
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module.function(
-        FunctionBuilder::new("test_zval", test_zval)
-            .arg(Arg::new("test", DataType::Array))
-            .build()
-            .unwrap(),
-    )
+    module
 }
