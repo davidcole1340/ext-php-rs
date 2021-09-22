@@ -19,7 +19,8 @@ use parking_lot::{
 
 use crate::{
     bindings::{
-        ext_php_rs_zend_string_init, ext_php_rs_zend_string_release, zend_string_init_interned,
+        ext_php_rs_zend_string_init, ext_php_rs_zend_string_release, zend_string,
+        zend_string_init_interned,
     },
     errors::{Error, Result},
 };
@@ -32,9 +33,12 @@ use crate::{
 /// create an owned version of a [`ZendStr`].
 ///
 /// Once the `ptr_metadata` feature lands in stable rust, this type can potentially be changed to a DST using
-/// slices and metadata. See the tracking issue here: https://github.com/rust-lang/rust/issues/81513
-pub use crate::bindings::zend_string as ZendStr;
+/// slices and metadata. See the tracking issue here: <https://github.com/rust-lang/rust/issues/81513>
+pub type ZendStr = zend_string;
 
+// Clippy complains about there being no `is_empty` function when implementing on the alias `ZendStr` :(
+// <https://github.com/rust-lang/rust-clippy/issues/7702>
+#[allow(clippy::len_without_is_empty)]
 impl ZendStr {
     /// Returns the length of the string.
     pub fn len(&self) -> usize {
@@ -234,6 +238,12 @@ impl ZendString {
         unsafe { self.inner.as_ref() }
     }
 
+    /// Returns a reference to the internal [`ZendStr`].
+    pub(crate) fn as_mut_zend_str(&mut self) -> &mut ZendStr {
+        // SAFETY: All constructors ensure a valid internal pointer.
+        unsafe { self.inner.as_mut() }
+    }
+
     /// Converts the owned Zend string into the internal pointer, bypassing the [`Drop`]
     /// implementation.
     ///
@@ -257,6 +267,12 @@ impl Deref for ZendString {
 
     fn deref(&self) -> &Self::Target {
         self.as_zend_str()
+    }
+}
+
+impl Debug for ZendString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_zend_str().fmt(f)
     }
 }
 

@@ -73,13 +73,13 @@ impl ZendObject {
             return Err(Error::InvalidProperty);
         }
 
-        let name = ZendString::new(name, false)?;
+        let mut name = ZendString::new(name, false)?;
         let mut rv = Zval::new();
 
         unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.deref() as *const _ as *mut _,
+                name.as_mut_zend_str(),
                 1,
                 std::ptr::null_mut(),
                 &mut rv,
@@ -97,13 +97,13 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<&Zval> {
-        let name = ZendString::new(name, false)?;
+        let mut name = ZendString::new(name, false)?;
         let mut value = value.into_zval(false)?;
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                name.deref() as *const _ as *mut _,
+                name.as_mut_zend_str(),
                 &mut value,
                 std::ptr::null_mut(),
             )

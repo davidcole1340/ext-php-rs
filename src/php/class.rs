@@ -38,15 +38,11 @@ impl ClassEntry {
     /// not be found or the class table has not been initialized.
     pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
-        let name = ZendString::new(name, false).ok()?;
+        let mut name = ZendString::new(name, false).ok()?;
 
         unsafe {
-            crate::bindings::zend_lookup_class_ex(
-                name.as_zend_str() as *const _ as *mut _,
-                std::ptr::null_mut(),
-                0,
-            )
-            .as_ref()
+            crate::bindings::zend_lookup_class_ex(name.as_mut_zend_str(), std::ptr::null_mut(), 0)
+                .as_ref()
         }
     }
 
