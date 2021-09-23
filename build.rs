@@ -176,6 +176,7 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "std_object_handlers",
     "zend_array_destroy",
     "zend_array_dup",
+    "zend_call_known_function",
     "zend_ce_argument_count_error",
     "zend_ce_arithmetic_error",
     "zend_ce_compile_error",

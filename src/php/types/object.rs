@@ -17,10 +17,11 @@ use std::{
 use crate::{
     bindings::{
         ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_release, object_properties_init,
-        std_object_handlers, zend_is_true, zend_object, zend_object_handlers, zend_object_std_dtor,
-        zend_object_std_init, zend_objects_clone_members, zend_std_get_properties,
-        zend_std_has_property, zend_std_read_property, zend_std_write_property, zend_string,
-        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
+        std_object_handlers, zend_call_known_function, zend_is_true, zend_object,
+        zend_object_handlers, zend_object_std_dtor, zend_object_std_init,
+        zend_objects_clone_members, zend_std_get_properties, zend_std_has_property,
+        zend_std_read_property, zend_std_write_property, zend_string, HashTable, ZEND_ISEMPTY,
+        ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     errors::{Error, Result},
     php::{
@@ -28,6 +29,7 @@ use crate::{
         enums::DataType,
         exceptions::PhpResult,
         flags::ZvalTypeFlags,
+        globals::ExecutorGlobals,
         types::{array::OwnedHashTable, string::ZendString},
     },
 };
@@ -165,6 +167,68 @@ impl ZendObject {
     #[inline]
     fn mut_ptr(&self) -> *mut Self {
         (self as *const Self) as *mut Self
+    }
+
+    /// Extracts some type from a Zend object.
+    ///
+    /// This is a wrapper function around `FromZendObject::extract()`.
+    pub fn extract<'a, T>(&'a self) -> Result<T>
+    where
+        T: FromZendObject<'a>,
+    {
+        T::from_zend_object(self)
+    }
+}
+
+/// `FromZendObject` is implemented by types which can be extracted from a Zend object.
+///
+/// Normal usage is through the helper method `ZendObject::extract`:
+///
+/// ```rust,ignore
+/// let obj: ZendObject = ...;
+/// let repr: String = obj.extract();
+/// let props: HashMap = obj.extract();
+/// ```
+///
+/// Should be functionally equivalent to casting an object to another compatable type.
+pub trait FromZendObject<'a>: Sized {
+    /// Extracts `Self` from the source `ZendObject`.
+    fn from_zend_object(obj: &'a ZendObject) -> Result<Self>;
+}
+
+impl FromZendObject<'_> for String {
+    fn from_zend_object(obj: &ZendObject) -> Result<Self> {
+        let mut ret = Zval::new();
+        unsafe {
+            zend_call_known_function(
+                (*obj.ce).__tostring,
+                obj as *const _ as *mut _,
+                obj.ce,
+                &mut ret,
+                0,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            );
+        }
+
+        if let Some(err) = ExecutorGlobals::take_exception() {
+            // TODO: become an error
+            let class_name = obj.get_class_name();
+            panic!(
+                "Uncaught exception during call to {}::__toString(): {:?}",
+                class_name.expect("unable to determine class name"),
+                err
+            );
+        } else if let Some(output) = ret.extract() {
+            Ok(output)
+        } else {
+            // TODO: become an error
+            let class_name = obj.get_class_name();
+            panic!(
+                "{}::__toString() must return a string",
+                class_name.expect("unable to determine class name"),
+            );
+        }
     }
 }
 
