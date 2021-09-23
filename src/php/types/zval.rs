@@ -461,6 +461,16 @@ impl Zval {
         unsafe { zval_ptr_dtor(self) };
         self.u1.type_info = ty.bits();
     }
+
+    /// Extracts some type from a `Zval`.
+    ///
+    /// This is a wrapper function around `TryFrom`.
+    pub fn extract<'a, T>(&'a self) -> Option<T>
+    where
+        T: FromZval<'a>,
+    {
+        FromZval::from_zval(self)
+    }
 }
 
 impl Debug for Zval {
