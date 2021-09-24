@@ -27,6 +27,7 @@ use crate::{
         class::ClassEntry,
         enums::DataType,
         exceptions::PhpException,
+        flags::ZvalTypeFlags,
         types::{array::OwnedHashTable, string::ZendString},
     },
 };
@@ -659,7 +660,10 @@ impl ZendObjectHandlers {
             let self_ = obj.obj.assume_init_mut();
             let mut props = T::get_properties();
             let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
+
+            // retval needs to be treated as initialized, so we set the type to null
             let rv_mut = rv.as_mut().ok_or("Invalid return zval given")?;
+            rv_mut.u1.type_info = ZvalTypeFlags::Null.bits();
 
             Ok(match prop {
                 Some(prop) => {

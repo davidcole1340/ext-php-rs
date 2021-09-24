@@ -1,16 +1,5 @@
 <?php
 
-test_zval(['hello' => 'world']);
-//include 'vendor/autoload.php';
-
-//$ext = new ReflectionExtension('skel');
-
-//dd($ext);
-
-//$x = fn_once();
-//$x();
-//$x();
-
-//// $x = get_closure();
-
-//// var_dump($x(5));
+$x = new TestClass;
+var_dump($x);
+var_dump($x->b);
