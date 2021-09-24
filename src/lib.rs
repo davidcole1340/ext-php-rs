@@ -119,7 +119,8 @@ pub use ext_php_rs_derive::php_extern;
 /// Behind the scenes, an `extern "C"` wrapper function is generated, which is actually called by
 /// PHP. The first example function would be converted into a function which looks like so:
 ///
-/// ```ignore
+/// ```no_run
+/// # use ext_php_rs::{prelude::*, php::{exceptions::PhpException, execution_data::ExecutionData, types::zval::{FromZval, IntoZval, Zval}, args::{Arg, ArgParser}}};
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
 /// }
@@ -257,7 +258,8 @@ pub use ext_php_rs_derive::php_function;
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```no_run
+/// # use ext_php_rs::prelude::*;
 /// #[php_class]
 /// #[derive(Debug, Default)]
 /// pub struct Human {
@@ -266,12 +268,12 @@ pub use ext_php_rs_derive::php_function;
 /// }
 ///
 /// #[php_impl]
-/// impl Test {
+/// impl Human {
 ///     // Class constant - `Human::AGE_LIMIT`
 ///     const AGE_LIMIT: i32 = 100;
 ///
 ///     #[optional(age)]
-///     #[default(age = 0)]
+///     #[defaults(age = 0)]
 ///     pub fn __construct(&mut self, name: String, age: i32) {
 ///         self.name = name;
 ///         self.age = age;
@@ -289,6 +291,11 @@ pub use ext_php_rs_derive::php_function;
 ///     pub fn get_age_limit() -> i32 {
 ///         Self::AGE_LIMIT
 ///     }
+/// }
+///
+/// #[php_module]
+/// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+///     module
 /// }
 /// ```
 pub use ext_php_rs_derive::php_impl;

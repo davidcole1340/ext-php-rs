@@ -64,7 +64,7 @@ impl<'a, T: 'a> Property<'a, T> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// # use ext_php_rs::php::types::props::Property;
     /// struct Test {
     ///     pub a: i32,

@@ -46,7 +46,7 @@ var_dump(test_hashmap([
 
 Output:
 
-```ignore
+```text
 k: hello v: world
 k: rust v: php
 k: 0 v: okk
