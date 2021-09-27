@@ -114,7 +114,6 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
     let (arg_definitions, is_static) = build_arg_definitions(&args);
     let arg_parser = build_arg_parser(args.iter(), &optional)?;
     let arg_accessors = build_arg_accessors(&args);
-    let return_handler = function::build_return_handler(output);
     let this = if is_static {
         quote! { Self:: }
     } else {
@@ -133,7 +132,10 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
 
             let result = #this #ident(#(#arg_accessors, )*);
 
-            #return_handler
+            if let Err(e) = result.set_zval(retval, false) {
+                let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                e.throw().expect("Failed to throw exception");
+            }
         }
     };
 
