@@ -60,7 +60,6 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
     let arg_parser = build_arg_parser(args.iter(), &optional)?;
     let arg_accessors = build_arg_accessors(&args);
 
-    let return_handler = build_return_handler(output);
     let return_type = get_return_type(output)?;
 
     let func = quote! {
@@ -75,7 +74,10 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
 
             let result = #ident(#(#arg_accessors, )*);
 
-            #return_handler
+            if let Err(e) = result.set_zval(retval, false) {
+                let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                e.throw().expect("Failed to throw exception");
+            }
         }
     };
 
@@ -200,61 +202,6 @@ pub fn build_arg_parser<'a>(
 
 fn build_arg_accessors(args: &[Arg]) -> Vec<TokenStream> {
     args.iter().map(|arg| arg.get_accessor()).collect()
-}
-
-pub fn build_return_handler(output_type: &ReturnType) -> TokenStream {
-    let handler = match output_type {
-        ReturnType::Default => Some(quote! { retval.set_null(); }),
-        ReturnType::Type(_, ref ty) => match **ty {
-            Type::Path(ref path) => match path.path.segments.last() {
-                Some(path_seg) => match path_seg.ident.to_string().as_ref() {
-                    "Result" => Some(quote! {
-                        match result {
-                            Ok(result) => match result.set_zval(retval, false) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
-                                    e.throw().expect("Failed to throw exception: Failed to set return value.");
-                                },
-                            },
-                            Err(e) => {
-                                let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
-                                e.throw().expect("Failed to throw exception: Error type returned from internal function.");
-                            }
-                        };
-                    }),
-                    "Option" => Some(quote! {
-                        match result {
-                            Some(result) => match result.set_zval(retval, false) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
-                                    e.throw().expect("Failed to throw exception: Failed to set return value.");
-                                },
-                            },
-                            None => retval.set_null(),
-                        };
-                    }),
-                    _ => None,
-                },
-                _ => None,
-            },
-            _ => None,
-        },
-    };
-
-    match handler {
-        Some(handler) => handler,
-        None => quote! {
-            match result.set_zval(retval, false) {
-                Ok(_) => {},
-                Err(e) => {
-                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
-                    e.throw().expect("Failed to throw exception: Failed to set return value.");
-                }
-            }
-        },
-    }
 }
 
 pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)>> {

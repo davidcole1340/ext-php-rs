@@ -14,7 +14,7 @@ use crate::{
         zend_value, zval, zval_ptr_dtor,
     },
     errors::{Error, Result},
-    php::pack::Pack,
+    php::{exceptions::PhpException, pack::Pack},
 };
 
 use crate::php::{
@@ -687,6 +687,24 @@ where
             None => {
                 zv.set_null();
                 Ok(())
+            }
+        }
+    }
+}
+
+impl<T, E> IntoZval for std::result::Result<T, E>
+where
+    T: IntoZval,
+    E: Into<PhpException>,
+{
+    const TYPE: DataType = T::TYPE;
+
+    fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
+        match self {
+            Ok(val) => val.set_zval(zv, persistent),
+            Err(e) => {
+                let ex: PhpException = e.into();
+                ex.throw()
             }
         }
     }

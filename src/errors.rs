@@ -95,7 +95,7 @@ impl From<NulError> for Error {
     }
 }
 
-impl<'a> From<Error> for PhpException<'a> {
+impl From<Error> for PhpException {
     fn from(err: Error) -> Self {
         Self::default(err.to_string())
     }
