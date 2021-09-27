@@ -31,5 +31,4 @@ Return types can also include:
   as an exception.
 
 For a type to be returnable, it must implement `IntoZval`, while for it to be
-valid as a parameter, it must implement `FromZval` (and `TryFrom<&Zval>` by
-proxy).
+valid as a parameter, it must implement `FromZval`.

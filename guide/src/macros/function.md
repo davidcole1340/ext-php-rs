@@ -88,21 +88,8 @@ pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> Str
 }
 ```
 
-## Throwing exceptions
+## Returning `Result<T, E>`
 
-Exceptions can be thrown from inside a function which returns a `Result<T, E>`,
-where `E` implements `Into<PhpException>`. The `PhpException` class allows you
-to customise the type of exception thrown, along with the exception code and
-message.
-
-By default, `String` and `&str` are both implemented with `Into<PhpException>`,
-and in both cases a regular `Exception` is thrown.
-
-```rust
-# extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
-#[php_function]
-pub fn example_exception() -> Result<i64, &'static str> {
-    Err("Bad!!!")
-}
-```
+You can also return a `Result` from the function. The error variant will be
+translated into an exception and thrown. See the section on
+[exceptions](../exceptions.md) for more details.

@@ -21,3 +21,4 @@
   - [Structs](./macros/structs.md)
     - [`impl`s](./macros/impl.md)
   - [Constants](./macros/constant.md)
+- [Exceptions](./exceptions.md)
