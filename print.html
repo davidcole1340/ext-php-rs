@@ -1015,7 +1015,7 @@ pub struct RedisException;
 
 // Throw our newly created exception
 #[php_function]
-pub fn throw_exception() -&gt; Result&lt;i32, PhpException&lt;'static&gt;&gt; {
+pub fn throw_exception() -&gt; PhpResult&lt;i32&gt; {
     Err(PhpException::from_class::&lt;RedisException&gt;(&quot;Not good!&quot;.into()))
 }
 <span class="boring">#[php_module]
