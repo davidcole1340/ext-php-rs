@@ -398,7 +398,7 @@ pub use ext_php_rs_derive::php_module;
 /// pub struct Example;
 ///
 /// #[php_function]
-/// pub fn throw_exception() -> Result<i32, PhpException<'static>> {
+/// pub fn throw_exception() -> Result<i32, PhpException> {
 ///     Err(PhpException::from_class::<Example>("Bad things happen".into()))
 /// }
 ///
@@ -439,6 +439,7 @@ pub use ext_php_rs_derive::php_startup;
 
 /// A module typically glob-imported containing the typically required macros and imports.
 pub mod prelude {
+    pub use crate::php::exceptions::{PhpException, PhpResult};
     pub use crate::php::module::ModuleBuilder;
     pub use crate::php::types::callable::Callable;
     #[cfg(any(docs, feature = "closure"))]

@@ -26,7 +26,7 @@ use crate::{
     php::{
         class::ClassEntry,
         enums::DataType,
-        exceptions::PhpException,
+        exceptions::PhpResult,
         flags::ZvalTypeFlags,
         types::{array::OwnedHashTable, string::ZendString},
     },
@@ -649,7 +649,7 @@ impl ZendObjectHandlers {
             type_: c_int,
             cache_slot: *mut *mut c_void,
             rv: *mut Zval,
-        ) -> std::result::Result<*mut Zval, PhpException<'static>> {
+        ) -> PhpResult<*mut Zval> {
             let obj = object
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
@@ -696,7 +696,7 @@ impl ZendObjectHandlers {
             member: *mut zend_string,
             value: *mut Zval,
             cache_slot: *mut *mut c_void,
-        ) -> std::result::Result<*mut Zval, PhpException<'static>> {
+        ) -> PhpResult<*mut Zval> {
             let obj = object
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
@@ -734,7 +734,7 @@ impl ZendObjectHandlers {
         unsafe fn internal<T: RegisteredClass>(
             object: *mut zend_object,
             props: &mut HashTable,
-        ) -> std::result::Result<(), PhpException<'static>> {
+        ) -> PhpResult {
             let obj = object
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
@@ -779,7 +779,7 @@ impl ZendObjectHandlers {
             member: *mut zend_string,
             has_set_exists: c_int,
             cache_slot: *mut *mut c_void,
-        ) -> std::result::Result<c_int, PhpException<'static>> {
+        ) -> PhpResult<c_int> {
             let obj = object
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))

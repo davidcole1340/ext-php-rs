@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Result type with the error variant as a [`PhpException`].
-pub type PhpResult<T = ()> = std::result::Result<T, PhpException<'static>>;
+pub type PhpResult<T = ()> = std::result::Result<T, PhpException>;
 
 /// Represents a PHP exception which can be thrown using the `throw()` function. Primarily used to
 /// return from a [`Result<T, PhpException>`] which can immediately be thrown by the `ext-php-rs`
@@ -25,13 +25,13 @@ pub type PhpResult<T = ()> = std::result::Result<T, PhpException<'static>>;
 /// can also be returned from these functions. You can also implement [`From<T>`] for your custom
 /// error type.
 #[derive(Debug)]
-pub struct PhpException<'a> {
+pub struct PhpException {
     message: String,
     code: i32,
-    ex: &'a ClassEntry,
+    ex: &'static ClassEntry,
 }
 
-impl<'a> PhpException<'a> {
+impl PhpException {
     /// Creates a new exception instance.
     ///
     /// # Parameters
@@ -39,7 +39,7 @@ impl<'a> PhpException<'a> {
     /// * `message` - Message to contain in the exception.
     /// * `code` - Integer code to go inside the exception.
     /// * `ex` - Exception type to throw.
-    pub fn new(message: String, code: i32, ex: &'a ClassEntry) -> Self {
+    pub fn new(message: String, code: i32, ex: &'static ClassEntry) -> Self {
         Self { message, code, ex }
     }
 
@@ -69,13 +69,13 @@ impl<'a> PhpException<'a> {
     }
 }
 
-impl<'a> From<String> for PhpException<'a> {
+impl<'a> From<String> for PhpException {
     fn from(str: String) -> Self {
         Self::default(str)
     }
 }
 
-impl<'a> From<&str> for PhpException<'a> {
+impl<'a> From<&str> for PhpException {
     fn from(str: &str) -> Self {
         Self::default(str.into())
     }
