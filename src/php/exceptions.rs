@@ -69,13 +69,13 @@ impl PhpException {
     }
 }
 
-impl<'a> From<String> for PhpException {
+impl From<String> for PhpException {
     fn from(str: String) -> Self {
         Self::default(str)
     }
 }
 
-impl<'a> From<&str> for PhpException {
+impl From<&str> for PhpException {
     fn from(str: &str) -> Self {
         Self::default(str.into())
     }
