@@ -2,7 +2,7 @@ use ext_php_rs::prelude::*;
 
 #[php_class]
 struct TestClass {
-    #[prop(flags = PropertyFlags::Private, rename = "Hello")]
+    #[prop(rename = "Hello")]
     a: i32,
     #[prop]
     b: i64,

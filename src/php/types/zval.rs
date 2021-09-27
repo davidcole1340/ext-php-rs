@@ -28,6 +28,7 @@ use super::{
     callable::Callable,
     object::ZendObject,
     rc::PhpRc,
+    string::ZendStr,
 };
 
 /// Zend value. Represents most data types that are in the Zend engine.
@@ -83,9 +84,9 @@ impl Zval {
     ///
     /// Note that this functions output will not be the same as [`string()`](#method.string), as
     /// this function does not attempt to convert other types into a [`String`].
-    pub fn zend_str(&self) -> Option<ZendString> {
+    pub fn zend_str(&self) -> Option<&ZendStr> {
         if self.is_string() {
-            unsafe { ZendString::from_ptr(self.value.str_, false).ok() }
+            unsafe { self.value.str_.as_ref() }
         } else {
             None
         }
@@ -301,10 +302,18 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.change_type(ZvalTypeFlags::StringEx);
-        let zend_str = ZendString::new(val, persistent)?;
-        self.value.str_ = zend_str.release();
+        self.set_zend_string(ZendString::new(val, persistent)?);
         Ok(())
+    }
+
+    /// Sets the value of the zval as a Zend string.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - String content.
+    pub fn set_zend_string(&mut self, val: ZendString) {
+        self.change_type(ZvalTypeFlags::StringEx);
+        self.value.str_ = val.into_inner();
     }
 
     /// Sets the value of the zval as a binary string, which is represented in Rust as a vector.
@@ -323,10 +332,9 @@ impl Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_interned_string(&mut self, val: &str) -> Result<()> {
-        self.change_type(ZvalTypeFlags::InternedStringEx);
-        let zend_str = ZendString::new_interned(val)?;
-        self.value.str_ = zend_str.release();
+    /// * `persistent` - Whether the string should persist between requests.
+    pub fn set_interned_string(&mut self, val: &str, persistent: bool) -> Result<()> {
+        self.set_zend_string(ZendString::new_interned(val, persistent)?);
         Ok(())
     }
 

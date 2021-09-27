@@ -55,14 +55,13 @@ pub enum PropertyQuery {
 impl ZendObject {
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
-        let name = unsafe {
-            ZendString::from_ptr(
-                self.handlers()?.get_class_name.ok_or(Error::InvalidScope)?(self),
-                false,
-            )
-        }?;
-
-        name.try_into()
+        unsafe {
+            self.handlers()?
+                .get_class_name
+                .and_then(|f| f(self).as_ref())
+                .ok_or(Error::InvalidScope)
+                .and_then(|s| s.try_into())
+        }
     }
 
     /// Checks if the given object is an instance of a registered class with Rust
@@ -88,7 +87,7 @@ impl ZendObject {
         let zv = unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.as_ptr(),
+                name.as_mut_zend_str(),
                 1,
                 std::ptr::null_mut(),
                 &mut rv,
@@ -113,7 +112,7 @@ impl ZendObject {
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                name.as_ptr(),
+                name.as_mut_zend_str(),
                 &mut value,
                 std::ptr::null_mut(),
             )
@@ -137,7 +136,7 @@ impl ZendObject {
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.as_ptr(),
+                name.as_mut_zend_str(),
                 query as _,
                 std::ptr::null_mut(),
             )
@@ -655,8 +654,9 @@ impl ZendObjectHandlers {
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
                 .ok_or("Invalid object pointer given")?;
-            let prop_name = ZendString::from_ptr(member, false)
-                .map_err(|e| format!("Invalid property name given: {:?}", e))?;
+            let prop_name = member
+                .as_ref()
+                .ok_or("Invalid property name pointer given")?;
             let self_ = obj.obj.assume_init_mut();
             let mut props = T::get_properties();
             let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
@@ -701,8 +701,9 @@ impl ZendObjectHandlers {
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
                 .ok_or("Invalid object pointer given")?;
-            let prop_name = ZendString::from_ptr(member, false)
-                .map_err(|e| format!("Invalid property name given: {:?}", e))?;
+            let prop_name = member
+                .as_ref()
+                .ok_or("Invalid property name pointer given")?;
             let self_ = obj.obj.assume_init_mut();
             let mut props = T::get_properties();
             let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
@@ -783,8 +784,9 @@ impl ZendObjectHandlers {
                 .as_ref()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_ptr(obj))
                 .ok_or("Invalid object pointer given")?;
-            let prop_name = ZendString::from_ptr(member, false)
-                .map_err(|e| format!("Invalid property name given: {:?}", e))?;
+            let prop_name = member
+                .as_ref()
+                .ok_or("Invalid property name pointer given")?;
             let props = T::get_properties();
             let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
             let self_ = obj.obj.assume_init_mut();
