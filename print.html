@@ -492,7 +492,7 @@ var_dump(test_hashmap([
 ]));
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-ignore">k: hello v: world
+<pre><code class="language-text">k: hello v: world
 k: rust v: php
 k: 0 v: okk
 array(3) {
@@ -601,7 +601,11 @@ impl Example {
         ClassRef::from_ref(self).unwrap()
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 <h3 id="creating-a-new-class-instance"><a class="header" href="#creating-a-new-class-instance">Creating a new class instance</a></h3>
 <pre><pre class="playground"><code class="language-rust">
@@ -623,7 +627,11 @@ impl Example {
         Example { foo, bar }
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="closure"><a class="header" href="#closure">Closure</a></h1>
 <p>Rust closures can be passed to PHP through a wrapper class <code>PhpClosure</code>. The
@@ -961,8 +969,13 @@ placed underneath the <code>#[php_class]</code> attribute.</p>
 <li><code>#[implements(ce)]</code> - Implements the given interface on the class. Can be used
 multiple times. <code>ce</code> must be a valid Rust expression when it is called inside
 the <code>#[php_module]</code> function.</li>
-<li><code>#[property(name = default[, flags])]</code> - Adds a PHP property to the class. Can
-be get and set through functions defined through the trait <code>RegisteredClass</code>.</li>
+</ul>
+<p>You may also use the <code>#[prop]</code> attribute on a struct field to use the field as a
+PHP property. By default, the field will be accessible from PHP publically with
+the same name as the field. You can rename the property with options:</p>
+<ul>
+<li><code>rename</code> - Allows you to rename the property, e.g.
+<code>#[prop(rename = &quot;new_name&quot;)]</code></li>
 </ul>
 <h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
 <p>This example creates a PHP class <code>Human</code>, adding a PHP property <code>address</code> with
@@ -973,13 +986,18 @@ an empty string as the default value.</p>
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_class]
-#[property(address = &quot;&quot;)]
 #[derive(Default)]
 pub struct Human {
     name: String,
-    age: i32
+    age: i32,
+    #[prop]
+    address: String,
 }
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 <p>Create a custom exception <code>RedisException</code>, which extends <code>Exception</code>, and put
 it in the <code>Redis\Exception</code> namespace:</p>
@@ -1000,19 +1018,11 @@ pub struct RedisException;
 pub fn throw_exception() -&gt; Result&lt;i32, PhpException&lt;'static&gt;&gt; {
     Err(PhpException::from_class::&lt;RedisException&gt;(&quot;Not good!&quot;.into()))
 }
-<span class="boring">}
-</span></code></pre></pre>
-<p>Creating a class with a private property called <code>test</code>:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_class]
-#[property(test = &quot;Default value&quot;, PropertyFlags::Private)]
-#[derive(Default)]
-pub struct TestClass;
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_impl"><a class="header" href="#php_impl"><code>#[php_impl]</code></a></h1>
 <p>You can export an entire <code>impl</code> block to PHP. This exports all methods as well
@@ -1027,8 +1037,7 @@ implementations cannot be exported to PHP.</p>
 methods is they are bounded by their class object.</p>
 <p>Class methods can take a <code>&amp;self</code> or <code>&amp;mut self</code> parameter. They cannot take a
 consuming <code>self</code> parameter. Static methods can omit this <code>self</code> parameter.</p>
-<p>As there is no attribute directly on the method, options are passed as separate
-attributes:</p>
+<p>Options are passed as separate attributes:</p>
 <ul>
 <li><code>#[defaults(i = 5, b = &quot;hello&quot;)]</code> - Sets the default value for parameter(s).</li>
 <li><code>#[optional(i)]</code> - Sets the first optional parameter. Note that this also sets
@@ -1043,6 +1052,20 @@ equivalent function attribute parameters.</p>
 <p>Constants are defined as regular Rust <code>impl</code> constants. Any type that implements
 <code>IntoZval</code> can be used as a constant. Constant visibility is not supported at
 the moment, and therefore no attributes are valid on constants.</p>
+<h2 id="property-getters-and-setters"><a class="header" href="#property-getters-and-setters">Property getters and setters</a></h2>
+<p>You can add properties to classes which use Rust functions as getters and/or
+setters. This is done with the <code>#[getter]</code> and <code>#[setter]</code> attributes. By
+default, the <code>get_</code> or <code>set_</code> prefix is trimmed from the start of the function
+name, and the remainder is used as the property name.</p>
+<p>If you want to use a different name for the property, you can pass a <code>rename</code>
+option to the attribute which will change the property name.</p>
+<p>Properties do not necessarily have to have both a getter and a setter, if the
+property is immutable the setter can be ommited, and vice versa for getters.</p>
+<p>The <code>#[getter]</code> and <code>#[setter]</code> attributes are mutually exclusive on methods.
+Properties cannot have multiple getters or setters, and the property name cannot
+conflict with field properties defined on the struct.</p>
+<p>As the same as field properties, method property types must implement both
+<code>IntoZval</code> and <code>FromZval</code>.</p>
 <h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
 <p>Continuing on from our <code>Human</code> example in the structs section, we will define a
 constructor, as well as getters for the properties. We will also define a
@@ -1056,7 +1079,9 @@ constant for the maximum age of a <code>Human</code>.</p>
 </span><span class="boring">#[derive(Default)]
 </span><span class="boring">pub struct Human {
 </span><span class="boring">    name: String,
-</span><span class="boring">    age: i32
+</span><span class="boring">    age: i32,
+</span><span class="boring">    #[prop]
+</span><span class="boring">    address: String,
 </span><span class="boring">}
 </span>#[php_impl]
 impl Human {
@@ -1067,10 +1092,17 @@ impl Human {
         self.age = age;
     }
 
+    #[getter]
     pub fn get_name(&amp;self) -&gt; String {
         self.name.to_string()
     }
 
+    #[setter]
+    pub fn set_name(&amp;mut self, name: String) {
+        self.name = name;
+    }
+
+    #[getter]
     pub fn get_age(&amp;self) -&gt; i32 {
         self.age
     }
@@ -1078,16 +1110,18 @@ impl Human {
     pub fn introduce(&amp;self) {
         use ext_php_rs::php::types::object::RegisteredClass;
         
-        // SAFETY: The `Human` struct is only constructed from PHP.
-        let address: String = unsafe { self.get_property(&quot;address&quot;) }.unwrap();
-        println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, address);
+        println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, self.address);
     }
 
     pub fn get_max_age() -&gt; i32 {
         Self::MAX_AGE
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 <p>Using our newly created class in PHP:</p>
 <pre><code class="language-php">&lt;?php

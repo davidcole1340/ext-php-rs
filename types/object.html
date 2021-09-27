@@ -173,7 +173,11 @@ impl Example {
         ClassRef::from_ref(self).unwrap()
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 <h3 id="creating-a-new-class-instance"><a class="header" href="#creating-a-new-class-instance">Creating a new class instance</a></h3>
 <pre><pre class="playground"><code class="language-rust">
@@ -195,7 +199,11 @@ impl Example {
         Example { foo, bar }
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 
                     </main>

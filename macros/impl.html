@@ -156,8 +156,7 @@ implementations cannot be exported to PHP.</p>
 methods is they are bounded by their class object.</p>
 <p>Class methods can take a <code>&amp;self</code> or <code>&amp;mut self</code> parameter. They cannot take a
 consuming <code>self</code> parameter. Static methods can omit this <code>self</code> parameter.</p>
-<p>As there is no attribute directly on the method, options are passed as separate
-attributes:</p>
+<p>Options are passed as separate attributes:</p>
 <ul>
 <li><code>#[defaults(i = 5, b = &quot;hello&quot;)]</code> - Sets the default value for parameter(s).</li>
 <li><code>#[optional(i)]</code> - Sets the first optional parameter. Note that this also sets
@@ -172,6 +171,20 @@ equivalent function attribute parameters.</p>
 <p>Constants are defined as regular Rust <code>impl</code> constants. Any type that implements
 <code>IntoZval</code> can be used as a constant. Constant visibility is not supported at
 the moment, and therefore no attributes are valid on constants.</p>
+<h2 id="property-getters-and-setters"><a class="header" href="#property-getters-and-setters">Property getters and setters</a></h2>
+<p>You can add properties to classes which use Rust functions as getters and/or
+setters. This is done with the <code>#[getter]</code> and <code>#[setter]</code> attributes. By
+default, the <code>get_</code> or <code>set_</code> prefix is trimmed from the start of the function
+name, and the remainder is used as the property name.</p>
+<p>If you want to use a different name for the property, you can pass a <code>rename</code>
+option to the attribute which will change the property name.</p>
+<p>Properties do not necessarily have to have both a getter and a setter, if the
+property is immutable the setter can be ommited, and vice versa for getters.</p>
+<p>The <code>#[getter]</code> and <code>#[setter]</code> attributes are mutually exclusive on methods.
+Properties cannot have multiple getters or setters, and the property name cannot
+conflict with field properties defined on the struct.</p>
+<p>As the same as field properties, method property types must implement both
+<code>IntoZval</code> and <code>FromZval</code>.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <p>Continuing on from our <code>Human</code> example in the structs section, we will define a
 constructor, as well as getters for the properties. We will also define a
@@ -185,7 +198,9 @@ constant for the maximum age of a <code>Human</code>.</p>
 </span><span class="boring">#[derive(Default)]
 </span><span class="boring">pub struct Human {
 </span><span class="boring">    name: String,
-</span><span class="boring">    age: i32
+</span><span class="boring">    age: i32,
+</span><span class="boring">    #[prop]
+</span><span class="boring">    address: String,
 </span><span class="boring">}
 </span>#[php_impl]
 impl Human {
@@ -196,10 +211,17 @@ impl Human {
         self.age = age;
     }
 
+    #[getter]
     pub fn get_name(&amp;self) -&gt; String {
         self.name.to_string()
     }
 
+    #[setter]
+    pub fn set_name(&amp;mut self, name: String) {
+        self.name = name;
+    }
+
+    #[getter]
     pub fn get_age(&amp;self) -&gt; i32 {
         self.age
     }
@@ -207,16 +229,18 @@ impl Human {
     pub fn introduce(&amp;self) {
         use ext_php_rs::php::types::object::RegisteredClass;
         
-        // SAFETY: The `Human` struct is only constructed from PHP.
-        let address: String = unsafe { self.get_property(&quot;address&quot;) }.unwrap();
-        println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, address);
+        println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, self.address);
     }
 
     pub fn get_max_age() -&gt; i32 {
         Self::MAX_AGE
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
 </span></code></pre></pre>
 <p>Using our newly created class in PHP:</p>
 <pre><code class="language-php">&lt;?php
