@@ -32,6 +32,7 @@ pub const IS_CONSTANT_AST: u32 = 11;
 pub const IS_CALLABLE: u32 = 12;
 pub const IS_VOID: u32 = 14;
 pub const IS_MIXED: u32 = 16;
+pub const IS_PTR: u32 = 13;
 pub const _IS_BOOL: u32 = 17;
 pub const Z_TYPE_FLAGS_SHIFT: u32 = 8;
 pub const IS_TYPE_REFCOUNTED: u32 = 1;
@@ -221,7 +222,6 @@ pub struct _zend_refcounted {
     pub gc: zend_refcounted_h,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub struct _zend_string {
     pub gc: zend_refcounted_h,
     pub h: zend_ulong,
@@ -387,6 +387,9 @@ pub struct zend_get_gc_buffer {
     pub cur: *mut zval,
     pub end: *mut zval,
     pub start: *mut zval,
+}
+extern "C" {
+    pub fn zval_ptr_dtor(zval_ptr: *mut zval);
 }
 pub type zend_object_iterator = _zend_object_iterator;
 #[repr(C)]
