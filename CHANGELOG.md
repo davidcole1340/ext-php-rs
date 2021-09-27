@@ -1,5 +1,10 @@
 # Changelog
 
+- `PhpException` no longer requires a lifetime [#80].
+- Added `PhpException` and `PhpResult` to prelude [#80].
+
+[#80]: https://github.com/davidcole1340/ext-php-rs/pull/80
+
 ## Version 0.5.0
 
 ### Breaking changes
