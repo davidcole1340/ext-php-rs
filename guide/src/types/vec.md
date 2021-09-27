@@ -6,7 +6,7 @@ vector. The internal representation of a PHP array is discussed below.
 
 | `T` parameter | `&T` parameter | `T` Return type | PHP representation |
 | ------------- | -------------- | --------------- | ------------------ |
-| Yes           | No             | Yes             | `ZendHashTable`    |
+| Yes           | No             | Yes             | `HashTable`        |
 
 Internally, PHP arrays are hash tables where the key can be an unsigned long or
 a string. Zvals are contained inside arrays therefore the data does not have to

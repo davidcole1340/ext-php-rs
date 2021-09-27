@@ -4,7 +4,7 @@
 
 | `T` parameter | `&T` parameter | `T` Return type | PHP representation |
 | ------------- | -------------- | --------------- | ------------------ |
-| Yes           | No             | Yes             | `ZendHashTable`    |
+| Yes           | No             | Yes             | `HashTable`        |
 
 Converting from a zval to a `HashMap` is valid when the key is a `String`, and
 the value implements `FromZval`. The key and values are copied into Rust types

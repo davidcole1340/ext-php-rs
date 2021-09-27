@@ -1,19 +1,24 @@
 # Closure
 
 Rust closures can be passed to PHP through a wrapper class `PhpClosure`. The
-Rust closure must be static (i.e. can only reference things with a `static`
+Rust closure must be static (i.e. can only reference things with a `'static`
 lifetime, so not `self` in methods), and can take up to 8 parameters, all of
 which must implement `FromZval`. The return type must implement `IntoZval`.
 
 Passing closures from Rust to PHP is feature-gated behind the `closure` feature.
+Enable it in your `Cargo.toml`:
+
+```toml
+ext-php-rs = { version = "...", features = ["closure"] }
+```
 
 PHP callables (which includes closures) can be passed to Rust through the
 `Callable` type. When calling a callable, you must provide it with a `Vec` of
 arguemnts, all of which must implement `IntoZval` and `Clone`.
 
-| `T` parameter | `&T` parameter | `T` Return type                        | `&T` Return type | PHP representation                                                                         |
-| ------------- | -------------- | -------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
-| `Callable`    | No             | `Closure` and `Callable` for functions | No               | Callables are implemented in PHP, closures are represented as an instance of `PhpClosure`. |
+| `T` parameter | `&T` parameter | `T` Return type                     | `&T` Return type | PHP representation                                                                         |
+| ------------- | -------------- | ----------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
+| `Callable`    | No             | `Closure`, `Callable` for functions | No               | Callables are implemented in PHP, closures are represented as an instance of `PhpClosure`. |
 
 Internally, when you enable the `closure` feature, a class `PhpClosure` is
 registered alongside your other classes:
