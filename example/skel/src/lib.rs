@@ -112,5 +112,10 @@ pub fn closure_count() -> Closure {
 
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+    module.function(
+        FunctionBuilder::new("test_zval", test_zval)
+            .arg(Arg::new("test", DataType::Array))
+            .build()
+            .unwrap(),
+    )
 }

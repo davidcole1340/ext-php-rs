@@ -38,10 +38,10 @@ impl ClassEntry {
     /// not be found or the class table has not been initialized.
     pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
-        let name = ZendString::new(name, false).ok()?;
+        let mut name = ZendString::new(name, false).ok()?;
 
         unsafe {
-            crate::bindings::zend_lookup_class_ex(name.borrow_ptr(), std::ptr::null_mut(), 0)
+            crate::bindings::zend_lookup_class_ex(name.as_mut_zend_str(), std::ptr::null_mut(), 0)
                 .as_ref()
         }
     }
@@ -115,8 +115,7 @@ impl ClassEntry {
         if self.flags().contains(ClassFlags::ResolvedParent) {
             unsafe { self.__bindgen_anon_1.parent.as_ref() }
         } else {
-            let name =
-                unsafe { ZendString::from_ptr(self.__bindgen_anon_1.parent_name, false) }.ok()?;
+            let name = unsafe { self.__bindgen_anon_1.parent_name.as_ref()? };
             Self::try_find(name.as_str()?)
         }
     }
@@ -288,7 +287,7 @@ impl ClassBuilder {
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
     pub fn build(mut self) -> Result<&'static mut ClassEntry> {
-        self.ptr.name = ZendString::new_interned(&self.name)?.release();
+        self.ptr.name = ZendString::new_interned(&self.name, true)?.into_inner();
 
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
@@ -349,9 +348,9 @@ impl ClassBuilder {
 
 impl Debug for ClassEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name: String = unsafe { ZendString::from_ptr(self.name, false) }
-            .and_then(|str| str.try_into())
-            .map_err(|_| std::fmt::Error)?;
+        let name: String = unsafe { self.name.as_ref() }
+            .and_then(|s| s.try_into().ok())
+            .ok_or(std::fmt::Error)?;
 
         f.debug_struct("ClassEntry")
             .field("name", &name)

@@ -24,10 +24,7 @@ use crate::{
     php::enums::DataType,
 };
 
-use super::{
-    string::ZendString,
-    zval::{FromZval, IntoZval, Zval},
-};
+use super::zval::{FromZval, IntoZval, Zval};
 
 /// PHP array, which is represented in memory as a hashtable.
 pub use crate::bindings::HashTable;
@@ -239,9 +236,7 @@ impl<'a> Iterator for Iter<'a> {
         }
 
         let bucket = unsafe { pos.as_ref() };
-        let key = unsafe { ZendString::from_ptr(bucket.key, false) }
-            .and_then(|s| s.try_into())
-            .ok();
+        let key = unsafe { bucket.key.as_ref() }.and_then(|s| s.try_into().ok());
 
         self.pos = NonNull::new(unsafe { pos.as_ptr().offset(1) });
 
@@ -272,9 +267,7 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
 
         let new_end = NonNull::new(unsafe { end.as_ptr().offset(-1) })?;
         let bucket = unsafe { new_end.as_ref() };
-        let key = unsafe { ZendString::from_ptr(bucket.key, false) }
-            .and_then(|s| s.try_into())
-            .ok();
+        let key = unsafe { bucket.key.as_ref() }.and_then(|s| s.try_into().ok());
         self.end = Some(new_end);
 
         Some((bucket.h, key, &bucket.val))
@@ -370,7 +363,11 @@ impl OwnedHashTable {
         }
     }
 
-    /// Returns the inner pointer to the hashtable, without destroying the
+    /// Converts the owned Zend hashtable into the internal pointer, bypassing the [`Drop`]
+    /// implementation.
+    ///
+    /// The caller is responsible for freeing the resulting pointer using the `zend_array_destroy`
+    /// function.
     pub fn into_inner(self) -> *mut HashTable {
         let this = ManuallyDrop::new(self);
         this.ptr.as_ptr()

@@ -45,14 +45,13 @@ pub enum PropertyQuery {
 impl ZendObject {
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
-        let name = unsafe {
-            ZendString::from_ptr(
-                self.handlers()?.get_class_name.ok_or(Error::InvalidScope)?(self),
-                false,
-            )
-        }?;
-
-        name.try_into()
+        unsafe {
+            self.handlers()?
+                .get_class_name
+                .and_then(|f| f(self).as_ref())
+                .ok_or(Error::InvalidScope)
+                .and_then(|s| s.try_into())
+        }
     }
 
     /// Checks if the given object is an instance of a registered class with Rust
@@ -74,13 +73,13 @@ impl ZendObject {
             return Err(Error::InvalidProperty);
         }
 
-        let name = ZendString::new(name, false)?;
+        let mut name = ZendString::new(name, false)?;
         let mut rv = Zval::new();
 
         unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.borrow_ptr(),
+                name.as_mut_zend_str(),
                 1,
                 std::ptr::null_mut(),
                 &mut rv,
@@ -98,13 +97,13 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<&Zval> {
-        let name = ZendString::new(name, false)?;
+        let mut name = ZendString::new(name, false)?;
         let mut value = value.into_zval(false)?;
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                name.borrow_ptr(),
+                name.as_mut_zend_str(),
                 &mut value,
                 std::ptr::null_mut(),
             )
@@ -127,7 +126,7 @@ impl ZendObject {
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.borrow_ptr(),
+                name.deref() as *const _ as *mut _,
                 query as _,
                 std::ptr::null_mut(),
             )
