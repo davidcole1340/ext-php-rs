@@ -17,7 +17,18 @@ methods is they are bounded by their class object.
 Class methods can take a `&self` or `&mut self` parameter. They cannot take a
 consuming `self` parameter. Static methods can omit this `self` parameter.
 
-Options are passed as separate attributes:
+By default, all methods are renamed in PHP to the camel-case variant of the Rust
+method name. This can be changed on the `#[php_impl]` attribute, by passing one
+of the following as the `rename_methods` option:
+
+- `"none"` - does not rename the methods.
+- `"camelCase"` - renames all methods to camel case (default).
+- `"snake_case"` - renames all methods to snake case.
+
+For example, to disable renaming, change the `#[php_impl]` attribute to
+`#[php_impl(rename_methods = "none")]`.
+
+The rest of the options are passed as separate attributes:
 
 - `#[defaults(i = 5, b = "hello")]` - Sets the default value for parameter(s).
 - `#[optional(i)]` - Sets the first optional parameter. Note that this also sets
@@ -25,6 +36,8 @@ Options are passed as separate attributes:
   variant of `Option<T>`.
 - `#[public]`, `#[protected]` and `#[private]` - Sets the visibility of the
   method.
+- `#[rename("method_name")]` - Renames the PHP method to a different identifier,
+  without renaming the Rust method name.
 
 The `#[defaults]` and `#[optional]` attributes operate the same as the
 equivalent function attribute parameters.
