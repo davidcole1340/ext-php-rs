@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>String - ext-php-rs</title>
+        <title>Exceptions - ext-php-rs</title>
                 
 
         <!-- Custom HTML head -->
@@ -14,21 +14,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
-                <link rel="icon" href="../favicon.svg">
-                        <link rel="shortcut icon" href="../favicon.png">
-                <link rel="stylesheet" href="../css/variables.css">
-        <link rel="stylesheet" href="../css/general.css">
-        <link rel="stylesheet" href="../css/chrome.css">
-                <link rel="stylesheet" href="../css/print.css" media="print">
+                <link rel="icon" href="favicon.svg">
+                        <link rel="shortcut icon" href="favicon.png">
+                <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+                <link rel="stylesheet" href="css/print.css" media="print">
         
         <!-- Fonts -->
-        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
-                <link rel="stylesheet" href="../fonts/fonts.css">
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+                <link rel="stylesheet" href="fonts/fonts.css">
         
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
         
@@ -36,7 +36,7 @@
     <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
-            var path_to_root = "../";
+            var path_to_root = "";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="../types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="../types/string.html" class="active"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="../types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="../types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="../types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="../types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="../types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="../types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="../types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="../types/closure.html"><strong aria-hidden="true">3.10.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="../macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="../macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="../macros/structs.html"><strong aria-hidden="true">4.4.</strong> Structs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li></ol></li><li class="chapter-item expanded "><a href="../exceptions.html"><strong aria-hidden="true">5.</strong> Exceptions</a></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="types/closure.html"><strong aria-hidden="true">3.10.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="macros/structs.html"><strong aria-hidden="true">4.4.</strong> Structs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li></ol></li><li class="chapter-item expanded "><a href="exceptions.html" class="active"><strong aria-hidden="true">5.</strong> Exceptions</a></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -114,7 +114,7 @@
                     <h1 class="menu-title">ext-php-rs</h1>
 
                     <div class="right-buttons">
-                                                <a href="../print.html" title="Print this book" aria-label="Print this book">
+                                                <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                                                                         
@@ -143,48 +143,56 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="string"><a class="header" href="#string"><code>String</code></a></h1>
-<p>When a <code>String</code> type is encountered, the zend string content is copied to/from a
-Rust <code>String</code> object. If the zval does not contain a string, it will attempt to
-read a <code>double</code> from the zval and convert it into a <code>String</code> object.</p>
-<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
-<tr><td>Yes</td><td>No</td><td>Yes</td><td><code>zend_string</code> (C-string)</td></tr>
-</tbody></table>
-<p>Internally, PHP stores strings in <code>zend_string</code> objects, which is a refcounted C
-struct containing the string length with the content of the string appended to
-the end of the struct based on how long the string is. Since the string is
-NUL-terminated, you cannot have any NUL bytes in your string, and an error will
-be thrown if one is encountered while converting a <code>String</code> to a zval.</p>
-<h2 id="rust-example"><a class="header" href="#rust-example">Rust example</a></h2>
+                        <h1 id="exceptions"><a class="header" href="#exceptions">Exceptions</a></h1>
+<p>Exceptions can be thrown from Rust to PHP. The inverse (catching a PHP exception
+in Rust) is currently being worked on.</p>
+<h2 id="throwing-exceptions"><a class="header" href="#throwing-exceptions">Throwing exceptions</a></h2>
+<p><a href="https://docs.rs/ext-php-rs/0.5.0/ext_php_rs/php/exceptions/struct.PhpException.html"><code>PhpException</code></a> is the type that represents an exception. It contains the
+message contained in the exception, the type of exception and a status code to
+go along with the exception.</p>
+<p>You can create a new exception with the <code>new()</code>, <code>default()</code>, or
+<code>from_class::&lt;T&gt;()</code> methods. <code>Into&lt;PhpException&gt;</code> is implemented for <code>String</code>
+and <code>&amp;str</code>, which creates an exception of the type <code>Exception</code> with a code of 0.
+It may be useful to implement <code>Into&lt;PhpException&gt;</code> for your error type.</p>
+<p>Calling the <code>throw()</code> method on a <code>PhpException</code> attempts to throw the exception
+in PHP. This function can fail if the type of exception is invalid (i.e. does
+not implement <code>Exception</code> or <code>Throwable</code>). Upon success, nothing will be
+returned.</p>
+<p><code>IntoZval</code> is also implemented for <code>Result&lt;T, E&gt;</code>, where <code>T: IntoZval</code> and
+<code>E: Into&lt;PhpException&gt;</code>. If the result contains the error variant, the exception
+is thrown. This allows you to return a result from a PHP function annotated with
+the <code>#[php_function]</code> attribute.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_function]
-pub fn str_example(input: &amp;str) -&gt; String {
-    format!(&quot;Hello {}&quot;, input)
+</span>use ext_php_rs::prelude::*;
+use std::convert::TryInto;
+
+// Trivial example - PHP represents all integers as `u64` on 64-bit systems
+// so the `u32` would be converted back to `u64`, but that's okay for an example.
+#[php_function]
+pub fn something_fallible(n: u64) -&gt; PhpResult&lt;u32&gt; {
+    let n: u32 = n.try_into().map_err(|_| &quot;Could not convert into u32&quot;)?;
+    Ok(n)
+}
+
+#[php_module]
+pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
 }
 <span class="boring">}
 </span></code></pre></pre>
-<h2 id="php-example"><a class="header" href="#php-example">PHP example</a></h2>
-<pre><code class="language-php">&lt;?php
-
-var_dump(str_example(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
-var_dump(str_example(5)); // string(7) &quot;Hello 5&quot;
-</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                                                    <a rel="prev" href="../types/numbers.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                                    <a rel="prev" href="macros/constant.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
-                                                    <a rel="next" href="../types/str.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
                         
                         <div style="clear: both"></div>
                     </nav>
@@ -192,13 +200,10 @@ var_dump(str_example(5)); // string(7) &quot;Hello 5&quot;
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                                    <a rel="prev" href="../types/numbers.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                    <a rel="prev" href="macros/constant.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
-                                    <a rel="next" href="../types/str.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
                             </nav>
 
         </div>
@@ -211,13 +216,13 @@ var_dump(str_example(5)); // string(7) &quot;Hello 5&quot;
         </script>
         
         
-                <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+                <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
         
-        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
-        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
         <!-- Custom JS scripts -->
         
