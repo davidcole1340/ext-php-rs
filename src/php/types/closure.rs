@@ -1,5 +1,7 @@
 //! Types ans functions used for exporting Rust closures to PHP.
 
+use std::collections::HashMap;
+
 use crate::php::{
     args::Arg, class::ClassBuilder, enums::DataType, exceptions::PhpException,
     execution_data::ExecutionData, flags::MethodFlags, function::FunctionBuilder,
@@ -8,6 +10,7 @@ use crate::php::{
 
 use super::{
     object::RegisteredClass,
+    props::Property,
     zval::{FromZval, IntoZval, Zval},
 };
 
@@ -155,6 +158,10 @@ impl RegisteredClass for Closure {
 
     fn get_metadata() -> &'static super::object::ClassMetadata<Self> {
         &CLOSURE_META
+    }
+
+    fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>> {
+        HashMap::new()
     }
 }
 

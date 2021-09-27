@@ -252,6 +252,7 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "IS_TYPE_REFCOUNTED",
     "IS_UNDEF",
     "IS_VOID",
+    "IS_PTR",
     "MAY_BE_ANY",
     "MAY_BE_BOOL",
     "USING_ZTS",
@@ -316,4 +317,10 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "_ZEND_TYPE_NAME_BIT",
     "zval_ptr_dtor",
     "zend_refcounted_h",
+    "zend_is_true",
+    "zend_object_std_dtor",
+    "zend_std_read_property",
+    "zend_std_write_property",
+    "zend_std_get_properties",
+    "zend_std_has_property",
 ];

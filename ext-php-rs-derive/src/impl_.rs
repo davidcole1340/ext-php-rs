@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
@@ -6,7 +6,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
-use crate::{constant::Constant, method};
+use crate::{
+    class::{Property, PropertyAttr},
+    constant::Constant,
+    method,
+};
 
 #[derive(Debug, Clone)]
 pub enum Visibility {
@@ -74,12 +78,22 @@ pub enum ParsedAttribute {
     Optional(String),
     Visibility(Visibility),
     Rename(String),
+    Property {
+        prop_name: Option<String>,
+        ty: PropAttrTy,
+    },
 }
 
 #[derive(Default, Debug, FromMeta)]
 #[darling(default)]
 pub struct AttrArgs {
     rename_methods: Option<RenameRule>,
+}
+
+#[derive(Debug)]
+pub enum PropAttrTy {
+    Getter,
+    Setter,
 }
 
 pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
@@ -124,10 +138,21 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                     }
                 }
                 syn::ImplItem::Method(mut method) => {
-                    let (sig, method) =
+                    let parsed_method =
                         method::parser(&mut method, args.rename_methods.unwrap_or_default())?;
-                    class.methods.push(method);
-                    sig
+                    if let Some((prop, ty)) = parsed_method.property {
+                        let prop = match class.properties.entry(prop) {
+                            Entry::Occupied(entry) => entry.into_mut(),
+                            Entry::Vacant(vacant) => vacant.insert(Property::method(None)),
+                        };
+                        let ident = parsed_method.method.orig_ident.clone();
+                        match ty {
+                            PropAttrTy::Getter => prop.add_getter(ident)?,
+                            PropAttrTy::Setter => prop.add_setter(ident)?,
+                        }
+                    }
+                    class.methods.push(parsed_method.method);
+                    parsed_method.tokens
                 }
                 item => item.to_token_stream(),
             })
@@ -139,6 +164,7 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
             #(#tokens)*
         }
     };
+
     Ok(output)
 }
 
@@ -184,6 +210,34 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
             .ok_or_else(|| anyhow!("Invalid argument given for `#[rename] macro."))?;
 
             ParsedAttribute::Rename(ident)
+        }
+        "getter" => {
+            let prop_name = if attr.tokens.is_empty() {
+                None
+            } else {
+                let parsed: PropertyAttr = attr
+                    .parse_args()
+                    .map_err(|e| anyhow!("Unable to parse `#[getter]` attribute: {}", e))?;
+                parsed.rename
+            };
+            ParsedAttribute::Property {
+                prop_name,
+                ty: PropAttrTy::Getter,
+            }
+        }
+        "setter" => {
+            let prop_name = if attr.tokens.is_empty() {
+                None
+            } else {
+                let parsed: PropertyAttr = attr
+                    .parse_args()
+                    .map_err(|e| anyhow!("Unable to parse `#[setter]` attribute: {}", e))?;
+                parsed.rename
+            };
+            ParsedAttribute::Property {
+                prop_name,
+                ty: PropAttrTy::Setter,
+            }
         }
         attr => bail!("Invalid attribute `#[{}]`.", attr),
     })

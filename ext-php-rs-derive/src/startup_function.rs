@@ -85,41 +85,42 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                     Ok(quote! { .implements(#expr) })
                 })
                 .collect::<Result<Vec<_>>>()?;
-            let properties = class
-                .properties
-                .iter()
-                .map(|(name, (default, flags))| {
-                    let default_expr: Expr = syn::parse_str(default).map_err(|_| {
-                        anyhow!(
-                            "Invalid default value given for property `{}` type: `{}`",
-                            name,
-                            default
-                        )
-                    })?;
-                    let flags_expr: Expr = syn::parse_str(
-                        flags
-                            .as_ref()
-                            .map(|flags| flags.as_str())
-                            .unwrap_or("PropertyFlags::Public"),
-                    )
-                    .map_err(|_| {
-                        anyhow!(
-                            "Invalid default value given for property `{}` type: `{}`",
-                            name,
-                            default
-                        )
-                    })?;
+            // TODO(david): register properties for reflection (somehow)
+            // let properties = class
+            //     .properties
+            //     .iter()
+            //     .map(|(name, (default, flags))| {
+            //         let default_expr: Expr = syn::parse_str(default).map_err(|_| {
+            //             anyhow!(
+            //                 "Invalid default value given for property `{}` type: `{}`",
+            //                 name,
+            //                 default
+            //             )
+            //         })?;
+            //         let flags_expr: Expr = syn::parse_str(
+            //             flags
+            //                 .as_ref()
+            //                 .map(|flags| flags.as_str())
+            //                 .unwrap_or("PropertyFlags::Public"),
+            //         )
+            //         .map_err(|_| {
+            //             anyhow!(
+            //                 "Invalid default value given for property `{}` type: `{}`",
+            //                 name,
+            //                 default
+            //             )
+            //         })?;
 
-                    Ok(quote! { .property(#name, #default_expr, #flags_expr) })
-                })
-                .collect::<Result<Vec<_>>>()?;
+            //         Ok(quote! { .property(#name, #default_expr, #flags_expr) })
+            //     })
+            //     .collect::<Result<Vec<_>>>()?;
 
             Ok(quote! {{
                 let class = ::ext_php_rs::php::class::ClassBuilder::new(#class_name)
                     #(#methods)*
                     #(#constants)*
                     #(#interfaces)*
-                    #(#properties)*
+                    // #(#properties)*
                     #parent
                     .object_override::<#ident>()
                     .build()

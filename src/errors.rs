@@ -9,7 +9,7 @@ use crate::php::{
 };
 
 /// The main result type which is passed by the library.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// The main error type which is passed by the library inside the custom
 /// [`Result`] type.

@@ -760,6 +760,37 @@ pub struct _zend_object_handlers {
 extern "C" {
     pub static std_object_handlers: zend_object_handlers;
 }
+extern "C" {
+    pub fn zend_std_get_properties(object: *mut zend_object) -> *mut HashTable;
+}
+extern "C" {
+    pub fn zend_std_read_property(
+        object: *mut zend_object,
+        member: *mut zend_string,
+        type_: ::std::os::raw::c_int,
+        cache_slot: *mut *mut ::std::os::raw::c_void,
+        rv: *mut zval,
+    ) -> *mut zval;
+}
+extern "C" {
+    pub fn zend_std_write_property(
+        object: *mut zend_object,
+        member: *mut zend_string,
+        value: *mut zval,
+        cache_slot: *mut *mut ::std::os::raw::c_void,
+    ) -> *mut zval;
+}
+extern "C" {
+    pub fn zend_std_has_property(
+        object: *mut zend_object,
+        member: *mut zend_string,
+        has_set_exists: ::std::os::raw::c_int,
+        cache_slot: *mut *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn zend_is_true(op: *mut zval) -> ::std::os::raw::c_int;
+}
 pub type zend_op_array = _zend_op_array;
 pub type zend_op = _zend_op;
 #[repr(C)]
@@ -945,6 +976,9 @@ extern "C" {
 }
 extern "C" {
     pub fn zend_objects_clone_members(new_object: *mut zend_object, old_object: *mut zend_object);
+}
+extern "C" {
+    pub fn zend_object_std_dtor(object: *mut zend_object);
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

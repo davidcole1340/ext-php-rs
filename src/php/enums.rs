@@ -5,7 +5,8 @@ use std::{convert::TryFrom, fmt::Display};
 use crate::{
     bindings::{
         IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_MIXED, IS_NULL,
-        IS_OBJECT, IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID, _IS_BOOL,
+        IS_OBJECT, IS_PTR, IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_UNDEF, IS_VOID,
+        _IS_BOOL,
     },
     errors::{Error, Result},
     php::flags::ZvalTypeFlags,
@@ -30,6 +31,7 @@ pub enum DataType {
     Void,
     Mixed,
     Bool,
+    Ptr,
 }
 
 impl Default for DataType {
@@ -58,6 +60,7 @@ impl DataType {
             DataType::Void => IS_VOID,
             DataType::Mixed => IS_MIXED,
             DataType::Bool => _IS_BOOL,
+            DataType::Ptr => IS_PTR,
         }
     }
 }
@@ -130,6 +133,7 @@ impl From<u32> for DataType {
         contains!(IS_TRUE, True);
         contains!(IS_FALSE, False);
         contains!(IS_NULL, Null);
+        contains!(IS_PTR, Ptr);
 
         if (value & IS_OBJECT) == IS_OBJECT {
             return DataType::Object(None);
@@ -160,6 +164,7 @@ impl Display for DataType {
             DataType::Void => write!(f, "Void"),
             DataType::Bool => write!(f, "Bool"),
             DataType::Mixed => write!(f, "Mixed"),
+            DataType::Ptr => write!(f, "Pointer"),
         }
     }
 }

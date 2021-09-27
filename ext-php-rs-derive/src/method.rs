@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::{
     function,
-    impl_::{parse_attribute, ParsedAttribute, RenameRule, Visibility},
+    impl_::{parse_attribute, ParsedAttribute, PropAttrTy, RenameRule, Visibility},
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -25,8 +25,12 @@ pub struct AttrArgs {
 
 #[derive(Debug, Clone)]
 pub struct Method {
+    /// Method name
     pub name: String,
+    /// extern "C" function ident
     pub ident: String,
+    /// Rust internal function ident
+    pub orig_ident: String,
     pub args: Vec<Arg>,
     pub optional: Option<String>,
     pub output: Option<(String, bool)>,
@@ -34,13 +38,31 @@ pub struct Method {
     pub visibility: Visibility,
 }
 
-pub fn parser(
-    input: &mut ImplItemMethod,
-    rename_rule: RenameRule,
-) -> Result<(TokenStream, Method)> {
+pub struct ParsedMethod {
+    pub tokens: TokenStream,
+    pub method: Method,
+    pub property: Option<(String, PropAttrTy)>,
+}
+
+impl ParsedMethod {
+    pub fn new(
+        tokens: TokenStream,
+        method: Method,
+        property: Option<(String, PropAttrTy)>,
+    ) -> Self {
+        Self {
+            tokens,
+            method,
+            property,
+        }
+    }
+}
+
+pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<ParsedMethod> {
     let mut defaults = HashMap::new();
     let mut optional = None;
     let mut visibility = Visibility::Public;
+    let mut as_prop = None;
     let mut identifier = None;
 
     for attr in input.attrs.iter() {
@@ -49,6 +71,24 @@ pub fn parser(
             ParsedAttribute::Optional(name) => optional = Some(name),
             ParsedAttribute::Visibility(vis) => visibility = vis,
             ParsedAttribute::Rename(ident) => identifier = Some(ident),
+            ParsedAttribute::Property { prop_name, ty } => {
+                if as_prop.is_some() {
+                    bail!(
+                        "Only one `#[getter]` and/or `#[setter]` attribute may be used per method."
+                    );
+                }
+                let prop_name = prop_name.unwrap_or_else(|| {
+                    input
+                        .sig
+                        .ident
+                        .to_token_stream()
+                        .to_string()
+                        .trim_start_matches("get_")
+                        .trim_start_matches("set_")
+                        .to_string()
+                });
+                as_prop = Some((prop_name, ty))
+            }
         }
     }
 
@@ -101,6 +141,7 @@ pub fn parser(
     let method = Method {
         name,
         ident: internal_ident.to_string(),
+        orig_ident: ident.to_string(),
         args,
         optional,
         output: crate::function::get_return_type(output)?,
@@ -108,7 +149,7 @@ pub fn parser(
         visibility,
     };
 
-    Ok((func, method))
+    Ok(ParsedMethod::new(func, method, as_prop))
 }
 
 fn build_args(

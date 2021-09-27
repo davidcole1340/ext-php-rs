@@ -3,7 +3,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{ItemFn, Signature};
 
-use crate::{startup_function, STATE};
+use crate::{class::Class, startup_function, STATE};
 
 pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
@@ -47,8 +47,15 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
             .startup_function(#ident)
         }
     });
+    let registered_classes_impls = state
+        .classes
+        .iter()
+        .map(|(_, class)| generate_registered_class_impl(class))
+        .collect::<Result<Vec<_>>>()?;
 
     let result = quote! {
+        #(#registered_classes_impls)*
+
         #startup_fn
 
         #[doc(hidden)]
@@ -76,4 +83,35 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         }
     };
     Ok(result)
+}
+
+/// Generates an implementation for `RegisteredClass` on the given class.
+pub fn generate_registered_class_impl(class: &Class) -> Result<TokenStream> {
+    let self_ty = Ident::new(&class.struct_path, Span::call_site());
+    let class_name = &class.class_name;
+    let meta = Ident::new(&format!("_{}_META", &class.struct_path), Span::call_site());
+    let prop_tuples = class
+        .properties
+        .iter()
+        .map(|(name, prop)| prop.as_prop_tuple(name));
+
+    Ok(quote! {
+        static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#self_ty> = ::ext_php_rs::php::types::object::ClassMetadata::new();
+
+        impl ::ext_php_rs::php::types::object::RegisteredClass for #self_ty {
+            const CLASS_NAME: &'static str = #class_name;
+
+            fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
+                &#meta
+            }
+
+            fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::php::types::props::Property<'a, Self>> {
+                use ::std::iter::FromIterator;
+
+                ::std::collections::HashMap::from_iter([
+                    #(#prop_tuples)*
+                ])
+            }
+        }
+    })
 }

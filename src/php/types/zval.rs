@@ -1,9 +1,9 @@
 //! The base value in PHP. A Zval can contain any PHP type, and the type that it contains is
 //! determined by a property inside the struct. The content of the Zval is stored in a union.
 
-use core::slice;
 use std::{
     convert::{TryFrom, TryInto},
+    ffi::c_void,
     fmt::Debug,
     ptr,
 };
@@ -28,6 +28,7 @@ use super::{
     callable::Callable,
     object::ZendObject,
     rc::PhpRc,
+    string::ZendStr,
 };
 
 /// Zend value. Represents most data types that are in the Zend engine.
@@ -79,6 +80,18 @@ impl Zval {
         }
     }
 
+    /// Returns the value of the zval as a zend string, if it is a string.
+    ///
+    /// Note that this functions output will not be the same as [`string()`](#method.string), as
+    /// this function does not attempt to convert other types into a [`String`].
+    pub fn zend_str(&self) -> Option<&ZendStr> {
+        if self.is_string() {
+            unsafe { self.value.str_.as_ref() }
+        } else {
+            None
+        }
+    }
+
     /// Returns the value of the zval if it is a string.
     ///
     /// If the zval does not contain a string, the function will check if it contains a
@@ -97,22 +110,7 @@ impl Zval {
     /// this function does not attempt to convert other types into a [`String`], as it could not
     /// pass back a [`&str`] in those cases.
     pub fn str(&self) -> Option<&str> {
-        if self.is_string() {
-            // SAFETY: Zend strings have a length that we know we can read.
-            // By reading this many bytes we will not run into any issues.
-            //
-            // We can safely cast our *const c_char into a *const u8 as both
-            // only occupy one byte.
-            unsafe {
-                std::str::from_utf8(slice::from_raw_parts(
-                    (*self.value.str_).val.as_ptr() as *const u8,
-                    (*self.value.str_).len as usize,
-                ))
-                .ok()
-            }
-        } else {
-            None
-        }
+        self.zend_str().and_then(|zs| zs.as_str())
     }
 
     /// Returns the value of the zval if it is a string and can be unpacked into a vector of a
@@ -198,6 +196,20 @@ impl Zval {
         Callable::new(self).ok()
     }
 
+    /// Returns the value of the zval if it is a pointer.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the pointer contained in the zval is in fact a pointer to an
+    /// instance of `T`, as the zval has no way of defining the type of pointer.
+    pub unsafe fn ptr<T>(&self) -> Option<*mut T> {
+        if self.is_ptr() {
+            Some(self.value.ptr as *mut T)
+        } else {
+            None
+        }
+    }
+
     /// Attempts to call the zval as a callable with a list of arguments to pass to the function.
     /// Note that a thrown exception inside the callable is not detectable, therefore you should
     /// check if the return value is valid rather than unwrapping. Returns a result containing the
@@ -219,22 +231,22 @@ impl Zval {
 
     /// Returns true if the zval is a long, false otherwise.
     pub fn is_long(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::Long.as_u32() }
+        self.get_type() == DataType::Long
     }
 
     /// Returns true if the zval is null, false otherwise.
     pub fn is_null(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::Null.as_u32() }
+        self.get_type() == DataType::Null
     }
 
     /// Returns true if the zval is true, false otherwise.
     pub fn is_true(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::True.as_u32() }
+        self.get_type() == DataType::False
     }
 
     /// Returns true if the zval is false, false otherwise.
     pub fn is_false(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::False.as_u32() }
+        self.get_type() == DataType::False
     }
 
     /// Returns true if the zval is a bool, false otherwise.
@@ -244,38 +256,43 @@ impl Zval {
 
     /// Returns true if the zval is a double, false otherwise.
     pub fn is_double(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::Double.as_u32() }
+        self.get_type() == DataType::Double
     }
 
     /// Returns true if the zval is a string, false otherwise.
     pub fn is_string(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::String.as_u32() }
+        self.get_type() == DataType::String
     }
 
     /// Returns true if the zval is a resource, false otherwise.
     pub fn is_resource(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::Resource.as_u32() }
+        self.get_type() == DataType::Resource
     }
 
     /// Returns true if the zval is an array, false otherwise.
     pub fn is_array(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::Array.as_u32() }
+        self.get_type() == DataType::Array
     }
 
     /// Returns true if the zval is an object, false otherwise.
     pub fn is_object(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::Object(None).as_u32() }
+        matches!(self.get_type(), DataType::Object(_))
     }
 
     /// Returns true if the zval is a reference, false otherwise.
     pub fn is_reference(&self) -> bool {
-        unsafe { self.u1.v.type_ as u32 == DataType::Reference.as_u32() }
+        self.get_type() == DataType::Reference
     }
 
     /// Returns true if the zval is callable, false otherwise.
     pub fn is_callable(&self) -> bool {
         let ptr: *const Self = self;
         unsafe { zend_is_callable(ptr as *mut Self, 0, std::ptr::null_mut()) }
+    }
+
+    /// Returns true if the zval contains a pointer, false otherwise.
+    pub fn is_ptr(&self) -> bool {
+        self.get_type() == DataType::Ptr
     }
 
     /// Sets the value of the zval as a string. Returns nothing in a result when successful.
@@ -414,6 +431,16 @@ impl Zval {
         self.value.arr = val.into_inner();
     }
 
+    /// Sets the value of the zval as a pointer.
+    ///
+    /// # Parameters
+    ///
+    /// * `ptr` - The pointer to set the zval as.
+    pub fn set_ptr<T>(&mut self, ptr: *mut T) {
+        self.u1.type_info = ZvalTypeFlags::Ptr.bits();
+        self.value.ptr = ptr as *mut c_void;
+    }
+
     /// Used to drop the Zval but keep the value of the zval intact.
     ///
     /// This is important when copying the value of the zval, as the actual value
@@ -464,6 +491,8 @@ impl Debug for Zval {
             DataType::ConstantExpression => field!(Option::<()>::None),
             DataType::Void => field!(Option::<()>::None),
             DataType::Bool => field!(self.bool()),
+            // SAFETY: We are not accessing the pointer.
+            DataType::Ptr => field!(unsafe { self.ptr::<c_void>() }),
         };
 
         dbg.finish()
@@ -473,6 +502,12 @@ impl Debug for Zval {
 impl Drop for Zval {
     fn drop(&mut self) {
         self.change_type(ZvalTypeFlags::Null);
+    }
+}
+
+impl Default for Zval {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

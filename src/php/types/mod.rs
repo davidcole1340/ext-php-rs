@@ -9,6 +9,7 @@ pub mod callable;
 pub mod closure;
 pub mod long;
 pub mod object;
+pub mod props;
 pub mod rc;
 pub mod string;
 pub mod zval;
