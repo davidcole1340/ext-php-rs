@@ -54,7 +54,7 @@ impl ZendStr {
     pub fn as_c_str(&self) -> &CStr {
         // SAFETY: Zend strings store their readable length in a fat pointer.
         unsafe {
-            let slice = slice::from_raw_parts(self.val.as_ptr() as *const u8, self.len());
+            let slice = slice::from_raw_parts(self.val.as_ptr() as *const u8, self.len() + 1);
             CStr::from_bytes_with_nul_unchecked(slice)
         }
     }
