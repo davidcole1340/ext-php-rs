@@ -1,5 +1,7 @@
 # Changelog
 
+## Version 0.5.1
+
 - `PhpException` no longer requires a lifetime [#80].
 - Added `PhpException` and `PhpResult` to prelude [#80].
 - Fixed `ZendString` missing last character [#82].
