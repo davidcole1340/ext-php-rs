@@ -844,8 +844,8 @@ impl FromZval<'_> for bool {
         zval.bool()
             .or_else(|| zval.long().map(|l| l != 0))
             .or_else(|| zval.double().map(|d| d != 0.0))
-            .or_else(|| zval.str().map(|s| !(s.len() == 0 || s == "0") || s == "1"))
-            .or_else(|| zval.array().map(|arr| arr.len() != 0))
+            .or_else(|| zval.str().map(|s| !(s.is_empty() || s == "0") || s == "1"))
+            .or_else(|| zval.array().map(|arr| !arr.is_empty()))
             .or_else(|| if zval.is_null() { Some(false) } else { None })
     }
 }
