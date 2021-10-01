@@ -842,8 +842,8 @@ impl FromZval<'_> for bool {
     fn from_zval_coerce(zval: &Zval) -> Option<Self> {
         // https://www.php.net/manual/en/language.types.boolean.php#language.types.boolean.casting
         zval.bool()
-            .or_else(|| zval.long().map(|l| l != 0))
-            .or_else(|| zval.double().map(|d| d != 0.0))
+            .or_else(|| zval.long().map(|l| l > 0))
+            .or_else(|| zval.double().map(|d| d > 0.0))
             .or_else(|| zval.str().map(|s| !(s.is_empty() || s == "0") || s == "1"))
             .or_else(|| zval.array().map(|arr| !arr.is_empty()))
             .or_else(|| if zval.is_null() { Some(false) } else { None })
