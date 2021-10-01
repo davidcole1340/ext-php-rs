@@ -76,14 +76,11 @@ impl Zval {
         if self.is_double() {
             Some(unsafe { self.value.dval })
         } else {
-            self.long().map(|x| x as f64)
+            None
         }
     }
 
     /// Returns the value of the zval as a zend string, if it is a string.
-    ///
-    /// Note that this functions output will not be the same as [`string()`](#method.string), as
-    /// this function does not attempt to convert other types into a [`String`].
     pub fn zend_str(&self) -> Option<&ZendStr> {
         if self.is_string() {
             unsafe { self.value.str_.as_ref() }
@@ -93,22 +90,11 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is a string.
-    ///
-    /// If the zval does not contain a string, the function will check if it contains a
-    /// double or a long, and if so it will convert the value to a [`String`] and return it.
-    /// Don't rely on this logic, as there is potential for this to change to match the output
-    /// of the [`str()`](#method.str) function.
     pub fn string(&self) -> Option<String> {
-        self.str()
-            .map(|s| s.to_string())
-            .or_else(|| self.double().map(|x| x.to_string()))
+        self.str().map(|s| s.to_string())
     }
 
     /// Returns the value of the zval if it is a string.
-    ///
-    /// Note that this functions output will not be the same as [`string()`](#method.string), as
-    /// this function does not attempt to convert other types into a [`String`], as it could not
-    /// pass back a [`&str`] in those cases.
     pub fn str(&self) -> Option<&str> {
         self.zend_str().and_then(|zs| zs.as_str())
     }
@@ -722,6 +708,19 @@ pub trait FromZval<'a>: Sized {
     ///
     /// * `zval` - Zval to get value from.
     fn from_zval(zval: &'a Zval) -> Option<Self>;
+
+    /// Attempts to retrieve an instance of `Self` from a reference to a [`Zval], coercing through
+    /// other types if required.
+    ///
+    /// For example, [`String`] may implement `from_zval_coerce` by checking for a string, returning if
+    /// found, and then checking for a long and converting that to a string.
+    ///
+    /// # Parameters
+    ///
+    /// * `zval` - Zval to get value from.
+    fn from_zval_coerce(zval: &'a Zval) -> Option<Self> {
+        Self::from_zval(zval)
+    }
 }
 
 impl<'a, T> FromZval<'a> for Option<T>
@@ -733,50 +732,121 @@ where
     fn from_zval(zval: &'a Zval) -> Option<Self> {
         Some(T::from_zval(zval))
     }
+
+    fn from_zval_coerce(zval: &'a Zval) -> Option<Self> {
+        Some(T::from_zval_coerce(zval))
+    }
 }
 
+// Coercion type juggling: https://www.php.net/manual/en/language.types.type-juggling.php
+
 macro_rules! try_from_zval {
-    ($type: ty, $fn: ident, $dt: ident) => {
-        impl FromZval<'_> for $type {
-            const TYPE: DataType = DataType::$dt;
+    ($($type: ty),*) => {
+        $(
+            impl TryFrom<Zval> for $type {
+                type Error = Error;
 
-            fn from_zval(zval: &Zval) -> Option<Self> {
-                zval.$fn().and_then(|val| val.try_into().ok())
+                fn try_from(value: Zval) -> Result<Self> {
+                    Self::from_zval(&value).ok_or(Error::ZvalConversion(value.get_type()))
+                }
             }
-        }
-
-        impl TryFrom<Zval> for $type {
-            type Error = Error;
-
-            fn try_from(value: Zval) -> Result<Self> {
-                Self::from_zval(&value).ok_or(Error::ZvalConversion(value.get_type()))
-            }
-        }
+        )*
     };
 }
 
-try_from_zval!(i8, long, Long);
-try_from_zval!(i16, long, Long);
-try_from_zval!(i32, long, Long);
-try_from_zval!(i64, long, Long);
+macro_rules! from_zval_long {
+    ($($t: ty),*) => {
+        $(
+            impl FromZval<'_> for $t {
+                const TYPE: DataType = DataType::Long;
 
-try_from_zval!(u8, long, Long);
-try_from_zval!(u16, long, Long);
-try_from_zval!(u32, long, Long);
-try_from_zval!(u64, long, Long);
+                fn from_zval(zval: &Zval) -> Option<Self> {
+                    zval.long().and_then(|val| val.try_into().ok())
+                }
 
-try_from_zval!(usize, long, Long);
-try_from_zval!(isize, long, Long);
+                fn from_zval_coerce(zval: &Zval) -> Option<Self> {
+                    // https://www.php.net/manual/en/language.types.integer.php#language.types.integer.casting
+                    zval.long()
+                        .and_then(|val| val.try_into().ok())
+                        .or_else(|| zval.bool().map(|b| b.into()))
+                        .or_else(|| {
+                            zval.double()
+                                .map(|d| if d.is_normal() { d.floor() as _ } else { 0 })
+                        })
+                        .or_else(|| if zval.is_null() { Some(0) } else { None })
+                }
+            }
+        )*
+        try_from_zval!($($t),*);
+    };
+}
 
-try_from_zval!(f64, double, Double);
-try_from_zval!(bool, bool, Bool);
-try_from_zval!(String, string, String);
+try_from_zval!(String, f32, f64, bool);
+from_zval_long!(i8, i16, i32, i64, u8, u16, u32, u64, usize, isize);
+
+impl FromZval<'_> for String {
+    const TYPE: DataType = DataType::String;
+
+    fn from_zval(zval: &Zval) -> Option<Self> {
+        zval.string()
+    }
+
+    fn from_zval_coerce(zval: &Zval) -> Option<Self> {
+        // https://www.php.net/manual/en/language.types.string.php#language.types.string.casting
+        zval.string()
+            .or_else(|| zval.long().map(|l| l.to_string()))
+            .or_else(|| zval.double().map(|d| d.to_string()))
+            .or_else(|| zval.bool().map(|b| if b { "1" } else { "" }.to_string()))
+            .or_else(|| {
+                if zval.is_null() {
+                    Some("".to_string())
+                } else {
+                    None
+                }
+            })
+    }
+}
+
+impl FromZval<'_> for f64 {
+    const TYPE: DataType = DataType::Double;
+
+    fn from_zval(zval: &Zval) -> Option<Self> {
+        zval.double()
+    }
+
+    fn from_zval_coerce(zval: &Zval) -> Option<Self> {
+        zval.double()
+            .or_else(|| i64::from_zval_coerce(zval).map(|l| l as f64))
+    }
+}
 
 impl FromZval<'_> for f32 {
     const TYPE: DataType = DataType::Double;
 
     fn from_zval(zval: &Zval) -> Option<Self> {
         zval.double().map(|v| v as f32)
+    }
+
+    fn from_zval_coerce(zval: &Zval) -> Option<Self> {
+        f64::from_zval_coerce(zval).map(|v| v as f32)
+    }
+}
+
+impl FromZval<'_> for bool {
+    const TYPE: DataType = DataType::Bool;
+
+    fn from_zval(zval: &Zval) -> Option<Self> {
+        zval.bool()
+    }
+
+    fn from_zval_coerce(zval: &Zval) -> Option<Self> {
+        // https://www.php.net/manual/en/language.types.boolean.php#language.types.boolean.casting
+        zval.bool()
+            .or_else(|| zval.long().map(|l| l != 0))
+            .or_else(|| zval.double().map(|d| d != 0.0))
+            .or_else(|| zval.str().map(|s| !(s.len() == 0 || s == "0") || s == "1"))
+            .or_else(|| zval.array().map(|arr| arr.len() != 0))
+            .or_else(|| if zval.is_null() { Some(false) } else { None })
     }
 }
 
