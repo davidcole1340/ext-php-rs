@@ -14,6 +14,7 @@ pub struct Class {
     pub parent: Option<String>,
     pub interfaces: Vec<String>,
     pub methods: Vec<crate::method::Method>,
+    pub constructor: Option<crate::method::Method>,
     pub constants: Vec<crate::constant::Constant>,
     pub properties: HashMap<String, Property>,
 }

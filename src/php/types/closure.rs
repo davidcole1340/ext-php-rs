@@ -43,9 +43,7 @@ static CLOSURE_META: ClassMetadata<Closure> = ClassMetadata::new();
 ///
 /// When the `__invoke` method is called from PHP, the `invoke` method is called on the `dyn PhpClosure`\
 /// trait object, and from there everything is basically the same as a regular PHP function.
-pub struct Closure {
-    func: Option<Box<dyn PhpClosure>>,
-}
+pub struct Closure(Box<dyn PhpClosure>);
 
 unsafe impl Send for Closure {}
 unsafe impl Sync for Closure {}
@@ -74,9 +72,7 @@ impl Closure {
     where
         T: PhpClosure + 'static,
     {
-        Self {
-            func: Some(Box::new(func) as Box<dyn PhpClosure>),
-        }
+        Self(Box::new(func) as Box<dyn PhpClosure>)
     }
 
     /// Wraps a [`FnOnce`] Rust closure into a type which can be returned to PHP. If the closure
@@ -136,20 +132,11 @@ impl Closure {
 
     /// External function used by the Zend interpreter to call the closure.
     extern "C" fn invoke(ex: &mut ExecutionData, ret: &mut Zval) {
-        let mut this = unsafe { ex.get_object::<Self>() }.expect("asdf");
+        let this = ex
+            .get_object::<Self>()
+            .expect("Internal closure function called on non-closure class");
 
-        match this.func.as_mut() {
-            Some(closure) => closure.invoke(ex, ret),
-            None => panic!("You cannot instantiate a `RustClosure` from PHP."),
-        }
-    }
-}
-
-impl Default for Closure {
-    fn default() -> Self {
-        PhpException::default("You cannot instantiate a default instance of `RustClosure`.".into());
-
-        Self { func: None }
+        this.0.invoke(ex, ret)
     }
 }
 
@@ -174,7 +161,7 @@ impl RegisteredClass for Closure {
 /// This trait is automatically implemented on functions with up to 8 parameters.
 pub unsafe trait PhpClosure {
     /// Invokes the closure.
-    fn invoke(&mut self, ex: &mut ExecutionData, ret: &mut Zval);
+    fn invoke(&mut self, ex: &ExecutionData, ret: &mut Zval);
 }
 
 /// Implemented on [`FnOnce`] types which can be used as PHP closures. See [`Closure`].
@@ -190,7 +177,7 @@ unsafe impl<R> PhpClosure for Box<dyn Fn() -> R>
 where
     R: IntoZval,
 {
-    fn invoke(&mut self, _: &mut ExecutionData, ret: &mut Zval) {
+    fn invoke(&mut self, _: &ExecutionData, ret: &mut Zval) {
         if let Err(e) = self().set_zval(ret, false) {
             let _ = PhpException::default(format!("Failed to return closure result to PHP: {}", e))
                 .throw();
@@ -202,7 +189,7 @@ unsafe impl<R> PhpClosure for Box<dyn FnMut() -> R>
 where
     R: IntoZval,
 {
-    fn invoke(&mut self, _: &mut ExecutionData, ret: &mut Zval) {
+    fn invoke(&mut self, _: &ExecutionData, ret: &mut Zval) {
         if let Err(e) = self().set_zval(ret, false) {
             let _ = PhpException::default(format!("Failed to return closure result to PHP: {}", e))
                 .throw();
@@ -241,7 +228,7 @@ macro_rules! php_closure_impl {
 
         impl<$($gen),*, Ret> PhpOnceClosure for Box<dyn FnOnce($($gen),*) -> Ret>
         where
-            $($gen: FromZval<'static> + 'static,)*
+            $(for<'a> $gen: FromZval<'a> + 'static,)*
             Ret: IntoZval + 'static,
         {
             fn into_closure(self) -> Closure {
@@ -268,10 +255,10 @@ macro_rules! php_closure_impl {
     ($fnty: ident; $($gen: ident),*) => {
         unsafe impl<$($gen),*, Ret> PhpClosure for Box<dyn $fnty($($gen),*) -> Ret>
         where
-            $($gen: FromZval<'static>,)*
+            $(for<'a> $gen: FromZval<'a>,)*
             Ret: IntoZval
         {
-            fn invoke(&mut self, ex: &mut ExecutionData, ret: &mut Zval) {
+            fn invoke(&mut self, ex: &ExecutionData, ret: &mut Zval) {
                 $(
                     let mut $gen = Arg::new(stringify!($gen), $gen::TYPE);
                 )*

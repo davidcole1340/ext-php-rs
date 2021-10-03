@@ -4,15 +4,6 @@ Structs can be exported to PHP as classes with the `#[php_class]` attribute
 macro. This attribute derives the `RegisteredClass` trait on your struct, as
 well as registering the class to be registered with the `#[php_module]` macro.
 
-The implementation of `RegisteredClass` requires the implementation of `Default`
-on the struct. This is because the struct is initialized before the constructor
-is called, therefore it must have default values for all properties.
-
-Note that Rust struct properties **are not** PHP properties, so if you want the
-user to be able to access these, you must provide getters and/or setters.
-Properties are supported internally, however, they are not usable through the
-automatic macros. Support for properties is planned.
-
 ## Options
 
 The attribute takes some options to modify the output of the class:
@@ -33,21 +24,22 @@ placed underneath the `#[php_class]` attribute.
 
 You may also use the `#[prop]` attribute on a struct field to use the field as a
 PHP property. By default, the field will be accessible from PHP publically with
-the same name as the field. You can rename the property with options:
+the same name as the field. Property types must implement `IntoZval` and
+`FromZval`.
+
+You can rename the property with options:
 
 - `rename` - Allows you to rename the property, e.g.
   `#[prop(rename = "new_name")]`
 
 ## Example
 
-This example creates a PHP class `Human`, adding a PHP property `address` with
-an empty string as the default value.
+This example creates a PHP class `Human`, adding a PHP property `address`.
 
 ```rust
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_class]
-#[derive(Default)]
 pub struct Human {
     name: String,
     age: i32,

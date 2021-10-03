@@ -94,12 +94,34 @@ pub fn generate_registered_class_impl(class: &Class) -> Result<TokenStream> {
         .properties
         .iter()
         .map(|(name, prop)| prop.as_prop_tuple(name));
+    let constructor = if let Some(constructor) = &class.constructor {
+        let func = Ident::new(&constructor.ident, Span::call_site());
+        let args = constructor.get_arg_definitions();
+        quote! {
+            Some(::ext_php_rs::php::types::object::ConstructorMeta {
+                constructor: Self::#func,
+                build_fn: {
+                    use ext_php_rs::php::function::FunctionBuilder;
+                    fn build_fn(func: FunctionBuilder) -> FunctionBuilder {
+                        func
+                        #(#args)*
+                    }
+                    build_fn
+                }
+            })
+        }
+    } else {
+        quote! { None }
+    };
 
     Ok(quote! {
         static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#self_ty> = ::ext_php_rs::php::types::object::ClassMetadata::new();
 
         impl ::ext_php_rs::php::types::object::RegisteredClass for #self_ty {
             const CLASS_NAME: &'static str = #class_name;
+            const CONSTRUCTOR: ::std::option::Option<
+                ::ext_php_rs::php::types::object::ConstructorMeta<Self>
+            > = #constructor;
 
             fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
                 &#meta
