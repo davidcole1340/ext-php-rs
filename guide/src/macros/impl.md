@@ -42,6 +42,22 @@ The rest of the options are passed as separate attributes:
 The `#[defaults]` and `#[optional]` attributes operate the same as the
 equivalent function attribute parameters.
 
+### Constructors
+
+By default, if a class does not have a constructor, it is not constructable from
+PHP. It can only be returned from a Rust function to PHP.
+
+Constructors are Rust methods whick can take any amount of parameters and
+returns either `Self` or `Result<Self, E>`, where `E: Into<PhpException>`. When
+the error variant of `Result` is encountered, it is thrown as an exception and
+the class is not constructed.
+
+Constructors are designated by either naming the method `__construct` or by
+annotating a method with the `#[constructor]` attribute. Note that when using
+the attribute, the function is not exported to PHP like a regular method.
+
+Constructors cannot use the visibility or rename attributes listed above.
+
 ## Constants
 
 Constants are defined as regular Rust `impl` constants. Any type that implements
@@ -89,9 +105,9 @@ constant for the maximum age of a `Human`.
 impl Human {
     const MAX_AGE: i32 = 100;
 
-    pub fn __construct(&mut self, name: String, age: i32) {
-        self.name = name;
-        self.age = age;
+    // No `#[constructor]` attribute required here - the name is `__construct`.
+    pub fn __construct(name: String, age: i32) -> Self {
+        Self { name, age, address: String::new() }
     }
 
     #[getter]
@@ -110,8 +126,6 @@ impl Human {
     }
 
     pub fn introduce(&self) {
-        use ext_php_rs::php::types::object::RegisteredClass;
-        
         println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
     }
 

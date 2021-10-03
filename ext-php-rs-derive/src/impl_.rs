@@ -82,6 +82,7 @@ pub enum ParsedAttribute {
         prop_name: Option<String>,
         ty: PropAttrTy,
     },
+    Constructor,
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -151,7 +152,14 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                             PropAttrTy::Setter => prop.add_setter(ident)?,
                         }
                     }
-                    class.methods.push(parsed_method.method);
+                    if parsed_method.constructor {
+                        if class.constructor.is_some() {
+                            bail!("You cannot have two constructors on the same class.");
+                        }
+                        class.constructor = Some(parsed_method.method);
+                    } else {
+                        class.methods.push(parsed_method.method);
+                    }
                     parsed_method.tokens
                 }
                 item => item.to_token_stream(),
@@ -239,6 +247,7 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
                 ty: PropAttrTy::Setter,
             }
         }
+        "constructor" => ParsedAttribute::Constructor,
         attr => bail!("Invalid attribute `#[{}]`.", attr),
     })
 }

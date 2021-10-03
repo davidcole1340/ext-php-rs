@@ -42,6 +42,7 @@ pub struct ParsedMethod {
     pub tokens: TokenStream,
     pub method: Method,
     pub property: Option<(String, PropAttrTy)>,
+    pub constructor: bool,
 }
 
 impl ParsedMethod {
@@ -49,11 +50,13 @@ impl ParsedMethod {
         tokens: TokenStream,
         method: Method,
         property: Option<(String, PropAttrTy)>,
+        constructor: bool,
     ) -> Self {
         Self {
             tokens,
             method,
             property,
+            constructor,
         }
     }
 }
@@ -64,6 +67,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
     let mut visibility = Visibility::Public;
     let mut as_prop = None;
     let mut identifier = None;
+    let mut is_constructor = false;
 
     for attr in input.attrs.iter() {
         match parse_attribute(attr)? {
@@ -89,6 +93,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
                 });
                 as_prop = Some((prop_name, ty))
             }
+            ParsedAttribute::Constructor => is_constructor = true,
         }
     }
 
@@ -102,6 +107,20 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
         ..
     } = &sig;
 
+    let name = identifier.unwrap_or_else(|| rename_rule.rename(ident.to_string()));
+    if name == "__construct" {
+        is_constructor = true;
+    }
+
+    if is_constructor && (!matches!(visibility, Visibility::Public) || as_prop.is_some()) {
+        bail!("`#[constructor]` attribute cannot be combined with the visibility or getter/setter attributes.");
+    }
+
+    let bail = if is_constructor {
+        quote! { return ConstructorResult::ArgError; }
+    } else {
+        quote! { return; }
+    };
     let internal_ident = Ident::new(&format!("_internal_php_{}", ident), Span::call_site());
     let args = build_args(inputs, &defaults)?;
     let optional = function::find_optional_parameter(
@@ -112,34 +131,55 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
         optional,
     );
     let (arg_definitions, is_static) = build_arg_definitions(&args);
-    let arg_parser = build_arg_parser(args.iter(), &optional)?;
-    let arg_accessors = build_arg_accessors(&args);
+    let arg_parser = build_arg_parser(args.iter(), &optional, &bail)?;
+    let arg_accessors = build_arg_accessors(&args, &bail);
     let this = if is_static {
         quote! { Self:: }
     } else {
         quote! { this. }
     };
 
-    let func = quote! {
-        #input
+    let func = if is_constructor {
+        quote! {
+            #input
 
-        #[doc(hidden)]
-        pub extern "C" fn #internal_ident(ex: &mut ::ext_php_rs::php::execution_data::ExecutionData, retval: &mut ::ext_php_rs::php::types::zval::Zval) {
-            use ::ext_php_rs::php::types::zval::IntoZval;
+            #[doc(hidden)]
+            pub fn #internal_ident(
+                ex: &mut ::ext_php_rs::php::execution_data::ExecutionData
+            ) -> ::ext_php_rs::php::types::object::ConstructorResult<Self> {
+                use ::ext_php_rs::php::types::zval::IntoZval;
+                use ::ext_php_rs::php::types::object::ConstructorResult;
 
-            #(#arg_definitions)*
-            #arg_parser
+                #(#arg_definitions)*
+                #arg_parser
 
-            let result = #this #ident(#(#arg_accessors, )*);
+                Self::#ident(#(#arg_accessors,)*).into()
+            }
+        }
+    } else {
+        quote! {
+            #input
 
-            if let Err(e) = result.set_zval(retval, false) {
-                let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
-                e.throw().expect("Failed to throw exception");
+            #[doc(hidden)]
+            pub extern "C" fn #internal_ident(
+                ex: &mut ::ext_php_rs::php::execution_data::ExecutionData,
+                retval: &mut ::ext_php_rs::php::types::zval::Zval
+            ) {
+                use ::ext_php_rs::php::types::zval::IntoZval;
+
+                #(#arg_definitions)*
+                #arg_parser
+
+                let result = #this #ident(#(#arg_accessors, )*);
+
+                if let Err(e) = result.set_zval(retval, false) {
+                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                    e.throw().expect("Failed to throw exception");
+                }
             }
         }
     };
 
-    let name = identifier.unwrap_or_else(|| rename_rule.rename(ident.to_string()));
     let method = Method {
         name,
         ident: internal_ident.to_string(),
@@ -151,7 +191,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
         visibility,
     };
 
-    Ok(ParsedMethod::new(func, method, as_prop))
+    Ok(ParsedMethod::new(func, method, as_prop, is_constructor))
 }
 
 fn build_args(
@@ -216,6 +256,7 @@ fn build_arg_definitions(args: &[Arg]) -> (Vec<TokenStream>, bool) {
 fn build_arg_parser<'a>(
     args: impl Iterator<Item = &'a Arg>,
     optional: &Option<String>,
+    ret: &TokenStream,
 ) -> Result<TokenStream> {
     function::build_arg_parser(
         args.filter_map(|arg| match arg {
@@ -223,13 +264,14 @@ fn build_arg_parser<'a>(
             _ => None,
         }),
         optional,
+        ret,
     )
 }
 
-fn build_arg_accessors(args: &[Arg]) -> Vec<TokenStream> {
+fn build_arg_accessors(args: &[Arg], ret: &TokenStream) -> Vec<TokenStream> {
     args.iter()
         .filter_map(|arg| match arg {
-            Arg::Typed(arg) => Some(arg.get_accessor()),
+            Arg::Typed(arg) => Some(arg.get_accessor(ret)),
             _ => None,
         })
         .collect()
@@ -241,27 +283,27 @@ impl Method {
         Ident::new(&self.ident, Span::call_site())
     }
 
+    pub fn get_arg_definitions(&self) -> impl Iterator<Item = TokenStream> + '_ {
+        self.args.iter().filter_map(move |arg| match arg {
+            Arg::Typed(arg) => {
+                let def = arg.get_arg_definition();
+                let prelude = self.optional.as_ref().and_then(|opt| {
+                    if opt.eq(&arg.name) {
+                        Some(quote! { .not_required() })
+                    } else {
+                        None
+                    }
+                });
+                Some(quote! { #prelude.arg(#def) })
+            }
+            _ => None,
+        })
+    }
+
     pub fn get_builder(&self, class_path: &Ident) -> TokenStream {
         let name = &self.name;
         let name_ident = self.get_name_ident();
-        let args = self
-            .args
-            .iter()
-            .filter_map(|arg| match arg {
-                Arg::Typed(arg) => {
-                    let def = arg.get_arg_definition();
-                    let prelude = self.optional.as_ref().and_then(|opt| {
-                        if opt.eq(&arg.name) {
-                            Some(quote! { .not_required() })
-                        } else {
-                            None
-                        }
-                    });
-                    Some(quote! { #prelude.arg(#def) })
-                }
-                _ => None,
-            })
-            .collect::<Vec<_>>();
+        let args = self.get_arg_definitions();
         let output = self.output.as_ref().map(|(ty, nullable)| {
             let ty: Type = syn::parse_str(ty).unwrap();
 

@@ -56,7 +56,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
     let args = build_args(inputs, &attr_args.defaults)?;
     let optional = find_optional_parameter(args.iter(), attr_args.optional);
     let arg_definitions = build_arg_definitions(&args);
-    let arg_parser = build_arg_parser(args.iter(), &optional)?;
+    let arg_parser = build_arg_parser(args.iter(), &optional, &quote! { return; })?;
     let arg_accessors = build_arg_accessors(&args);
 
     let return_type = get_return_type(output)?;
@@ -157,6 +157,7 @@ pub fn find_optional_parameter<'a>(
 pub fn build_arg_parser<'a>(
     args: impl Iterator<Item = &'a Arg>,
     optional: &Option<String>,
+    ret: &TokenStream,
 ) -> Result<TokenStream> {
     let mut rest_optional = false;
 
@@ -194,13 +195,15 @@ pub fn build_arg_parser<'a>(
             .parse();
 
         if parser.is_err() {
-            return;
+            #ret
         }
     })
 }
 
 fn build_arg_accessors(args: &[Arg]) -> Vec<TokenStream> {
-    args.iter().map(|arg| arg.get_accessor()).collect()
+    args.iter()
+        .map(|arg| arg.get_accessor(&quote! { return; }))
+        .collect()
 }
 
 pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)>> {
@@ -286,7 +289,7 @@ impl Arg {
     }
 
     /// Returns a [`TokenStream`] containing the line required to retrieve the value from the argument.
-    pub fn get_accessor(&self) -> TokenStream {
+    pub fn get_accessor(&self, ret: &TokenStream) -> TokenStream {
         let name = &self.name;
         let name_ident = self.get_name_ident();
 
@@ -310,7 +313,7 @@ impl Arg {
                         )
                         .throw()
                         .expect(concat!("Failed to throw exception: Invalid value given for argument `", #name, "`."));
-                        return;
+                        #ret
                     }
                 }
             }

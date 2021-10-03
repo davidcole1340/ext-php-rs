@@ -1,5 +1,13 @@
 # Changelog
 
+- Constructors that return `Self` can now be added to classes. [#83]
+  - `Default` is no longer required to be implemented on classes, however, a
+    constructor must be specified if you want to construct the class from PHP.
+  - Constructors can return `Self` or `Result<Self, E>`, where
+    `E: Into<PhpException>`.
+
+[#83]: https://github.com/davidcole1340/ext-php-rs/pull/83
+
 ## Version 0.5.1
 
 - `PhpException` no longer requires a lifetime [#80].

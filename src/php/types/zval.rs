@@ -172,7 +172,7 @@ impl Zval {
         }
     }
 
-    /// Returns the value of the zval if it is an object.
+    /// Returns a mutable reference to the object contained in the [`Zval`], if any.
     pub fn object_mut(&mut self) -> Option<&mut ZendObject> {
         if self.is_object() {
             unsafe { self.value.obj.as_mut() }

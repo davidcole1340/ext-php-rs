@@ -1,13 +1,10 @@
 //! Functions for interacting with the execution data passed to PHP functions\
 //! introduced in Rust.
 
-use crate::{
-    bindings::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK},
-    errors::{Error, Result},
-};
+use crate::bindings::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
 
 use super::types::{
-    object::{ClassObject, RegisteredClass, ZendClassObject, ZendObject},
+    object::{RegisteredClass, ZendClassObject, ZendObject},
     zval::Zval,
 };
 
@@ -17,25 +14,18 @@ pub type ExecutionData = zend_execute_data;
 impl ExecutionData {
     /// Attempts to retrieve a reference to the underlying class object of the Zend object.
     ///
-    /// Returns a [`ClassObject`] if the execution data contained a valid object, otherwise
-    /// returns [`None`].
-    ///
-    /// # Safety
-    ///
-    /// The caller must guarantee that the function is called on an instance of [`ExecutionData`]
-    /// that:
-    ///
-    /// 1. Contains an object.
-    /// 2. The object was originally derived from `T`.
-    pub unsafe fn get_object<T: RegisteredClass>(&self) -> Option<ClassObject<'static, T>> {
-        let ptr = ZendClassObject::<T>::from_zend_obj_ptr(self.This.object()?)?;
-        Some(ClassObject::from_zend_class_object(ptr, false))
+    /// Returns a [`ZendClassObject`] if the execution data contained a valid object of type `T`,
+    /// otherwise returns [`None`].
+    pub fn get_object<T: RegisteredClass>(&self) -> Option<&mut ZendClassObject<T>> {
+        // TODO(david): This should be a `&mut self` function but we need to fix arg parser first.
+        ZendClassObject::from_zend_obj_mut(self.get_self()?)
     }
 
     /// Attempts to retrieve the 'this' object, which can be used in class methods
     /// to retrieve the underlying Zend object.
-    pub fn get_self(&self) -> Result<&mut ZendObject> {
-        unsafe { self.This.value.obj.as_mut() }.ok_or(Error::InvalidScope)
+    pub fn get_self(&self) -> Option<&mut ZendObject> {
+        // TODO(david): This should be a `&mut self` function but we need to fix arg parser first.
+        unsafe { self.This.value.obj.as_mut() }
     }
 
     /// Translation of macro `ZEND_CALL_ARG(call, n)`
