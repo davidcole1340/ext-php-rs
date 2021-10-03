@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
-use crate::STATE;
+use crate::{syn_ext::DropLifetimes, STATE};
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
-use regex::Regex;
 use syn::{
     punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, Lit, PathArguments,
     ReturnType, Signature, Token, Type, TypePath,
@@ -115,7 +114,7 @@ fn build_args(
                     syn::Pat::Ident(pat) => pat.ident.to_string(),
                     _ => bail!("Invalid parameter type."),
                 };
-                Arg::from_type(&name, &ty.ty, defaults.get(&name), false)
+                Arg::from_type(name.clone(), &ty.ty, defaults.get(&name), false)
                     .ok_or_else(|| anyhow!("Invalid parameter type for parameter `{}`.", name))
             }
         })
@@ -208,26 +207,23 @@ pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)
     Ok(match output_type {
         ReturnType::Default => None,
         ReturnType::Type(_, ty) => {
-            Arg::from_type("", ty, None, true).map(|arg| (arg.ty, arg.nullable))
+            Arg::from_type("".to_string(), ty, None, true).map(|arg| (arg.ty, arg.nullable))
         }
     })
 }
 
 impl Arg {
-    pub fn new(name: &str, ty: &str, nullable: bool, default: Option<String>) -> Self {
+    pub fn new(name: String, ty: String, nullable: bool, default: Option<String>) -> Self {
         Self {
-            name: name.to_string(),
-            ty: Regex::new(r"'[A-Za-z]+")
-                .unwrap()
-                .replace_all(ty, "")
-                .to_string(),
+            name,
+            ty,
             nullable,
             default,
         }
     }
 
     pub fn from_type(
-        name: &str,
+        name: String,
         ty: &syn::Type,
         default: Option<&Lit>,
         is_return: bool,
@@ -235,6 +231,9 @@ impl Arg {
         let default = default.map(|lit| lit.to_token_stream().to_string());
         match ty {
             Type::Path(TypePath { path, .. }) => {
+                let mut path = path.clone();
+                path.drop_lifetimes();
+
                 let seg = path.segments.last()?;
                 let result = Some(seg)
                     .filter(|seg| seg.ident == "Result")
@@ -255,7 +254,7 @@ impl Arg {
 
                 Some(Arg::new(
                     name,
-                    &stringified,
+                    stringified,
                     seg.ident == "Option" || default.is_some(),
                     default,
                 ))
@@ -264,7 +263,7 @@ impl Arg {
                 // Returning references is invalid, so let's just create our arg
                 Some(Arg::new(
                     name,
-                    &ref_.to_token_stream().to_string(),
+                    ref_.to_token_stream().to_string(),
                     false,
                     default,
                 ))
@@ -361,7 +360,7 @@ impl Function {
             })
             .collect::<Vec<_>>();
         let output = self.output.as_ref().map(|(ty, nullable)| {
-            let ty: Type = syn::parse_str(ty).unwrap();
+            let ty: Type = syn::parse_str(ty).expect("failed to parse ty");
 
             // TODO allow reference returns?
             quote! {

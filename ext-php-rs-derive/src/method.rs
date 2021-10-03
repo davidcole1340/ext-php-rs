@@ -172,8 +172,9 @@ fn build_args(
                     Pat::Ident(pat) => pat.ident.to_string(),
                     _ => bail!("Invalid parameter type."),
                 };
+                let default = defaults.get(&name);
                 Ok(Arg::Typed(
-                    crate::function::Arg::from_type(&name, &ty.ty, defaults.get(&name), false)
+                    crate::function::Arg::from_type(name.clone(), &ty.ty, default, false)
                         .ok_or_else(|| anyhow!("Invalid parameter type for `{}`.", name))?,
                 ))
             }

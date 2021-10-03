@@ -1,4 +1,4 @@
-# Structs
+# Classes
 
 Structs can be exported to PHP as classes with the `#[php_class]` attribute
 macro. This attribute derives the `RegisteredClass` trait on your struct, as

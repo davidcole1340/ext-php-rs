@@ -324,4 +324,6 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "zend_std_write_property",
     "zend_std_get_properties",
     "zend_std_has_property",
+    "zend_objects_new",
+    "zend_standard_class_def",
 ];
