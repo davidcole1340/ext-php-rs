@@ -33,6 +33,28 @@ impl TestClass {
     }
 }
 
+#[derive(Debug, ZvalConvert)]
+pub struct TestStdClass<A, B, C>
+where
+    A: PartialEq<i32>,
+{
+    a: A,
+    b: B,
+    c: C,
+}
+
+#[derive(Debug, ZvalConvert)]
+pub enum UnionExample<'a, T> {
+    B(T),
+    C(&'a str),
+    None,
+}
+
+#[php_function]
+pub fn test_union(union: UnionExample<i32>) {
+    dbg!(union);
+}
+
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
     module

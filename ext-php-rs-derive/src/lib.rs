@@ -6,6 +6,8 @@ mod impl_;
 mod method;
 mod module;
 mod startup_function;
+mod syn_ext;
+mod zval;
 
 use std::{
     collections::HashMap,
@@ -16,7 +18,8 @@ use constant::Constant;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use syn::{
-    parse_macro_input, AttributeArgs, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
+    parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl,
+    ItemStruct,
 };
 
 extern crate proc_macro;
@@ -120,6 +123,17 @@ pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemForeignMod);
 
     match extern_::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_derive(ZvalConvert)]
+pub fn zval_convert_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    match zval::parser(input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }

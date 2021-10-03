@@ -437,6 +437,136 @@ pub use ext_php_rs_derive::php_class;
 /// ```
 pub use ext_php_rs_derive::php_startup;
 
+/// Derives the traits required to convert a struct or enum to and from a [`Zval`].
+/// Both [`FromZval`] and [`IntoZval`] are implemented on types which use this macro.
+///
+/// # Structs
+///
+/// When the macro is used on a struct, the [`FromZendObject`] and [`IntoZendObject`] traits are also
+/// implemented, and will attempt to retrieve values for the struct fields from the objects properties.
+/// This can be useful when you expect some arbitrary object (of which the type does not matter), but
+/// you care about the value of the properties.
+///
+/// All properties must implement [`FromZval`] and [`IntoZval`] themselves. Generics are supported,
+/// however, a [`FromZval`] and [`IntoZval`] bound will be added. If one property cannot be retrieved
+/// from the object, the whole conversion will fail.
+///
+/// ## Examples
+///
+/// Basic example with some primitive PHP type.
+///
+/// ```
+/// # use ext_php_rs::prelude::*;
+/// #[derive(Debug, ZvalConvert)]
+/// pub struct ExampleStruct<'a> {
+///     a: i32,
+///     b: String,
+///     c: &'a str
+/// }
+///
+/// #[php_function]
+/// pub fn take_object(obj: ExampleStruct) {
+///     dbg!(obj);
+/// }
+///
+/// #[php_function]
+/// pub fn give_object() -> ExampleStruct<'static> {
+///     ExampleStruct {
+///         a: 5,
+///         b: "Hello, world!".into(),
+///         c: "Static string",
+///     }
+/// }
+/// ```
+///
+/// Can be used in PHP:
+///
+/// ```php
+/// $obj = (object) [
+///     'a' => 5,
+///     'b' => 'Hello, world!',
+///     'c' => 'asdf',
+/// ];
+/// take_object($obj);
+/// var_dump(give_object());
+/// ```
+///
+/// Another example involving generics:
+///
+/// ```
+/// # use ext_php_rs::prelude::*;
+/// #[derive(Debug, ZvalConvert)]
+/// pub struct CompareVals<T: PartialEq<i32>> {
+///     a: T,
+///     b: T
+/// }
+///
+/// #[php_function]
+/// pub fn take_object(obj: CompareVals<i32>) {
+///     dbg!(obj);
+/// }
+/// ```
+///
+/// # Enums
+///
+/// When the macro is used on an enum, the [`FromZval`] and [`IntoZval`] implementations will treat
+/// the enum as a tagged union with a mixed datatype. This allows you to accept two different types
+/// in a parameter, for example, a string and an integer.
+///
+/// The enum variants must not have named fields (i.e. not in the form of a struct), and must have
+/// exactly one field, the type to extract from the [`Zval`]. Optionally, the enum may have a
+/// single default, empty variant, which is used when the [`Zval`] did not contain any data to fill
+/// the other variants. This empty variant is equivalent to `null` in PHP.
+///
+/// The ordering of the enum variants is important, as the [`Zval`] contents is matched in order of
+/// the variants. For example, [`Zval::string`] will attempt to read a string from the [`Zval`],
+/// and if the [`Zval`] contains a long, the long will be converted to a string. If a string
+/// variant was placed above an integer variant in the enum, the integer would be converted into a
+/// string and passed as the string variant.
+///
+/// ## Examples
+///
+/// Basic example showing the importance of variant ordering and default field:
+///
+/// ```
+/// # use ext_php_rs::prelude::*;
+/// #[derive(Debug, ZvalConvert)]
+/// pub enum UnionExample<'a> {
+///     Long(u64), // Long
+///     ProperStr(&'a str), // Actual string - not a converted value
+///     ParsedStr(String), // Potentially parsed string, i.e. a double
+///     None // Zval did not contain anything that could be parsed above
+/// }
+///
+/// #[php_function]
+/// pub fn test_union(val: UnionExample) {
+///     dbg!(val);
+/// }
+///
+/// #[php_function]
+/// pub fn give_union() -> UnionExample<'static> {
+///     UnionExample::Long(5)
+/// }
+/// ```
+///
+/// Use in PHP:
+///
+/// ```php
+/// test_union(5); // UnionExample::Long(5)
+/// test_union("Hello, world!"); // UnionExample::ProperStr("Hello, world!")
+/// test_union(5.66666); // UnionExample::ParsedStr("5.6666")
+/// test_union(null); // UnionExample::None
+/// var_dump(give_union()); // int(5)
+/// ```
+///
+/// [`FromZval`]: crate::php::types::zval::FromZval
+/// [`IntoZval`]: crate::php::types::zval::IntoZval
+/// [`FromZendObject`]: crate::php::types::object::FromZendObject
+/// [`IntoZendObject`]: crate::php::types::object::IntoZendObject
+/// [`Zval`]: crate::php::types::zval::Zval
+/// [`Zval::string`]: crate::php::types::zval::Zval::string
+pub use ext_php_rs_derive::ZvalConvert;
+
 /// A module typically glob-imported containing the typically required macros and imports.
 pub mod prelude {
     pub use crate::php::exceptions::{PhpException, PhpResult};
@@ -452,4 +582,5 @@ pub mod prelude {
     pub use crate::php_impl;
     pub use crate::php_module;
     pub use crate::php_startup;
+    pub use crate::ZvalConvert;
 }
