@@ -53,9 +53,10 @@ impl<T: ZBoxable> ZBox<T> {
     ///
     /// The caller is responsible for managing the memory pointed to by the returned pointer, including
     /// freeing the memory.
-    pub fn into_raw(self) -> *mut T {
-        let this = ManuallyDrop::new(self);
-        this.0.as_ptr()
+    pub fn into_raw(self) -> &'static mut T {
+        let mut this = ManuallyDrop::new(self);
+        // SAFETY: All constructors ensure the contained pointer is well-aligned and dereferencable.
+        unsafe { this.0.as_mut() }
     }
 }
 

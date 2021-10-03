@@ -26,6 +26,7 @@ use crate::{
     },
     errors::{Error, Result},
     php::{
+        boxed::{ZBox, ZBoxable},
         class::ClassEntry,
         enums::DataType,
         exceptions::{PhpException, PhpResult},
@@ -44,99 +45,6 @@ use super::{
     zval::{FromZval, IntoZval, Zval},
 };
 
-/// A wrapper around [`ZendObject`] providing the correct [`Drop`] implementation required to not
-/// leak memory. Dereferences to [`ZendObject`].
-///
-/// This type differs from [`ClassObject`] in the fact that this type is not aware of any Rust type attached
-/// to the head of the [`ZendObject`]. It is possible to convert from a [`ClassObject`] to this type.
-pub struct OwnedZendObject(NonNull<ZendObject>);
-
-impl OwnedZendObject {
-    /// Creates a new [`ZendObject`], returned inside an [`OwnedZendObject`] wrapper.
-    ///
-    /// # Parameters
-    ///
-    /// * `ce` - The type of class the new object should be an instance of.
-    ///
-    /// # Panics
-    ///
-    /// Panics when allocating memory for the new object fails.
-    pub fn new(ce: &ClassEntry) -> Self {
-        // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to `*mut` is valid
-        // as the function will not mutate `ce`.
-        let ptr = unsafe { zend_objects_new(ce as *const _ as *mut _) };
-        Self(NonNull::new(ptr).expect("Failed to allocate Zend object"))
-    }
-
-    /// Creates a new `stdClass` instance, returned inside an [`OwnedZendObject`] wrapper.
-    ///
-    /// # Panics
-    ///
-    /// Panics if allocating memory for the object fails, or if the `stdClass` class entry has not been
-    /// registered with PHP yet.
-    pub fn new_stdclass() -> Self {
-        // SAFETY: This will be `NULL` until it is initialized. `as_ref()` checks for null,
-        // so we can panic if it's null.
-        Self::new(unsafe {
-            zend_standard_class_def
-                .as_ref()
-                .expect("`stdClass` class instance not initialized yet")
-        })
-    }
-
-    /// Consumes the [`OwnedZendObject`] wrapper, returning a mutable, static reference to the
-    /// underlying [`ZendObject`].
-    ///
-    /// It is the callers responsibility to free the underlying memory that the returned reference
-    /// points to.
-    pub fn into_inner(self) -> &'static mut ZendObject {
-        let mut this = ManuallyDrop::new(self);
-        unsafe { this.0.as_mut() }
-    }
-}
-
-impl Deref for OwnedZendObject {
-    type Target = ZendObject;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref() }
-    }
-}
-
-impl DerefMut for OwnedZendObject {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.as_mut() }
-    }
-}
-
-impl Drop for OwnedZendObject {
-    fn drop(&mut self) {
-        unsafe { ext_php_rs_zend_object_release(self.0.as_ptr()) }
-    }
-}
-
-impl Debug for OwnedZendObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unsafe { self.0.as_ref() }.fmt(f)
-    }
-}
-
-impl IntoZval for OwnedZendObject {
-    const TYPE: DataType = DataType::Object(None);
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        let obj = self.into_inner();
-
-        // We must decrement the refcounter on the object before inserting into the zval,
-        // as the reference counter will be incremented on add.
-
-        // NOTE(david): again is this needed, we increment in `set_object`.
-        obj.dec_count();
-        zv.set_object(obj);
-        Ok(())
-    }
-}
-
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
 
@@ -153,6 +61,43 @@ pub enum PropertyQuery {
 }
 
 impl ZendObject {
+    /// Creates a new [`ZendObject`], returned inside an [`OwnedZendObject`] wrapper.
+    ///
+    /// # Parameters
+    ///
+    /// * `ce` - The type of class the new object should be an instance of.
+    ///
+    /// # Panics
+    ///
+    /// Panics when allocating memory for the new object fails.
+    pub fn new(ce: &ClassEntry) -> ZBox<Self> {
+        // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to `*mut` is valid
+        // as the function will not mutate `ce`.
+        unsafe {
+            let ptr = zend_objects_new(ce as *const _ as *mut _);
+            ZBox::from_raw(
+                ptr.as_mut()
+                    .expect("Failed to allocate memory for Zend object"),
+            )
+        }
+    }
+
+    /// Creates a new `stdClass` instance, returned inside an [`OwnedZendObject`] wrapper.
+    ///
+    /// # Panics
+    ///
+    /// Panics if allocating memory for the object fails, or if the `stdClass` class entry has not been
+    /// registered with PHP yet.
+    pub fn new_stdclass() -> ZBox<Self> {
+        // SAFETY: This will be `NULL` until it is initialized. `as_ref()` checks for null,
+        // so we can panic if it's null.
+        Self::new(unsafe {
+            zend_standard_class_def
+                .as_ref()
+                .expect("`stdClass` class instance not initialized yet")
+        })
+    }
+
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
         unsafe {
@@ -282,11 +227,48 @@ impl ZendObject {
     }
 }
 
+unsafe impl ZBoxable for ZendObject {
+    fn free(&mut self) {
+        unsafe { ext_php_rs_zend_object_release(self) }
+    }
+}
+
+impl Debug for ZendObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut dbg = f.debug_struct(
+            self.get_class_name()
+                .unwrap_or_else(|_| "ZendObject".to_string())
+                .as_str(),
+        );
+
+        if let Ok(props) = self.get_properties() {
+            for (id, key, val) in props.iter() {
+                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
+            }
+        }
+
+        dbg.finish()
+    }
+}
+
 impl<'a> FromZval<'a> for &'a ZendObject {
     const TYPE: DataType = DataType::Object(None);
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
         zval.object()
+    }
+}
+
+impl IntoZval for ZBox<ZendObject> {
+    const TYPE: DataType = DataType::Object(None);
+
+    fn set_zval(mut self, zv: &mut Zval, _: bool) -> Result<()> {
+        // We must decrement the refcounter on the object before inserting into the zval,
+        // as the reference counter will be incremented on add.
+        // NOTE(david): again is this needed, we increment in `set_object`.
+        self.dec_count();
+        zv.set_object(self.into_raw());
+        Ok(())
     }
 }
 
@@ -310,7 +292,7 @@ pub trait FromZendObject<'a>: Sized {
 /// to determine the type of object which is produced.
 pub trait IntoZendObject {
     /// Attempts to convert `self` into a Zend object.
-    fn into_zend_object(self) -> Result<OwnedZendObject>;
+    fn into_zend_object(self) -> Result<ZBox<ZendObject>>;
 }
 
 impl FromZendObject<'_> for String {
@@ -346,24 +328,6 @@ impl FromZendObject<'_> for String {
                 class_name.expect("unable to determine class name"),
             );
         }
-    }
-}
-
-impl Debug for ZendObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut dbg = f.debug_struct(
-            self.get_class_name()
-                .unwrap_or_else(|_| "ZendObject".to_string())
-                .as_str(),
-        );
-
-        if let Ok(props) = self.get_properties() {
-            for (id, key, val) in props.iter() {
-                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
-            }
-        }
-
-        dbg.finish()
     }
 }
 
@@ -507,9 +471,9 @@ impl<T: RegisteredClass> ClassObject<T> {
 
     /// Converts the class object into an owned [`ZendObject`], removing any reference to
     /// the embedded struct type `T`.
-    pub fn into_owned_object(self) -> OwnedZendObject {
+    pub fn into_owned_object(self) -> ZBox<ZendObject> {
         let mut this = ManuallyDrop::new(self);
-        OwnedZendObject((&mut this.deref_mut().std).into())
+        unsafe { ZBox::from_raw(&mut this.std) }
     }
 }
 
@@ -1178,7 +1142,7 @@ impl<'a, T: RegisteredClass> FromZval<'a> for &'a T {
 // }
 
 impl<T: RegisteredClass> IntoZendObject for T {
-    fn into_zend_object(self) -> Result<OwnedZendObject> {
+    fn into_zend_object(self) -> Result<ZBox<ZendObject>> {
         Ok(ClassObject::new(self).into_owned_object())
     }
 }
