@@ -14,14 +14,10 @@ use crate::{
         zend_value, zval, zval_ptr_dtor,
     },
     errors::{Error, Result},
-    php::{exceptions::PhpException, pack::Pack},
+    php::{boxed::ZBox, exceptions::PhpException, pack::Pack},
 };
 
-use crate::php::{
-    enums::DataType,
-    flags::ZvalTypeFlags,
-    types::{long::ZendLong, string::ZendString},
-};
+use crate::php::{enums::DataType, flags::ZvalTypeFlags, types::long::ZendLong};
 
 use super::{
     array::{HashTable, OwnedHashTable},
@@ -311,7 +307,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendString::new(val, persistent)?);
+        self.set_zend_string(ZendStr::new(val, persistent)?);
         Ok(())
     }
 
@@ -320,9 +316,9 @@ impl Zval {
     /// # Parameters
     ///
     /// * `val` - String content.
-    pub fn set_zend_string(&mut self, val: ZendString) {
+    pub fn set_zend_string(&mut self, val: ZBox<ZendStr>) {
         self.change_type(ZvalTypeFlags::StringEx);
-        self.value.str_ = val.into_inner();
+        self.value.str_ = val.into_raw();
     }
 
     /// Sets the value of the zval as a binary string, which is represented in Rust as a vector.
@@ -343,7 +339,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_interned_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendString::new_interned(val, persistent)?);
+        self.set_zend_string(ZendStr::new_interned(val, persistent)?);
         Ok(())
     }
 

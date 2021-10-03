@@ -33,13 +33,14 @@ use crate::{
         flags::ZvalTypeFlags,
         function::FunctionBuilder,
         globals::ExecutorGlobals,
-        types::{array::OwnedHashTable, string::ZendString},
+        types::array::OwnedHashTable,
     },
 };
 
 use super::{
     props::Property,
     rc::PhpRc,
+    string::ZendStr,
     zval::{FromZval, IntoZval, Zval},
 };
 
@@ -184,13 +185,13 @@ impl ZendObject {
             return Err(Error::InvalidProperty);
         }
 
-        let mut name = ZendString::new(name, false)?;
+        let mut name = ZendStr::new(name, false)?;
         let mut rv = Zval::new();
 
         let zv = unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.as_mut_zend_str(),
+                name.deref_mut(),
                 1,
                 std::ptr::null_mut(),
                 &mut rv,
@@ -209,13 +210,13 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<()> {
-        let mut name = ZendString::new(name, false)?;
+        let mut name = ZendStr::new(name, false)?;
         let mut value = value.into_zval(false)?;
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                name.as_mut_zend_str(),
+                name.deref_mut(),
                 &mut value,
                 std::ptr::null_mut(),
             )
@@ -234,12 +235,12 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `query` - The 'query' to classify if a property exists.
     pub fn has_property(&self, name: &str, query: PropertyQuery) -> Result<bool> {
-        let mut name = ZendString::new(name, false)?;
+        let mut name = ZendStr::new(name, false)?;
 
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.as_mut_zend_str(),
+                name.deref_mut(),
                 query as _,
                 std::ptr::null_mut(),
             )

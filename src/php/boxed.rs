@@ -18,6 +18,7 @@
 //! [`emalloc`]: super::alloc::efree
 
 use std::{
+    borrow::Borrow,
     fmt::Debug,
     mem::ManuallyDrop,
     ops::{Deref, DerefMut},
@@ -59,6 +60,7 @@ impl<T: ZBoxable> ZBox<T> {
 }
 
 impl<T: ZBoxable> Drop for ZBox<T> {
+    #[inline]
     fn drop(&mut self) {
         self.deref_mut().free()
     }
@@ -67,6 +69,7 @@ impl<T: ZBoxable> Drop for ZBox<T> {
 impl<T: ZBoxable> Deref for ZBox<T> {
     type Target = T;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         // SAFETY: All constructors ensure the contained pointer is well-aligned and dereferencable.
         unsafe { self.0.as_ref() }
@@ -74,6 +77,7 @@ impl<T: ZBoxable> Deref for ZBox<T> {
 }
 
 impl<T: ZBoxable> DerefMut for ZBox<T> {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         // SAFETY: All constructors ensure the contained pointer is well-aligned and dereferencable.
         unsafe { self.0.as_mut() }
@@ -81,8 +85,23 @@ impl<T: ZBoxable> DerefMut for ZBox<T> {
 }
 
 impl<T: ZBoxable + Debug> Debug for ZBox<T> {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.deref().fmt(f)
+    }
+}
+
+impl<T: ZBoxable> Borrow<T> for ZBox<T> {
+    #[inline]
+    fn borrow(&self) -> &T {
+        self.deref()
+    }
+}
+
+impl<T: ZBoxable> AsRef<T> for ZBox<T> {
+    #[inline]
+    fn as_ref(&self) -> &T {
+        self
     }
 }
 
