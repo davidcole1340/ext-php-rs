@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>bool - ext-php-rs</title>
+        <title>ZvalConvert - ext-php-rs</title>
                 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="../types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="../types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="../types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="../types/bool.html" class="active"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="../types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="../types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="../types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="../types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="../types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="../types/closure.html"><strong aria-hidden="true">3.10.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="../macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="../macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="../macros/classes.html"><strong aria-hidden="true">4.4.</strong> Classes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li><li class="chapter-item expanded "><a href="../macros/zval_convert.html"><strong aria-hidden="true">4.6.</strong> ZvalConvert</a></li></ol></li><li class="chapter-item expanded "><a href="../exceptions.html"><strong aria-hidden="true">5.</strong> Exceptions</a></li></ol>            </div>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="../examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="../types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="../types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="../types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="../types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="../types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="../types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="../types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="../types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="../types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="../types/closure.html"><strong aria-hidden="true">3.10.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="../macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="../macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="../macros/classes.html"><strong aria-hidden="true">4.4.</strong> Classes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="../macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li><li class="chapter-item expanded "><a href="../macros/zval_convert.html" class="active"><strong aria-hidden="true">4.6.</strong> ZvalConvert</a></li></ol></li><li class="chapter-item expanded "><a href="../exceptions.html"><strong aria-hidden="true">5.</strong> Exceptions</a></li></ol>            </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
@@ -143,54 +143,131 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="bool"><a class="header" href="#bool"><code>bool</code></a></h1>
-<p>A boolean. Not much else to say here.</p>
-<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
-<tr><td>Yes</td><td>No</td><td>Yes</td><td>Union flag</td></tr>
-</tbody></table>
-<p>Booleans are not actually stored inside the zval. Instead, they are treated as
-two different union types (the zval can be in a true or false state). An
-equivalent structure in Rust would look like:</p>
-<pre><code class="language-rs">enum Zval {
-    True,
-    False,
-    String(&amp;mut ZendString),
-    Long(i64),
-    // ...
-}
-</code></pre>
-<h2 id="rust-example"><a class="header" href="#rust-example">Rust example</a></h2>
+                        <h1 id="zvalconvert"><a class="header" href="#zvalconvert"><code>ZvalConvert</code></a></h1>
+<p>The <code>#[derive(ZvalConvert)]</code> macro derives the <code>FromZval</code> and <code>IntoZval</code> traits
+on a struct or enum.</p>
+<h2 id="structs"><a class="header" href="#structs">Structs</a></h2>
+<p>When used on a struct, the <code>FromZendObject</code> and <code>IntoZendObject</code> traits are also
+implemented, mapping fields to properties in both directions. All fields on the
+struct must implement <code>FromZval</code> as well. Generics are allowed on structs that
+use the derive macro, however, the implementation will add a <code>FromZval</code> bound to
+all generics types.</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_function]
-pub fn test_bool(input: bool) -&gt; String {
-    if input {
-        &quot;Yes!&quot;.into()
-    } else {
-        &quot;No!&quot;.into()
+</span>use ext_php_rs::prelude::*;
+
+#[derive(ZvalConvert)]
+pub struct ExampleClass&lt;'a&gt; {
+    a: i32,
+    b: String,
+    c: &amp;'a str
+}
+
+#[php_function]
+pub fn take_object(obj: ExampleClass) {
+    dbg!(obj.a, obj.b, obj.c);
+}
+
+#[php_function]
+pub fn give_object() -&gt; ExampleClass&lt;'static&gt; {
+    ExampleClass {
+        a: 5,
+        b: &quot;String&quot;.to_string(),
+        c: &quot;Borrowed&quot;,
     }
 }
 <span class="boring">}
 </span></code></pre></pre>
-<h2 id="php-example"><a class="header" href="#php-example">PHP example</a></h2>
+<p>Calling from PHP:</p>
 <pre><code class="language-php">&lt;?php
 
-var_dump(test_bool(true)); // string(4) &quot;Yes!&quot;
-var_dump(test_bool(false)); // string(3) &quot;No!&quot;
+$obj = new stdClass;
+$obj-&gt;a = 5;
+$obj-&gt;b = 'Hello, world!';
+$obj-&gt;c = 'another string';
+
+take_object($obj);
+var_dump(give_object());
+</code></pre>
+<p>Another example involving generics:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+
+// T must implement both `PartialEq&lt;i32&gt;` and `FromZval`.
+#[derive(Debug, ZvalConvert)]
+pub struct CompareVals&lt;T: PartialEq&lt;i32&gt;&gt; {
+    a: T,
+    b: T
+}
+
+#[php_function]
+pub fn take_object(obj: CompareVals&lt;i32&gt;) {
+    dbg!(obj);
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="enums"><a class="header" href="#enums">Enums</a></h2>
+<p>When used on an enum, the <code>FromZval</code> implementation will treat the enum as a
+tagged union with a mixed datatype. This allows you to accept multiple types in
+a parameter, for example, a string and an integer.</p>
+<p>The enum variants must not have named fields, and each variant must have exactly
+one field (the type to extract from the zval). Optionally, the enum may have one
+default variant with no data contained, which will be used when the rest of the
+variants could not be extracted from the zval.</p>
+<p>The ordering of the variants in the enum is important, as the <code>FromZval</code>
+implementation will attempt to parse the zval data in order. For example, if you
+put a <code>String</code> variant before an integer variant, the integer would be converted
+to a string and passed as the string variant.</p>
+<h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
+<p>Basic example showing the importance of variant ordering and default field:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+
+#[derive(Debug, ZvalConvert)]
+pub enum UnionExample&lt;'a&gt; {
+    Long(u64), // Long
+    ProperStr(&amp;'a str), // Actual string - not a converted value
+    ParsedStr(String), // Potentially parsed string, i.e. a double
+    None // Zval did not contain anything that could be parsed above
+}
+
+#[php_function]
+pub fn test_union(val: UnionExample) {
+    dbg!(val);
+}
+
+#[php_function]
+pub fn give_union() -&gt; UnionExample&lt;'static&gt; {
+    UnionExample::Long(5)
+}
+<span class="boring">}
+</span></code></pre></pre>
+<p>Use in PHP:</p>
+<pre><code class="language-php">test_union(5); // UnionExample::Long(5)
+test_union(&quot;Hello, world!&quot;); // UnionExample::ProperStr(&quot;Hello, world!&quot;)
+test_union(5.66666); // UnionExample::ParsedStr(&quot;5.6666&quot;)
+test_union(null); // UnionExample::None
+var_dump(give_union()); // int(5)
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                                                    <a rel="prev" href="../types/str.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                                    <a rel="prev" href="../macros/constant.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
-                                                    <a rel="next" href="../types/vec.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                                    <a rel="next" href="../exceptions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -200,11 +277,11 @@ var_dump(test_bool(false)); // string(3) &quot;No!&quot;
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                                    <a rel="prev" href="../types/str.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                    <a rel="prev" href="../macros/constant.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
-                                    <a rel="next" href="../types/vec.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                    <a rel="next" href="../exceptions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                             </nav>
