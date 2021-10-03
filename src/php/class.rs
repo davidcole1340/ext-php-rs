@@ -6,7 +6,7 @@ use crate::{
         exceptions::PhpException,
         execution_data::ExecutionData,
         function::FunctionBuilder,
-        types::object::{ClassObject, ConstructorMeta, ConstructorResult, ZendObject},
+        types::object::{ConstructorMeta, ConstructorResult, ZendClassObject, ZendObject},
     },
 };
 use std::{alloc::Layout, convert::TryInto, ffi::CString, fmt::Debug, ops::DerefMut};
@@ -277,8 +277,8 @@ impl ClassBuilder {
         extern "C" fn create_object<T: RegisteredClass>(_: *mut ClassEntry) -> *mut ZendObject {
             // SAFETY: After calling this function, PHP will always call the constructor defined below,
             // which assumes that the object is uninitialized.
-            let obj = unsafe { ClassObject::<T>::new_uninit() };
-            obj.into_inner().get_mut_zend_obj()
+            let obj = unsafe { ZendClassObject::<T>::new_uninit() };
+            obj.into_raw().get_mut_zend_obj()
         }
 
         extern "C" fn constructor<T: RegisteredClass>(ex: &mut ExecutionData, _: &mut Zval) {

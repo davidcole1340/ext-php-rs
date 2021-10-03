@@ -3,22 +3,15 @@
 
 use crate::bindings::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
 
-use super::{
-    args::ArgParser,
-    types::{
-        object::{RegisteredClass, ZendClassObject, ZendObject},
-        zval::Zval,
-    },
+use super::types::{
+    object::{RegisteredClass, ZendClassObject, ZendObject},
+    zval::Zval,
 };
 
 /// Execution data passed when a function is called from Zend.
 pub type ExecutionData = zend_execute_data;
 
 impl ExecutionData {
-    pub fn parser<T: RegisteredClass>(&mut self) -> (Option<&mut ZendClassObject<T>>, ArgParser) {
-        (self.get_object(), ArgParser::new(self))
-    }
-
     /// Attempts to retrieve a reference to the underlying class object of the Zend object.
     ///
     /// Returns a [`ZendClassObject`] if the execution data contained a valid object of type `T`,

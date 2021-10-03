@@ -128,11 +128,13 @@ fn parse_struct(
     Ok(quote! {
         impl #into_impl_generics ::ext_php_rs::php::types::object::IntoZendObject for #ident #ty_generics #into_where_clause {
             fn into_zend_object(self) -> ::ext_php_rs::errors::Result<
-                ::ext_php_rs::php::types::object::OwnedZendObject
+                ::ext_php_rs::php::boxed::ZBox<
+                    ::ext_php_rs::php::types::object::ZendObject
+                >
             > {
                 use ::ext_php_rs::php::types::zval::IntoZval;
 
-                let mut obj = ::ext_php_rs::php::types::object::OwnedZendObject::new_stdclass();
+                let mut obj = ::ext_php_rs::php::types::object::ZendObject::new_stdclass();
                 #(#into_fields)*
                 ::ext_php_rs::errors::Result::Ok(obj)
             }

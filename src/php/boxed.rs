@@ -88,14 +88,14 @@ impl<T: ZBoxable> DerefMut for ZBox<T> {
 impl<T: ZBoxable + Debug> Debug for ZBox<T> {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.deref().fmt(f)
+        (&**self).fmt(f)
     }
 }
 
 impl<T: ZBoxable> Borrow<T> for ZBox<T> {
     #[inline]
     fn borrow(&self) -> &T {
-        self.deref()
+        &**self
     }
 }
 
