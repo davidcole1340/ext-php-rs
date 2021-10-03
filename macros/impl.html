@@ -179,6 +179,17 @@ without renaming the Rust method name.</li>
 </ul>
 <p>The <code>#[defaults]</code> and <code>#[optional]</code> attributes operate the same as the
 equivalent function attribute parameters.</p>
+<h3 id="constructors"><a class="header" href="#constructors">Constructors</a></h3>
+<p>By default, if a class does not have a constructor, it is not constructable from
+PHP. It can only be returned from a Rust function to PHP.</p>
+<p>Constructors are Rust methods whick can take any amount of parameters and
+returns either <code>Self</code> or <code>Result&lt;Self, E&gt;</code>, where <code>E: Into&lt;PhpException&gt;</code>. When
+the error variant of <code>Result</code> is encountered, it is thrown as an exception and
+the class is not constructed.</p>
+<p>Constructors are designated by either naming the method <code>__construct</code> or by
+annotating a method with the <code>#[constructor]</code> attribute. Note that when using
+the attribute, the function is not exported to PHP like a regular method.</p>
+<p>Constructors cannot use the visibility or rename attributes listed above.</p>
 <h2 id="constants"><a class="header" href="#constants">Constants</a></h2>
 <p>Constants are defined as regular Rust <code>impl</code> constants. Any type that implements
 <code>IntoZval</code> can be used as a constant. Constant visibility is not supported at
@@ -218,9 +229,9 @@ constant for the maximum age of a <code>Human</code>.</p>
 impl Human {
     const MAX_AGE: i32 = 100;
 
-    pub fn __construct(&amp;mut self, name: String, age: i32) {
-        self.name = name;
-        self.age = age;
+    // No `#[constructor]` attribute required here - the name is `__construct`.
+    pub fn __construct(name: String, age: i32) -&gt; Self {
+        Self { name, age, address: String::new() }
     }
 
     #[getter]
@@ -239,8 +250,6 @@ impl Human {
     }
 
     pub fn introduce(&amp;self) {
-        use ext_php_rs::php::types::object::RegisteredClass;
-        
         println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, self.address);
     }
 

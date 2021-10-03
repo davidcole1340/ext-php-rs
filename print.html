@@ -934,13 +934,6 @@ translated into an exception and thrown. See the section on
 <p>Structs can be exported to PHP as classes with the <code>#[php_class]</code> attribute
 macro. This attribute derives the <code>RegisteredClass</code> trait on your struct, as
 well as registering the class to be registered with the <code>#[php_module]</code> macro.</p>
-<p>The implementation of <code>RegisteredClass</code> requires the implementation of <code>Default</code>
-on the struct. This is because the struct is initialized before the constructor
-is called, therefore it must have default values for all properties.</p>
-<p>Note that Rust struct properties <strong>are not</strong> PHP properties, so if you want the
-user to be able to access these, you must provide getters and/or setters.
-Properties are supported internally, however, they are not usable through the
-automatic macros. Support for properties is planned.</p>
 <h2 id="options"><a class="header" href="#options">Options</a></h2>
 <p>The attribute takes some options to modify the output of the class:</p>
 <ul>
@@ -960,21 +953,21 @@ the <code>#[php_module]</code> function.</li>
 </ul>
 <p>You may also use the <code>#[prop]</code> attribute on a struct field to use the field as a
 PHP property. By default, the field will be accessible from PHP publically with
-the same name as the field. You can rename the property with options:</p>
+the same name as the field. Property types must implement <code>IntoZval</code> and
+<code>FromZval</code>.</p>
+<p>You can rename the property with options:</p>
 <ul>
 <li><code>rename</code> - Allows you to rename the property, e.g.
 <code>#[prop(rename = &quot;new_name&quot;)]</code></li>
 </ul>
 <h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
-<p>This example creates a PHP class <code>Human</code>, adding a PHP property <code>address</code> with
-an empty string as the default value.</p>
+<p>This example creates a PHP class <code>Human</code>, adding a PHP property <code>address</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_class]
-#[derive(Default)]
 pub struct Human {
     name: String,
     age: i32,
@@ -1048,6 +1041,17 @@ without renaming the Rust method name.</li>
 </ul>
 <p>The <code>#[defaults]</code> and <code>#[optional]</code> attributes operate the same as the
 equivalent function attribute parameters.</p>
+<h3 id="constructors"><a class="header" href="#constructors">Constructors</a></h3>
+<p>By default, if a class does not have a constructor, it is not constructable from
+PHP. It can only be returned from a Rust function to PHP.</p>
+<p>Constructors are Rust methods whick can take any amount of parameters and
+returns either <code>Self</code> or <code>Result&lt;Self, E&gt;</code>, where <code>E: Into&lt;PhpException&gt;</code>. When
+the error variant of <code>Result</code> is encountered, it is thrown as an exception and
+the class is not constructed.</p>
+<p>Constructors are designated by either naming the method <code>__construct</code> or by
+annotating a method with the <code>#[constructor]</code> attribute. Note that when using
+the attribute, the function is not exported to PHP like a regular method.</p>
+<p>Constructors cannot use the visibility or rename attributes listed above.</p>
 <h2 id="constants"><a class="header" href="#constants">Constants</a></h2>
 <p>Constants are defined as regular Rust <code>impl</code> constants. Any type that implements
 <code>IntoZval</code> can be used as a constant. Constant visibility is not supported at
@@ -1087,9 +1091,9 @@ constant for the maximum age of a <code>Human</code>.</p>
 impl Human {
     const MAX_AGE: i32 = 100;
 
-    pub fn __construct(&amp;mut self, name: String, age: i32) {
-        self.name = name;
-        self.age = age;
+    // No `#[constructor]` attribute required here - the name is `__construct`.
+    pub fn __construct(name: String, age: i32) -&gt; Self {
+        Self { name, age, address: String::new() }
     }
 
     #[getter]
@@ -1108,8 +1112,6 @@ impl Human {
     }
 
     pub fn introduce(&amp;self) {
-        use ext_php_rs::php::types::object::RegisteredClass;
-        
         println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, self.address);
     }
 
