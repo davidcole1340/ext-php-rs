@@ -1,10 +1,8 @@
 //! Objects relating to PHP and the Zend engine.
 
-#[cfg(any(docs, feature = "alloc"))]
-#[cfg_attr(docs, doc(cfg(feature = "alloc")))]
 pub mod alloc;
-
 pub mod args;
+pub mod boxed;
 pub mod class;
 pub mod constants;
 pub mod enums;
