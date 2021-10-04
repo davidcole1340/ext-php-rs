@@ -19,13 +19,7 @@ use crate::{
 
 use crate::php::{enums::DataType, flags::ZvalTypeFlags, types::long::ZendLong};
 
-use super::{
-    array::{HashTable, OwnedHashTable},
-    callable::Callable,
-    object::ZendObject,
-    rc::PhpRc,
-    string::ZendStr,
-};
+use super::{array::HashTable, callable::Callable, object::ZendObject, rc::PhpRc, string::ZendStr};
 
 /// Zend value. Represents most data types that are in the Zend engine.
 pub type Zval = zval;
@@ -421,7 +415,7 @@ impl Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_array<T: TryInto<OwnedHashTable, Error = Error>>(&mut self, val: T) -> Result<()> {
+    pub fn set_array<T: TryInto<ZBox<HashTable>, Error = Error>>(&mut self, val: T) -> Result<()> {
         self.set_hashtable(val.try_into()?);
         Ok(())
     }
@@ -431,9 +425,9 @@ impl Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_hashtable(&mut self, val: OwnedHashTable) {
+    pub fn set_hashtable(&mut self, val: ZBox<HashTable>) {
         self.change_type(ZvalTypeFlags::ArrayEx);
-        self.value.arr = val.into_inner();
+        self.value.arr = val.into_raw();
     }
 
     /// Sets the value of the zval as a pointer.

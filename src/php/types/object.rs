@@ -34,7 +34,6 @@ use crate::{
         flags::ZvalTypeFlags,
         function::FunctionBuilder,
         globals::ExecutorGlobals,
-        types::array::OwnedHashTable,
     },
 };
 
@@ -979,7 +978,7 @@ impl ZendObjectHandlers {
 
         let props = zend_std_get_properties(object)
             .as_mut()
-            .or_else(|| OwnedHashTable::new().into_inner().as_mut())
+            .or_else(|| Some(HashTable::new().into_raw()))
             .expect("Failed to get property hashtable");
 
         if let Err(e) = internal::<T>(object, props) {

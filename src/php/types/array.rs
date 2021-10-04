@@ -7,8 +7,6 @@ use std::{
     ffi::CString,
     fmt::Debug,
     iter::FromIterator,
-    mem::ManuallyDrop,
-    ops::{Deref, DerefMut},
     ptr::NonNull,
     u64,
 };
@@ -21,7 +19,10 @@ use crate::{
         HT_MIN_SIZE,
     },
     errors::{Error, Result},
-    php::enums::DataType,
+    php::{
+        boxed::{ZBox, ZBoxable},
+        enums::DataType,
+    },
 };
 
 use super::zval::{FromZval, IntoZval, Zval};
@@ -30,6 +31,27 @@ use super::zval::{FromZval, IntoZval, Zval};
 pub use crate::bindings::HashTable;
 
 impl HashTable {
+    /// Creates a new, empty, PHP associative array.
+    pub fn new() -> ZBox<Self> {
+        Self::with_capacity(HT_MIN_SIZE)
+    }
+
+    /// Creates a new, empty, PHP associative array with an initial size.
+    ///
+    /// # Parameters
+    ///
+    /// * `size` - The size to initialize the array with.
+    pub fn with_capacity(size: u32) -> ZBox<Self> {
+        // SAFETY: PHP allocater handles the creation of the array.
+        unsafe {
+            let ptr = _zend_new_array(size);
+            ZBox::from_raw(
+                ptr.as_mut()
+                    .expect("Failed to allocate memory for hashtable"),
+            )
+        }
+    }
+
     /// Returns the current number of elements in the array.
     pub fn len(&self) -> usize {
         self.nNumOfElements as usize
@@ -184,11 +206,11 @@ impl HashTable {
     pub fn values(&self) -> Values {
         Values::new(self)
     }
+}
 
-    /// Clones the hash table, returning an [`OwnedHashTable`].
-    pub fn to_owned(&self) -> OwnedHashTable {
-        let ptr = unsafe { zend_array_dup(self as *const HashTable as *mut HashTable) };
-        unsafe { OwnedHashTable::from_ptr(ptr) }
+unsafe impl ZBoxable for HashTable {
+    fn free(&mut self) {
+        unsafe { zend_array_destroy(self) }
     }
 }
 
@@ -200,6 +222,17 @@ impl Debug for HashTable {
                     .map(|(k, k2, v)| (k2.unwrap_or_else(|| k.to_string()), v)),
             )
             .finish()
+    }
+}
+
+impl ToOwned for HashTable {
+    type Owned = ZBox<HashTable>;
+
+    fn to_owned(&self) -> Self::Owned {
+        unsafe {
+            let ptr = zend_array_dup(self as *const HashTable as *mut HashTable);
+            ZBox::from_raw(ptr)
+        }
     }
 }
 
@@ -315,106 +348,19 @@ impl<'a> DoubleEndedIterator for Values<'a> {
     }
 }
 
-/// A container used to 'own' a Zend hashtable. Dereferences to a reference to [`HashTable`].
-///
-/// When this struct is dropped, it will also destroy the internal hashtable, unless the `into_raw`
-/// function is used.
-pub struct OwnedHashTable {
-    ptr: NonNull<HashTable>,
-}
-
-impl OwnedHashTable {
-    /// Creates a new, empty, PHP associative array.
-    pub fn new() -> Self {
-        Self::with_capacity(HT_MIN_SIZE)
-    }
-
-    /// Creates a new, empty, PHP associative array with an initial size.
-    ///
-    /// # Parameters
-    ///
-    /// * `size` - The size to initialize the array with.
-    pub fn with_capacity(size: u32) -> Self {
-        // SAFETY: PHP allocater handles the creation of the array.
-        unsafe {
-            let ptr = _zend_new_array(size);
-            Self::from_ptr(ptr)
-        }
-    }
-
-    /// Creates an owned hashtable from a hashtable pointer, which will be freed when the
-    /// resulting Rust object is dropped.
-    ///
-    /// # Parameters
-    ///
-    /// * `ptr` - Hashtable pointer.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the given pointer is null.
-    ///
-    /// # Safety
-    ///
-    /// Caller must ensure that the given pointer is a valid hashtable pointer, including
-    /// non-null and properly aligned.
-    pub unsafe fn from_ptr(ptr: *mut HashTable) -> Self {
-        Self {
-            ptr: NonNull::new(ptr).expect("Invalid hashtable pointer given"),
-        }
-    }
-
-    /// Converts the owned Zend hashtable into the internal pointer, bypassing the [`Drop`]
-    /// implementation.
-    ///
-    /// The caller is responsible for freeing the resulting pointer using the `zend_array_destroy`
-    /// function.
-    pub fn into_inner(self) -> *mut HashTable {
-        let this = ManuallyDrop::new(self);
-        this.ptr.as_ptr()
-    }
-}
-
-impl Deref for OwnedHashTable {
-    type Target = HashTable;
-
-    fn deref(&self) -> &Self::Target {
-        // SAFETY: all constructors ensure a valid ptr is present
-        unsafe { self.ptr.as_ref() }
-    }
-}
-
-impl DerefMut for OwnedHashTable {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        // SAFETY: all constructors ensure a valid, owned ptr is present
-        unsafe { self.ptr.as_mut() }
-    }
-}
-
-impl Debug for OwnedHashTable {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.deref().fmt(f)
-    }
-}
-
-impl Default for OwnedHashTable {
+impl Default for ZBox<HashTable> {
     fn default() -> Self {
-        Self::new()
+        HashTable::new()
     }
 }
 
-impl Clone for OwnedHashTable {
+impl Clone for ZBox<HashTable> {
     fn clone(&self) -> Self {
-        self.deref().to_owned()
+        (**self).to_owned()
     }
 }
 
-impl Drop for OwnedHashTable {
-    fn drop(&mut self) {
-        unsafe { zend_array_destroy(self.ptr.as_mut()) };
-    }
-}
-
-impl IntoZval for OwnedHashTable {
+impl IntoZval for ZBox<HashTable> {
     const TYPE: DataType = DataType::Array;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
@@ -455,7 +401,7 @@ where
     }
 }
 
-impl<K, V> TryFrom<HashMap<K, V>> for OwnedHashTable
+impl<K, V> TryFrom<HashMap<K, V>> for ZBox<HashTable>
 where
     K: AsRef<str>,
     V: IntoZval,
@@ -463,9 +409,8 @@ where
     type Error = Error;
 
     fn try_from(value: HashMap<K, V>) -> Result<Self> {
-        let mut ht = OwnedHashTable::with_capacity(
-            value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
-        );
+        let mut ht =
+            HashTable::with_capacity(value.len().try_into().map_err(|_| Error::IntegerOverflow)?);
 
         for (k, v) in value.into_iter() {
             ht.insert(k.as_ref(), v)?;
@@ -521,16 +466,15 @@ where
     }
 }
 
-impl<T> TryFrom<Vec<T>> for OwnedHashTable
+impl<T> TryFrom<Vec<T>> for ZBox<HashTable>
 where
     T: IntoZval,
 {
     type Error = Error;
 
     fn try_from(value: Vec<T>) -> Result<Self> {
-        let mut ht = OwnedHashTable::with_capacity(
-            value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
-        );
+        let mut ht =
+            HashTable::with_capacity(value.len().try_into().map_err(|_| Error::IntegerOverflow)?);
 
         for val in value.into_iter() {
             ht.push(val)?;
@@ -564,9 +508,9 @@ where
     }
 }
 
-impl FromIterator<Zval> for OwnedHashTable {
+impl FromIterator<Zval> for ZBox<HashTable> {
     fn from_iter<T: IntoIterator<Item = Zval>>(iter: T) -> Self {
-        let mut ht = OwnedHashTable::new();
+        let mut ht = HashTable::new();
         for item in iter.into_iter() {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
             // fails.
@@ -576,9 +520,9 @@ impl FromIterator<Zval> for OwnedHashTable {
     }
 }
 
-impl FromIterator<(u64, Zval)> for OwnedHashTable {
+impl FromIterator<(u64, Zval)> for ZBox<HashTable> {
     fn from_iter<T: IntoIterator<Item = (u64, Zval)>>(iter: T) -> Self {
-        let mut ht = OwnedHashTable::new();
+        let mut ht = HashTable::new();
         for (key, val) in iter.into_iter() {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
             // fails.
@@ -588,9 +532,9 @@ impl FromIterator<(u64, Zval)> for OwnedHashTable {
     }
 }
 
-impl<'a> FromIterator<(&'a str, Zval)> for OwnedHashTable {
+impl<'a> FromIterator<(&'a str, Zval)> for ZBox<HashTable> {
     fn from_iter<T: IntoIterator<Item = (&'a str, Zval)>>(iter: T) -> Self {
-        let mut ht = OwnedHashTable::new();
+        let mut ht = HashTable::new();
         for (key, val) in iter.into_iter() {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
             // fails.
