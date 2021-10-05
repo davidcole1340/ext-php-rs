@@ -3,8 +3,13 @@
 use std::collections::HashMap;
 
 use crate::php::{
-    args::Arg, class::ClassBuilder, enums::DataType, exceptions::PhpException,
-    execution_data::ExecutionData, flags::MethodFlags, function::FunctionBuilder,
+    args::{Arg, ArgParser},
+    class::ClassBuilder,
+    enums::DataType,
+    exceptions::PhpException,
+    execution_data::ExecutionData,
+    flags::MethodFlags,
+    function::FunctionBuilder,
     types::object::ClassMetadata,
 };
 
@@ -132,11 +137,10 @@ impl Closure {
 
     /// External function used by the Zend interpreter to call the closure.
     extern "C" fn invoke(ex: &mut ExecutionData, ret: &mut Zval) {
-        let this = ex
-            .get_object::<Self>()
-            .expect("Internal closure function called on non-closure class");
+        let (parser, this) = ex.parser_method::<Self>();
+        let this = this.expect("Internal closure function called on non-closure class");
 
-        this.0.invoke(ex, ret)
+        this.0.invoke(parser, ret)
     }
 }
 
@@ -161,7 +165,7 @@ impl RegisteredClass for Closure {
 /// This trait is automatically implemented on functions with up to 8 parameters.
 pub unsafe trait PhpClosure {
     /// Invokes the closure.
-    fn invoke(&mut self, ex: &ExecutionData, ret: &mut Zval);
+    fn invoke<'a>(&'a mut self, parser: ArgParser<'a, '_>, ret: &mut Zval);
 }
 
 /// Implemented on [`FnOnce`] types which can be used as PHP closures. See [`Closure`].
@@ -177,7 +181,7 @@ unsafe impl<R> PhpClosure for Box<dyn Fn() -> R>
 where
     R: IntoZval,
 {
-    fn invoke(&mut self, _: &ExecutionData, ret: &mut Zval) {
+    fn invoke(&mut self, _: ArgParser, ret: &mut Zval) {
         if let Err(e) = self().set_zval(ret, false) {
             let _ = PhpException::default(format!("Failed to return closure result to PHP: {}", e))
                 .throw();
@@ -189,7 +193,7 @@ unsafe impl<R> PhpClosure for Box<dyn FnMut() -> R>
 where
     R: IntoZval,
 {
-    fn invoke(&mut self, _: &ExecutionData, ret: &mut Zval) {
+    fn invoke(&mut self, _: ArgParser, ret: &mut Zval) {
         if let Err(e) = self().set_zval(ret, false) {
             let _ = PhpException::default(format!("Failed to return closure result to PHP: {}", e))
                 .throw();
@@ -258,18 +262,24 @@ macro_rules! php_closure_impl {
             $(for<'a> $gen: FromZval<'a>,)*
             Ret: IntoZval
         {
-            fn invoke(&mut self, ex: &ExecutionData, ret: &mut Zval) {
+            fn invoke(&mut self, parser: ArgParser, ret: &mut Zval) {
                 $(
                     let mut $gen = Arg::new(stringify!($gen), $gen::TYPE);
                 )*
 
-                parse_args!(ex, $($gen),*);
+                let parser = parser
+                    $(.arg(&mut $gen))*
+                    .parse();
+
+                if parser.is_err() {
+                    return;
+                }
 
                 let result = self(
                     $(
-                        match $gen.val() {
-                            Some(val) => val,
-                            None => {
+                        match $gen.consume() {
+                            Ok(val) => val,
+                            _ => {
                                 let _ = PhpException::default(concat!("Invalid parameter type for `", stringify!($gen), "`.").into()).throw();
                                 return;
                             }

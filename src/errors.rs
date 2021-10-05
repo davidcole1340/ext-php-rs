@@ -21,7 +21,7 @@ pub enum Error {
     /// The enum carries two integers - the first representing the minimum
     /// number of arguments expected, and the second representing the number of
     /// arguments that were received.
-    IncorrectArguments(u32, u32),
+    IncorrectArguments(usize, usize),
     /// There was an error converting a Zval into a primitive type.
     ///
     /// The enum carries the data type of the Zval.

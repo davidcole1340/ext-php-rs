@@ -4,7 +4,6 @@ use std::{ffi::CString, ptr};
 
 use super::{
     enums::DataType,
-    execution_data::ExecutionData,
     types::{
         zval::{FromZval, IntoZvalDyn, Zval},
         ZendType,
@@ -23,7 +22,7 @@ use crate::{
 };
 
 /// Represents an argument to a function.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Arg<'a> {
     name: String,
     _type: DataType,
@@ -31,7 +30,7 @@ pub struct Arg<'a> {
     allow_null: bool,
     variadic: bool,
     default_value: Option<String>,
-    zval: Option<&'a Zval>,
+    zval: Option<&'a mut Zval>,
 }
 
 impl<'a> Arg<'a> {
@@ -78,11 +77,28 @@ impl<'a> Arg<'a> {
         self
     }
 
+    /// Attempts to consume the argument, converting the inner type into `T`. Upon success,
+    /// the result is returned in a [`Result`].
+    ///
+    /// If the conversion fails (or the argument contains no value), the argument is returned
+    /// in an [`Err`] variant.
+    ///
+    /// As this function consumes, it cannot return a reference to the underlying zval.
+    pub fn consume<T>(self) -> Result<T, Self>
+    where
+        for<'b> T: FromZval<'b>,
+    {
+        self.zval
+            .as_ref()
+            .and_then(|zv| T::from_zval(zv))
+            .ok_or(self)
+    }
+
     /// Attempts to retrieve the value of the argument.
     /// This will be None until the ArgParser is used to parse
     /// the arguments.
-    pub fn val<T: FromZval<'a>>(&self) -> Option<T> {
-        self.zval.and_then(|zv| T::from_zval(zv))
+    pub fn val<T: FromZval<'a>>(&'a mut self) -> Option<T> {
+        self.zval.as_mut().and_then(|zv| T::from_zval(zv))
     }
 
     /// Attempts to return a reference to the arguments internal Zval.
@@ -91,8 +107,8 @@ impl<'a> Arg<'a> {
     ///
     /// * `Some(&Zval)` - The internal zval.
     /// * `None` - The argument was empty.
-    pub fn zval(&self) -> Option<&'a Zval> {
-        self.zval
+    pub fn zval(&mut self) -> Option<&mut &'a mut Zval> {
+        self.zval.as_mut()
     }
 
     /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
@@ -106,7 +122,7 @@ impl<'a> Arg<'a> {
     ///
     /// * `params` - A list of parameters to call the function with.
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
-        self.zval().ok_or(Error::Callable)?.try_call(params)
+        self.zval.as_ref().ok_or(Error::Callable)?.try_call(params)
     }
 
     /// Returns the internal PHP argument info.
@@ -153,19 +169,19 @@ impl From<Arg<'_>> for _zend_expected_type {
 pub type ArgInfo = zend_internal_arg_info;
 
 /// Parses the arguments of a function.
-pub struct ArgParser<'a, 'arg, 'zval> {
-    args: Vec<&'arg mut Arg<'zval>>,
-    min_num_args: Option<u32>,
-    execute_data: &'a ExecutionData,
+pub struct ArgParser<'a, 'b> {
+    args: Vec<&'b mut Arg<'a>>,
+    min_num_args: Option<usize>,
+    arg_zvals: Vec<Option<&'a mut Zval>>,
 }
 
-impl<'a, 'arg, 'zval> ArgParser<'a, 'arg, 'zval> {
+impl<'a, 'b> ArgParser<'a, 'b> {
     /// Builds a new function argument parser.
-    pub fn new(execute_data: &'a ExecutionData) -> Self {
+    pub fn new(arg_zvals: Vec<Option<&'a mut Zval>>) -> Self {
         ArgParser {
             args: vec![],
             min_num_args: None,
-            execute_data,
+            arg_zvals,
         }
     }
 
@@ -174,14 +190,14 @@ impl<'a, 'arg, 'zval> ArgParser<'a, 'arg, 'zval> {
     /// # Parameters
     ///
     /// * `arg` - The argument to add to the parser.
-    pub fn arg(mut self, arg: &'arg mut Arg<'zval>) -> Self {
+    pub fn arg(mut self, arg: &'b mut Arg<'a>) -> Self {
         self.args.push(arg);
         self
     }
 
     /// Sets the next arguments to be added as not required.
     pub fn not_required(mut self) -> Self {
-        self.min_num_args = Some(self.args.len() as u32);
+        self.min_num_args = Some(self.args.len());
         self
     }
 
@@ -200,22 +216,20 @@ impl<'a, 'arg, 'zval> ArgParser<'a, 'arg, 'zval> {
     /// function. The user has already been notified so you should break execution after seeing an
     /// error type.
     pub fn parse(mut self) -> Result<()> {
-        let num_args = unsafe { self.execute_data.This.u2.num_args };
-        let max_num_args = self.args.len() as u32;
-        let min_num_args = match self.min_num_args {
-            Some(n) => n,
-            None => max_num_args,
-        };
+        let max_num_args = self.args.len();
+        let min_num_args = self.min_num_args.unwrap_or(max_num_args);
+        let num_args = self.arg_zvals.len();
 
         if num_args < min_num_args || num_args > max_num_args {
             // SAFETY: Exported C function is safe, return value is unused and parameters are copied.
-            unsafe { zend_wrong_parameters_count_error(min_num_args, max_num_args) };
-
+            unsafe { zend_wrong_parameters_count_error(min_num_args as _, max_num_args as _) };
             return Err(Error::IncorrectArguments(num_args, min_num_args));
         }
 
-        for (i, arg) in self.args.iter_mut().enumerate() {
-            arg.zval = unsafe { self.execute_data.zend_call_arg(i) };
+        for (i, arg_zval) in self.arg_zvals.into_iter().enumerate() {
+            if let Some(arg) = self.args.get_mut(i) {
+                arg.zval = arg_zval;
+            }
         }
 
         Ok(())

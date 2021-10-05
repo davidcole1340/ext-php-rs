@@ -112,9 +112,7 @@ macro_rules! call_user_func {
 #[macro_export]
 macro_rules! parse_args {
     ($ed: expr, $($arg: expr),*) => {{
-        use $crate::php::args::ArgParser;
-
-        let parser = ArgParser::new($ed)
+        let parser = $ed.parser()
             $(.arg(&mut $arg))*
             .parse();
         if parser.is_err() {
@@ -125,7 +123,7 @@ macro_rules! parse_args {
     ($ed: expr, $($arg: expr),* ; $($opt: expr),*) => {{
         use $crate::php::args::ArgParser;
 
-        let parser = ArgParser::new($ed)
+        let parser = $ed.parser()
             $(.arg(&mut $arg))*
             .not_required()
             $(.arg(&mut $opt))*
