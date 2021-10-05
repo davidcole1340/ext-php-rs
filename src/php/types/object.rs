@@ -471,12 +471,10 @@ where
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
 }
 
-/// Representation of a Zend class object in memory. Usually seen through its owned variant
-/// of [`ClassObject`].
+/// Representation of a Zend class object in memory.
 #[repr(C)]
 pub struct ZendClassObject<T> {
-    obj: MaybeUninit<T>,
-    init: bool,
+    obj: Option<T>,
     std: zend_object,
 }
 
@@ -492,7 +490,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// Panics if memory was unable to be allocated for the new object.
     pub fn new(val: T) -> ZBox<Self> {
-        unsafe { Self::internal_new(MaybeUninit::new(val), true) }
+        unsafe { Self::internal_new(Some(val)) }
     }
 
     /// Creates a new [`ZendClassObject`] of type `T`, with an uninitialized internal object.
@@ -502,10 +500,9 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// As the object is uninitialized, the caller must ensure the following until the internal object is
     /// initialized:
     ///
-    /// * The [`Drop`] implementation is never called.
+    /// * The object is never dereferenced to `T`.
     /// * The [`Clone`] implementation is never called.
     /// * The [`Debug`] implementation is never called.
-    /// * The object is never dereferenced to `T`.
     ///
     /// If any of these conditions are not met while not initialized, the corresponding function will panic.
     /// Converting the object into its inner pointer with the [`into_raw`] function is valid, however.
@@ -516,7 +513,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// Panics if memory was unable to be allocated for the new object.
     pub unsafe fn new_uninit() -> ZBox<Self> {
-        Self::internal_new(MaybeUninit::uninit(), false)
+        Self::internal_new(None)
     }
 
     /// Creates a new [`ZendObject`] of type `T`, storing the given (and potentially uninitialized) `val`
@@ -534,10 +531,9 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// Providing an uninitalized variant of [`MaybeUninit<T>`] is unsafe. As the object is uninitialized,
     /// the caller must ensure the following until the internal object is initialized:
     ///
-    /// * The [`Drop`] implementation is never called.
+    /// * The object is never dereferenced to `T`.
     /// * The [`Clone`] implementation is never called.
     /// * The [`Debug`] implementation is never called.
-    /// * The object is never dereferenced to `T`.
     ///
     /// If any of these conditions are not met while not initialized, the corresponding function will panic.
     /// Converting the object into its inner with the [`into_raw`] function is valid, however. You can initialize
@@ -549,7 +545,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Panics
     ///
     /// Panics if memory was unable to be allocated for the new object.
-    unsafe fn internal_new(val: MaybeUninit<T>, init: bool) -> ZBox<Self> {
+    unsafe fn internal_new(val: Option<T>) -> ZBox<Self> {
         let size = mem::size_of::<ZendClassObject<T>>();
         let meta = T::get_metadata();
         let ce = meta.ce() as *const _ as *mut _;
@@ -561,8 +557,11 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         zend_object_std_init(&mut obj.std, ce);
         object_properties_init(&mut obj.std, ce);
 
-        obj.obj = val;
-        obj.init = init;
+        // SAFETY: `obj` is non-null and well aligned as it is a reference.
+        // As the data in `obj.obj` is uninitalized, we don't want to drop
+        // the data, but directly override it.
+        ptr::write(&mut obj.obj, val);
+
         obj.std.handlers = meta.handlers();
         ZBox::from_raw(obj)
     }
@@ -578,16 +577,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// Returns the old value in an [`Option`] if the object had already been initialized, [`None`]
     /// otherwise.
     pub fn initialize(&mut self, val: T) -> Option<T> {
-        let old = Some(mem::replace(&mut self.obj, MaybeUninit::new(val))).and_then(|v| {
-            if self.init {
-                Some(unsafe { v.assume_init() })
-            } else {
-                None
-            }
-        });
-        self.init = true;
-
-        old
+        self.obj.replace(val)
     }
 
     /// Returns a reference to the [`ZendClassObject`] of a given object `T`. Returns [`None`]
@@ -686,34 +676,21 @@ unsafe impl<T: RegisteredClass> ZBoxable for ZendClassObject<T> {
     }
 }
 
-impl<T> Drop for ZendClassObject<T> {
-    fn drop(&mut self) {
-        // SAFETY: All constructors guarantee that `obj` is valid.
-        unsafe { std::ptr::drop_in_place(self.obj.as_mut_ptr()) };
-    }
-}
-
 impl<T> Deref for ZendClassObject<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        if !self.init {
-            panic!("Attempted to access uninitialized class object");
-        }
-
-        // SAFETY: All constructors guarantee that `obj` is valid.
-        unsafe { self.obj.assume_init_ref() }
+        self.obj
+            .as_ref()
+            .expect("Attempted to access uninitalized class object")
     }
 }
 
 impl<T> DerefMut for ZendClassObject<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        if !self.init {
-            panic!("Attempted to access uninitialized class object");
-        }
-
-        // SAFETY: All constructors guarantee that `obj` is valid.
-        unsafe { self.obj.assume_init_mut() }
+        self.obj
+            .as_mut()
+            .expect("Attempted to access uninitalized class object")
     }
 }
 
@@ -848,10 +825,8 @@ impl ZendObjectHandlers {
             .and_then(|obj| ZendClassObject::<T>::from_zend_obj_mut(obj))
             .expect("Invalid object pointer given for `free_obj`");
 
-        // Manually drop the object as it is wrapped with `MaybeUninit`.
-        if obj.init {
-            ptr::drop_in_place(obj.obj.as_mut_ptr());
-        }
+        // Manually drop the object as we don't want to free the underlying memory.
+        ptr::drop_in_place(&mut obj.obj);
 
         zend_object_std_dtor(object)
     }
