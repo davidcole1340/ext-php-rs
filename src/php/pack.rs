@@ -18,18 +18,13 @@ use crate::bindings::{ext_php_rs_zend_string_init, zend_string};
 /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
 pub unsafe trait Pack: Clone {
     /// Packs a given vector into a Zend binary string. Can be passed to PHP and then unpacked
-    /// using the [`unpack`] function. Note you should probably use the [`set_binary`] method on the
-    /// [`Zval`] struct instead of this function directly, as there is currently no way to set a
-    /// [`ZendString`] on a [`Zval`] directly.
+    /// using the [`unpack`] function.
     ///
     /// # Parameters
     ///
     /// * `vec` - The vector to pack into a binary string.
     ///
     /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
-    /// [`Zval`]: crate::php::types::zval::Zval
-    /// [`ZendString`]: crate::php::types::string::ZendString
-    /// [`set_binary`]: crate::php::types::zval::Zval#method.set_binary
     fn pack_into(vec: Vec<Self>) -> *mut zend_string;
 
     /// Unpacks a given Zend binary string into a Rust vector. Can be used to pass data from `pack`

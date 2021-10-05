@@ -26,6 +26,7 @@ use crate::{
     },
     errors::{Error, Result},
     php::{
+        boxed::{ZBox, ZBoxable},
         class::ClassEntry,
         enums::DataType,
         exceptions::{PhpException, PhpResult},
@@ -33,108 +34,15 @@ use crate::{
         flags::ZvalTypeFlags,
         function::FunctionBuilder,
         globals::ExecutorGlobals,
-        types::{array::OwnedHashTable, string::ZendString},
     },
 };
 
 use super::{
     props::Property,
     rc::PhpRc,
+    string::ZendStr,
     zval::{FromZval, IntoZval, Zval},
 };
-
-/// A wrapper around [`ZendObject`] providing the correct [`Drop`] implementation required to not
-/// leak memory. Dereferences to [`ZendObject`].
-///
-/// This type differs from [`ClassObject`] in the fact that this type is not aware of any Rust type attached
-/// to the head of the [`ZendObject`]. It is possible to convert from a [`ClassObject`] to this type.
-pub struct OwnedZendObject(NonNull<ZendObject>);
-
-impl OwnedZendObject {
-    /// Creates a new [`ZendObject`], returned inside an [`OwnedZendObject`] wrapper.
-    ///
-    /// # Parameters
-    ///
-    /// * `ce` - The type of class the new object should be an instance of.
-    ///
-    /// # Panics
-    ///
-    /// Panics when allocating memory for the new object fails.
-    pub fn new(ce: &ClassEntry) -> Self {
-        // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to `*mut` is valid
-        // as the function will not mutate `ce`.
-        let ptr = unsafe { zend_objects_new(ce as *const _ as *mut _) };
-        Self(NonNull::new(ptr).expect("Failed to allocate Zend object"))
-    }
-
-    /// Creates a new `stdClass` instance, returned inside an [`OwnedZendObject`] wrapper.
-    ///
-    /// # Panics
-    ///
-    /// Panics if allocating memory for the object fails, or if the `stdClass` class entry has not been
-    /// registered with PHP yet.
-    pub fn new_stdclass() -> Self {
-        // SAFETY: This will be `NULL` until it is initialized. `as_ref()` checks for null,
-        // so we can panic if it's null.
-        Self::new(unsafe {
-            zend_standard_class_def
-                .as_ref()
-                .expect("`stdClass` class instance not initialized yet")
-        })
-    }
-
-    /// Consumes the [`OwnedZendObject`] wrapper, returning a mutable, static reference to the
-    /// underlying [`ZendObject`].
-    ///
-    /// It is the callers responsibility to free the underlying memory that the returned reference
-    /// points to.
-    pub fn into_inner(self) -> &'static mut ZendObject {
-        let mut this = ManuallyDrop::new(self);
-        unsafe { this.0.as_mut() }
-    }
-}
-
-impl Deref for OwnedZendObject {
-    type Target = ZendObject;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.0.as_ref() }
-    }
-}
-
-impl DerefMut for OwnedZendObject {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.0.as_mut() }
-    }
-}
-
-impl Drop for OwnedZendObject {
-    fn drop(&mut self) {
-        unsafe { ext_php_rs_zend_object_release(self.0.as_ptr()) }
-    }
-}
-
-impl Debug for OwnedZendObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unsafe { self.0.as_ref() }.fmt(f)
-    }
-}
-
-impl IntoZval for OwnedZendObject {
-    const TYPE: DataType = DataType::Object(None);
-
-    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        let obj = self.into_inner();
-
-        // We must decrement the refcounter on the object before inserting into the zval,
-        // as the reference counter will be incremented on add.
-
-        // NOTE(david): again is this needed, we increment in `set_object`.
-        obj.dec_count();
-        zv.set_object(obj);
-        Ok(())
-    }
-}
 
 pub type ZendObject = zend_object;
 pub type ZendObjectHandlers = zend_object_handlers;
@@ -152,6 +60,43 @@ pub enum PropertyQuery {
 }
 
 impl ZendObject {
+    /// Creates a new [`ZendObject`], returned inside an [`ZBox<ZendObject>`] wrapper.
+    ///
+    /// # Parameters
+    ///
+    /// * `ce` - The type of class the new object should be an instance of.
+    ///
+    /// # Panics
+    ///
+    /// Panics when allocating memory for the new object fails.
+    pub fn new(ce: &ClassEntry) -> ZBox<Self> {
+        // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to `*mut` is valid
+        // as the function will not mutate `ce`.
+        unsafe {
+            let ptr = zend_objects_new(ce as *const _ as *mut _);
+            ZBox::from_raw(
+                ptr.as_mut()
+                    .expect("Failed to allocate memory for Zend object"),
+            )
+        }
+    }
+
+    /// Creates a new `stdClass` instance, returned inside an [`ZBox<ZendObject>`] wrapper.
+    ///
+    /// # Panics
+    ///
+    /// Panics if allocating memory for the object fails, or if the `stdClass` class entry has not been
+    /// registered with PHP yet.
+    pub fn new_stdclass() -> ZBox<Self> {
+        // SAFETY: This will be `NULL` until it is initialized. `as_ref()` checks for null,
+        // so we can panic if it's null.
+        Self::new(unsafe {
+            zend_standard_class_def
+                .as_ref()
+                .expect("`stdClass` class instance not initialized yet")
+        })
+    }
+
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
         unsafe {
@@ -184,13 +129,13 @@ impl ZendObject {
             return Err(Error::InvalidProperty);
         }
 
-        let mut name = ZendString::new(name, false)?;
+        let mut name = ZendStr::new(name, false)?;
         let mut rv = Zval::new();
 
         let zv = unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.as_mut_zend_str(),
+                name.deref_mut(),
                 1,
                 std::ptr::null_mut(),
                 &mut rv,
@@ -209,13 +154,13 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<()> {
-        let mut name = ZendString::new(name, false)?;
+        let mut name = ZendStr::new(name, false)?;
         let mut value = value.into_zval(false)?;
 
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                name.as_mut_zend_str(),
+                name.deref_mut(),
                 &mut value,
                 std::ptr::null_mut(),
             )
@@ -234,12 +179,12 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `query` - The 'query' to classify if a property exists.
     pub fn has_property(&self, name: &str, query: PropertyQuery) -> Result<bool> {
-        let mut name = ZendString::new(name, false)?;
+        let mut name = ZendStr::new(name, false)?;
 
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                name.as_mut_zend_str(),
+                name.deref_mut(),
                 query as _,
                 std::ptr::null_mut(),
             )
@@ -281,11 +226,48 @@ impl ZendObject {
     }
 }
 
+unsafe impl ZBoxable for ZendObject {
+    fn free(&mut self) {
+        unsafe { ext_php_rs_zend_object_release(self) }
+    }
+}
+
+impl Debug for ZendObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut dbg = f.debug_struct(
+            self.get_class_name()
+                .unwrap_or_else(|_| "ZendObject".to_string())
+                .as_str(),
+        );
+
+        if let Ok(props) = self.get_properties() {
+            for (id, key, val) in props.iter() {
+                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
+            }
+        }
+
+        dbg.finish()
+    }
+}
+
 impl<'a> FromZval<'a> for &'a ZendObject {
     const TYPE: DataType = DataType::Object(None);
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
         zval.object()
+    }
+}
+
+impl IntoZval for ZBox<ZendObject> {
+    const TYPE: DataType = DataType::Object(None);
+
+    fn set_zval(mut self, zv: &mut Zval, _: bool) -> Result<()> {
+        // We must decrement the refcounter on the object before inserting into the zval,
+        // as the reference counter will be incremented on add.
+        // NOTE(david): again is this needed, we increment in `set_object`.
+        self.dec_count();
+        zv.set_object(self.into_raw());
+        Ok(())
     }
 }
 
@@ -309,7 +291,7 @@ pub trait FromZendObject<'a>: Sized {
 /// to determine the type of object which is produced.
 pub trait IntoZendObject {
     /// Attempts to convert `self` into a Zend object.
-    fn into_zend_object(self) -> Result<OwnedZendObject>;
+    fn into_zend_object(self) -> Result<ZBox<ZendObject>>;
 }
 
 impl FromZendObject<'_> for String {
@@ -348,24 +330,6 @@ impl FromZendObject<'_> for String {
     }
 }
 
-impl Debug for ZendObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut dbg = f.debug_struct(
-            self.get_class_name()
-                .unwrap_or_else(|_| "ZendObject".to_string())
-                .as_str(),
-        );
-
-        if let Ok(props) = self.get_properties() {
-            for (id, key, val) in props.iter() {
-                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
-            }
-        }
-
-        dbg.finish()
-    }
-}
-
 /// Wrapper struct used to return a reference to a PHP object.
 pub struct ClassRef<'a, T: RegisteredClass + 'a> {
     ptr: &'a mut ZendClassObject<T>,
@@ -388,205 +352,45 @@ impl<'a, T: RegisteredClass> IntoZval for ClassRef<'a, T> {
     }
 }
 
-/// The owned variant of [`ZendClassObject`].
-pub struct ClassObject<T>(NonNull<ZendClassObject<T>>);
-
-impl<T: RegisteredClass> ClassObject<T> {
-    /// Creates a new [`ZendObject`] of type `T`, where `T` is a [`RegisteredClass`] in PHP, storing the given
-    /// value `val` inside the object.
-    ///
-    /// # Parameters
-    ///
-    /// * `val` - The value to store inside the object.
-    ///
-    /// # Panics
-    ///
-    /// Panics if memory was unable to be allocated for the new object.
-    pub fn new(val: T) -> Self {
-        unsafe { Self::internal_new(MaybeUninit::new(val), true) }
-    }
-
-    /// Creates a new [`ZendObject`] of type `T`, with an uninitialized internal object.
-    ///
-    /// # Safety
-    ///
-    /// As the object is uninitialized, the caller must ensure the following until the internal object is
-    /// initialized:
-    ///
-    /// * The [`Drop`] implementation is never called.
-    /// * The [`Clone`] implementation is never called.
-    /// * The [`Debug`] implementation is never called.
-    /// * The object is never dereferenced to `T`.
-    ///
-    /// If any of these conditions are not met while not initialized, the corresponding function will panic.
-    /// Converting the object into its inner with the [`into_inner`] function is valid, however.
-    ///
-    /// [`into_inner`]: #method.into_inner
-    ///
-    /// # Panics
-    ///
-    /// Panics if memory was unable to be allocated for the new object.
-    pub unsafe fn new_uninit() -> Self {
-        Self::internal_new(MaybeUninit::uninit(), false)
-    }
-
-    /// Creates a new [`ZendObject`] of type `T`, storing the given (and potentially uninitialized) `val`
-    /// inside the object.
-    ///
-    /// # Parameters
-    ///
-    /// * `val` - Value to store inside the object. See safety section.
-    /// * `init` - Whether the given `val` was initialized.
-    ///
-    /// # Safety
-    ///
-    /// Providing an initialized variant of [`MaybeUninit<T>`] is safe.
-    ///
-    /// Providing an uninitalized variant of [`MaybeUninit<T>`] is unsafe. As the object is uninitialized,
-    /// the caller must ensure the following until the internal object is initialized:
-    ///
-    /// * The [`Drop`] implementation is never called.
-    /// * The [`Clone`] implementation is never called.
-    /// * The [`Debug`] implementation is never called.
-    /// * The object is never dereferenced to `T`.
-    ///
-    /// If any of these conditions are not met while not initialized, the corresponding function will panic.
-    /// Converting the object into its inner with the [`into_inner`] function is valid, however. You can initialize
-    /// the object with the [`initialize`] function.
-    ///
-    /// [`into_inner`]: #method.into_inner
-    /// [`initialize`]: #method.initialize
-    ///
-    /// # Panics
-    ///
-    /// Panics if memory was unable to be allocated for the new object.
-    unsafe fn internal_new(val: MaybeUninit<T>, init: bool) -> Self {
-        let size = mem::size_of::<ZendClassObject<T>>();
-        let meta = T::get_metadata();
-        let ce = meta.ce() as *const _ as *mut _;
-        let obj = ext_php_rs_zend_object_alloc(size as _, ce) as *mut ZendClassObject<T>;
-        let obj = obj
-            .as_mut()
-            .expect("Failed to allocate for new Zend object");
-
-        zend_object_std_init(&mut obj.std, ce);
-        object_properties_init(&mut obj.std, ce);
-
-        obj.obj = val;
-        obj.init = init;
-        obj.std.handlers = meta.handlers();
-        Self(obj.into())
-    }
-
-    /// Initializes the class object with the value `val`.
-    ///
-    /// # Parameters
-    ///
-    /// * `val` - The value to initialize the object with.
-    ///
-    /// # Returns
-    ///
-    /// Returns the old value in an [`Option`] if the object had already been initialized, [`None`]
-    /// otherwise.
-    pub fn initialize(&mut self, val: T) -> Option<T> {
-        // Instead of using the `Deref` implementation, we write a wrapper function, as calling `deref()`
-        // on an uninitialized object will panic.
-
-        // SAFETY: All constructors of `NewClassObject` guarantee that it will contain a valid pointer.
-        unsafe { self.0.as_mut() }.initialize(val)
-    }
-
-    /// Converts the [`ClassObject`] into the inner pointer, which is a pointer to [`ZendClassObject`].
-    /// The caller is responsible for freeing the returned pointer when finished.
-    pub fn into_inner(self) -> &'static mut ZendClassObject<T> {
-        let mut this = ManuallyDrop::new(self);
-        // SAFETY: All constructors of `ClassObject` guarantee that it will contain a valid pointer.
-        unsafe { this.0.as_mut() }
-    }
-
-    /// Converts the class object into an owned [`ZendObject`], removing any reference to
-    /// the embedded struct type `T`.
-    pub fn into_owned_object(self) -> OwnedZendObject {
-        let mut this = ManuallyDrop::new(self);
-        OwnedZendObject((&mut this.deref_mut().std).into())
+impl<T: RegisteredClass> From<ZBox<ZendClassObject<T>>> for ZBox<ZendObject> {
+    fn from(obj: ZBox<ZendClassObject<T>>) -> Self {
+        let mut this = ManuallyDrop::new(obj);
+        unsafe { ZBox::from_raw(&mut this.std) }
     }
 }
 
-impl<T: RegisteredClass + Default> Default for ClassObject<T> {
+impl<T: RegisteredClass + Default> Default for ZBox<ZendClassObject<T>> {
     fn default() -> Self {
-        Self::new(T::default())
+        ZendClassObject::new(T::default())
     }
 }
 
-impl<T: RegisteredClass + Clone> Clone for ClassObject<T> {
+impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
     fn clone(&self) -> Self {
-        if !self.init {
-            panic!("Attempted to clone uninitialized class object");
-        }
-
         // SAFETY: All constructors of `NewClassObject` guarantee that it will contain a valid pointer.
         // The constructor also guarantees that the internal `ZendClassObject` pointer will contain a valid,
         // initialized `obj`, therefore we can dereference both safely.
-        let mut new = Self::new(unsafe { self.0.as_ref().obj.assume_init_ref().clone() });
-        unsafe { zend_objects_clone_members(&mut new.std, &self.std as *const _ as *mut _) };
-        new
-    }
-}
-
-impl<T: Debug> Debug for ClassObject<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if !self.init {
-            panic!("Attempted to call `Debug` implementation on uninitialized class object");
+        unsafe {
+            let mut new = ZendClassObject::new((&***self).clone());
+            zend_objects_clone_members(&mut new.std, &self.std as *const _ as *mut _);
+            new
         }
-
-        // TODO(david): Implement `Debug` for `ZendClassObject`?
-        self.deref().obj.fmt(f)
     }
 }
 
-impl<T: RegisteredClass> IntoZval for ClassObject<T> {
+impl<T: RegisteredClass + Debug> Debug for ZendClassObject<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        (&**self).fmt(f)
+    }
+}
+
+impl<T: RegisteredClass> IntoZval for ZBox<ZendClassObject<T>> {
     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
-        let obj = self.into_inner();
+        let obj = self.into_raw();
         zv.set_object(&mut obj.std);
         Ok(())
-    }
-}
-
-impl<T> Deref for ClassObject<T> {
-    type Target = ZendClassObject<T>;
-
-    fn deref(&self) -> &Self::Target {
-        // SAFETY: All constructors of `ClassObject` guarantee that it will contain a valid pointer.
-        let ptr = unsafe { self.0.as_ref() };
-        if !ptr.init {
-            panic!("Attempted to access uninitialized class object");
-        }
-        ptr
-    }
-}
-
-impl<T> DerefMut for ClassObject<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        // SAFETY: All constructors of `ClassObject` guarantee that it will contain a valid pointer.
-        let ptr = unsafe { self.0.as_mut() };
-        if !ptr.init {
-            panic!("Attempted to access uninitialized class object");
-        }
-        ptr
-    }
-}
-
-impl<T> Drop for ClassObject<T> {
-    fn drop(&mut self) {
-        if !self.init {
-            panic!("Attempted to drop uninitialized class object");
-        }
-
-        // SAFETY: All constructors guarantee that `self` contains a valid pointer. Further, all constructors
-        // guarantee that the `std` field of `ZendClassObject` will be initialized.
-        unsafe { ext_php_rs_zend_object_release(&mut self.0.as_mut().std) }
     }
 }
 
@@ -667,16 +471,101 @@ where
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
 }
 
-/// Representation of a Zend class object in memory. Usually seen through its owned variant
-/// of [`ClassObject`].
+/// Representation of a Zend class object in memory.
 #[repr(C)]
 pub struct ZendClassObject<T> {
-    obj: MaybeUninit<T>,
-    init: bool,
+    obj: Option<T>,
     std: zend_object,
 }
 
 impl<T: RegisteredClass> ZendClassObject<T> {
+    /// Creates a new [`ZendClassObject`] of type `T`, where `T` is a [`RegisteredClass`] in PHP, storing the
+    /// given value `val` inside the object.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - The value to store inside the object.
+    ///
+    /// # Panics
+    ///
+    /// Panics if memory was unable to be allocated for the new object.
+    pub fn new(val: T) -> ZBox<Self> {
+        unsafe { Self::internal_new(Some(val)) }
+    }
+
+    /// Creates a new [`ZendClassObject`] of type `T`, with an uninitialized internal object.
+    ///
+    /// # Safety
+    ///
+    /// As the object is uninitialized, the caller must ensure the following until the internal object is
+    /// initialized:
+    ///
+    /// * The object is never dereferenced to `T`.
+    /// * The [`Clone`] implementation is never called.
+    /// * The [`Debug`] implementation is never called.
+    ///
+    /// If any of these conditions are not met while not initialized, the corresponding function will panic.
+    /// Converting the object into its inner pointer with the [`into_raw`] function is valid, however.
+    ///
+    /// [`into_raw`]: #method.into_raw
+    ///
+    /// # Panics
+    ///
+    /// Panics if memory was unable to be allocated for the new object.
+    pub unsafe fn new_uninit() -> ZBox<Self> {
+        Self::internal_new(None)
+    }
+
+    /// Creates a new [`ZendObject`] of type `T`, storing the given (and potentially uninitialized) `val`
+    /// inside the object.
+    ///
+    /// # Parameters
+    ///
+    /// * `val` - Value to store inside the object. See safety section.
+    /// * `init` - Whether the given `val` was initialized.
+    ///
+    /// # Safety
+    ///
+    /// Providing an initialized variant of [`MaybeUninit<T>`] is safe.
+    ///
+    /// Providing an uninitalized variant of [`MaybeUninit<T>`] is unsafe. As the object is uninitialized,
+    /// the caller must ensure the following until the internal object is initialized:
+    ///
+    /// * The object is never dereferenced to `T`.
+    /// * The [`Clone`] implementation is never called.
+    /// * The [`Debug`] implementation is never called.
+    ///
+    /// If any of these conditions are not met while not initialized, the corresponding function will panic.
+    /// Converting the object into its inner with the [`into_raw`] function is valid, however. You can initialize
+    /// the object with the [`initialize`] function.
+    ///
+    /// [`into_raw`]: #method.into_raw
+    /// [`initialize`]: #method.initialize
+    ///
+    /// # Panics
+    ///
+    /// Panics if memory was unable to be allocated for the new object.
+    unsafe fn internal_new(val: Option<T>) -> ZBox<Self> {
+        let size = mem::size_of::<ZendClassObject<T>>();
+        let meta = T::get_metadata();
+        let ce = meta.ce() as *const _ as *mut _;
+        let obj = ext_php_rs_zend_object_alloc(size as _, ce) as *mut ZendClassObject<T>;
+        let obj = obj
+            .as_mut()
+            .expect("Failed to allocate for new Zend object");
+
+        zend_object_std_init(&mut obj.std, ce);
+        object_properties_init(&mut obj.std, ce);
+
+        // SAFETY: `obj` is non-null and well aligned as it is a reference.
+        // As the data in `obj.obj` is uninitalized, we don't want to drop
+        // the data, but directly override it.
+        ptr::write(&mut obj.obj, val);
+
+        obj.std.handlers = meta.handlers();
+        ZBox::from_raw(obj)
+    }
+
     /// Initializes the class object with the value `val`.
     ///
     /// # Parameters
@@ -688,16 +577,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// Returns the old value in an [`Option`] if the object had already been initialized, [`None`]
     /// otherwise.
     pub fn initialize(&mut self, val: T) -> Option<T> {
-        let old = Some(mem::replace(&mut self.obj, MaybeUninit::new(val))).and_then(|v| {
-            if self.init {
-                Some(unsafe { v.assume_init() })
-            } else {
-                None
-            }
-        });
-        self.init = true;
-
-        old
+        self.obj.replace(val)
     }
 
     /// Returns a reference to the [`ZendClassObject`] of a given object `T`. Returns [`None`]
@@ -773,10 +653,26 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     }
 }
 
-impl<T> Drop for ZendClassObject<T> {
-    fn drop(&mut self) {
-        // SAFETY: All constructors guarantee that `obj` is valid.
-        unsafe { std::ptr::drop_in_place(self.obj.as_mut_ptr()) };
+impl<'a, T: RegisteredClass> FromZval<'a> for &'a ZendClassObject<T> {
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        Self::from_zend_object(zval.object()?).ok()
+    }
+}
+
+impl<'a, T: RegisteredClass> FromZendObject<'a> for &'a ZendClassObject<T> {
+    fn from_zend_object(obj: &'a ZendObject) -> Result<Self> {
+        // TODO(david): replace with better error
+        ZendClassObject::from_zend_obj(obj).ok_or(Error::InvalidPointer)
+    }
+}
+
+unsafe impl<T: RegisteredClass> ZBoxable for ZendClassObject<T> {
+    fn free(&mut self) {
+        // SAFETY: All constructors guarantee that `self` contains a valid pointer. Further, all constructors
+        // guarantee that the `std` field of `ZendClassObject` will be initialized.
+        unsafe { ext_php_rs_zend_object_release(&mut self.std) }
     }
 }
 
@@ -784,15 +680,17 @@ impl<T> Deref for ZendClassObject<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        // SAFETY: All constructors guarantee that `obj` is valid.
-        unsafe { self.obj.assume_init_ref() }
+        self.obj
+            .as_ref()
+            .expect("Attempted to access uninitalized class object")
     }
 }
 
 impl<T> DerefMut for ZendClassObject<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        // SAFETY: All constructors guarantee that `obj` is valid.
-        unsafe { self.obj.assume_init_mut() }
+        self.obj
+            .as_mut()
+            .expect("Attempted to access uninitalized class object")
     }
 }
 
@@ -927,10 +825,8 @@ impl ZendObjectHandlers {
             .and_then(|obj| ZendClassObject::<T>::from_zend_obj_mut(obj))
             .expect("Invalid object pointer given for `free_obj`");
 
-        // Manually drop the object as it is wrapped with `MaybeUninit`.
-        if obj.init {
-            ptr::drop_in_place(obj.obj.as_mut_ptr());
-        }
+        // Manually drop the object as we don't want to free the underlying memory.
+        ptr::drop_in_place(&mut obj.obj);
 
         zend_object_std_dtor(object)
     }
@@ -957,7 +853,7 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
-            let self_ = obj.obj.assume_init_mut();
+            let self_ = &mut **obj;
             let mut props = T::get_properties();
             let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
 
@@ -1004,7 +900,7 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
-            let self_ = obj.obj.assume_init_mut();
+            let self_ = &mut **obj;
             let mut props = T::get_properties();
             let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
             let value_mut = value.as_mut().ok_or("Invalid return zval given")?;
@@ -1039,7 +935,7 @@ impl ZendObjectHandlers {
                 .as_mut()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_mut(obj))
                 .ok_or("Invalid object pointer given")?;
-            let self_ = obj.obj.assume_init_mut();
+            let self_ = &mut **obj;
             let struct_props = T::get_properties();
 
             for (name, val) in struct_props.into_iter() {
@@ -1057,7 +953,7 @@ impl ZendObjectHandlers {
 
         let props = zend_std_get_properties(object)
             .as_mut()
-            .or_else(|| OwnedHashTable::new().into_inner().as_mut())
+            .or_else(|| Some(HashTable::new().into_raw()))
             .expect("Failed to get property hashtable");
 
         if let Err(e) = internal::<T>(object, props) {
@@ -1089,7 +985,7 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid property name pointer given")?;
             let props = T::get_properties();
             let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
-            let self_ = obj.obj.assume_init_mut();
+            let self_ = &mut **obj;
 
             match has_set_exists {
                 // * 0 (has) whether property exists and is not NULL
@@ -1147,7 +1043,7 @@ impl<'a, T: RegisteredClass> FromZendObject<'a> for &'a T {
     fn from_zend_object(obj: &'a ZendObject) -> Result<Self> {
         // TODO(david): Error is kinda wrong, should have something like `WrongObject`
         let cobj = ZendClassObject::<T>::from_zend_obj(obj).ok_or(Error::InvalidPointer)?;
-        Ok(unsafe { cobj.obj.assume_init_ref() })
+        Ok(&**cobj)
     }
 }
 
@@ -1177,8 +1073,8 @@ impl<'a, T: RegisteredClass> FromZval<'a> for &'a T {
 // }
 
 impl<T: RegisteredClass> IntoZendObject for T {
-    fn into_zend_object(self) -> Result<OwnedZendObject> {
-        Ok(ClassObject::new(self).into_owned_object())
+    fn into_zend_object(self) -> Result<ZBox<ZendObject>> {
+        Ok(ZendClassObject::new(self).into())
     }
 }
 

@@ -21,7 +21,6 @@ regex = "1"
 cc = "1.0"
 
 [features]
-alloc = []
 closure = []
 
 [workspace]

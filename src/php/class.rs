@@ -6,10 +6,10 @@ use crate::{
         exceptions::PhpException,
         execution_data::ExecutionData,
         function::FunctionBuilder,
-        types::object::{ClassObject, ConstructorMeta, ConstructorResult, ZendObject},
+        types::object::{ConstructorMeta, ConstructorResult, ZendClassObject, ZendObject},
     },
 };
-use std::{alloc::Layout, convert::TryInto, ffi::CString, fmt::Debug};
+use std::{alloc::Layout, convert::TryInto, ffi::CString, fmt::Debug, ops::DerefMut};
 
 use crate::bindings::{
     zend_class_entry, zend_declare_class_constant, zend_declare_property,
@@ -22,7 +22,7 @@ use super::{
     globals::ExecutorGlobals,
     types::{
         object::RegisteredClass,
-        string::ZendString,
+        string::ZendStr,
         zval::{IntoZval, Zval},
     },
 };
@@ -43,10 +43,10 @@ impl ClassEntry {
     /// not be found or the class table has not been initialized.
     pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
-        let mut name = ZendString::new(name, false).ok()?;
+        let mut name = ZendStr::new(name, false).ok()?;
 
         unsafe {
-            crate::bindings::zend_lookup_class_ex(name.as_mut_zend_str(), std::ptr::null_mut(), 0)
+            crate::bindings::zend_lookup_class_ex(name.deref_mut(), std::ptr::null_mut(), 0)
                 .as_ref()
         }
     }
@@ -277,8 +277,8 @@ impl ClassBuilder {
         extern "C" fn create_object<T: RegisteredClass>(_: *mut ClassEntry) -> *mut ZendObject {
             // SAFETY: After calling this function, PHP will always call the constructor defined below,
             // which assumes that the object is uninitialized.
-            let obj = unsafe { ClassObject::<T>::new_uninit() };
-            obj.into_inner().get_mut_zend_obj()
+            let obj = unsafe { ZendClassObject::<T>::new_uninit() };
+            obj.into_raw().get_mut_zend_obj()
         }
 
         extern "C" fn constructor<T: RegisteredClass>(ex: &mut ExecutionData, _: &mut Zval) {
@@ -337,7 +337,7 @@ impl ClassBuilder {
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
     pub fn build(mut self) -> Result<&'static mut ClassEntry> {
-        self.ptr.name = ZendString::new_interned(&self.name, true)?.into_inner();
+        self.ptr.name = ZendStr::new_interned(&self.name, true)?.into_raw();
 
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;

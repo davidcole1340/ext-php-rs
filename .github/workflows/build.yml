@@ -46,7 +46,7 @@ jobs:
         env:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
           EXT_PHP_RS_TEST:
-        run: cargo build --release --features alloc,closure
+        run: cargo build --release --all-features
       - name: Test guide examples
         env:
           CARGO_PKG_NAME: mdbook-tests
