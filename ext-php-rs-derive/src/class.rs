@@ -117,7 +117,11 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     state.classes.insert(ident.to_string(), class);
 
-    Ok(quote! { #input })
+    Ok(quote! {
+        #input
+
+        ::ext_php_rs::class_derives!(#ident);
+    })
 }
 
 #[derive(Debug)]

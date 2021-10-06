@@ -5,7 +5,7 @@ use std::{ffi::CString, ptr};
 use super::{
     enums::DataType,
     types::{
-        zval::{FromZval, IntoZvalDyn, Zval},
+        zval::{FromZvalMut, IntoZvalDyn, Zval},
         ZendType,
     },
 };
@@ -84,21 +84,24 @@ impl<'a> Arg<'a> {
     /// in an [`Err`] variant.
     ///
     /// As this function consumes, it cannot return a reference to the underlying zval.
-    pub fn consume<T>(self) -> Result<T, Self>
+    pub fn consume<T>(mut self) -> Result<T, Self>
     where
-        for<'b> T: FromZval<'b>,
+        for<'b> T: FromZvalMut<'b>,
     {
         self.zval
-            .as_ref()
-            .and_then(|zv| T::from_zval(zv))
+            .as_mut()
+            .and_then(|zv| T::from_zval_mut(zv))
             .ok_or(self)
     }
 
     /// Attempts to retrieve the value of the argument.
     /// This will be None until the ArgParser is used to parse
     /// the arguments.
-    pub fn val<T: FromZval<'a>>(&'a mut self) -> Option<T> {
-        self.zval.as_mut().and_then(|zv| T::from_zval(zv))
+    pub fn val<T>(&'a mut self) -> Option<T>
+    where
+        T: FromZvalMut<'a>,
+    {
+        self.zval.as_mut().and_then(|zv| T::from_zval_mut(zv))
     }
 
     /// Attempts to return a reference to the arguments internal Zval.

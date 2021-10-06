@@ -49,6 +49,8 @@ impl ExecutionData {
     /// a [`ZendClassObject`], which is an object that contains an arbitrary Rust type at the
     /// start of the object. The object will also resolve to [`None`] if the function is called
     /// inside a method that does not belong to an object with type `T`.
+    ///
+    /// [`parse_object`]: #method.parse_object
     pub fn parser_method<'a, T: RegisteredClass>(
         &'a mut self,
     ) -> (ArgParser<'a, '_>, Option<&'a mut ZendClassObject<T>>) {

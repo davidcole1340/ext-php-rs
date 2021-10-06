@@ -156,6 +156,8 @@ impl RegisteredClass for Closure {
     }
 }
 
+class_derives!(Closure);
+
 /// Implemented on types which can be used as PHP closures.
 ///
 /// Types must implement the `invoke` function which will be called when the closure is called
