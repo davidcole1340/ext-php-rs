@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.5.3
+
+- Fixed docs.rs PHP bindings file.
+
 ## Version 0.5.2
 
 - Constructors that return `Self` can now be added to classes. [#83]
