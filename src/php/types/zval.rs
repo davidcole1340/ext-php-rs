@@ -733,6 +733,35 @@ pub trait FromZval<'a>: Sized {
     fn from_zval(zval: &'a Zval) -> Option<Self>;
 }
 
+/// Allows mutable zvals to be converted into Rust types in a fallible way.
+///
+/// If `Self` does not require the zval to be mutable to be extracted, you should implement
+/// [`FromZval`] instead, as this trait is generically implemented for any type that implements
+/// [`FromZval`].
+pub trait FromZvalMut<'a>: Sized {
+    /// The corresponding type of the implemented value in PHP.
+    const TYPE: DataType;
+
+    /// Attempts to retrieve an instance of `Self` from a mutable reference to a [`Zval`].
+    ///
+    /// # Parameters
+    ///
+    /// * `zval` - Zval to get value from.
+    fn from_zval_mut(zval: &'a mut Zval) -> Option<Self>;
+}
+
+impl<'a, T> FromZvalMut<'a> for T
+where
+    T: FromZval<'a>,
+{
+    const TYPE: DataType = <T as FromZval>::TYPE;
+
+    #[inline]
+    fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
+        Self::from_zval(zval)
+    }
+}
+
 impl<'a, T> FromZval<'a> for Option<T>
 where
     T: FromZval<'a>,

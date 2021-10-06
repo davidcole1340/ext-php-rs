@@ -3,7 +3,7 @@ use quote::ToTokens;
 use std::collections::HashMap;
 
 use crate::{
-    function,
+    function::{self, ParserType},
     impl_::{parse_attribute, ParsedAttribute, PropAttrTy, RenameRule, Visibility},
 };
 use proc_macro2::{Ident, Span, TokenStream};
@@ -131,7 +131,16 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
         optional,
     );
     let (arg_definitions, is_static) = build_arg_definitions(&args);
-    let arg_parser = build_arg_parser(args.iter(), &optional, &bail)?;
+    let arg_parser = build_arg_parser(
+        args.iter(),
+        &optional,
+        &bail,
+        if is_static {
+            ParserType::StaticMethod
+        } else {
+            ParserType::Method
+        },
+    )?;
     let arg_accessors = build_arg_accessors(&args, &bail);
     let this = if is_static {
         quote! { Self:: }
@@ -225,38 +234,32 @@ fn build_args(
 fn build_arg_definitions(args: &[Arg]) -> (Vec<TokenStream>, bool) {
     let mut _static = true;
 
-    (args.iter()
-        .map(|ty| match ty {
-            Arg::Receiver(mutability) => {
-                let mutability = mutability.then(|| quote! { mut });
-                _static = false;
+    (
+        args.iter()
+            .filter_map(|ty| match ty {
+                Arg::Receiver(_) => {
+                    _static = false;
 
-                quote! {
-                    // SAFETY: We are calling this on an execution data from a class method.
-                    let #mutability this = match unsafe { ex.get_object::<Self>() } {
-                        Some(this) => this,
-                        None => return ::ext_php_rs::php::exceptions::throw(
-                            ::ext_php_rs::php::class::ClassEntry::exception(),
-                            "Failed to retrieve reference to object function was called on."
-                        ).expect("Failed to throw exception: Failed to retrieve reference to object function was called on."),
-                    };
+                    None
                 }
-            }
-            Arg::Typed(arg) => {
-                let ident = arg.get_name_ident();
-                let definition = arg.get_arg_definition();
-                quote! {
-                    let mut #ident = #definition;
+                Arg::Typed(arg) => {
+                    let ident = arg.get_name_ident();
+                    let definition = arg.get_arg_definition();
+                    Some(quote! {
+                        let mut #ident = #definition;
+                    })
                 }
-            },
-        })
-        .collect(), _static)
+            })
+            .collect(),
+        _static,
+    )
 }
 
 fn build_arg_parser<'a>(
     args: impl Iterator<Item = &'a Arg>,
     optional: &Option<String>,
     ret: &TokenStream,
+    ty: ParserType,
 ) -> Result<TokenStream> {
     function::build_arg_parser(
         args.filter_map(|arg| match arg {
@@ -265,6 +268,7 @@ fn build_arg_parser<'a>(
         }),
         optional,
         ret,
+        ty,
     )
 }
 

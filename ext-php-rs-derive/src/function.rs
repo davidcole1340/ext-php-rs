@@ -56,7 +56,12 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
     let args = build_args(inputs, &attr_args.defaults)?;
     let optional = find_optional_parameter(args.iter(), attr_args.optional);
     let arg_definitions = build_arg_definitions(&args);
-    let arg_parser = build_arg_parser(args.iter(), &optional, &quote! { return; })?;
+    let arg_parser = build_arg_parser(
+        args.iter(),
+        &optional,
+        &quote! { return; },
+        ParserType::Function,
+    )?;
     let arg_accessors = build_arg_accessors(&args);
 
     let return_type = get_return_type(output)?;
@@ -154,26 +159,29 @@ pub fn find_optional_parameter<'a>(
     optional
 }
 
+pub enum ParserType {
+    Function,
+    Method,
+    StaticMethod,
+}
+
 pub fn build_arg_parser<'a>(
     args: impl Iterator<Item = &'a Arg>,
     optional: &Option<String>,
     ret: &TokenStream,
+    ty: ParserType,
 ) -> Result<TokenStream> {
     let mut rest_optional = false;
 
     let args = args
         .map(|arg| {
             let name = arg.get_name_ident();
-            let prelude = if let Some(optional) = optional {
-                if *optional == arg.name {
-                    rest_optional = true;
-                    quote! { .not_required() }
-                } else {
-                    quote! {}
-                }
+            let prelude = optional.as_ref().and_then(|opt| if *opt == arg.name {
+                rest_optional = true;
+                Some(quote! { .not_required() })
             } else {
-                quote! {}
-            };
+                None
+            });
 
             if rest_optional && !arg.nullable && arg.default.is_none() {
                 bail!(
@@ -188,15 +196,37 @@ pub fn build_arg_parser<'a>(
             }
         })
         .collect::<Result<Vec<_>>>()?;
+    let (parser, this) = match ty {
+        ParserType::Function | ParserType::StaticMethod => {
+            (quote! { let parser = ex.parser(); }, None)
+        }
+        ParserType::Method => (
+            quote! { let (parser, this) = ex.parser_method::<Self>(); },
+            Some(quote! {
+                let this = match this {
+                    Some(this) => this,
+                    None => {
+                        ::ext_php_rs::php::exceptions::PhpException::default("Failed to retrieve reference to `$this`".into())
+                            .throw()
+                            .unwrap();
+                        return;
+                    },
+                };
+            }),
+        ),
+    };
 
     Ok(quote! {
-        let parser = ::ext_php_rs::php::args::ArgParser::new(ex)
+        #parser
+        let parser = parser
             #(#args)*
             .parse();
 
         if parser.is_err() {
             #ret
         }
+
+        #this
     })
 }
 

@@ -7,7 +7,7 @@ use std::{
     ffi::c_void,
     fmt::Debug,
     marker::PhantomData,
-    mem::{self, ManuallyDrop, MaybeUninit},
+    mem::{self, MaybeUninit},
     ops::{Deref, DerefMut},
     os::raw::c_int,
     ptr::{self, NonNull},
@@ -41,7 +41,7 @@ use super::{
     props::Property,
     rc::PhpRc,
     string::ZendStr,
-    zval::{FromZval, IntoZval, Zval},
+    zval::{FromZval, FromZvalMut, IntoZval, Zval},
 };
 
 pub type ZendObject = zend_object;
@@ -95,6 +95,14 @@ impl ZendObject {
                 .as_ref()
                 .expect("`stdClass` class instance not initialized yet")
         })
+    }
+
+    /// Converts the class object into an owned [`ZendObject`]. This removes any possibility of
+    /// accessing the underlying attached Rust struct.
+    pub fn from_class_object<T: RegisteredClass>(obj: ZBox<ZendClassObject<T>>) -> ZBox<Self> {
+        let this = obj.into_raw();
+        // SAFETY: Consumed box must produce a well-aligned non-null pointer.
+        unsafe { ZBox::from_raw(&mut this.std) }
     }
 
     /// Attempts to retrieve the class name of the object.
@@ -287,6 +295,16 @@ pub trait FromZendObject<'a>: Sized {
     fn from_zend_object(obj: &'a ZendObject) -> Result<Self>;
 }
 
+/// Implemented on types which can be extracted from a mutable zend object.
+///
+/// If `Self` does not require the object to be mutable, it should implement
+/// [`FromZendObject`] instead, as this trait is generically implemented for
+/// any types that also implement [`FromZendObject`].
+pub trait FromZendObjectMut<'a>: Sized {
+    /// Extracts `Self` from the source `ZendObject`.
+    fn from_zend_object_mut(obj: &'a mut ZendObject) -> Result<Self>;
+}
+
 /// Implemented on types which can be converted into a Zend object. It is up to the implementation
 /// to determine the type of object which is produced.
 pub trait IntoZendObject {
@@ -346,6 +364,7 @@ impl<'a, T: RegisteredClass> ClassRef<'a, T> {
 impl<'a, T: RegisteredClass> IntoZval for ClassRef<'a, T> {
     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
+    #[inline]
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         zv.set_object(&mut self.ptr.std);
         Ok(())
@@ -353,13 +372,14 @@ impl<'a, T: RegisteredClass> IntoZval for ClassRef<'a, T> {
 }
 
 impl<T: RegisteredClass> From<ZBox<ZendClassObject<T>>> for ZBox<ZendObject> {
+    #[inline]
     fn from(obj: ZBox<ZendClassObject<T>>) -> Self {
-        let mut this = ManuallyDrop::new(obj);
-        unsafe { ZBox::from_raw(&mut this.std) }
+        ZendObject::from_class_object(obj)
     }
 }
 
 impl<T: RegisteredClass + Default> Default for ZBox<ZendClassObject<T>> {
+    #[inline]
     fn default() -> Self {
         ZendClassObject::new(T::default())
     }
@@ -664,7 +684,21 @@ impl<'a, T: RegisteredClass> FromZval<'a> for &'a ZendClassObject<T> {
 impl<'a, T: RegisteredClass> FromZendObject<'a> for &'a ZendClassObject<T> {
     fn from_zend_object(obj: &'a ZendObject) -> Result<Self> {
         // TODO(david): replace with better error
-        ZendClassObject::from_zend_obj(obj).ok_or(Error::InvalidPointer)
+        ZendClassObject::from_zend_obj(obj).ok_or(Error::InvalidScope)
+    }
+}
+
+impl<'a, T: RegisteredClass> FromZvalMut<'a> for &'a mut ZendClassObject<T> {
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
+
+    fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
+        Self::from_zend_object_mut(zval.object_mut()?).ok()
+    }
+}
+
+impl<'a, T: RegisteredClass> FromZendObjectMut<'a> for &'a mut ZendClassObject<T> {
+    fn from_zend_object_mut(obj: &'a mut ZendObject) -> Result<Self> {
+        ZendClassObject::from_zend_obj_mut(obj).ok_or(Error::InvalidScope)
     }
 }
 
@@ -1036,52 +1070,5 @@ impl ZendObjectHandlers {
                 0
             }
         }
-    }
-}
-
-impl<'a, T: RegisteredClass> FromZendObject<'a> for &'a T {
-    fn from_zend_object(obj: &'a ZendObject) -> Result<Self> {
-        // TODO(david): Error is kinda wrong, should have something like `WrongObject`
-        let cobj = ZendClassObject::<T>::from_zend_obj(obj).ok_or(Error::InvalidPointer)?;
-        Ok(&**cobj)
-    }
-}
-
-impl<'a, T: RegisteredClass> FromZval<'a> for &'a T {
-    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
-
-    fn from_zval(zval: &'a Zval) -> Option<Self> {
-        Self::from_zend_object(zval.object()?).ok()
-    }
-}
-
-// TODO(david): Need something like `FromZendObjectMut` and `FromZvalMut`
-// impl<'a, T: RegisteredClass> FromZendObject<'a> for &'a mut T {
-//     fn from_zend_object(obj: &'a ZendObject) -> Result<Self> {
-//         // TODO(david): Error is kinda wrong, should have something like `WrongObject`
-//         let cobj = ZendClassObject::<T>::from_zend_obj_mut(obj).ok_or(Error::InvalidPointer)?;
-//         Ok(unsafe { cobj.obj.assume_init_mut() })
-//     }
-// }
-//
-// impl<'a, T: RegisteredClass> FromZval<'a> for &'a mut T {
-//     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
-
-//     fn from_zval(zval: &'a Zval) -> Option<Self> {
-//         Self::from_zend_object(zval.object()?).ok()
-//     }
-// }
-
-impl<T: RegisteredClass> IntoZendObject for T {
-    fn into_zend_object(self) -> Result<ZBox<ZendObject>> {
-        Ok(ZendClassObject::new(self).into())
-    }
-}
-
-impl<T: RegisteredClass> IntoZval for T {
-    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
-
-    fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
-        self.into_zend_object()?.set_zval(zv, persistent)
     }
 }
