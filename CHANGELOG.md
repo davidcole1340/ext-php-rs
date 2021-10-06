@@ -1,12 +1,29 @@
 # Changelog
 
+## Version 0.5.2
+
 - Constructors that return `Self` can now be added to classes. [#83]
   - `Default` is no longer required to be implemented on classes, however, a
     constructor must be specified if you want to construct the class from PHP.
   - Constructors can return `Self` or `Result<Self, E>`, where
     `E: Into<PhpException>`.
+- Added `FromZendObject` and `IntoZendObject` traits. [#74]
+- Added `#[derive(ZvalConvert)]` derive macro. Derives `IntoZval` and `FromZval`
+  on arbitrary structs and enums. [#78]
+- Added `ZBox<T>`, similar to `Box<T>`, to allocate on the Zend heap. [#94]
+- Changed execution data functions to take mutable references. [#100]
+- `&mut T` is now valid as a function parameter. [#100]
 
+Thanks to the contributors for this release:
+
+- @davidcole1340
+- @vodik
+
+[#74]: https://github.com/davidcole1340/ext-php-rs/pull/74
+[#78]: https://github.com/davidcole1340/ext-php-rs/pull/78
 [#83]: https://github.com/davidcole1340/ext-php-rs/pull/83
+[#94]: https://github.com/davidcole1340/ext-php-rs/pull/94
+[#100]: https://github.com/davidcole1340/ext-php-rs/pull/100
 
 ## Version 0.5.1
 
