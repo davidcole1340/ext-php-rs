@@ -73,7 +73,7 @@ impl ModuleBuilder {
                 #[cfg(not(php_zts))]
                 globals_ptr: ptr::null::<c_void>() as *mut c_void,
                 #[cfg(php_zts)]
-                globals_id_ptr: ptr::null::<c_void>() as *mut crate::bindings::ts_rsrc_id,
+                globals_id_ptr: ptr::null::<c_void>() as *mut crate::ffi::ts_rsrc_id,
                 globals_ctor: None,
                 globals_dtor: None,
                 post_deactivate_func: None,
