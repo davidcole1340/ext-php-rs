@@ -85,8 +85,6 @@ easily), structs have to be hard coded in.
 
 Check out one of the example projects:
 
-- [ext-skel](example/skel) - Testbed for testing the library. Check out previous
-  commits as well to see what else is possible.
 - [anonaddy-sequoia](https://gitlab.com/willbrowning/anonaddy-sequoia) - Sequoia
   encryption PHP extension.
 - [opus-php](https://github.com/davidcole1340/opus-php/tree/rewrite_rs) -
