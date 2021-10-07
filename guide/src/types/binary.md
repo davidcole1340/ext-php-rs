@@ -23,8 +23,9 @@ f32, f64).
 
 ```rust
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
-# use ext_php_rs::php::types::binary::Binary;
+use ext_php_rs::prelude::*;
+use ext_php_rs::binary::Binary;
+
 #[php_function]
 pub fn test_binary(input: Binary<u32>) -> Binary<u32> {
     for i in input.iter() {

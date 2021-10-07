@@ -1,6 +1,6 @@
 #![doc(hidden)]
 
-use ext_php_rs::php::alloc;
+use ext_php_rs::alloc;
 use std::alloc::GlobalAlloc;
 
 /// Global allocator which uses the Zend memory management APIs to allocate memory.

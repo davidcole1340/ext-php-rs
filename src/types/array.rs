@@ -28,6 +28,9 @@ use crate::{
 /// PHP array, which is represented in memory as a hashtable.
 pub type HashTable = crate::ffi::HashTable;
 
+// Clippy complains about there being no `is_empty` function when implementing on the alias `ZendStr` :(
+// <https://github.com/rust-lang/rust-clippy/issues/7702>
+#[allow(clippy::len_without_is_empty)]
 impl HashTable {
     /// Creates a new, empty, PHP associative array.
     pub fn new() -> ZBox<Self> {

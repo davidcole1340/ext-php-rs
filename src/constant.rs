@@ -26,7 +26,7 @@ pub trait IntoConst: Sized {
     /// # Examples
     ///
     /// ```no_run
-    /// use ext_php_rs::php::{constants::IntoConst, flags::ZendResult};
+    /// use ext_php_rs::constant::IntoConst;
     ///
     /// pub extern "C" fn startup_function(_type: i32, module_number: i32) -> i32 {
     ///     5.register_constant("MY_CONST_NAME", module_number); // MY_CONST_NAME == 5
@@ -60,7 +60,7 @@ pub trait IntoConst: Sized {
     /// # Examples
     ///
     /// ```no_run
-    /// use ext_php_rs::php::{constants::IntoConst, flags::{GlobalConstantFlags, ZendResult}};
+    /// use ext_php_rs::{constant::IntoConst, flags::GlobalConstantFlags};
     ///
     /// pub extern "C" fn startup_function(_type: i32, module_number: i32) -> i32 {
     ///     42.register_constant_flags("MY_CONST_NAME", module_number, GlobalConstantFlags::Persistent | GlobalConstantFlags::Deprecated);

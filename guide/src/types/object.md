@@ -4,13 +4,13 @@ Objects can be returned from functions as instances or references. You can only
 return a reference when you are returning an immutable reference to the object
 the method is implemented on.
 
-| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type      | PHP representation               |
-| ------------- | -------------- | --------------- | --------------------- | -------------------------------- |
-| No            | No             | Yes             | Yes, as `ClassRef<T>` | A Rust struct and a Zend object. |
+| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation               |
+| ------------- | -------------- | --------------- | ---------------- | -------------------------------- |
+| No            | No             | Yes             | No - planned     | A Rust struct and a Zend object. |
 
 ## Examples
 
-### Returning a reference to `self`
+<!-- ### Returning a reference to `self`
 
 ```rust
 # extern crate ext_php_rs;
@@ -35,7 +35,7 @@ impl Example {
 # pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 #     module
 # }
-```
+``` -->
 
 ### Creating a new class instance
 

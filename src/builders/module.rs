@@ -14,7 +14,8 @@ use std::{
 ///
 /// ```
 /// use ext_php_rs::{
-///     php::module::{ModuleEntry, ModuleBuilder},
+///     builders::ModuleBuilder,
+///     zend::ModuleEntry,
 ///     info_table_start, info_table_end, info_table_row
 /// };
 ///

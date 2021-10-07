@@ -99,7 +99,7 @@ pub use ext_php_rs_derive::php_const;
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
-/// # use ext_php_rs::php::types::zval::Zval;
+/// # use ext_php_rs::types::Zval;
 /// #[php_extern]
 /// extern "C" {
 ///     fn strpos(haystack: &str, needle: &str, offset: Option<i64>) -> Zval;
@@ -156,7 +156,7 @@ pub use ext_php_rs_derive::php_extern;
 /// PHP. The first example function would be converted into a function which looks like so:
 ///
 /// ```no_run
-/// # use ext_php_rs::{prelude::*, php::{exceptions::PhpException, execution_data::ExecutionData, types::zval::{FromZval, IntoZval, Zval}, args::{Arg, ArgParser}}};
+/// # use ext_php_rs::{prelude::*, exception::PhpException, zend::ExecutionData, convert::{FromZval, IntoZval}, types::Zval, args::{Arg, ArgParser}};
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
 /// }
@@ -431,11 +431,11 @@ pub use ext_php_rs_derive::php_module;
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
-/// use ext_php_rs::php::exceptions::PhpException;
-/// use ext_php_rs::php::class::ClassEntry;
+/// use ext_php_rs::exception::PhpException;
+/// use ext_php_rs::zend::ce;
 ///
 /// #[php_class(name = "Redis\\Exception\\RedisException")]
-/// #[extends(ClassEntry::exception())]
+/// #[extends(ce::exception())]
 /// pub struct Example;
 ///
 /// #[php_function]

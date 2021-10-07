@@ -21,14 +21,14 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let func = quote! {
         #[doc(hidden)]
         pub extern "C" fn #ident(ty: i32, module_number: i32) -> i32 {
-            use ::ext_php_rs::php::constants::IntoConst;
-            use ::ext_php_rs::php::flags::PropertyFlags;
+            use ::ext_php_rs::constant::IntoConst;
+            use ::ext_php_rs::flags::PropertyFlags;
 
             fn internal() {
                 #(#stmts)*
             }
 
-            ::ext_php_rs::php::module::ext_php_rs_startup();
+            ::ext_php_rs::internal::ext_php_rs_startup();
 
             #(#classes)*
             #(#constants)*
@@ -116,7 +116,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
             //     .collect::<Result<Vec<_>>>()?;
 
             Ok(quote! {{
-                let class = ::ext_php_rs::php::class::ClassBuilder::new(#class_name)
+                let class = ::ext_php_rs::builders::ClassBuilder::new(#class_name)
                     #(#methods)*
                     #(#constants)*
                     #(#interfaces)*

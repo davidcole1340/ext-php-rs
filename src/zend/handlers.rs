@@ -43,7 +43,7 @@ impl ZendObjectHandlers {
             .expect("Invalid object pointer given for `free_obj`");
 
         // Manually drop the object as we don't want to free the underlying memory.
-        ptr::drop_in_place(&mut **obj);
+        ptr::drop_in_place(&mut obj.obj);
 
         zend_object_std_dtor(object)
     }

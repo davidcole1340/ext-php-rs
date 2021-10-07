@@ -60,12 +60,12 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
 
         #[doc(hidden)]
         #[no_mangle]
-        pub extern "C" fn get_module() -> *mut ::ext_php_rs::php::module::ModuleEntry {
+        pub extern "C" fn get_module() -> *mut ::ext_php_rs::zend::ModuleEntry {
             fn internal(#inputs) #output {
                 #(#stmts)*
             }
 
-            let mut builder = ::ext_php_rs::php::module::ModuleBuilder::new(
+            let mut builder = ::ext_php_rs::builders::ModuleBuilder::new(
                 env!("CARGO_PKG_NAME"),
                 env!("CARGO_PKG_VERSION")
             )
@@ -98,10 +98,10 @@ pub fn generate_registered_class_impl(class: &Class) -> Result<TokenStream> {
         let func = Ident::new(&constructor.ident, Span::call_site());
         let args = constructor.get_arg_definitions();
         quote! {
-            Some(::ext_php_rs::php::types::object::ConstructorMeta {
+            Some(::ext_php_rs::class::ConstructorMeta {
                 constructor: Self::#func,
                 build_fn: {
-                    use ext_php_rs::php::function::FunctionBuilder;
+                    use ::ext_php_rs::builders::FunctionBuilder;
                     fn build_fn(func: FunctionBuilder) -> FunctionBuilder {
                         func
                         #(#args)*
@@ -115,19 +115,19 @@ pub fn generate_registered_class_impl(class: &Class) -> Result<TokenStream> {
     };
 
     Ok(quote! {
-        static #meta: ::ext_php_rs::php::types::object::ClassMetadata<#self_ty> = ::ext_php_rs::php::types::object::ClassMetadata::new();
+        static #meta: ::ext_php_rs::class::ClassMetadata<#self_ty> = ::ext_php_rs::class::ClassMetadata::new();
 
-        impl ::ext_php_rs::php::types::object::RegisteredClass for #self_ty {
+        impl ::ext_php_rs::class::RegisteredClass for #self_ty {
             const CLASS_NAME: &'static str = #class_name;
             const CONSTRUCTOR: ::std::option::Option<
-                ::ext_php_rs::php::types::object::ConstructorMeta<Self>
+                ::ext_php_rs::class::ConstructorMeta<Self>
             > = #constructor;
 
-            fn get_metadata() -> &'static ::ext_php_rs::php::types::object::ClassMetadata<Self> {
+            fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
                 &#meta
             }
 
-            fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::php::types::props::Property<'a, Self>> {
+            fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::props::Property<'a, Self>> {
                 use ::std::iter::FromIterator;
 
                 ::std::collections::HashMap::from_iter([

@@ -90,9 +90,9 @@ impl From<&str> for PhpException {
 /// # Examples
 ///
 /// ```no_run
-/// use ext_php_rs::php::{class::ClassEntry, exceptions::throw};
+/// use ext_php_rs::{zend::{ce, ClassEntry}, exception::throw};
 ///
-/// throw(ClassEntry::compile_error(), "This is a CompileError.");
+/// throw(ce::compile_error(), "This is a CompileError.");
 /// ```
 pub fn throw(ex: &ClassEntry, message: &str) -> Result<()> {
     throw_with_code(ex, 0, message)
@@ -112,9 +112,9 @@ pub fn throw(ex: &ClassEntry, message: &str) -> Result<()> {
 /// # Examples
 ///
 /// ```no_run
-/// use ext_php_rs::php::{class::ClassEntry, exceptions::throw_with_code};
+/// use ext_php_rs::{zend::{ce, ClassEntry}, exception::throw_with_code};
 ///
-/// throw_with_code(ClassEntry::compile_error(), 123, "This is a CompileError.");
+/// throw_with_code(ce::compile_error(), 123, "This is a CompileError.");
 /// ```
 pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> {
     let flags = ex.flags();

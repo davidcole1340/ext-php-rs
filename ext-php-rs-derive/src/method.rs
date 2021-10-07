@@ -154,10 +154,10 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
 
             #[doc(hidden)]
             pub fn #internal_ident(
-                ex: &mut ::ext_php_rs::php::execution_data::ExecutionData
-            ) -> ::ext_php_rs::php::types::object::ConstructorResult<Self> {
-                use ::ext_php_rs::php::types::zval::IntoZval;
-                use ::ext_php_rs::php::types::object::ConstructorResult;
+                ex: &mut ::ext_php_rs::zend::ExecutionData
+            ) -> ::ext_php_rs::class::ConstructorResult<Self> {
+                use ::ext_php_rs::convert::IntoZval;
+                use ::ext_php_rs::class::ConstructorResult;
 
                 #(#arg_definitions)*
                 #arg_parser
@@ -171,10 +171,10 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
 
             #[doc(hidden)]
             pub extern "C" fn #internal_ident(
-                ex: &mut ::ext_php_rs::php::execution_data::ExecutionData,
-                retval: &mut ::ext_php_rs::php::types::zval::Zval
+                ex: &mut ::ext_php_rs::zend::ExecutionData,
+                retval: &mut ::ext_php_rs::types::Zval
             ) {
-                use ::ext_php_rs::php::types::zval::IntoZval;
+                use ::ext_php_rs::convert::IntoZval;
 
                 #(#arg_definitions)*
                 #arg_parser
@@ -182,7 +182,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
                 let result = #this #ident(#(#arg_accessors, )*);
 
                 if let Err(e) = result.set_zval(retval, false) {
-                    let e: ::ext_php_rs::php::exceptions::PhpException = e.into();
+                    let e: ::ext_php_rs::exception::PhpException = e.into();
                     e.throw().expect("Failed to throw exception");
                 }
             }
@@ -313,12 +313,12 @@ impl Method {
 
             // TODO allow reference returns?
             quote! {
-                .returns(<#ty as ::ext_php_rs::php::types::zval::IntoZval>::TYPE, false, #nullable)
+                .returns(<#ty as ::ext_php_rs::convert::IntoZval>::TYPE, false, #nullable)
             }
         });
 
         quote! {
-            ::ext_php_rs::php::function::FunctionBuilder::new(#name, #class_path :: #name_ident)
+            ::ext_php_rs::builders::FunctionBuilder::new(#name, #class_path :: #name_ident)
                 #(#args)*
                 #output
                 .build()
@@ -338,7 +338,7 @@ impl Method {
 
         flags
             .iter()
-            .map(|flag| quote! { ::ext_php_rs::php::flags::MethodFlags::#flag })
+            .map(|flag| quote! { ::ext_php_rs::flags::MethodFlags::#flag })
             .collect::<Punctuated<TokenStream, Token![|]>>()
             .to_token_stream()
     }

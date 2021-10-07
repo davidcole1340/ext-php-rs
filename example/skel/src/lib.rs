@@ -22,6 +22,10 @@ impl Default for TestClass {
 
 #[php_impl]
 impl TestClass {
+    fn __construct() -> Self {
+        Self::default()
+    }
+
     #[getter]
     fn get_test_name(&self) -> String {
         self.c.clone()

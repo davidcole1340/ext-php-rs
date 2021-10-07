@@ -7,7 +7,7 @@
 #[macro_export]
 macro_rules! info_table_start {
     () => {
-        unsafe { $crate::bindings::php_info_print_table_start() };
+        unsafe { $crate::ffi::php_info_print_table_start() };
     };
 }
 
@@ -15,7 +15,7 @@ macro_rules! info_table_start {
 #[macro_export]
 macro_rules! info_table_end {
     () => {
-        unsafe { $crate::bindings::php_info_print_table_end() }
+        unsafe { $crate::ffi::php_info_print_table_end() }
     };
 }
 
@@ -37,7 +37,7 @@ macro_rules! info_table_row {
 macro_rules! _info_table_row {
     ($fn: ident, $($element: expr),*) => {
         unsafe {
-            $crate::bindings::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $(::std::ffi::CString::new($element).unwrap().as_ptr()),*);
+            $crate::ffi::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $(::std::ffi::CString::new($element).unwrap().as_ptr()),*);
         }
     };
 
@@ -79,8 +79,11 @@ macro_rules! call_user_func {
 /// ```
 /// # #[macro_use] extern crate ext_php_rs;
 /// use ext_php_rs::{
-///    parse_args,
-///    php::{args::Arg, enums::DataType, execution_data::ExecutionData, types::zval::Zval},
+///     parse_args,
+///     args::Arg,
+///     flags::DataType,
+///     zend::ExecutionData,
+///     types::Zval,
 /// };
 ///
 /// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
@@ -97,8 +100,11 @@ macro_rules! call_user_func {
 ///
 /// ```
 /// use ext_php_rs::{
-///    parse_args,
-///    php::{args::Arg, enums::DataType, execution_data::ExecutionData, types::zval::Zval},
+///     parse_args,
+///     args::Arg,
+///     flags::DataType,
+///     zend::ExecutionData,
+///     types::Zval,
 /// };
 ///
 /// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
@@ -121,8 +127,6 @@ macro_rules! parse_args {
     }};
 
     ($ed: expr, $($arg: expr),* ; $($opt: expr),*) => {{
-        use $crate::php::args::ArgParser;
-
         let parser = $ed.parser()
             $(.arg(&mut $arg))*
             .not_required()
@@ -143,12 +147,16 @@ macro_rules! parse_args {
 /// # Examples
 ///
 /// ```
-/// use ext_php_rs::{throw, php::{class::ClassEntry, execution_data::ExecutionData, types::zval::Zval}};
+/// use ext_php_rs::{
+///     throw,
+///     zend::{ce, ClassEntry, ExecutionData},
+///     types::Zval,
+/// };
 ///
 /// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
 ///     let something_wrong = true;
 ///     if something_wrong {
-///         throw!(ClassEntry::exception(), "Something is wrong!");
+///         throw!(ce::exception(), "Something is wrong!");
 ///     }
 ///
 ///     assert!(false); // This will not run.
@@ -157,7 +165,7 @@ macro_rules! parse_args {
 #[macro_export]
 macro_rules! throw {
     ($ex: expr, $reason: expr) => {
-        $crate::php::exceptions::throw($ex, $reason);
+        $crate::exception::throw($ex, $reason);
         return;
     };
 }
@@ -180,7 +188,7 @@ macro_rules! throw {
 /// # Examples
 ///
 /// ```
-/// # use ext_php_rs::{php::types::{zval::{Zval, IntoZval, FromZval}, object::{ZendObject, RegisteredClass}}};
+/// # use ext_php_rs::{convert::{IntoZval, FromZval}, types::{Zval, ZendObject}, class::{RegisteredClass}};
 /// use ext_php_rs::class_derives;
 ///
 /// struct Test {
@@ -191,14 +199,14 @@ macro_rules! throw {
 /// impl RegisteredClass for Test {
 ///     const CLASS_NAME: &'static str = "Test";
 ///
-///     const CONSTRUCTOR: Option<ext_php_rs::php::types::object::ConstructorMeta<Self>> = None;
+///     const CONSTRUCTOR: Option<ext_php_rs::class::ConstructorMeta<Self>> = None;
 ///
-///     fn get_metadata() -> &'static ext_php_rs::php::types::object::ClassMetadata<Self> {
+///     fn get_metadata() -> &'static ext_php_rs::class::ClassMetadata<Self> {
 ///         todo!()
 ///     }
 ///
 ///     fn get_properties<'a>(
-///     ) -> std::collections::HashMap<&'static str, ext_php_rs::php::types::props::Property<'a, Self>>
+///     ) -> std::collections::HashMap<&'static str, ext_php_rs::props::Property<'a, Self>>
 ///     {
 ///         todo!()
 ///     }

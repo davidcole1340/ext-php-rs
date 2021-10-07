@@ -57,11 +57,11 @@ it in the `Redis\Exception` namespace:
 
 ```rust
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
-use ext_php_rs::php::{class::ClassEntry, exceptions::PhpException};
+use ext_php_rs::prelude::*;
+use ext_php_rs::{exception::PhpException, zend::ce};
 
 #[php_class(name = "Redis\\Exception\\RedisException")]
-#[extends(ClassEntry::exception())]
+#[extends(ce::exception())]
 #[derive(Default)]
 pub struct RedisException;
 

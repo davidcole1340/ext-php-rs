@@ -199,7 +199,7 @@ impl Property {
             PropertyType::Field { field_name } => {
                 let field_name = Ident::new(field_name, Span::call_site());
                 quote! {
-                    (#name, ::ext_php_rs::php::types::props::Property::field(|obj: &mut Self| &mut obj.#field_name)),
+                    (#name, ::ext_php_rs::props::Property::field(|obj: &mut Self| &mut obj.#field_name)),
                 }
             }
             PropertyType::Method { getter, setter } => {
@@ -216,7 +216,7 @@ impl Property {
                     quote! { None }
                 };
                 quote! {
-                    (#name, ::ext_php_rs::php::types::props::Property::method(#getter, #setter)),
+                    (#name, ::ext_php_rs::props::Property::method(#getter, #setter)),
                 }
             }
         }
