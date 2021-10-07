@@ -12,8 +12,8 @@ const MAX_PHP_API_VER: u32 = 20200930;
 
 fn main() {
     // rerun if wrapper header is changed
-    println!("cargo:rerun-if-changed=src/wrapper/wrapper.h");
-    println!("cargo:rerun-if-changed=src/wrapper/wrapper.c");
+    println!("cargo:rerun-if-changed=src/wrapper.h");
+    println!("cargo:rerun-if-changed=src/wrapper.c");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");
 
@@ -71,7 +71,7 @@ fn main() {
 
     // Build `wrapper.c` and link to Rust.
     cc::Build::new()
-        .file("src/wrapper/wrapper.c")
+        .file("src/wrapper.c")
         .includes(
             str::replace(includes.as_ref(), "-I", "")
                 .split(' ')
@@ -80,7 +80,7 @@ fn main() {
         .compile("wrapper");
 
     let mut bindgen = bindgen::Builder::default()
-        .header("src/wrapper/wrapper.h")
+        .header("src/wrapper.h")
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .rustfmt_bindings(true)

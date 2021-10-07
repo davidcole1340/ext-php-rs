@@ -5,11 +5,47 @@
 #![allow(non_snake_case)]
 #![cfg_attr(docs, feature(doc_cfg))]
 
+pub mod alloc;
+pub mod args;
+pub mod binary;
+pub mod builders;
+pub mod convert;
+pub mod error;
+pub mod exception;
+pub mod ffi;
+pub mod flags;
 #[macro_use]
 pub mod macros;
-pub mod bindings;
-pub mod errors;
-pub mod php;
+pub mod boxed;
+pub mod class;
+#[cfg(any(docs, feature = "closure"))]
+#[cfg_attr(docs, doc(cfg(feature = "closure")))]
+pub mod closure;
+pub mod constant;
+#[doc(hidden)]
+pub mod internal;
+pub mod props;
+pub mod rc;
+pub mod types;
+pub mod zend;
+
+/// A module typically glob-imported containing the typically required macros and imports.
+pub mod prelude {
+    pub use crate::builders::ModuleBuilder;
+    #[cfg(any(docs, feature = "closure"))]
+    #[cfg_attr(docs, doc(cfg(feature = "closure")))]
+    pub use crate::closure::Closure;
+    pub use crate::exception::{PhpException, PhpResult};
+    pub use crate::php_class;
+    pub use crate::php_const;
+    pub use crate::php_extern;
+    pub use crate::php_function;
+    pub use crate::php_impl;
+    pub use crate::php_module;
+    pub use crate::php_startup;
+    pub use crate::types::Callable;
+    pub use crate::ZvalConvert;
+}
 
 /// Attribute used to annotate constants to be exported to PHP.
 ///
@@ -571,21 +607,3 @@ pub use ext_php_rs_derive::php_startup;
 /// [`Zval`]: crate::php::types::zval::Zval
 /// [`Zval::string`]: crate::php::types::zval::Zval::string
 pub use ext_php_rs_derive::ZvalConvert;
-
-/// A module typically glob-imported containing the typically required macros and imports.
-pub mod prelude {
-    pub use crate::php::exceptions::{PhpException, PhpResult};
-    pub use crate::php::module::ModuleBuilder;
-    pub use crate::php::types::callable::Callable;
-    #[cfg(any(docs, feature = "closure"))]
-    #[cfg_attr(docs, doc(cfg(feature = "closure")))]
-    pub use crate::php::types::closure::Closure;
-    pub use crate::php_class;
-    pub use crate::php_const;
-    pub use crate::php_extern;
-    pub use crate::php_function;
-    pub use crate::php_impl;
-    pub use crate::php_module;
-    pub use crate::php_startup;
-    pub use crate::ZvalConvert;
-}
