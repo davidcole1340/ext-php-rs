@@ -1,5 +1,5 @@
-//! Represents an array in PHP. As all arrays in PHP are associative arrays, they are represented
-//! by hash tables.
+//! Represents an array in PHP. As all arrays in PHP are associative arrays,
+//! they are represented by hash tables.
 
 use std::{
     collections::HashMap,
@@ -28,8 +28,8 @@ use crate::{
 /// PHP array, which is represented in memory as a hashtable.
 pub type HashTable = crate::ffi::HashTable;
 
-// Clippy complains about there being no `is_empty` function when implementing on the alias `ZendStr` :(
-// <https://github.com/rust-lang/rust-clippy/issues/7702>
+// Clippy complains about there being no `is_empty` function when implementing
+// on the alias `ZendStr` :( <https://github.com/rust-lang/rust-clippy/issues/7702>
 #[allow(clippy::len_without_is_empty)]
 impl HashTable {
     /// Creates a new, empty, PHP associative array.
@@ -76,7 +76,8 @@ impl HashTable {
     ///
     /// # Returns
     ///
-    /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash
+    ///   table.
     /// * `None` - No value at the given position was found.
     pub fn get(&self, key: &'_ str) -> Option<&Zval> {
         let str = CString::new(key).ok()?;
@@ -91,7 +92,8 @@ impl HashTable {
     ///
     /// # Returns
     ///
-    /// * `Some(&Zval)` - A reference to the zval at the position in the hash table.
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash
+    ///   table.
     /// * `None` - No value at the given position was found.
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self, key).as_ref() }
@@ -138,8 +140,8 @@ impl HashTable {
         }
     }
 
-    /// Attempts to insert an item into the hash table, or update if the key already exists.
-    /// Returns nothing in a result if successful.
+    /// Attempts to insert an item into the hash table, or update if the key
+    /// already exists. Returns nothing in a result if successful.
     ///
     /// # Parameters
     ///
@@ -162,8 +164,8 @@ impl HashTable {
         Ok(())
     }
 
-    /// Inserts an item into the hash table at a specified index, or updates if the key already exists.
-    /// Returns nothing in a result if successful.
+    /// Inserts an item into the hash table at a specified index, or updates if
+    /// the key already exists. Returns nothing in a result if successful.
     ///
     /// # Parameters
     ///
@@ -179,8 +181,8 @@ impl HashTable {
         Ok(())
     }
 
-    /// Pushes an item onto the end of the hash table. Returns a result containing nothing if the
-    /// element was sucessfully inserted.
+    /// Pushes an item onto the end of the hash table. Returns a result
+    /// containing nothing if the element was sucessfully inserted.
     ///
     /// # Parameters
     ///
@@ -196,13 +198,15 @@ impl HashTable {
         Ok(())
     }
 
-    /// Returns an iterator over the key(s) and value contained inside the hashtable.
+    /// Returns an iterator over the key(s) and value contained inside the
+    /// hashtable.
     #[inline]
     pub fn iter(&self) -> Iter {
         Iter::new(self)
     }
 
-    /// Returns an iterator over the values contained inside the hashtable, as if it was a set or list.
+    /// Returns an iterator over the values contained inside the hashtable, as
+    /// if it was a set or list.
     #[inline]
     pub fn values(&self) -> Values {
         Values::new(self)
@@ -308,7 +312,8 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
     }
 }
 
-/// Immutable iterator which iterates over the values of the hashtable, as it was a set or list.
+/// Immutable iterator which iterates over the values of the hashtable, as it
+/// was a set or list.
 pub struct Values<'a>(Iter<'a>);
 
 impl<'a> Values<'a> {
@@ -513,8 +518,8 @@ impl FromIterator<Zval> for ZBox<HashTable> {
     fn from_iter<T: IntoIterator<Item = Zval>>(iter: T) -> Self {
         let mut ht = HashTable::new();
         for item in iter.into_iter() {
-            // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
-            // fails.
+            // Inserting a zval cannot fail, as `push` only returns `Err` if converting
+            // `val` to a zval fails.
             let _ = ht.push(item);
         }
         ht
@@ -525,8 +530,8 @@ impl FromIterator<(u64, Zval)> for ZBox<HashTable> {
     fn from_iter<T: IntoIterator<Item = (u64, Zval)>>(iter: T) -> Self {
         let mut ht = HashTable::new();
         for (key, val) in iter.into_iter() {
-            // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
-            // fails.
+            // Inserting a zval cannot fail, as `push` only returns `Err` if converting
+            // `val` to a zval fails.
             let _ = ht.insert_at_index(key, val);
         }
         ht
@@ -537,8 +542,8 @@ impl<'a> FromIterator<(&'a str, Zval)> for ZBox<HashTable> {
     fn from_iter<T: IntoIterator<Item = (&'a str, Zval)>>(iter: T) -> Self {
         let mut ht = HashTable::new();
         for (key, val) in iter.into_iter() {
-            // Inserting a zval cannot fail, as `push` only returns `Err` if converting `val` to a zval
-            // fails.
+            // Inserting a zval cannot fail, as `push` only returns `Err` if converting
+            // `val` to a zval fails.
             let _ = ht.insert(key, val);
         }
         ht

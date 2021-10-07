@@ -10,18 +10,21 @@ use crate::ffi::{
 };
 
 pub trait IntoConst: Sized {
-    /// Registers a global module constant in PHP, with the value as the content of self.
-    /// This function _must_ be called in the module startup function, which is called after
-    /// the module is initialized. The second parameter of the startup function will be the
-    /// module number. By default, the case-insensitive and persistent flags are set when
+    /// Registers a global module constant in PHP, with the value as the content
+    /// of self. This function _must_ be called in the module startup
+    /// function, which is called after the module is initialized. The
+    /// second parameter of the startup function will be the module number.
+    /// By default, the case-insensitive and persistent flags are set when
     /// registering the constant.
     ///
-    /// Returns a result containing nothing if the constant was successfully registered.
+    /// Returns a result containing nothing if the constant was successfully
+    /// registered.
     ///
     /// # Parameters
     ///
     /// * `name` - The name of the constant.
-    /// * `module_number` - The module number that we are registering the constant under.
+    /// * `module_number` - The module number that we are registering the
+    ///   constant under.
     ///
     /// # Examples
     ///
@@ -42,19 +45,22 @@ pub trait IntoConst: Sized {
         )
     }
 
-    /// Registers a global module constant in PHP, with the value as the content of self.
-    /// This function _must_ be called in the module startup function, which is called after
-    /// the module is initialized. The second parameter of the startup function will be the
-    /// module number. This function allows you to pass any extra flags in if you require.
-    /// Note that the case-sensitive and persistent flags *are not* set when you use this function,
-    /// you must set these yourself.
+    /// Registers a global module constant in PHP, with the value as the content
+    /// of self. This function _must_ be called in the module startup
+    /// function, which is called after the module is initialized. The
+    /// second parameter of the startup function will be the module number.
+    /// This function allows you to pass any extra flags in if you require.
+    /// Note that the case-sensitive and persistent flags *are not* set when you
+    /// use this function, you must set these yourself.
     ///
-    /// Returns a result containing nothing if the constant was successfully registered.
+    /// Returns a result containing nothing if the constant was successfully
+    /// registered.
     ///
     /// # Parameters
     ///
     /// * `name` - The name of the constant.
-    /// * `module_number` - The module number that we are registering the constant under.
+    /// * `module_number` - The module number that we are registering the
+    ///   constant under.
     /// * `flags` - Flags to register the constant with.
     ///
     /// # Examples
@@ -127,7 +133,8 @@ impl IntoConst for bool {
     }
 }
 
-/// Implements the `IntoConst` trait for a given number type using a given function.
+/// Implements the `IntoConst` trait for a given number type using a given
+/// function.
 macro_rules! into_const_num {
     ($type: ty, $fn: expr) => {
         impl IntoConst for $type {

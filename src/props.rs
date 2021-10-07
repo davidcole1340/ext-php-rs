@@ -9,9 +9,9 @@ use crate::{
 
 /// Implemented on types which can be used as PHP properties.
 ///
-/// Generally, this should not be directly implemented on types, as it is automatically implemented on
-/// types that implement [`Clone`], [`IntoZval`] and [`FromZval`], which will be required to implement
-/// this trait regardless.
+/// Generally, this should not be directly implemented on types, as it is
+/// automatically implemented on types that implement [`Clone`], [`IntoZval`]
+/// and [`FromZval`], which will be required to implement this trait regardless.
 pub trait Prop<'a> {
     /// Gets the value of `self` by setting the value of `zv`.
     ///
@@ -45,8 +45,8 @@ impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
 /// There are two types of properties:
 ///
 /// * Field properties, where the data is stored inside a struct field.
-/// * Method properties, where getter and/or setter functions are provided, which are used to get and set
-///   the value of the property.
+/// * Method properties, where getter and/or setter functions are provided,
+///   which are used to get and set the value of the property.
 pub enum Property<'a, T> {
     Field(Box<dyn Fn(&mut T) -> &mut dyn Prop>),
     Method {
@@ -81,13 +81,15 @@ impl<'a, T: 'a> Property<'a, T> {
 
     /// Creates a method property with getters and setters.
     ///
-    /// If either the getter or setter is not given, an exception will be thrown when attempting to
-    /// retrieve/set the property.
+    /// If either the getter or setter is not given, an exception will be thrown
+    /// when attempting to retrieve/set the property.
     ///
     /// # Parameters
     ///
-    /// * `get` - Function used to get the value of the property, in an [`Option`].
-    /// * `set` - Function used to set the value of the property, in an [`Option`].
+    /// * `get` - Function used to get the value of the property, in an
+    ///   [`Option`].
+    /// * `set` - Function used to set the value of the property, in an
+    ///   [`Option`].
     ///
     /// # Examples
     ///
@@ -133,10 +135,12 @@ impl<'a, T: 'a> Property<'a, T> {
         Self::Method { get, set }
     }
 
-    /// Attempts to retrieve the value of the property from the given object `self_`.
+    /// Attempts to retrieve the value of the property from the given object
+    /// `self_`.
     ///
-    /// The value of the property, if successfully retrieved, is loaded into the given [`Zval`] `retval`. If
-    /// unsuccessful, a [`PhpException`] is returned inside the error variant of a result.
+    /// The value of the property, if successfully retrieved, is loaded into the
+    /// given [`Zval`] `retval`. If unsuccessful, a [`PhpException`] is
+    /// returned inside the error variant of a result.
     ///
     /// # Parameters
     ///
@@ -145,7 +149,8 @@ impl<'a, T: 'a> Property<'a, T> {
     ///
     /// # Returns
     ///
-    /// Nothing upon success, a [`PhpException`] inside an error variant when the property could not be retrieved.
+    /// Nothing upon success, a [`PhpException`] inside an error variant when
+    /// the property could not be retrieved.
     ///
     /// # Examples
     ///
@@ -177,10 +182,12 @@ impl<'a, T: 'a> Property<'a, T> {
         }
     }
 
-    /// Attempts to set the value of the property inside the given object `self_`.
+    /// Attempts to set the value of the property inside the given object
+    /// `self_`.
     ///
-    /// The new value of the property is supplied inside the given [`Zval`] `value`. If unsuccessful,
-    /// a [`PhpException`] is returned inside the error variant of a result.
+    /// The new value of the property is supplied inside the given [`Zval`]
+    /// `value`. If unsuccessful, a [`PhpException`] is returned inside the
+    /// error variant of a result.
     ///
     /// # Parameters
     ///
@@ -189,7 +196,8 @@ impl<'a, T: 'a> Property<'a, T> {
     ///
     /// # Returns
     ///
-    /// Nothing upon success, a [`PhpException`] inside an error variant when the property could not be set.
+    /// Nothing upon success, a [`PhpException`] inside an error variant when
+    /// the property could not be set.
     ///
     /// # Examples
     ///

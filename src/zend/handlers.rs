@@ -15,8 +15,9 @@ use crate::{
 pub type ZendObjectHandlers = zend_object_handlers;
 
 impl ZendObjectHandlers {
-    /// Initializes a given set of object handlers by copying the standard object handlers into
-    /// the memory location, as well as setting up the `T` type destructor.
+    /// Initializes a given set of object handlers by copying the standard
+    /// object handlers into the memory location, as well as setting up the
+    /// `T` type destructor.
     ///
     /// # Parameters
     ///
@@ -205,6 +206,7 @@ impl ZendObjectHandlers {
             let self_ = &mut **obj;
 
             match has_set_exists {
+                // 
                 // * 0 (has) whether property exists and is not NULL
                 0 => {
                     if let Some(val) = prop {
@@ -215,6 +217,7 @@ impl ZendObjectHandlers {
                         }
                     }
                 }
+                // 
                 // * 1 (set) whether property exists and is true
                 1 => {
                     if let Some(val) = prop {
@@ -226,6 +229,7 @@ impl ZendObjectHandlers {
                         }
                     }
                 }
+                // 
                 // * 2 (exists) whether property exists
                 2 => {
                     if prop.is_some() {

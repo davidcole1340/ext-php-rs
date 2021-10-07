@@ -1,5 +1,6 @@
-//! Represents a string in the PHP world. Similar to a C string, but is reference counted and
-//! contains the length of the string, meaning the string can contain the NUL character.
+//! Represents a string in the PHP world. Similar to a C string, but is
+//! reference counted and contains the length of the string, meaning the string
+//! can contain the NUL character.
 
 use std::{
     borrow::Cow,
@@ -29,21 +30,24 @@ use crate::{
 
 /// A borrowed Zend-string.
 ///
-/// Although this object does implement [`Sized`], it is in fact not sized. As C cannot represent unsized
-/// types, an array of size 1 is used at the end of the type to represent the contents of the string, therefore
-/// this type is actually unsized. All constructors return [`ZBox<ZendStr>`], the owned varaint.
+/// Although this object does implement [`Sized`], it is in fact not sized. As C
+/// cannot represent unsized types, an array of size 1 is used at the end of the
+/// type to represent the contents of the string, therefore this type is
+/// actually unsized. All constructors return [`ZBox<ZendStr>`], the owned
+/// varaint.
 ///
-/// Once the `ptr_metadata` feature lands in stable rust, this type can potentially be changed to a DST using
-/// slices and metadata. See the tracking issue here: <https://github.com/rust-lang/rust/issues/81513>
+/// Once the `ptr_metadata` feature lands in stable rust, this type can
+/// potentially be changed to a DST using slices and metadata. See the tracking issue here: <https://github.com/rust-lang/rust/issues/81513>
 pub type ZendStr = zend_string;
 
-// Adding to the Zend interned string hashtable is not atomic and can be contested when PHP is compiled with ZTS,
-// so an empty mutex is used to ensure no collisions occur on the Rust side. Not much we can do about collisions
+// Adding to the Zend interned string hashtable is not atomic and can be
+// contested when PHP is compiled with ZTS, so an empty mutex is used to ensure
+// no collisions occur on the Rust side. Not much we can do about collisions
 // on the PHP side.
 static INTERNED_LOCK: Mutex<RawMutexStruct, ()> = Mutex::const_new(RawMutex::INIT, ());
 
-// Clippy complains about there being no `is_empty` function when implementing on the alias `ZendStr` :(
-// <https://github.com/rust-lang/rust-clippy/issues/7702>
+// Clippy complains about there being no `is_empty` function when implementing
+// on the alias `ZendStr` :( <https://github.com/rust-lang/rust-clippy/issues/7702>
 #[allow(clippy::len_without_is_empty)]
 impl ZendStr {
     /// Creates a new Zend string from a [`str`].
@@ -51,16 +55,19 @@ impl ZendStr {
     /// # Parameters
     ///
     /// * `str` - String content.
-    /// * `persistent` - Whether the string should persist through the request boundary.
+    /// * `persistent` - Whether the string should persist through the request
+    ///   boundary.
     ///
     /// # Returns
     ///
-    /// Returns a result containing the Zend string if successful. Returns an error if the given
-    /// string contains NUL bytes, which cannot be contained inside a C string.
+    /// Returns a result containing the Zend string if successful. Returns an
+    /// error if the given string contains NUL bytes, which cannot be
+    /// contained inside a C string.
     ///
     /// # Panics
     ///
-    /// Panics if the function was unable to allocate memory for the Zend string.
+    /// Panics if the function was unable to allocate memory for the Zend
+    /// string.
     pub fn new(str: &str, persistent: bool) -> Result<ZBox<Self>> {
         Ok(Self::from_c_str(&CString::new(str)?, persistent))
     }
@@ -70,11 +77,13 @@ impl ZendStr {
     /// # Parameters
     ///
     /// * `str` - String content.
-    /// * `persistent` - Whether the string should persist through the request boundary.
+    /// * `persistent` - Whether the string should persist through the request
+    ///   boundary.
     ///
     /// # Panics
     ///
-    /// Panics if the function was unable to allocate memory for the Zend string.
+    /// Panics if the function was unable to allocate memory for the Zend
+    /// string.
     pub fn from_c_str(str: &CStr, persistent: bool) -> ZBox<Self> {
         unsafe {
             let ptr =
@@ -89,41 +98,47 @@ impl ZendStr {
 
     /// Creates a new interned Zend string from a [`str`].
     ///
-    /// An interned string is only ever stored once and is immutable. PHP stores the string in an
-    /// internal hashtable which stores the interned strings.
+    /// An interned string is only ever stored once and is immutable. PHP stores
+    /// the string in an internal hashtable which stores the interned
+    /// strings.
     ///
-    /// As Zend hashtables are not thread-safe, a mutex is used to prevent two interned strings from
-    /// being created at the same time.
+    /// As Zend hashtables are not thread-safe, a mutex is used to prevent two
+    /// interned strings from being created at the same time.
     ///
     /// # Parameters
     ///
     /// * `str` - String content.
-    /// * `persistent` - Whether the string should persist through the request boundary.
+    /// * `persistent` - Whether the string should persist through the request
+    ///   boundary.
     ///
     /// # Returns
     ///
-    /// Returns a result containing the Zend string if successful. Returns an error if the given
-    /// string contains NUL bytes, which cannot be contained inside a C string.
+    /// Returns a result containing the Zend string if successful. Returns an
+    /// error if the given string contains NUL bytes, which cannot be
+    /// contained inside a C string.
     ///
     /// # Panics
     ///
-    /// Panics if the function was unable to allocate memory for the Zend string.
+    /// Panics if the function was unable to allocate memory for the Zend
+    /// string.
     pub fn new_interned(str: &str, persistent: bool) -> Result<ZBox<Self>> {
         Ok(Self::interned_from_c_str(&CString::new(str)?, persistent))
     }
 
     /// Creates a new interned Zend string from a [`CStr`].
     ///
-    /// An interned string is only ever stored once and is immutable. PHP stores the string in an
-    /// internal hashtable which stores the interned strings.
+    /// An interned string is only ever stored once and is immutable. PHP stores
+    /// the string in an internal hashtable which stores the interned
+    /// strings.
     ///
-    /// As Zend hashtables are not thread-safe, a mutex is used to prevent two interned strings from
-    /// being created at the same time.
+    /// As Zend hashtables are not thread-safe, a mutex is used to prevent two
+    /// interned strings from being created at the same time.
     ///
     /// # Parameters
     ///
     /// * `str` - String content.
-    /// * `persistent` - Whether the string should persist through the request boundary.
+    /// * `persistent` - Whether the string should persist through the request
+    ///   boundary.
     ///
     /// # Panics
     ///
@@ -167,9 +182,11 @@ impl ZendStr {
         }
     }
 
-    /// Attempts to return a reference to the underlying [`str`] inside the Zend string.
+    /// Attempts to return a reference to the underlying [`str`] inside the Zend
+    /// string.
     ///
-    /// Returns the [`None`] variant if the [`CStr`] contains non-UTF-8 characters.
+    /// Returns the [`None`] variant if the [`CStr`] contains non-UTF-8
+    /// characters.
     pub fn as_str(&self) -> Option<&str> {
         self.as_c_str().to_str().ok()
     }

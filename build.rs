@@ -40,8 +40,8 @@ fn main() {
     }
 
     // Ensure the PHP API version is supported.
-    // We could easily use grep and sed here but eventually we want to support Windows,
-    // so it's easier to just use regex.
+    // We could easily use grep and sed here but eventually we want to support
+    // Windows, so it's easier to just use regex.
     let php_i_cmd = Command::new("php")
         .arg("-i")
         .output()
@@ -143,8 +143,9 @@ impl Configure {
     }
 }
 
-/// Array of functions/types used in `ext-php-rs` - used to allowlist when generating
-/// bindings, as we don't want to generate bindings for everything (i.e. stdlib headers).
+/// Array of functions/types used in `ext-php-rs` - used to allowlist when
+/// generating bindings, as we don't want to generate bindings for everything
+/// (i.e. stdlib headers).
 const ALLOWED_BINDINGS: &[&str] = &[
     "HashTable",
     "_Bucket",

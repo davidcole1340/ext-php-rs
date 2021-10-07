@@ -32,7 +32,8 @@ impl<'a> FunctionBuilder<'a> {
     /// # Parameters
     ///
     /// * `name` - The name of the function.
-    /// * `handler` - The handler to be called when the function is invoked from PHP.
+    /// * `handler` - The handler to be called when the function is invoked from
+    ///   PHP.
     pub fn new<T: Into<String>>(name: T, handler: FunctionHandler) -> Self {
         Self {
             name: name.into(),
@@ -58,7 +59,8 @@ impl<'a> FunctionBuilder<'a> {
     ///
     /// # Parameters
     ///
-    /// * `handler` - The handler to be called when the function is invoked from PHP.
+    /// * `handler` - The handler to be called when the function is invoked from
+    ///   PHP.
     pub fn constructor(handler: FunctionHandler) -> Self {
         Self::new("__construct", handler)
     }

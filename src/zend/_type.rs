@@ -28,17 +28,20 @@ impl ZendType {
         }
     }
 
-    /// Attempts to create a zend type for a given datatype. Returns an option containing the type.
+    /// Attempts to create a zend type for a given datatype. Returns an option
+    /// containing the type.
     ///
-    /// Returns [`None`] if the data type was a class object where the class name could not be converted
-    /// into a C string (i.e. contained NUL-bytes).
+    /// Returns [`None`] if the data type was a class object where the class
+    /// name could not be converted into a C string (i.e. contained
+    /// NUL-bytes).
     ///
     /// # Parameters
     ///
     /// * `type_` - Data type to create zend type for.
     /// * `pass_by_ref` - Whether the type should be passed by reference.
     /// * `is_variadic` - Whether the type is for a variadic argument.
-    /// * `allow_null` - Whether the type should allow null to be passed in place.
+    /// * `allow_null` - Whether the type should allow null to be passed in
+    ///   place.
     pub fn empty_from_type(
         type_: DataType,
         pass_by_ref: bool,
@@ -58,17 +61,20 @@ impl ZendType {
         }
     }
 
-    /// Attempts to create a zend type for a class object type. Returns an option containing the type if successful.
+    /// Attempts to create a zend type for a class object type. Returns an
+    /// option containing the type if successful.
     ///
-    /// Returns [`None`] if the data type was a class object where the class name could not be converted
-    /// into a C string (i.e. contained NUL-bytes).
+    /// Returns [`None`] if the data type was a class object where the class
+    /// name could not be converted into a C string (i.e. contained
+    /// NUL-bytes).
     ///
     /// # Parameters
     ///
     /// * `class_name` - Name of the class parameter.
     /// * `pass_by_ref` - Whether the type should be passed by reference.
     /// * `is_variadic` - Whether the type is for a variadic argument.
-    /// * `allow_null` - Whether the type should allow null to be passed in place.
+    /// * `allow_null` - Whether the type should allow null to be passed in
+    ///   place.
     fn empty_from_class_type(
         class_name: &str,
         pass_by_ref: bool,
@@ -94,7 +100,8 @@ impl ZendType {
     /// * `type_` - Data type to create zend type for.
     /// * `pass_by_ref` - Whether the type should be passed by reference.
     /// * `is_variadic` - Whether the type is for a variadic argument.
-    /// * `allow_null` - Whether the type should allow null to be passed in place.
+    /// * `allow_null` - Whether the type should allow null to be passed in
+    ///   place.
     ///
     /// # Panics
     ///

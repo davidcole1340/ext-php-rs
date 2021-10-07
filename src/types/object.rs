@@ -1,5 +1,5 @@
-//! Represents an object in PHP. Allows for overriding the internal object used by classes,
-//! allowing users to store Rust data inside a PHP object.
+//! Represents an object in PHP. Allows for overriding the internal object used
+//! by classes, allowing users to store Rust data inside a PHP object.
 
 use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
 
@@ -22,7 +22,8 @@ use crate::{
 pub type ZendObject = zend_object;
 
 impl ZendObject {
-    /// Creates a new [`ZendObject`], returned inside an [`ZBox<ZendObject>`] wrapper.
+    /// Creates a new [`ZendObject`], returned inside an [`ZBox<ZendObject>`]
+    /// wrapper.
     ///
     /// # Parameters
     ///
@@ -32,8 +33,8 @@ impl ZendObject {
     ///
     /// Panics when allocating memory for the new object fails.
     pub fn new(ce: &ClassEntry) -> ZBox<Self> {
-        // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to `*mut` is valid
-        // as the function will not mutate `ce`.
+        // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to
+        // `*mut` is valid as the function will not mutate `ce`.
         unsafe {
             let ptr = zend_objects_new(ce as *const _ as *mut _);
             ZBox::from_raw(
@@ -43,15 +44,16 @@ impl ZendObject {
         }
     }
 
-    /// Creates a new `stdClass` instance, returned inside an [`ZBox<ZendObject>`] wrapper.
+    /// Creates a new `stdClass` instance, returned inside an
+    /// [`ZBox<ZendObject>`] wrapper.
     ///
     /// # Panics
     ///
-    /// Panics if allocating memory for the object fails, or if the `stdClass` class entry has not been
-    /// registered with PHP yet.
+    /// Panics if allocating memory for the object fails, or if the `stdClass`
+    /// class entry has not been registered with PHP yet.
     pub fn new_stdclass() -> ZBox<Self> {
-        // SAFETY: This will be `NULL` until it is initialized. `as_ref()` checks for null,
-        // so we can panic if it's null.
+        // SAFETY: This will be `NULL` until it is initialized. `as_ref()` checks for
+        // null, so we can panic if it's null.
         Self::new(unsafe {
             zend_standard_class_def
                 .as_ref()
@@ -59,8 +61,8 @@ impl ZendObject {
         })
     }
 
-    /// Converts the class object into an owned [`ZendObject`]. This removes any possibility of
-    /// accessing the underlying attached Rust struct.
+    /// Converts the class object into an owned [`ZendObject`]. This removes any
+    /// possibility of accessing the underlying attached Rust struct.
     pub fn from_class_object<T: RegisteredClass>(obj: ZBox<ZendClassObject<T>>) -> ZBox<Self> {
         let this = obj.into_raw();
         // SAFETY: Consumed box must produce a well-aligned non-null pointer.
@@ -78,14 +80,15 @@ impl ZendObject {
         }
     }
 
-    /// Checks if the given object is an instance of a registered class with Rust
-    /// type `T`.
+    /// Checks if the given object is an instance of a registered class with
+    /// Rust type `T`.
     pub fn is_instance<T: RegisteredClass>(&self) -> bool {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
 
-    /// Attempts to read a property from the Object. Returns a result containing the
-    /// value of the property if it exists and can be read, and an [`Error`] otherwise.
+    /// Attempts to read a property from the Object. Returns a result containing
+    /// the value of the property if it exists and can be read, and an
+    /// [`Error`] otherwise.
     ///
     /// # Parameters
     ///
@@ -140,9 +143,9 @@ impl ZendObject {
         Ok(())
     }
 
-    /// Checks if a property exists on an object. Takes a property name and query parameter,
-    /// which defines what classifies if a property exists or not. See [`PropertyQuery`] for
-    /// more information.
+    /// Checks if a property exists on an object. Takes a property name and
+    /// query parameter, which defines what classifies if a property exists
+    /// or not. See [`PropertyQuery`] for more information.
     ///
     /// # Parameters
     ///
@@ -161,7 +164,8 @@ impl ZendObject {
         } > 0)
     }
 
-    /// Attempts to retrieve the properties of the object. Returned inside a Zend Hashtable.
+    /// Attempts to retrieve the properties of the object. Returned inside a
+    /// Zend Hashtable.
     pub fn get_properties(&self) -> Result<&HashTable> {
         unsafe {
             self.handlers()?
@@ -177,9 +181,9 @@ impl ZendObject {
         self.handlers.as_ref().ok_or(Error::InvalidScope)
     }
 
-    /// Returns a mutable pointer to `self`, regardless of the type of reference.
-    /// Only to be used in situations where a C function requires a mutable pointer
-    /// but does not modify the underlying data.
+    /// Returns a mutable pointer to `self`, regardless of the type of
+    /// reference. Only to be used in situations where a C function requires
+    /// a mutable pointer but does not modify the underlying data.
     #[inline]
     fn mut_ptr(&self) -> *mut Self {
         (self as *const Self) as *mut Self
@@ -232,8 +236,8 @@ impl IntoZval for ZBox<ZendObject> {
     const TYPE: DataType = DataType::Object(None);
 
     fn set_zval(mut self, zv: &mut Zval, _: bool) -> Result<()> {
-        // We must decrement the refcounter on the object before inserting into the zval,
-        // as the reference counter will be incremented on add.
+        // We must decrement the refcounter on the object before inserting into the
+        // zval, as the reference counter will be incremented on add.
         // NOTE(david): again is this needed, we increment in `set_object`.
         self.dec_count();
         zv.set_object(self.into_raw());

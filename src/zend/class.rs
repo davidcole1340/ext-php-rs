@@ -15,8 +15,8 @@ impl PartialEq for ClassEntry {
 impl ClassEntry {
     /// Attempts to find a reference to a class in the global class table.
     ///
-    /// Returns a reference to the class if found, or [`None`] if the class could
-    /// not be found or the class table has not been initialized.
+    /// Returns a reference to the class if found, or [`None`] if the class
+    /// could not be found or the class table has not been initialized.
     pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
         let mut name = ZendStr::new(name, false).ok()?;
@@ -31,7 +31,8 @@ impl ClassEntry {
         ClassFlags::from_bits_truncate(self.ce_flags)
     }
 
-    /// Returns `true` if the class entry is an interface, and `false` otherwise.
+    /// Returns `true` if the class entry is an interface, and `false`
+    /// otherwise.
     pub fn is_interface(&self) -> bool {
         self.flags().contains(ClassFlags::Interface)
     }
@@ -73,8 +74,9 @@ impl ClassEntry {
         false
     }
 
-    /// Returns an iterator of all the interfaces that the class implements. Returns [`None`] if
-    /// the interfaces have not been resolved on the class.
+    /// Returns an iterator of all the interfaces that the class implements.
+    /// Returns [`None`] if the interfaces have not been resolved on the
+    /// class.
     pub fn interfaces(&self) -> Option<impl Iterator<Item = &ClassEntry>> {
         self.flags()
             .contains(ClassFlags::ResolvedInterfaces)
@@ -88,9 +90,9 @@ impl ClassEntry {
 
     /// Returns the parent of the class.
     ///
-    /// If the parent of the class has not been resolved, it attempts to find the parent by name.
-    /// Returns [`None`] if the parent was not resolved and the parent was not able to be found
-    /// by name.
+    /// If the parent of the class has not been resolved, it attempts to find
+    /// the parent by name. Returns [`None`] if the parent was not resolved
+    /// and the parent was not able to be found by name.
     pub fn parent(&self) -> Option<&Self> {
         if self.flags().contains(ClassFlags::ResolvedParent) {
             unsafe { self.__bindgen_anon_1.parent.as_ref() }

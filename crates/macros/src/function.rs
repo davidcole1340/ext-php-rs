@@ -318,7 +318,8 @@ impl Arg {
         Ident::new(&self.name, Span::call_site())
     }
 
-    /// Returns a [`TokenStream`] containing the line required to retrieve the value from the argument.
+    /// Returns a [`TokenStream`] containing the line required to retrieve the
+    /// value from the argument.
     pub fn get_accessor(&self, ret: &TokenStream) -> TokenStream {
         let name = &self.name;
         let name_ident = self.get_name_ident();
@@ -350,7 +351,8 @@ impl Arg {
         }
     }
 
-    /// Returns a [`TokenStream`] containing the line required to instantiate the argument.
+    /// Returns a [`TokenStream`] containing the line required to instantiate
+    /// the argument.
     pub fn get_arg_definition(&self) -> TokenStream {
         let name = &self.name;
         let ty = self.get_type_ident();

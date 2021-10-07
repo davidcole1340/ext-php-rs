@@ -13,13 +13,13 @@ use crate::{
 /// Result type with the error variant as a [`PhpException`].
 pub type PhpResult<T = ()> = std::result::Result<T, PhpException>;
 
-/// Represents a PHP exception which can be thrown using the `throw()` function. Primarily used to
-/// return from a [`Result<T, PhpException>`] which can immediately be thrown by the `ext-php-rs`
-/// macro API.
+/// Represents a PHP exception which can be thrown using the `throw()` function.
+/// Primarily used to return from a [`Result<T, PhpException>`] which can
+/// immediately be thrown by the `ext-php-rs` macro API.
 ///
-/// There are default [`From`] implementations for any type that implements [`ToString`], so these
-/// can also be returned from these functions. You can also implement [`From<T>`] for your custom
-/// error type.
+/// There are default [`From`] implementations for any type that implements
+/// [`ToString`], so these can also be returned from these functions. You can
+/// also implement [`From<T>`] for your custom error type.
 #[derive(Debug)]
 pub struct PhpException {
     message: String,
@@ -39,8 +39,9 @@ impl PhpException {
         Self { message, code, ex }
     }
 
-    /// Creates a new default exception instance, using the default PHP `Exception` type as the
-    /// exception type, with an integer code of zero.
+    /// Creates a new default exception instance, using the default PHP
+    /// `Exception` type as the exception type, with an integer code of
+    /// zero.
     ///
     /// # Parameters
     ///
@@ -58,8 +59,8 @@ impl PhpException {
         Self::new(message, 0, T::get_metadata().ce())
     }
 
-    /// Throws the exception, returning nothing inside a result if successful and an error
-    /// otherwise.
+    /// Throws the exception, returning nothing inside a result if successful
+    /// and an error otherwise.
     pub fn throw(self) -> Result<()> {
         throw_with_code(self.ex, self.code, &self.message)
     }
@@ -77,8 +78,8 @@ impl From<&str> for PhpException {
     }
 }
 
-/// Throws an exception with a given message. See [`ClassEntry`] for some built-in exception
-/// types.
+/// Throws an exception with a given message. See [`ClassEntry`] for some
+/// built-in exception types.
 ///
 /// Returns a result containing nothing if the exception was successfully thown.
 ///
@@ -98,8 +99,8 @@ pub fn throw(ex: &ClassEntry, message: &str) -> Result<()> {
     throw_with_code(ex, 0, message)
 }
 
-/// Throws an exception with a given message and status code. See [`ClassEntry`] for some built-in
-/// exception types.
+/// Throws an exception with a given message and status code. See [`ClassEntry`]
+/// for some built-in exception types.
 ///
 /// Returns a result containing nothing if the exception was successfully thown.
 ///
@@ -124,8 +125,8 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
         return Err(Error::InvalidException(flags));
     }
 
-    // SAFETY: We are given a reference to a `ClassEntry` therefore when we cast it to a pointer it
-    // will be valid.
+    // SAFETY: We are given a reference to a `ClassEntry` therefore when we cast it
+    // to a pointer it will be valid.
     unsafe {
         zend_throw_exception_ex(
             (ex as *const _) as *mut _,

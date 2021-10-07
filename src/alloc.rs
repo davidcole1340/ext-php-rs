@@ -1,4 +1,5 @@
-//! Functions relating to the Zend Memory Manager, used to allocate request-bound memory.
+//! Functions relating to the Zend Memory Manager, used to allocate
+//! request-bound memory.
 
 use crate::ffi::{_efree, _emalloc};
 use std::{alloc::Layout, ffi::c_void};
@@ -28,7 +29,8 @@ pub fn emalloc(layout: Layout) -> *mut u8 {
     }) as *mut u8
 }
 
-/// Frees a given memory pointer which was allocated through the PHP memory manager.
+/// Frees a given memory pointer which was allocated through the PHP memory
+/// manager.
 ///
 /// # Parameters
 ///
@@ -36,8 +38,8 @@ pub fn emalloc(layout: Layout) -> *mut u8 {
 ///
 /// # Safety
 ///
-/// Caller must guarantee that the given pointer is valid (aligned and non-null) and
-/// was originally allocated through the Zend memory manager.
+/// Caller must guarantee that the given pointer is valid (aligned and non-null)
+/// and was originally allocated through the Zend memory manager.
 pub unsafe fn efree(ptr: *mut u8) {
     #[cfg(php_debug)]
     {

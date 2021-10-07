@@ -36,9 +36,9 @@ impl ClassBuilder {
     /// * `name` - The name of the class.
     #[allow(clippy::unwrap_used)]
     pub fn new<T: Into<String>>(name: T) -> Self {
-        // SAFETY: Allocating temporary class entry. Will return a null-ptr if allocation fails,
-        // which will cause the program to panic (standard in Rust). Unwrapping is OK - the ptr
-        // will either be valid or null.
+        // SAFETY: Allocating temporary class entry. Will return a null-ptr if
+        // allocation fails, which will cause the program to panic (standard in
+        // Rust). Unwrapping is OK - the ptr will either be valid or null.
         let ptr = unsafe {
             (std::alloc::alloc_zeroed(Layout::new::<ClassEntry>()) as *mut ClassEntry)
                 .as_mut()
@@ -97,8 +97,9 @@ impl ClassBuilder {
         self
     }
 
-    /// Adds a property to the class. The initial type of the property is given by the type
-    /// of the given default. Note that the user can change the type.
+    /// Adds a property to the class. The initial type of the property is given
+    /// by the type of the given default. Note that the user can change the
+    /// type.
     ///
     /// # Parameters
     ///
@@ -108,7 +109,8 @@ impl ClassBuilder {
     ///
     /// # Panics
     ///
-    /// Function will panic if the given `default` cannot be converted into a [`Zval`].
+    /// Function will panic if the given `default` cannot be converted into a
+    /// [`Zval`].
     pub fn property<T: Into<String>>(
         mut self,
         name: T,
@@ -124,10 +126,11 @@ impl ClassBuilder {
         self
     }
 
-    /// Adds a constant to the class. The type of the constant is defined by the type of the given
-    /// default.
+    /// Adds a constant to the class. The type of the constant is defined by the
+    /// type of the given default.
     ///
-    /// Returns a result containing the class builder if the constant was successfully added.
+    /// Returns a result containing the class builder if the constant was
+    /// successfully added.
     ///
     /// # Parameters
     ///
@@ -150,22 +153,24 @@ impl ClassBuilder {
         self
     }
 
-    /// Overrides the creation of the Zend object which will represent an instance
-    /// of this class.
+    /// Overrides the creation of the Zend object which will represent an
+    /// instance of this class.
     ///
     /// # Parameters
     ///
-    /// * `T` - The type which will override the Zend object. Must implement [`RegisteredClass`]
-    /// which can be derived using the [`php_class`](crate::php_class) attribute macro.
+    /// * `T` - The type which will override the Zend object. Must implement
+    ///   [`RegisteredClass`]
+    /// which can be derived using the [`php_class`](crate::php_class) attribute
+    /// macro.
     ///
     /// # Panics
     ///
-    /// Panics if the class name associated with `T` is not the same as the class name specified
-    /// when creating the builder.
+    /// Panics if the class name associated with `T` is not the same as the
+    /// class name specified when creating the builder.
     pub fn object_override<T: RegisteredClass>(mut self) -> Self {
         extern "C" fn create_object<T: RegisteredClass>(_: *mut ClassEntry) -> *mut ZendObject {
-            // SAFETY: After calling this function, PHP will always call the constructor defined below,
-            // which assumes that the object is uninitialized.
+            // SAFETY: After calling this function, PHP will always call the constructor
+            // defined below, which assumes that the object is uninitialized.
             let obj = unsafe { ZendClassObject::<T>::new_uninit() };
             obj.into_raw().get_mut_zend_obj()
         }
@@ -244,7 +249,8 @@ impl ClassBuilder {
             .ok_or(Error::InvalidPointer)?
         };
 
-        // SAFETY: We allocated memory for this pointer in `new`, so it is our job to free it when the builder has finished.
+        // SAFETY: We allocated memory for this pointer in `new`, so it is our job to
+        // free it when the builder has finished.
         unsafe {
             std::alloc::dealloc((self.ptr as *mut _) as *mut u8, Layout::new::<ClassEntry>())
         };

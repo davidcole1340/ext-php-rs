@@ -1,5 +1,6 @@
-//! The base value in PHP. A Zval can contain any PHP type, and the type that it contains is
-//! determined by a property inside the struct. The content of the Zval is stored in a union.
+//! The base value in PHP. A Zval can contain any PHP type, and the type that it
+//! contains is determined by a property inside the struct. The content of the
+//! Zval is stored in a union.
 
 use std::{convert::TryInto, ffi::c_void, fmt::Debug, ptr};
 
@@ -69,8 +70,9 @@ impl Zval {
 
     /// Returns the value of the zval as a zend string, if it is a string.
     ///
-    /// Note that this functions output will not be the same as [`string()`](#method.string), as
-    /// this function does not attempt to convert other types into a [`String`].
+    /// Note that this functions output will not be the same as
+    /// [`string()`](#method.string), as this function does not attempt to
+    /// convert other types into a [`String`].
     pub fn zend_str(&self) -> Option<&ZendStr> {
         if self.is_string() {
             unsafe { self.value.str_.as_ref() }
@@ -81,10 +83,11 @@ impl Zval {
 
     /// Returns the value of the zval if it is a string.
     ///
-    /// If the zval does not contain a string, the function will check if it contains a
-    /// double or a long, and if so it will convert the value to a [`String`] and return it.
-    /// Don't rely on this logic, as there is potential for this to change to match the output
-    /// of the [`str()`](#method.str) function.
+    /// If the zval does not contain a string, the function will check if it
+    /// contains a double or a long, and if so it will convert the value to
+    /// a [`String`] and return it. Don't rely on this logic, as there is
+    /// potential for this to change to match the output of the [`str()`](#
+    /// method.str) function.
     pub fn string(&self) -> Option<String> {
         self.str()
             .map(|s| s.to_string())
@@ -93,22 +96,24 @@ impl Zval {
 
     /// Returns the value of the zval if it is a string.
     ///
-    /// Note that this functions output will not be the same as [`string()`](#method.string), as
-    /// this function does not attempt to convert other types into a [`String`], as it could not
-    /// pass back a [`&str`] in those cases.
+    /// Note that this functions output will not be the same as
+    /// [`string()`](#method.string), as this function does not attempt to
+    /// convert other types into a [`String`], as it could not pass back a
+    /// [`&str`] in those cases.
     pub fn str(&self) -> Option<&str> {
         self.zend_str().and_then(|zs| zs.as_str())
     }
 
-    /// Returns the value of the zval if it is a string and can be unpacked into a vector of a
-    /// given type. Similar to the [`unpack`](https://www.php.net/manual/en/function.unpack.php)
+    /// Returns the value of the zval if it is a string and can be unpacked into
+    /// a vector of a given type. Similar to the [`unpack`](https://www.php.net/manual/en/function.unpack.php)
     /// in PHP, except you can only unpack one type.
     ///
     /// # Safety
     ///
-    /// There is no way to tell if the data stored in the string is actually of the given type.
-    /// The results of this function can also differ from platform-to-platform due to the different
-    /// representation of some types on different platforms. Consult the [`pack`] function
+    /// There is no way to tell if the data stored in the string is actually of
+    /// the given type. The results of this function can also differ from
+    /// platform-to-platform due to the different representation of some
+    /// types on different platforms. Consult the [`pack`] function
     /// documentation for more details.
     ///
     /// [`pack`]: https://www.php.net/manual/en/function.pack.php
@@ -132,7 +137,8 @@ impl Zval {
         }
     }
 
-    /// Returns an immutable reference to the underlying zval hashtable if the zval contains an array.
+    /// Returns an immutable reference to the underlying zval hashtable if the
+    /// zval contains an array.
     pub fn array(&self) -> Option<&HashTable> {
         if self.is_array() {
             unsafe { self.value.arr.as_ref() }
@@ -141,7 +147,8 @@ impl Zval {
         }
     }
 
-    /// Returns a mutable reference to the underlying zval hashtable if the zval contains an array.
+    /// Returns a mutable reference to the underlying zval hashtable if the zval
+    /// contains an array.
     pub fn array_mut(&mut self) -> Option<&mut HashTable> {
         if self.is_array() {
             unsafe { self.value.arr.as_mut() }
@@ -159,7 +166,8 @@ impl Zval {
         }
     }
 
-    /// Returns a mutable reference to the object contained in the [`Zval`], if any.
+    /// Returns a mutable reference to the object contained in the [`Zval`], if
+    /// any.
     pub fn object_mut(&mut self) -> Option<&mut ZendObject> {
         if self.is_object() {
             unsafe { self.value.obj.as_mut() }
@@ -196,8 +204,9 @@ impl Zval {
     ///
     /// # Safety
     ///
-    /// The caller must ensure that the pointer contained in the zval is in fact a pointer to an
-    /// instance of `T`, as the zval has no way of defining the type of pointer.
+    /// The caller must ensure that the pointer contained in the zval is in fact
+    /// a pointer to an instance of `T`, as the zval has no way of defining
+    /// the type of pointer.
     pub unsafe fn ptr<T>(&self) -> Option<*mut T> {
         if self.is_ptr() {
             Some(self.value.ptr as *mut T)
@@ -206,12 +215,14 @@ impl Zval {
         }
     }
 
-    /// Attempts to call the zval as a callable with a list of arguments to pass to the function.
-    /// Note that a thrown exception inside the callable is not detectable, therefore you should
-    /// check if the return value is valid rather than unwrapping. Returns a result containing the
-    /// return value of the function, or an error.
+    /// Attempts to call the zval as a callable with a list of arguments to pass
+    /// to the function. Note that a thrown exception inside the callable is
+    /// not detectable, therefore you should check if the return value is
+    /// valid rather than unwrapping. Returns a result containing the return
+    /// value of the function, or an error.
     ///
-    /// You should not call this function directly, rather through the [`call_user_func`] macro.
+    /// You should not call this function directly, rather through the
+    /// [`call_user_func`] macro.
     ///
     /// # Parameters
     ///
@@ -291,7 +302,8 @@ impl Zval {
         self.get_type() == DataType::Ptr
     }
 
-    /// Sets the value of the zval as a string. Returns nothing in a result when successful.
+    /// Sets the value of the zval as a string. Returns nothing in a result when
+    /// successful.
     ///
     /// # Parameters
     ///
@@ -312,7 +324,8 @@ impl Zval {
         self.value.str_ = val.into_raw();
     }
 
-    /// Sets the value of the zval as a binary string, which is represented in Rust as a vector.
+    /// Sets the value of the zval as a binary string, which is represented in
+    /// Rust as a vector.
     ///
     /// # Parameters
     ///
@@ -323,7 +336,8 @@ impl Zval {
         self.value.str_ = ptr;
     }
 
-    /// Sets the value of the zval as a interned string. Returns nothing in a result when successful.
+    /// Sets the value of the zval as a interned string. Returns nothing in a
+    /// result when successful.
     ///
     /// # Parameters
     ///
@@ -407,7 +421,8 @@ impl Zval {
         self.value.obj = (val as *const ZendObject) as *mut ZendObject;
     }
 
-    /// Sets the value of the zval as an array. Returns nothing in a result on success.
+    /// Sets the value of the zval as an array. Returns nothing in a result on
+    /// success.
     ///
     /// # Parameters
     ///
@@ -417,7 +432,8 @@ impl Zval {
         Ok(())
     }
 
-    /// Sets the value of the zval as an array. Returns nothing in a result on success.
+    /// Sets the value of the zval as an array. Returns nothing in a result on
+    /// success.
     ///
     /// # Parameters
     ///
@@ -439,21 +455,24 @@ impl Zval {
 
     /// Used to drop the Zval but keep the value of the zval intact.
     ///
-    /// This is important when copying the value of the zval, as the actual value
-    /// will not be copied, but the pointer to the value (string for example) will be
-    /// copied.
+    /// This is important when copying the value of the zval, as the actual
+    /// value will not be copied, but the pointer to the value (string for
+    /// example) will be copied.
     pub(crate) fn release(mut self) {
-        // NOTE(david): don't use `change_type` here as we are wanting to keep the contents intact.
+        // NOTE(david): don't use `change_type` here as we are wanting to keep the
+        // contents intact.
         self.u1.type_info = ZvalTypeFlags::Null.bits();
     }
 
-    /// Changes the type of the zval, freeing the current contents when applicable.
+    /// Changes the type of the zval, freeing the current contents when
+    /// applicable.
     ///
     /// # Parameters
     ///
     /// * `ty` - The new type of the zval.
     fn change_type(&mut self, ty: ZvalTypeFlags) {
-        // SAFETY: we have exclusive mutable access to this zval so can free the contents.
+        // SAFETY: we have exclusive mutable access to this zval so can free the
+        // contents.
         unsafe { zval_ptr_dtor(self) };
         self.u1.type_info = ty.bits();
     }

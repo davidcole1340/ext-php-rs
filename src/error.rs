@@ -32,16 +32,19 @@ pub enum Error {
     /// Attempted to convert a [`ZvalTypeFlags`] struct to a [`DataType`].
     /// The flags did not contain a datatype.
     ///
-    /// The enum carries the flags that were attempted to be converted to a [`DataType`].
+    /// The enum carries the flags that were attempted to be converted to a
+    /// [`DataType`].
     InvalidTypeToDatatype(ZvalTypeFlags),
-    /// The function called was called in an invalid scope (calling class-related functions
-    /// inside of a non-class bound function).
+    /// The function called was called in an invalid scope (calling
+    /// class-related functions inside of a non-class bound function).
     InvalidScope,
-    /// The pointer inside a given type was invalid, either null or pointing to garbage.
+    /// The pointer inside a given type was invalid, either null or pointing to
+    /// garbage.
     InvalidPointer,
     /// The given property name does not exist.
     InvalidProperty,
-    /// The string could not be converted into a C-string due to the presence of a NUL character.
+    /// The string could not be converted into a C-string due to the presence of
+    /// a NUL character.
     InvalidCString,
     /// Could not call the given function.
     Callable,

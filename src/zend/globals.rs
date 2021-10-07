@@ -31,7 +31,8 @@ impl ExecutorGlobals {
 
     /// Attempts to extract the last PHP exception captured by the interpreter.
     ///
-    /// Note that the caller is responsible for freeing the memory here or it'll leak.
+    /// Note that the caller is responsible for freeing the memory here or it'll
+    /// leak.
     pub fn take_exception() -> Option<*mut ZendObject> {
         let globals = Self::get_mut();
 

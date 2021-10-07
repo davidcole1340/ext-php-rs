@@ -11,8 +11,9 @@ use crate::{
 
 use super::Zval;
 
-/// Acts as a wrapper around a callable [`Zval`]. Allows the owner to call the [`Zval`] as if it
-/// was a PHP function through the [`try_call`](Callable::try_call) method.
+/// Acts as a wrapper around a callable [`Zval`]. Allows the owner to call the
+/// [`Zval`] as if it was a PHP function through the
+/// [`try_call`](Callable::try_call) method.
 #[derive(Debug)]
 pub struct Callable<'a>(OwnedZval<'a>);
 
@@ -34,8 +35,8 @@ impl<'a> Callable<'a> {
         }
     }
 
-    /// Attempts to create a new [`Callable`] by taking ownership of a Zval. Returns a result
-    /// containing the callable if the zval was callable.
+    /// Attempts to create a new [`Callable`] by taking ownership of a Zval.
+    /// Returns a result containing the callable if the zval was callable.
     ///
     /// # Parameters
     ///
@@ -48,8 +49,9 @@ impl<'a> Callable<'a> {
         }
     }
 
-    /// Attempts to create a new [`Callable`] from a function name. Returns a result containing the
-    /// callable if the function existed and was callable.
+    /// Attempts to create a new [`Callable`] from a function name. Returns a
+    /// result containing the callable if the function existed and was
+    /// callable.
     ///
     /// # Parameters
     ///
@@ -61,12 +63,14 @@ impl<'a> Callable<'a> {
         Self::new_owned(callable)
     }
 
-    /// Attempts to call the callable with a list of arguments to pass to the function.
-    /// Note that a thrown exception inside the callable is not detectable, therefore you should
-    /// check if the return value is valid rather than unwrapping. Returns a result containing the
-    /// return value of the function, or an error.
+    /// Attempts to call the callable with a list of arguments to pass to the
+    /// function. Note that a thrown exception inside the callable is not
+    /// detectable, therefore you should check if the return value is valid
+    /// rather than unwrapping. Returns a result containing the return value
+    /// of the function, or an error.
     ///
-    /// You should not call this function directly, rather through the [`call_user_func`] macro.
+    /// You should not call this function directly, rather through the
+    /// [`call_user_func`] macro.
     ///
     /// # Parameters
     ///
@@ -119,7 +123,8 @@ impl<'a> TryFrom<Zval> for Callable<'a> {
     }
 }
 
-/// A container for a zval. Either contains a reference to a zval or an owned zval.
+/// A container for a zval. Either contains a reference to a zval or an owned
+/// zval.
 #[derive(Debug)]
 enum OwnedZval<'a> {
     Reference(&'a Zval),

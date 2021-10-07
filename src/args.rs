@@ -73,13 +73,14 @@ impl<'a> Arg<'a> {
         self
     }
 
-    /// Attempts to consume the argument, converting the inner type into `T`. Upon success,
-    /// the result is returned in a [`Result`].
+    /// Attempts to consume the argument, converting the inner type into `T`.
+    /// Upon success, the result is returned in a [`Result`].
     ///
-    /// If the conversion fails (or the argument contains no value), the argument is returned
-    /// in an [`Err`] variant.
+    /// If the conversion fails (or the argument contains no value), the
+    /// argument is returned in an [`Err`] variant.
     ///
-    /// As this function consumes, it cannot return a reference to the underlying zval.
+    /// As this function consumes, it cannot return a reference to the
+    /// underlying zval.
     pub fn consume<T>(mut self) -> Result<T, Self>
     where
         for<'b> T: FromZvalMut<'b>,
@@ -110,12 +111,14 @@ impl<'a> Arg<'a> {
         self.zval.as_mut()
     }
 
-    /// Attempts to call the argument as a callable with a list of arguments to pass to the function.
-    /// Note that a thrown exception inside the callable is not detectable, therefore you should
-    /// check if the return value is valid rather than unwrapping. Returns a result containing the
+    /// Attempts to call the argument as a callable with a list of arguments to
+    /// pass to the function. Note that a thrown exception inside the
+    /// callable is not detectable, therefore you should check if the return
+    /// value is valid rather than unwrapping. Returns a result containing the
     /// return value of the function, or an error.
     ///
-    /// You should not call this function directly, rather through the [`call_user_func`] macro.
+    /// You should not call this function directly, rather through the
+    /// [`call_user_func`] macro.
     ///
     /// # Parameters
     ///
@@ -201,9 +204,11 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     }
 
     /// Uses the argument parser to parse the arguments contained in the given
-    /// `ExecutionData` object. Returns successfully if the arguments were parsed.
+    /// `ExecutionData` object. Returns successfully if the arguments were
+    /// parsed.
     ///
-    /// This function can only be safely called from within an exported PHP function.
+    /// This function can only be safely called from within an exported PHP
+    /// function.
     ///
     /// # Parameters
     ///
@@ -211,16 +216,17 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     ///
     /// # Errors
     ///
-    /// Returns an [`Error`] type if there were too many or too little arguments passed to the
-    /// function. The user has already been notified so you should break execution after seeing an
-    /// error type.
+    /// Returns an [`Error`] type if there were too many or too little arguments
+    /// passed to the function. The user has already been notified so you
+    /// should break execution after seeing an error type.
     pub fn parse(mut self) -> Result<()> {
         let max_num_args = self.args.len();
         let min_num_args = self.min_num_args.unwrap_or(max_num_args);
         let num_args = self.arg_zvals.len();
 
         if num_args < min_num_args || num_args > max_num_args {
-            // SAFETY: Exported C function is safe, return value is unused and parameters are copied.
+            // SAFETY: Exported C function is safe, return value is unused and parameters
+            // are copied.
             unsafe { zend_wrong_parameters_count_error(min_num_args as _, max_num_args as _) };
             return Err(Error::IncorrectArguments(num_args, min_num_args));
         }

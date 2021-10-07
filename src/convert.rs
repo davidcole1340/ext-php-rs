@@ -6,13 +6,14 @@ use crate::{
     types::{ZendObject, Zval},
 };
 
-/// Allows zvals to be converted into Rust types in a fallible way. Reciprocal of the [`IntoZval`]
-/// trait.
+/// Allows zvals to be converted into Rust types in a fallible way. Reciprocal
+/// of the [`IntoZval`] trait.
 pub trait FromZval<'a>: Sized {
     /// The corresponding type of the implemented value in PHP.
     const TYPE: DataType;
 
-    /// Attempts to retrieve an instance of `Self` from a reference to a [`Zval`].
+    /// Attempts to retrieve an instance of `Self` from a reference to a
+    /// [`Zval`].
     ///
     /// # Parameters
     ///
@@ -33,14 +34,15 @@ where
 
 /// Allows mutable zvals to be converted into Rust types in a fallible way.
 ///
-/// If `Self` does not require the zval to be mutable to be extracted, you should implement
-/// [`FromZval`] instead, as this trait is generically implemented for any type that implements
-/// [`FromZval`].
+/// If `Self` does not require the zval to be mutable to be extracted, you
+/// should implement [`FromZval`] instead, as this trait is generically
+/// implemented for any type that implements [`FromZval`].
 pub trait FromZvalMut<'a>: Sized {
     /// The corresponding type of the implemented value in PHP.
     const TYPE: DataType;
 
-    /// Attempts to retrieve an instance of `Self` from a mutable reference to a [`Zval`].
+    /// Attempts to retrieve an instance of `Self` from a mutable reference to a
+    /// [`Zval`].
     ///
     /// # Parameters
     ///
@@ -60,7 +62,8 @@ where
     }
 }
 
-/// `FromZendObject` is implemented by types which can be extracted from a Zend object.
+/// `FromZendObject` is implemented by types which can be extracted from a Zend
+/// object.
 ///
 /// Normal usage is through the helper method `ZendObject::extract`:
 ///
@@ -70,7 +73,8 @@ where
 /// let props: HashMap = obj.extract();
 /// ```
 ///
-/// Should be functionally equivalent to casting an object to another compatable type.
+/// Should be functionally equivalent to casting an object to another compatable
+/// type.
 pub trait FromZendObject<'a>: Sized {
     /// Extracts `Self` from the source `ZendObject`.
     fn from_zend_object(obj: &'a ZendObject) -> Result<Self>;
@@ -96,39 +100,42 @@ where
     }
 }
 
-/// Implemented on types which can be converted into a Zend object. It is up to the implementation
-/// to determine the type of object which is produced.
+/// Implemented on types which can be converted into a Zend object. It is up to
+/// the implementation to determine the type of object which is produced.
 pub trait IntoZendObject {
     /// Attempts to convert `self` into a Zend object.
     fn into_zend_object(self) -> Result<ZBox<ZendObject>>;
 }
 
-/// Provides implementations for converting Rust primitive types into PHP zvals. Alternative to the
-/// built-in Rust [`From`] and [`TryFrom`] implementations, allowing the caller to specify whether
-/// the Zval contents will persist between requests.
+/// Provides implementations for converting Rust primitive types into PHP zvals.
+/// Alternative to the built-in Rust [`From`] and [`TryFrom`] implementations,
+/// allowing the caller to specify whether the Zval contents will persist
+/// between requests.
 pub trait IntoZval: Sized {
     /// The corresponding type of the implemented value in PHP.
     const TYPE: DataType;
 
-    /// Converts a Rust primitive type into a Zval. Returns a result containing the Zval if
-    /// successful.
+    /// Converts a Rust primitive type into a Zval. Returns a result containing
+    /// the Zval if successful.
     ///
     /// # Parameters
     ///
-    /// * `persistent` - Whether the contents of the Zval will persist between requests.
+    /// * `persistent` - Whether the contents of the Zval will persist between
+    ///   requests.
     fn into_zval(self, persistent: bool) -> Result<Zval> {
         let mut zval = Zval::new();
         self.set_zval(&mut zval, persistent)?;
         Ok(zval)
     }
 
-    /// Sets the content of a pre-existing zval. Returns a result containing nothing if setting
-    /// the content was successful.
+    /// Sets the content of a pre-existing zval. Returns a result containing
+    /// nothing if setting the content was successful.
     ///
     /// # Parameters
     ///
     /// * `zv` - The Zval to set the content of.
-    /// * `persistent` - Whether the contents of the Zval will persist between requests.
+    /// * `persistent` - Whether the contents of the Zval will persist between
+    ///   requests.
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
@@ -180,15 +187,18 @@ where
 
 /// An object-safe version of the [`IntoZval`] trait.
 ///
-/// This trait is automatically implemented on any type that implements both [`IntoZval`] and [`Clone`].
-/// You avoid implementing this trait directly, rather implement these two other traits.
+/// This trait is automatically implemented on any type that implements both
+/// [`IntoZval`] and [`Clone`]. You avoid implementing this trait directly,
+/// rather implement these two other traits.
 pub trait IntoZvalDyn {
-    /// Converts a Rust primitive type into a Zval. Returns a result containing the Zval if
-    /// successful. `self` is cloned before being converted into a zval.
+    /// Converts a Rust primitive type into a Zval. Returns a result containing
+    /// the Zval if successful. `self` is cloned before being converted into
+    /// a zval.
     ///
     /// # Parameters
     ///
-    /// * `persistent` - Whether the contents of the Zval will persist between requests.
+    /// * `persistent` - Whether the contents of the Zval will persist between
+    ///   requests.
     fn as_zval(&self, persistent: bool) -> Result<Zval>;
 
     /// Returns the PHP type of the type.

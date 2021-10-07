@@ -1,5 +1,6 @@
-//! Represents an integer introduced in PHP. Note that the size of this integer differs.
-//! On a 32-bit system, a ZendLong is 32-bits, while on a 64-bit system it is 64-bits.
+//! Represents an integer introduced in PHP. Note that the size of this integer
+//! differs. On a 32-bit system, a ZendLong is 32-bits, while on a 64-bit system
+//! it is 64-bits.
 
 use crate::{
     convert::IntoZval,

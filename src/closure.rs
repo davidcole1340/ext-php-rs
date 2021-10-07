@@ -19,12 +19,12 @@ static CLOSURE_META: ClassMetadata<Closure> = ClassMetadata::new();
 
 /// Wrapper around a Rust closure, which can be exported to PHP.
 ///
-/// Closures can have up to 8 parameters, all must implement [`FromZval`], and can return anything
-/// that implements [`IntoZval`]. Closures must have a static lifetime, and therefore cannot modify
-/// any `self` references.
+/// Closures can have up to 8 parameters, all must implement [`FromZval`], and
+/// can return anything that implements [`IntoZval`]. Closures must have a
+/// static lifetime, and therefore cannot modify any `self` references.
 ///
-/// Internally, closures are implemented as a PHP class. A class `RustClosure` is registered with an
-/// `__invoke` method:
+/// Internally, closures are implemented as a PHP class. A class `RustClosure`
+/// is registered with an `__invoke` method:
 ///
 /// ```php
 /// <?php
@@ -36,28 +36,32 @@ static CLOSURE_META: ClassMetadata<Closure> = ClassMetadata::new();
 /// }
 /// ```
 ///
-/// The Rust closure is then double boxed, firstly as a `Box<dyn Fn(...) -> ...>` (depending on the
-/// signature of the closure) and then finally boxed as a `Box<dyn PhpClosure>`. This is a workaround,
-/// as `PhpClosure` is not generically implementable on types that implement `Fn(T, ...) -> Ret`. Make
+/// The Rust closure is then double boxed, firstly as a `Box<dyn Fn(...) ->
+/// ...>` (depending on the signature of the closure) and then finally boxed as
+/// a `Box<dyn PhpClosure>`. This is a workaround, as `PhpClosure` is not
+/// generically implementable on types that implement `Fn(T, ...) -> Ret`. Make
 /// a suggestion issue if you have a better idea of implementing this!.
 ///
-/// When the `__invoke` method is called from PHP, the `invoke` method is called on the `dyn PhpClosure`\
-/// trait object, and from there everything is basically the same as a regular PHP function.
+/// When the `__invoke` method is called from PHP, the `invoke` method is called
+/// on the `dyn PhpClosure`\ trait object, and from there everything is
+/// basically the same as a regular PHP function.
 pub struct Closure(Box<dyn PhpClosure>);
 
 unsafe impl Send for Closure {}
 unsafe impl Sync for Closure {}
 
 impl Closure {
-    /// Wraps a [`Fn`] or [`FnMut`] Rust closure into a type which can be returned to PHP.
+    /// Wraps a [`Fn`] or [`FnMut`] Rust closure into a type which can be
+    /// returned to PHP.
     ///
-    /// The closure can accept up to 8 arguments which implement [`IntoZval`], and can return any
-    /// type which implements [`FromZval`]. The closure must have a static lifetime, so cannot
-    /// reference `self`.
+    /// The closure can accept up to 8 arguments which implement [`IntoZval`],
+    /// and can return any type which implements [`FromZval`]. The closure
+    /// must have a static lifetime, so cannot reference `self`.
     ///
     /// # Parameters
     ///
-    /// * `func` - The closure to wrap. Should be boxed in the form `Box<dyn Fn[Mut](...) -> ...>`.
+    /// * `func` - The closure to wrap. Should be boxed in the form `Box<dyn
+    ///   Fn[Mut](...) -> ...>`.
     ///
     /// # Example
     ///
@@ -75,16 +79,18 @@ impl Closure {
         Self(Box::new(func) as Box<dyn PhpClosure>)
     }
 
-    /// Wraps a [`FnOnce`] Rust closure into a type which can be returned to PHP. If the closure
-    /// is called more than once from PHP, an exception is thrown.
+    /// Wraps a [`FnOnce`] Rust closure into a type which can be returned to
+    /// PHP. If the closure is called more than once from PHP, an exception
+    /// is thrown.
     ///
-    /// The closure can accept up to 8 arguments which implement [`IntoZval`], and can return any
-    /// type which implements [`FromZval`]. The closure must have a static lifetime, so cannot
-    /// reference `self`.
+    /// The closure can accept up to 8 arguments which implement [`IntoZval`],
+    /// and can return any type which implements [`FromZval`]. The closure
+    /// must have a static lifetime, so cannot reference `self`.
     ///
     /// # Parameters
     ///
-    /// * `func` - The closure to wrap. Should be boxed in the form `Box<dyn FnOnce(...) -> ...>`.
+    /// * `func` - The closure to wrap. Should be boxed in the form `Box<dyn
+    ///   FnOnce(...) -> ...>`.
     ///
     /// # Example
     ///
@@ -103,8 +109,9 @@ impl Closure {
         func.into_closure()
     }
 
-    /// Builds the class entry for [`Closure`], registering it with PHP. This function should
-    /// only be called once inside your module startup function.
+    /// Builds the class entry for [`Closure`], registering it with PHP. This
+    /// function should only be called once inside your module startup
+    /// function.
     ///
     /// # Panics
     ///
@@ -155,22 +162,25 @@ class_derives!(Closure);
 
 /// Implemented on types which can be used as PHP closures.
 ///
-/// Types must implement the `invoke` function which will be called when the closure is called
-/// from PHP. Arguments must be parsed from the [`ExecutionData`] and the return value is returned
-/// through the [`Zval`].
+/// Types must implement the `invoke` function which will be called when the
+/// closure is called from PHP. Arguments must be parsed from the
+/// [`ExecutionData`] and the return value is returned through the [`Zval`].
 ///
-/// This trait is automatically implemented on functions with up to 8 parameters.
+/// This trait is automatically implemented on functions with up to 8
+/// parameters.
 pub unsafe trait PhpClosure {
     /// Invokes the closure.
     fn invoke<'a>(&'a mut self, parser: ArgParser<'a, '_>, ret: &mut Zval);
 }
 
-/// Implemented on [`FnOnce`] types which can be used as PHP closures. See [`Closure`].
+/// Implemented on [`FnOnce`] types which can be used as PHP closures. See
+/// [`Closure`].
 ///
-/// Internally, this trait should wrap the [`FnOnce`] closure inside a [`FnMut`] closure, and prevent
-/// the user from calling the closure more than once.
+/// Internally, this trait should wrap the [`FnOnce`] closure inside a [`FnMut`]
+/// closure, and prevent the user from calling the closure more than once.
 pub trait PhpOnceClosure {
-    /// Converts the Rust [`FnOnce`] closure into a [`FnMut`] closure, and then into a PHP closure.
+    /// Converts the Rust [`FnOnce`] closure into a [`FnMut`] closure, and then
+    /// into a PHP closure.
     fn into_closure(self) -> Closure;
 }
 

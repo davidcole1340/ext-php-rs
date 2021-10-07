@@ -19,7 +19,8 @@ impl FunctionEntry {
         }
     }
 
-    /// Converts the function entry into a raw and pointer, releasing it to the C world.
+    /// Converts the function entry into a raw and pointer, releasing it to the
+    /// C world.
     pub fn into_raw(self) -> *mut Self {
         Box::into_raw(Box::new(self))
     }

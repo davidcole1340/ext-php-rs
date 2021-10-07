@@ -1,5 +1,5 @@
-//! Provides implementations for converting to and from Zend binary strings, commonly returned
-//! from functions such as [`pack`] and [`unpack`].
+//! Provides implementations for converting to and from Zend binary strings,
+//! commonly returned from functions such as [`pack`] and [`unpack`].
 //!
 //! [`pack`]: https://www.php.net/manual/en/function.pack.php
 //! [`unpack`]: https://www.php.net/manual/en/function.unpack.php
@@ -19,14 +19,16 @@ use crate::{
     types::Zval,
 };
 
-/// Acts as a wrapper around [`Vec<T>`] where `T` implements [`Pack`]. Primarily used for passing
-/// binary data into Rust functions. Can be treated as a [`Vec`] in most situations, or can be
-/// 'unwrapped' into a [`Vec`] through the [`From`] implementation on [`Vec`].
+/// Acts as a wrapper around [`Vec<T>`] where `T` implements [`Pack`]. Primarily
+/// used for passing binary data into Rust functions. Can be treated as a
+/// [`Vec`] in most situations, or can be 'unwrapped' into a [`Vec`] through the
+/// [`From`] implementation on [`Vec`].
 #[derive(Debug)]
 pub struct Binary<T: Pack>(Vec<T>);
 
 impl<T: Pack> Binary<T> {
-    /// Creates a new binary wrapper from a set of data which can be converted into a vector.
+    /// Creates a new binary wrapper from a set of data which can be converted
+    /// into a vector.
     ///
     /// # Parameters
     ///
@@ -93,19 +95,20 @@ impl<T: Pack> FromIterator<T> for Binary<T> {
     }
 }
 
-/// Used to convert between Zend binary strings and vectors. Useful in conjunction with the
-/// [`pack`] and [`unpack`] functions built-in to PHP.
+/// Used to convert between Zend binary strings and vectors. Useful in
+/// conjunction with the [`pack`] and [`unpack`] functions built-in to PHP.
 ///
 /// # Safety
 ///
-/// The types cannot be ensured between PHP and Rust, as the data is represented as a string when
-/// crossing the language boundary. Exercise caution when using these functions.
+/// The types cannot be ensured between PHP and Rust, as the data is represented
+/// as a string when crossing the language boundary. Exercise caution when using
+/// these functions.
 ///
 /// [`pack`]: https://www.php.net/manual/en/function.pack.php
 /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
 pub unsafe trait Pack: Clone {
-    /// Packs a given vector into a Zend binary string. Can be passed to PHP and then unpacked
-    /// using the [`unpack`] function.
+    /// Packs a given vector into a Zend binary string. Can be passed to PHP and
+    /// then unpacked using the [`unpack`] function.
     ///
     /// # Parameters
     ///
@@ -114,15 +117,17 @@ pub unsafe trait Pack: Clone {
     /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
     fn pack_into(vec: Vec<Self>) -> *mut zend_string;
 
-    /// Unpacks a given Zend binary string into a Rust vector. Can be used to pass data from `pack`
-    /// in PHP to Rust without encoding into another format. Note that the data *must* be all one
-    /// type, as this implementation only unpacks one type.
+    /// Unpacks a given Zend binary string into a Rust vector. Can be used to
+    /// pass data from `pack` in PHP to Rust without encoding into another
+    /// format. Note that the data *must* be all one type, as this
+    /// implementation only unpacks one type.
     ///
     /// # Safety
     ///
-    /// There is no way to tell if the data stored in the string is actually of the given type.
-    /// The results of this function can also differ from platform-to-platform due to the different
-    /// representation of some types on different platforms. Consult the [`pack`] function
+    /// There is no way to tell if the data stored in the string is actually of
+    /// the given type. The results of this function can also differ from
+    /// platform-to-platform due to the different representation of some
+    /// types on different platforms. Consult the [`pack`] function
     /// documentation for more details.
     ///
     /// # Parameters
@@ -153,8 +158,9 @@ macro_rules! pack_impl {
                 let mut result = Vec::with_capacity(len as _);
                 let ptr = s.val.as_ptr() as *const $t;
 
-                // SAFETY: We calculate the length of memory that we can legally read based on the
-                // side of the type, therefore we never read outside the memory we should.
+                // SAFETY: We calculate the length of memory that we can legally read based on
+                // the side of the type, therefore we never read outside the memory we
+                // should.
                 for i in 0..len {
                     result.push(unsafe { *ptr.offset(i as _) });
                 }

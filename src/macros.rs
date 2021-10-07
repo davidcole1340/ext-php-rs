@@ -1,9 +1,9 @@
-//! Macros for interacting with PHP, mainly when the function takes variadic arguments.
-//! Unforutunately, this is the best way to handle these.
+//! Macros for interacting with PHP, mainly when the function takes variadic
+//! arguments. Unforutunately, this is the best way to handle these.
 //! Note that most of these will introduce unsafe into your code base.
 
-/// Starts the PHP extension information table displayed when running `phpinfo();`
-/// Must be run *before* rows are inserted into the table.
+/// Starts the PHP extension information table displayed when running
+/// `phpinfo();` Must be run *before* rows are inserted into the table.
 #[macro_export]
 macro_rules! info_table_start {
     () => {
@@ -11,7 +11,8 @@ macro_rules! info_table_start {
     };
 }
 
-/// Ends the PHP extension information table. Must be run *after* all rows have been inserted into the table.
+/// Ends the PHP extension information table. Must be run *after* all rows have
+/// been inserted into the table.
 #[macro_export]
 macro_rules! info_table_end {
     () => {
@@ -19,19 +20,22 @@ macro_rules! info_table_end {
     };
 }
 
-/// Sets the header for the PHP extension information table. Takes as many string arguments as required.
+/// Sets the header for the PHP extension information table. Takes as many
+/// string arguments as required.
 #[macro_export]
 macro_rules! info_table_header {
     ($($element:expr),*) => {$crate::_info_table_row!(php_info_print_table_header, $($element),*)};
 }
 
-/// Adds a row to the PHP extension information table. Takes as many string arguments as required.
+/// Adds a row to the PHP extension information table. Takes as many string
+/// arguments as required.
 #[macro_export]
 macro_rules! info_table_row {
     ($($element:expr),*) => {$crate::_info_table_row!(php_info_print_table_row, $($element),*)};
 }
 
-/// INTERNAL: Calls a variadic C function with the number of parameters, then following with the parameters.
+/// INTERNAL: Calls a variadic C function with the number of parameters, then
+/// following with the parameters.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _info_table_row {
@@ -51,9 +55,11 @@ macro_rules! _info_table_row {
 ///
 /// # Parameters
 ///
-/// * `$fn` - The 'function' to call. Can be an [`Arg`](crate::php::args::Arg) or a
+/// * `$fn` - The 'function' to call. Can be an [`Arg`](crate::php::args::Arg)
+///   or a
 /// [`Zval`](crate::php::types::zval::Zval).
-/// * ...`$param` - The parameters to pass to the function. Must be able to be converted into a
+/// * ...`$param` - The parameters to pass to the function. Must be able to be
+///   converted into a
 /// [`Zval`](crate::php::types::zval::Zval).
 #[macro_export]
 macro_rules! call_user_func {
@@ -66,13 +72,14 @@ macro_rules! call_user_func {
     };
 }
 
-/// Parses a given list of arguments using the [`ArgParser`](crate::php::args::ArgParser) class.
+/// Parses a given list of arguments using the
+/// [`ArgParser`](crate::php::args::ArgParser) class.
 ///
 /// # Examples
 ///
-/// This example parses all of the arguments. If one is invalid, execution of the function will
-/// stop at the `parse_args!` macro invocation. The user is notified via PHP's argument parsing
-/// system.
+/// This example parses all of the arguments. If one is invalid, execution of
+/// the function will stop at the `parse_args!` macro invocation. The user is
+/// notified via PHP's argument parsing system.
 ///
 /// In this case, all of the arguments are required.
 ///
@@ -95,8 +102,9 @@ macro_rules! call_user_func {
 /// }
 /// ```
 ///
-/// This example is similar to the one above, apart from the fact that the `z` argument is not
-/// required. Note the semicolon seperating the first two arguments from the second.
+/// This example is similar to the one above, apart from the fact that the `z`
+/// argument is not required. Note the semicolon seperating the first two
+/// arguments from the second.
 ///
 /// ```
 /// use ext_php_rs::{
@@ -140,7 +148,8 @@ macro_rules! parse_args {
 
 /// Throws an exception and returns from the current function.
 ///
-/// Wraps the [`throw`] function by inserting a `return` statement after throwing the exception.
+/// Wraps the [`throw`] function by inserting a `return` statement after
+/// throwing the exception.
 ///
 /// [`throw`]: crate::php::exceptions::throw
 ///
@@ -170,9 +179,10 @@ macro_rules! throw {
     };
 }
 
-/// Implements a set of traits required to convert types that implement [`RegisteredClass`] to and
-/// from [`ZendObject`]s and [`Zval`]s. Generally, this macro should not be called directly, as it
-/// is called on any type that uses the [`#[php_class]`] macro.
+/// Implements a set of traits required to convert types that implement
+/// [`RegisteredClass`] to and from [`ZendObject`]s and [`Zval`]s. Generally,
+/// this macro should not be called directly, as it is called on any type that
+/// uses the [`#[php_class]`] macro.
 ///
 /// The following traits are implemented:
 ///
@@ -183,7 +193,8 @@ macro_rules! throw {
 /// * `IntoZendObject for T`
 /// * `IntoZval for T`
 ///
-/// These implementations are required while we wait on the stabilisation of specialisation.
+/// These implementations are required while we wait on the stabilisation of
+/// specialisation.
 ///
 /// # Examples
 ///

@@ -1,5 +1,5 @@
-//! Represents an object in PHP. Allows for overriding the internal object used by classes,
-//! allowing users to store Rust data inside a PHP object.
+//! Represents an object in PHP. Allows for overriding the internal object used
+//! by classes, allowing users to store Rust data inside a PHP object.
 
 use std::{
     fmt::Debug,
@@ -29,8 +29,9 @@ pub struct ZendClassObject<T> {
 }
 
 impl<T: RegisteredClass> ZendClassObject<T> {
-    /// Creates a new [`ZendClassObject`] of type `T`, where `T` is a [`RegisteredClass`] in PHP, storing the
-    /// given value `val` inside the object.
+    /// Creates a new [`ZendClassObject`] of type `T`, where `T` is a
+    /// [`RegisteredClass`] in PHP, storing the given value `val` inside the
+    /// object.
     ///
     /// # Parameters
     ///
@@ -43,19 +44,21 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         unsafe { Self::internal_new(Some(val)) }
     }
 
-    /// Creates a new [`ZendClassObject`] of type `T`, with an uninitialized internal object.
+    /// Creates a new [`ZendClassObject`] of type `T`, with an uninitialized
+    /// internal object.
     ///
     /// # Safety
     ///
-    /// As the object is uninitialized, the caller must ensure the following until the internal object is
-    /// initialized:
+    /// As the object is uninitialized, the caller must ensure the following
+    /// until the internal object is initialized:
     ///
     /// * The object is never dereferenced to `T`.
     /// * The [`Clone`] implementation is never called.
     /// * The [`Debug`] implementation is never called.
     ///
-    /// If any of these conditions are not met while not initialized, the corresponding function will panic.
-    /// Converting the object into its inner pointer with the [`into_raw`] function is valid, however.
+    /// If any of these conditions are not met while not initialized, the
+    /// corresponding function will panic. Converting the object into its
+    /// inner pointer with the [`into_raw`] function is valid, however.
     ///
     /// [`into_raw`]: #method.into_raw
     ///
@@ -66,8 +69,8 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         Self::internal_new(None)
     }
 
-    /// Creates a new [`ZendObject`] of type `T`, storing the given (and potentially uninitialized) `val`
-    /// inside the object.
+    /// Creates a new [`ZendObject`] of type `T`, storing the given (and
+    /// potentially uninitialized) `val` inside the object.
     ///
     /// # Parameters
     ///
@@ -78,16 +81,18 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// Providing an initialized variant of [`MaybeUninit<T>`] is safe.
     ///
-    /// Providing an uninitalized variant of [`MaybeUninit<T>`] is unsafe. As the object is uninitialized,
-    /// the caller must ensure the following until the internal object is initialized:
+    /// Providing an uninitalized variant of [`MaybeUninit<T>`] is unsafe. As
+    /// the object is uninitialized, the caller must ensure the following
+    /// until the internal object is initialized:
     ///
     /// * The object is never dereferenced to `T`.
     /// * The [`Clone`] implementation is never called.
     /// * The [`Debug`] implementation is never called.
     ///
-    /// If any of these conditions are not met while not initialized, the corresponding function will panic.
-    /// Converting the object into its inner with the [`into_raw`] function is valid, however. You can initialize
-    /// the object with the [`initialize`] function.
+    /// If any of these conditions are not met while not initialized, the
+    /// corresponding function will panic. Converting the object into its
+    /// inner with the [`into_raw`] function is valid, however. You can
+    /// initialize the object with the [`initialize`] function.
     ///
     /// [`into_raw`]: #method.into_raw
     /// [`initialize`]: #method.initialize
@@ -124,14 +129,14 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// # Returns
     ///
-    /// Returns the old value in an [`Option`] if the object had already been initialized, [`None`]
-    /// otherwise.
+    /// Returns the old value in an [`Option`] if the object had already been
+    /// initialized, [`None`] otherwise.
     pub fn initialize(&mut self, val: T) -> Option<T> {
         self.obj.replace(val)
     }
 
-    /// Returns a reference to the [`ZendClassObject`] of a given object `T`. Returns [`None`]
-    /// if the given object is not of the type `T`.
+    /// Returns a reference to the [`ZendClassObject`] of a given object `T`.
+    /// Returns [`None`] if the given object is not of the type `T`.
     ///
     /// # Parameters
     ///
@@ -139,8 +144,8 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// # Safety
     ///
-    /// Caller must guarantee that the given `obj` was created by Zend, which means that it
-    /// is immediately followed by a [`zend_object`].
+    /// Caller must guarantee that the given `obj` was created by Zend, which
+    /// means that it is immediately followed by a [`zend_object`].
     pub(crate) unsafe fn from_obj_ptr(obj: &T) -> Option<&mut Self> {
         // TODO(david): Remove this function
         let ptr = (obj as *const T as *mut Self).as_mut()?;
@@ -152,8 +157,9 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         }
     }
 
-    /// Returns a mutable reference to the [`ZendClassObject`] of a given zend object `obj`.
-    /// Returns [`None`] if the given object is not of the type `T`.
+    /// Returns a mutable reference to the [`ZendClassObject`] of a given zend
+    /// object `obj`. Returns [`None`] if the given object is not of the
+    /// type `T`.
     ///
     /// # Parameters
     ///
@@ -162,8 +168,9 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         Some(Self::_from_zend_obj(std)?)
     }
 
-    /// Returns a mutable reference to the [`ZendClassObject`] of a given zend object `obj`.
-    /// Returns [`None`] if the given object is not of the type `T`.
+    /// Returns a mutable reference to the [`ZendClassObject`] of a given zend
+    /// object `obj`. Returns [`None`] if the given object is not of the
+    /// type `T`.
     ///
     /// # Parameters
     ///
@@ -234,8 +241,9 @@ impl<'a, T: RegisteredClass> FromZendObjectMut<'a> for &'a mut ZendClassObject<T
 
 unsafe impl<T: RegisteredClass> ZBoxable for ZendClassObject<T> {
     fn free(&mut self) {
-        // SAFETY: All constructors guarantee that `self` contains a valid pointer. Further, all constructors
-        // guarantee that the `std` field of `ZendClassObject` will be initialized.
+        // SAFETY: All constructors guarantee that `self` contains a valid pointer.
+        // Further, all constructors guarantee that the `std` field of
+        // `ZendClassObject` will be initialized.
         unsafe { ext_php_rs_zend_object_release(&mut self.std) }
     }
 }
@@ -267,9 +275,10 @@ impl<T: RegisteredClass + Default> Default for ZBox<ZendClassObject<T>> {
 
 impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
     fn clone(&self) -> Self {
-        // SAFETY: All constructors of `NewClassObject` guarantee that it will contain a valid pointer.
-        // The constructor also guarantees that the internal `ZendClassObject` pointer will contain a valid,
-        // initialized `obj`, therefore we can dereference both safely.
+        // SAFETY: All constructors of `NewClassObject` guarantee that it will contain a
+        // valid pointer. The constructor also guarantees that the internal
+        // `ZendClassObject` pointer will contain a valid, initialized `obj`,
+        // therefore we can dereference both safely.
         unsafe {
             let mut new = ZendClassObject::new((&***self).clone());
             zend_objects_clone_members(&mut new.std, &self.std as *const _ as *mut _);
