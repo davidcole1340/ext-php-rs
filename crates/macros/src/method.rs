@@ -154,7 +154,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
 
             #[doc(hidden)]
             pub fn #internal_ident(
-                ex: &mut ::ext_php_rs::zend::ExecutionData
+                ex: &mut ::ext_php_rs::zend::ExecuteData
             ) -> ::ext_php_rs::class::ConstructorResult<Self> {
                 use ::ext_php_rs::convert::IntoZval;
                 use ::ext_php_rs::class::ConstructorResult;
@@ -171,7 +171,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
 
             #[doc(hidden)]
             pub extern "C" fn #internal_ident(
-                ex: &mut ::ext_php_rs::zend::ExecutionData,
+                ex: &mut ::ext_php_rs::zend::ExecuteData,
                 retval: &mut ::ext_php_rs::types::Zval
             ) {
                 use ::ext_php_rs::convert::IntoZval;

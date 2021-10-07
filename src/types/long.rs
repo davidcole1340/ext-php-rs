@@ -13,9 +13,10 @@ use crate::{
 
 use std::convert::{TryFrom, TryInto};
 
-/// Internal identifier used for a long.
-/// The size depends on the system architecture. On 32-bit systems,
-/// a ZendLong is 32-bits, while on a 64-bit system it is 64-bits.
+/// A PHP long.
+///
+/// The type size depends on the system architecture. On 32-bit systems, it is
+/// 32-bits, while on a 64-bit system, it is 64-bits.
 pub type ZendLong = zend_long;
 
 into_zval!(i8, set_long, Long);

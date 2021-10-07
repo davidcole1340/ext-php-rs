@@ -55,12 +55,12 @@ macro_rules! _info_table_row {
 ///
 /// # Parameters
 ///
-/// * `$fn` - The 'function' to call. Can be an [`Arg`](crate::php::args::Arg)
-///   or a
-/// [`Zval`](crate::php::types::zval::Zval).
+/// * `$fn` - The 'function' to call. Can be an [`Arg`] or a [`Zval`].
 /// * ...`$param` - The parameters to pass to the function. Must be able to be
-///   converted into a
-/// [`Zval`](crate::php::types::zval::Zval).
+///   converted into a [`Zval`].
+///
+/// [`Arg`]: crate::args::Arg
+/// [`Zval`]: crate::types::Zval
 #[macro_export]
 macro_rules! call_user_func {
     ($fn: expr) => {
@@ -72,8 +72,7 @@ macro_rules! call_user_func {
     };
 }
 
-/// Parses a given list of arguments using the
-/// [`ArgParser`](crate::php::args::ArgParser) class.
+/// Parses a given list of arguments using the [`ArgParser`] class.
 ///
 /// # Examples
 ///
@@ -89,11 +88,11 @@ macro_rules! call_user_func {
 ///     parse_args,
 ///     args::Arg,
 ///     flags::DataType,
-///     zend::ExecutionData,
+///     zend::ExecuteData,
 ///     types::Zval,
 /// };
 ///
-/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+/// pub extern "C" fn example_fn(execute_data: &mut ExecuteData, _: &mut Zval) {
 ///     let mut x = Arg::new("x", DataType::Long);
 ///     let mut y = Arg::new("y", DataType::Long);
 ///     let mut z = Arg::new("z", DataType::Long);
@@ -111,11 +110,11 @@ macro_rules! call_user_func {
 ///     parse_args,
 ///     args::Arg,
 ///     flags::DataType,
-///     zend::ExecutionData,
+///     zend::ExecuteData,
 ///     types::Zval,
 /// };
 ///
-/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+/// pub extern "C" fn example_fn(execute_data: &mut ExecuteData, _: &mut Zval) {
 ///     let mut x = Arg::new("x", DataType::Long);
 ///     let mut y = Arg::new("y", DataType::Long);
 ///     let mut z = Arg::new("z", DataType::Long);
@@ -123,6 +122,8 @@ macro_rules! call_user_func {
 ///     parse_args!(execute_data, x, y; z);
 /// }
 /// ```
+///
+/// [`ArgParser`]: crate::args::ArgParser
 #[macro_export]
 macro_rules! parse_args {
     ($ed: expr, $($arg: expr),*) => {{
@@ -151,18 +152,18 @@ macro_rules! parse_args {
 /// Wraps the [`throw`] function by inserting a `return` statement after
 /// throwing the exception.
 ///
-/// [`throw`]: crate::php::exceptions::throw
+/// [`throw`]: crate::exception::throw
 ///
 /// # Examples
 ///
 /// ```
 /// use ext_php_rs::{
 ///     throw,
-///     zend::{ce, ClassEntry, ExecutionData},
+///     zend::{ce, ClassEntry, ExecuteData},
 ///     types::Zval,
 /// };
 ///
-/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+/// pub extern "C" fn example_fn(execute_data: &mut ExecuteData, _: &mut Zval) {
 ///     let something_wrong = true;
 ///     if something_wrong {
 ///         throw!(ce::exception(), "Something is wrong!");
@@ -182,7 +183,7 @@ macro_rules! throw {
 /// Implements a set of traits required to convert types that implement
 /// [`RegisteredClass`] to and from [`ZendObject`]s and [`Zval`]s. Generally,
 /// this macro should not be called directly, as it is called on any type that
-/// uses the [`#[php_class]`] macro.
+/// uses the [`php_class`] macro.
 ///
 /// The following traits are implemented:
 ///
@@ -235,10 +236,10 @@ macro_rules! throw {
 /// }
 /// ```
 ///
-/// [`RegisteredClass`]: crate::php::types::object::RegisteredClass
-/// [`ZendObject`]: crate::php::types::object::ZendObject
-/// [`Zval`]: crate::php::types::zval::Zval
-/// [`#[php_class]`]: crate::php_class
+/// [`RegisteredClass`]: crate::class::RegisteredClass
+/// [`ZendObject`]: crate::types::ZendObject
+/// [`Zval`]: crate::types::Zval
+/// [`php_class`]: crate::php_class
 #[macro_export]
 macro_rules! class_derives {
     ($type: ty) => {

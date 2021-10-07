@@ -1,4 +1,4 @@
-use std::{alloc::Layout, ffi::CString};
+use std::{ffi::CString, mem::MaybeUninit};
 
 use crate::{
     builders::FunctionBuilder,
@@ -12,13 +12,13 @@ use crate::{
     },
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     types::{ZendClassObject, ZendObject, ZendStr, Zval},
-    zend::{ClassEntry, ExecutionData, FunctionEntry},
+    zend::{ClassEntry, ExecuteData, FunctionEntry},
 };
 
-/// Builds a class to be exported as a PHP class.
+/// Builder for registering a class in PHP.
 pub struct ClassBuilder {
     name: String,
-    ptr: &'static mut ClassEntry,
+    ptr: Box<ClassEntry>,
     extends: Option<&'static ClassEntry>,
     interfaces: Vec<&'static ClassEntry>,
     methods: Vec<FunctionEntry>,
@@ -34,16 +34,10 @@ impl ClassBuilder {
     /// # Parameters
     ///
     /// * `name` - The name of the class.
-    #[allow(clippy::unwrap_used)]
     pub fn new<T: Into<String>>(name: T) -> Self {
-        // SAFETY: Allocating temporary class entry. Will return a null-ptr if
-        // allocation fails, which will cause the program to panic (standard in
-        // Rust). Unwrapping is OK - the ptr will either be valid or null.
-        let ptr = unsafe {
-            (std::alloc::alloc_zeroed(Layout::new::<ClassEntry>()) as *mut ClassEntry)
-                .as_mut()
-                .unwrap()
-        };
+        // SAFETY: A zeroed class entry is in an initalized state, as it is a raw C type
+        // whose fields do not have a drop implementation.
+        let ptr = unsafe { Box::new(MaybeUninit::zeroed().assume_init()) };
 
         Self {
             name: name.into(),
@@ -175,7 +169,7 @@ impl ClassBuilder {
             obj.into_raw().get_mut_zend_obj()
         }
 
-        extern "C" fn constructor<T: RegisteredClass>(ex: &mut ExecutionData, _: &mut Zval) {
+        extern "C" fn constructor<T: RegisteredClass>(ex: &mut ExecuteData, _: &mut Zval) {
             let ConstructorMeta { constructor, .. } = match T::CONSTRUCTOR {
                 Some(c) => c,
                 None => {
@@ -239,7 +233,7 @@ impl ClassBuilder {
 
         let class = unsafe {
             zend_register_internal_class_ex(
-                self.ptr,
+                self.ptr.as_mut(),
                 match self.extends {
                     Some(ptr) => (ptr as *const _) as *mut _,
                     None => std::ptr::null_mut(),
@@ -247,12 +241,6 @@ impl ClassBuilder {
             )
             .as_mut()
             .ok_or(Error::InvalidPointer)?
-        };
-
-        // SAFETY: We allocated memory for this pointer in `new`, so it is our job to
-        // free it when the builder has finished.
-        unsafe {
-            std::alloc::dealloc((self.ptr as *mut _) as *mut u8, Layout::new::<ClassEntry>())
         };
 
         for iface in self.interfaces {

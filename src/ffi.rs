@@ -1,4 +1,4 @@
-//! Raw FFI bindings to the PHP API.
+//! Raw FFI bindings to the Zend API.
 
 #![allow(clippy::all)]
 #![allow(warnings)]

@@ -1,3 +1,5 @@
+//! Traits used to convert between Zend/PHP and Rust types.
+
 use crate::{
     boxed::ZBox,
     error::Result,
@@ -111,6 +113,8 @@ pub trait IntoZendObject {
 /// Alternative to the built-in Rust [`From`] and [`TryFrom`] implementations,
 /// allowing the caller to specify whether the Zval contents will persist
 /// between requests.
+///
+/// [`TryFrom`]: std::convert::TryFrom
 pub trait IntoZval: Sized {
     /// The corresponding type of the implemented value in PHP.
     const TYPE: DataType;

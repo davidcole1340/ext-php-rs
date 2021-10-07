@@ -10,15 +10,20 @@ use crate::{
     error::{Error, Result},
     ffi::{
         ext_php_rs_zend_object_release, zend_call_known_function, zend_object, zend_objects_new,
-        zend_standard_class_def, HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS,
-        ZEND_PROPERTY_ISSET,
+        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     flags::DataType,
     rc::PhpRc,
     types::{ZendClassObject, ZendStr, Zval},
-    zend::{ClassEntry, ExecutorGlobals, ZendObjectHandlers},
+    zend::{ce, ClassEntry, ExecutorGlobals, ZendObjectHandlers},
 };
 
+/// A PHP object.
+///
+/// This type does not maintain any information about its type, for example,
+/// classes with have associated Rust structs cannot be accessed through this
+/// type. [`ZendClassObject`] is used for this purpose, and you can convert
+/// between the two.
 pub type ZendObject = zend_object;
 
 impl ZendObject {
@@ -51,17 +56,23 @@ impl ZendObject {
     ///
     /// Panics if allocating memory for the object fails, or if the `stdClass`
     /// class entry has not been registered with PHP yet.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendObject;
+    ///
+    /// let mut obj = ZendObject::new_stdclass();
+    ///
+    /// obj.set_property("hello", "world");
+    /// ```
     pub fn new_stdclass() -> ZBox<Self> {
         // SAFETY: This will be `NULL` until it is initialized. `as_ref()` checks for
         // null, so we can panic if it's null.
-        Self::new(unsafe {
-            zend_standard_class_def
-                .as_ref()
-                .expect("`stdClass` class instance not initialized yet")
-        })
+        Self::new(ce::stdclass())
     }
 
-    /// Converts the class object into an owned [`ZendObject`]. This removes any
+    /// Converts a class object into an owned [`ZendObject`]. This removes any
     /// possibility of accessing the underlying attached Rust struct.
     pub fn from_class_object<T: RegisteredClass>(obj: ZBox<ZendClassObject<T>>) -> ZBox<Self> {
         let this = obj.into_raw();
@@ -175,6 +186,16 @@ impl ZendObject {
         }
     }
 
+    /// Extracts some type from a Zend object.
+    ///
+    /// This is a wrapper function around `FromZendObject::extract()`.
+    pub fn extract<'a, T>(&'a self) -> Result<T>
+    where
+        T: FromZendObject<'a>,
+    {
+        T::from_zend_object(self)
+    }
+
     /// Attempts to retrieve a reference to the object handlers.
     #[inline]
     unsafe fn handlers(&self) -> Result<&ZendObjectHandlers> {
@@ -187,16 +208,6 @@ impl ZendObject {
     #[inline]
     fn mut_ptr(&self) -> *mut Self {
         (self as *const Self) as *mut Self
-    }
-
-    /// Extracts some type from a Zend object.
-    ///
-    /// This is a wrapper function around `FromZendObject::extract()`.
-    pub fn extract<'a, T>(&'a self) -> Result<T>
-    where
-        T: FromZendObject<'a>,
-    {
-        T::from_zend_object(self)
     }
 }
 

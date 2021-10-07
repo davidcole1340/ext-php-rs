@@ -1,3 +1,8 @@
+//! Types defined by the Zend engine used in PHP.
+//!
+//! Generally, it is easier to work directly with Rust types, converting into
+//! these PHP types when required.
+
 mod array;
 mod callable;
 mod class_object;
@@ -10,7 +15,7 @@ pub use array::HashTable;
 pub use callable::Callable;
 pub use class_object::ZendClassObject;
 pub use long::ZendLong;
-pub use object::ZendObject;
+pub use object::{PropertyQuery, ZendObject};
 pub use string::ZendStr;
 pub use zval::Zval;
 

@@ -3,17 +3,17 @@ use crate::{
     error::{Error, Result},
     flags::DataType,
     types::Zval,
-    zend::{ExecutionData, FunctionEntry, ZendType},
+    zend::{ExecuteData, FunctionEntry, ZendType},
 };
 use std::{ffi::CString, mem, ptr};
 
 /// Function representation in Rust.
-pub type FunctionHandler = extern "C" fn(execute_data: &mut ExecutionData, retval: &mut Zval);
+pub type FunctionHandler = extern "C" fn(execute_data: &mut ExecuteData, retval: &mut Zval);
 
 /// Function representation in Rust using pointers.
-type FunctionPointerHandler = extern "C" fn(execute_data: *mut ExecutionData, retval: *mut Zval);
+type FunctionPointerHandler = extern "C" fn(execute_data: *mut ExecuteData, retval: *mut Zval);
 
-/// Builds a function to be exported as a PHP function.
+/// Builder for registering a function in PHP.
 #[derive(Debug)]
 pub struct FunctionBuilder<'a> {
     name: String,
@@ -39,6 +39,8 @@ impl<'a> FunctionBuilder<'a> {
             name: name.into(),
             function: FunctionEntry {
                 fname: ptr::null(),
+                // SAFETY: `*mut T` and `&mut T` have the same ABI as long as `*mut T` is non-null,
+                // aligned and pointing to a `T`. PHP guarantees that these conditions will be met.
                 handler: Some(unsafe {
                     mem::transmute::<FunctionHandler, FunctionPointerHandler>(handler)
                 }),

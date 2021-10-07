@@ -19,11 +19,20 @@ use crate::{
     types::{Callable, HashTable, ZendLong, ZendObject, ZendStr},
 };
 
-/// Zend value. Represents most data types that are in the Zend engine.
+/// A zend value. This is the primary storage container used throughout the Zend
+/// engine.
+///
+/// A zval can be thought of as a Rust enum, a type that can contain different
+/// values such as integers, strings, objects etc.
 pub type Zval = zval;
 
-unsafe impl Send for Zval {}
-unsafe impl Sync for Zval {}
+// TODO(david): can we make zval send+sync? main problem is that refcounted
+// types do not have atomic refcounters, so technically two threads could
+// reference the same object and attempt to modify refcounter at the same time.
+// need to look into how ZTS works.
+
+// unsafe impl Send for Zval {}
+// unsafe impl Sync for Zval {}
 
 impl Zval {
     /// Creates a new, empty zval.
@@ -86,8 +95,10 @@ impl Zval {
     /// If the zval does not contain a string, the function will check if it
     /// contains a double or a long, and if so it will convert the value to
     /// a [`String`] and return it. Don't rely on this logic, as there is
-    /// potential for this to change to match the output of the [`str()`](#
-    /// method.str) function.
+    /// potential for this to change to match the output of the [`str()`]
+    /// function.
+    ///
+    /// [`str()`]: #method.str
     pub fn string(&self) -> Option<String> {
         self.str()
             .map(|s| s.to_string())

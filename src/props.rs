@@ -1,4 +1,23 @@
-//! Utilities for adding properties to classes.
+//! Types and traits for adding properties to PHP classes registered from Rust.
+//!
+//! There are two types of properties:
+//!
+//! * Field properties, referencing a property on a struct.
+//! * Method properties, a getter and/or setter function called to get/set the
+//!   value of the property.
+//!
+//! Field types which can be used as a property implement [`Prop`]. This is
+//! automatically implemented on any type which implements [`Clone`],
+//! [`IntoZval`] and [`FromZval`].
+//!
+//! Method property types only have to implement [`IntoZval`] for setters and
+//! [`FromZval`] for getters.
+//!
+//! Properties are stored in the [`Property`] type, which allows us to store
+//! field and method properties in one data structure. Properties are usually
+//! retrieved via the [`RegisteredClass`] trait.
+//!
+//! [`RegisteredClass`]: crate::class::RegisteredClass
 
 use crate::{
     convert::{FromZval, IntoZval},
@@ -169,7 +188,7 @@ impl<'a, T: 'a> Property<'a, T> {
     /// assert_eq!(zv.long(), Some(500));
     /// ```
     ///
-    /// [`PhpException`]: crate::php::exceptions::PhpException
+    /// [`PhpException`]: crate::exception::PhpException
     pub fn get(&self, self_: &'a mut T, retval: &mut Zval) -> PhpResult {
         match self {
             Property::Field(field) => field(self_)
@@ -217,7 +236,7 @@ impl<'a, T: 'a> Property<'a, T> {
     /// assert_eq!(test.a, 100);
     /// ```
     ///
-    /// [`PhpException`]: crate::php::exceptions::PhpException
+    /// [`PhpException`]: crate::exception::PhpException
     pub fn set(&self, self_: &'a mut T, value: &Zval) -> PhpResult {
         match self {
             Property::Field(field) => field(self_)

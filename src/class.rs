@@ -1,3 +1,5 @@
+//! Types and traits used for registering classes with PHP.
+
 use std::{
     collections::HashMap,
     marker::PhantomData,
@@ -11,7 +13,7 @@ use crate::{
     exception::PhpException,
     props::Property,
     types::ZendClassObject,
-    zend::{ClassEntry, ExecutionData, ZendObjectHandlers},
+    zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
 };
 
 /// Implemented on Rust types which are exported to PHP. Allows users to get and
@@ -49,8 +51,10 @@ where
     /// # Safety
     ///
     /// Caller must guarantee that the object the function is called on is
-    /// immediately followed by a [`zend_object`], which is true when the
+    /// immediately followed by a [`ZendObject`], which is true when the
     /// object was instantiated by PHP.
+    ///
+    /// [`ZendObject`]: crate::types::ZendObject
     unsafe fn get_property<'a, T: FromZval<'a>>(&'a self, name: &str) -> Option<T> {
         let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
         obj.std.get_property(name).ok()
@@ -71,8 +75,10 @@ where
     /// # Safety
     ///
     /// Caller must guarantee that the object the function is called on is
-    /// immediately followed by a [`zend_object`], which is true when the
+    /// immediately followed by a [`ZendObject`], which is true when the
     /// object was instantiated by PHP.
+    ///
+    /// [`ZendObject`]: crate::types::ZendObject
     unsafe fn set_property(&mut self, name: &str, value: impl IntoZval) -> Option<()> {
         let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
         obj.std.set_property(name, value).ok()?;
@@ -87,10 +93,11 @@ where
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
 }
 
-/// Object constructor metadata.
+/// Stores metadata about a classes Rust constructor, including the function
+/// pointer and the arguments of the function.
 pub struct ConstructorMeta<T> {
     /// Constructor function.
-    pub constructor: fn(&mut ExecutionData) -> ConstructorResult<T>,
+    pub constructor: fn(&mut ExecuteData) -> ConstructorResult<T>,
     /// Function called to build the constructor function. Usually adds
     /// arguments.
     pub build_fn: fn(FunctionBuilder) -> FunctionBuilder,
@@ -125,7 +132,7 @@ impl<T> From<T> for ConstructorResult<T> {
 }
 
 /// Stores the class entry and handlers for a Rust type which has been exported
-/// to PHP.
+/// to PHP. Usually allocated statically.
 pub struct ClassMetadata<T> {
     handlers_init: AtomicBool,
     handlers: MaybeUninit<ZendObjectHandlers>,
@@ -195,10 +202,10 @@ impl<T: RegisteredClass> ClassMetadata<T> {
     /// Checks if the handlers have been initialized, and initializes them if
     /// they are not.
     fn check_handlers(&self) {
-        if !self.handlers_init.load(Ordering::Acquire) {
+        if !self.handlers_init.load(Ordering::SeqCst) {
             // SAFETY: `MaybeUninit` has the same size as the handlers.
             unsafe { ZendObjectHandlers::init::<T>(self.handlers.as_ptr() as *mut _) };
-            self.handlers_init.store(true, Ordering::Release);
+            self.handlers_init.store(true, Ordering::SeqCst);
         }
     }
 }

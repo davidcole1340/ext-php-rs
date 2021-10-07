@@ -1,4 +1,4 @@
-//! Types relating to registering constants in PHP.
+//! Types and traits for registering constants in PHP.
 
 use std::ffi::CString;
 
@@ -9,6 +9,7 @@ use crate::ffi::{
     zend_register_string_constant,
 };
 
+/// Implemented on types which can be registered as a constant in PHP.
 pub trait IntoConst: Sized {
     /// Registers a global module constant in PHP, with the value as the content
     /// of self. This function _must_ be called in the module startup

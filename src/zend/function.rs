@@ -1,10 +1,10 @@
-//! Builder and objects used to create functions and methods in PHP.
+//! Builder for creating functions and methods in PHP.
 
 use std::{os::raw::c_char, ptr};
 
 use crate::ffi::zend_function_entry;
 
-/// A Zend function entry. Alias.
+/// A Zend function entry.
 pub type FunctionEntry = zend_function_entry;
 
 impl FunctionEntry {

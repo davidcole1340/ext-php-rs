@@ -9,8 +9,9 @@ use std::{
     mem, ptr,
 };
 
-/// Builds a Zend extension. Must be called from within an external function
-/// called `get_module`, returning a mutable pointer to a `ModuleEntry`.
+/// Builds a Zend module extension to be registered with PHP. Must be called
+/// from within an external function called `get_module`, returning a mutable
+/// pointer to a `ModuleEntry`.
 ///
 /// ```
 /// use ext_php_rs::{
@@ -49,8 +50,7 @@ impl ModuleBuilder {
     /// # Arguments
     ///
     /// * `name` - The name of the extension.
-    /// * `version` - The current version of the extension. TBD: Deprecate in
-    ///   favour of the `Cargo.toml` version?
+    /// * `version` - The current version of the extension.
     pub fn new<T: Into<String>, U: Into<String>>(name: T, version: U) -> Self {
         Self {
             name: name.into(),
@@ -165,5 +165,6 @@ impl ModuleBuilder {
 
 /// A function to be called when the extension is starting up or shutting down.
 pub type StartupShutdownFunc = extern "C" fn(_type: i32, _module_number: i32) -> i32;
+
 /// A function to be called when `phpinfo();` is called.
 pub type InfoFunc = extern "C" fn(zend_module: *mut ModuleEntry);

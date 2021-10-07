@@ -204,7 +204,7 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     }
 
     /// Uses the argument parser to parse the arguments contained in the given
-    /// `ExecutionData` object. Returns successfully if the arguments were
+    /// `ExecuteData` object. Returns successfully if the arguments were
     /// parsed.
     ///
     /// This function can only be safely called from within an exported PHP

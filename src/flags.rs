@@ -1,4 +1,4 @@
-//! Bitflags used in PHP and the Zend engine.
+//! Flags and enums used in PHP and the Zend engine.
 
 use bitflags::bitflags;
 

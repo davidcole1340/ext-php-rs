@@ -3,14 +3,10 @@
 use crate::{ffi::zend_class_entry, flags::ClassFlags, types::ZendStr, zend::ExecutorGlobals};
 use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
 
-/// A Zend class entry. Alias.
+/// A PHP class entry.
+///
+/// Represents a class registered with the PHP interpreter.
 pub type ClassEntry = zend_class_entry;
-
-impl PartialEq for ClassEntry {
-    fn eq(&self, other: &Self) -> bool {
-        std::ptr::eq(self, other)
-    }
-}
 
 impl ClassEntry {
     /// Attempts to find a reference to a class in the global class table.
@@ -75,6 +71,7 @@ impl ClassEntry {
     }
 
     /// Returns an iterator of all the interfaces that the class implements.
+    ///
     /// Returns [`None`] if the interfaces have not been resolved on the
     /// class.
     pub fn interfaces(&self) -> Option<impl Iterator<Item = &ClassEntry>> {
@@ -100,6 +97,12 @@ impl ClassEntry {
             let name = unsafe { self.__bindgen_anon_1.parent_name.as_ref()? };
             Self::try_find(name.as_str()?)
         }
+    }
+}
+
+impl PartialEq for ClassEntry {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
     }
 }
 

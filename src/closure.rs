@@ -1,4 +1,4 @@
-//! Types ans functions used for exporting Rust closures to PHP.
+//! Types and functions used for exporting Rust closures to PHP.
 
 use std::collections::HashMap;
 
@@ -11,7 +11,7 @@ use crate::{
     flags::{DataType, MethodFlags},
     props::Property,
     types::Zval,
-    zend::ExecutionData,
+    zend::ExecuteData,
 };
 
 /// Class entry and handlers for Rust closures.
@@ -138,7 +138,7 @@ impl Closure {
     }
 
     /// External function used by the Zend interpreter to call the closure.
-    extern "C" fn invoke(ex: &mut ExecutionData, ret: &mut Zval) {
+    extern "C" fn invoke(ex: &mut ExecuteData, ret: &mut Zval) {
         let (parser, this) = ex.parser_method::<Self>();
         let this = this.expect("Internal closure function called on non-closure class");
 
@@ -164,7 +164,7 @@ class_derives!(Closure);
 ///
 /// Types must implement the `invoke` function which will be called when the
 /// closure is called from PHP. Arguments must be parsed from the
-/// [`ExecutionData`] and the return value is returned through the [`Zval`].
+/// [`ExecuteData`] and the return value is returned through the [`Zval`].
 ///
 /// This trait is automatically implemented on functions with up to 8
 /// parameters.

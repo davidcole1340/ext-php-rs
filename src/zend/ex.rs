@@ -1,6 +1,3 @@
-//! Functions for interacting with the execution data passed to PHP functions\
-//! introduced in Rust.
-
 use crate::ffi::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
 
 use crate::{
@@ -9,12 +6,42 @@ use crate::{
     types::{ZendClassObject, ZendObject, Zval},
 };
 
-/// Execution data passed when a function is called from Zend.
-pub type ExecutionData = zend_execute_data;
+/// Execute data passed when a function is called from PHP.
+///
+/// This generally contains things related to the call, including but not
+/// limited to:
+///
+/// * Arguments
+/// * `$this` object reference
+/// * Reference to return value
+/// * Previous execute data
+pub type ExecuteData = zend_execute_data;
 
-impl ExecutionData {
+impl ExecuteData {
     /// Returns an [`ArgParser`] pre-loaded with the arguments contained inside
     /// `self`.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::{types::Zval, zend::ExecuteData, args::Arg, flags::DataType};
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
+    ///     let mut a = Arg::new("a", DataType::Long);
+    ///
+    ///     // The `parse_args!()` macro can be used for this.
+    ///     let parser = ex.parser()
+    ///         .arg(&mut a)
+    ///         .parse();
+    ///
+    ///     if parser.is_err() {
+    ///         return;
+    ///     }
+    ///
+    ///     dbg!(a);
+    /// }
+    /// ```
     pub fn parser<'a>(&'a mut self) -> ArgParser<'a, '_> {
         self.parser_object().0
     }
@@ -24,6 +51,28 @@ impl ExecutionData {
     ///
     /// A reference to `$this` is also returned in an [`Option`], which resolves
     /// to [`None`] if this function is not called inside a method.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::{types::Zval, zend::ExecuteData, args::Arg, flags::DataType};
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
+    ///     let mut a = Arg::new("a", DataType::Long);
+    ///
+    ///     let (parser, this) = ex.parser_object();
+    ///     let parser = parser
+    ///         .arg(&mut a)
+    ///         .parse();
+    ///
+    ///     if parser.is_err() {
+    ///         return;
+    ///     }
+    ///
+    ///     dbg!(a, this);
+    /// }
+    /// ```
     pub fn parser_object<'a>(&'a mut self) -> (ArgParser<'a, '_>, Option<&'a mut ZendObject>) {
         // SAFETY: All fields of the `u2` union are the same type.
         let n_args = unsafe { self.This.u2.num_args };
@@ -53,6 +102,37 @@ impl ExecutionData {
     /// object will also resolve to [`None`] if the function is called
     /// inside a method that does not belong to an object with type `T`.
     ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::{types::Zval, zend::ExecuteData, args::Arg, flags::DataType, prelude::*};
+    ///
+    /// #[php_class]
+    /// #[derive(Debug)]
+    /// struct Example;
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
+    ///     let mut a = Arg::new("a", DataType::Long);
+    ///
+    ///     let (parser, this) = ex.parser_method::<Example>();
+    ///     let parser = parser
+    ///         .arg(&mut a)
+    ///         .parse();
+    ///
+    ///     if parser.is_err() {
+    ///         return;
+    ///     }
+    ///
+    ///     dbg!(a, this);
+    /// }
+    ///
+    /// #[php_module]
+    /// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+    ///     module
+    /// }
+    /// ```
+    ///
     /// [`parse_object`]: #method.parse_object
     pub fn parser_method<'a, T: RegisteredClass>(
         &'a mut self,
@@ -69,14 +149,45 @@ impl ExecutionData {
     ///
     /// Returns a [`ZendClassObject`] if the execution data contained a valid
     /// object of type `T`, otherwise returns [`None`].
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::{types::Zval, zend::ExecuteData, prelude::*};
+    ///
+    /// #[php_class]
+    /// #[derive(Debug)]
+    /// struct Example;
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
+    ///     let this = ex.get_object::<Example>();
+    ///     dbg!(this);
+    /// }
+    ///
+    /// #[php_module]
+    /// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+    ///     module
+    /// }
+    /// ```
     pub fn get_object<T: RegisteredClass>(&mut self) -> Option<&mut ZendClassObject<T>> {
-        // TODO(david): This should be a `&mut self` function but we need to fix arg
-        // parser first.
         ZendClassObject::from_zend_obj_mut(self.get_self()?)
     }
 
     /// Attempts to retrieve the 'this' object, which can be used in class
     /// methods to retrieve the underlying Zend object.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::{types::Zval, zend::ExecuteData};
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
+    ///     let this = ex.get_self();
+    ///     dbg!(this);
+    /// }
+    /// ```
     pub fn get_self(&mut self) -> Option<&mut ZendObject> {
         // TODO(david): This should be a `&mut self` function but we need to fix arg
         // parser first.
@@ -124,13 +235,13 @@ impl ExecutionData {
 
 #[cfg(test)]
 mod tests {
-    use super::ExecutionData;
+    use super::ExecuteData;
 
     #[test]
     fn test_zend_call_frame_slot() {
         // PHP 8.0.2 (cli) (built: Feb 21 2021 11:51:33) ( NTS )
         // Copyright (c) The PHP Group
         // Zend Engine v4.0.2, Copyright (c) Zend Technologies
-        assert_eq!(ExecutionData::zend_call_frame_slot(), 5);
+        assert_eq!(ExecuteData::zend_call_frame_slot(), 5);
     }
 }

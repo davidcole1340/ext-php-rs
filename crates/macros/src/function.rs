@@ -70,7 +70,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         #input
 
         #[doc(hidden)]
-        pub extern "C" fn #internal_ident(ex: &mut ::ext_php_rs::zend::ExecutionData, retval: &mut ::ext_php_rs::types::Zval) {
+        pub extern "C" fn #internal_ident(ex: &mut ::ext_php_rs::zend::ExecuteData, retval: &mut ::ext_php_rs::types::Zval) {
             use ::ext_php_rs::convert::IntoZval;
 
             #(#arg_definitions)*

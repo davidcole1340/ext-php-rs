@@ -1,4 +1,4 @@
-//! Utilities for interacting with refcounted PHP types.
+//! Traits and types for interacting with reference counted PHP types.
 
 use crate::{
     ffi::{zend_refcounted_h, zend_string},

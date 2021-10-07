@@ -1,4 +1,4 @@
-//! Contains all the base PHP throwables, including `Throwable` and `Exception`.
+//! Types and functions used for throwing exceptions from Rust to PHP.
 
 use std::ffi::CString;
 

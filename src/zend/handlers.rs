@@ -12,6 +12,7 @@ use crate::{
     types::{HashTable, ZendClassObject, ZendObject, ZendStr, Zval},
 };
 
+/// A set of functions associated with a PHP class.
 pub type ZendObjectHandlers = zend_object_handlers;
 
 impl ZendObjectHandlers {
@@ -206,7 +207,7 @@ impl ZendObjectHandlers {
             let self_ = &mut **obj;
 
             match has_set_exists {
-                // 
+                //
                 // * 0 (has) whether property exists and is not NULL
                 0 => {
                     if let Some(val) = prop {
@@ -217,7 +218,7 @@ impl ZendObjectHandlers {
                         }
                     }
                 }
-                // 
+                //
                 // * 1 (set) whether property exists and is true
                 1 => {
                     if let Some(val) = prop {
@@ -229,7 +230,7 @@ impl ZendObjectHandlers {
                         }
                     }
                 }
-                // 
+                //
                 // * 2 (exists) whether property exists
                 2 => {
                     if prop.is_some() {

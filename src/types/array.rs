@@ -25,27 +25,76 @@ use crate::{
     types::Zval,
 };
 
-/// PHP array, which is represented in memory as a hashtable.
+/// A PHP hashtable.
+///
+/// In PHP, arrays are represented as hashtables. This allows you to push values
+/// onto the end of the array like a vector, while also allowing you to insert
+/// at arbitrary string key indexes.
+///
+/// A PHP hashtable stores values as [`Zval`]s. This allows you to insert
+/// different types into the same hashtable. Types must implement [`IntoZval`]
+/// to be able to be inserted into the hashtable.
+///
+/// # Examples
+///
+/// ```no_run
+/// use ext_php_rs::types::HashTable;
+///
+/// let mut ht = HashTable::new();
+/// ht.push(1);
+/// ht.push("Hello, world!");
+/// ht.insert("Like", "Hashtable");
+///
+/// assert_eq!(ht.len(), 3);
+/// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(1));
+/// ```
 pub type HashTable = crate::ffi::HashTable;
 
 // Clippy complains about there being no `is_empty` function when implementing
 // on the alias `ZendStr` :( <https://github.com/rust-lang/rust-clippy/issues/7702>
 #[allow(clippy::len_without_is_empty)]
 impl HashTable {
-    /// Creates a new, empty, PHP associative array.
+    /// Creates a new, empty, PHP hashtable, returned inside a [`ZBox`].
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let ht = HashTable::new();
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if memory for the hashtable could not be allocated.
     pub fn new() -> ZBox<Self> {
         Self::with_capacity(HT_MIN_SIZE)
     }
 
-    /// Creates a new, empty, PHP associative array with an initial size.
+    /// Creates a new, empty, PHP hashtable with an initial size, returned
+    /// inside a [`ZBox`].
     ///
     /// # Parameters
     ///
     /// * `size` - The size to initialize the array with.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let ht = HashTable::with_capacity(10);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if memory for the hashtable could not be allocated.
     pub fn with_capacity(size: u32) -> ZBox<Self> {
-        // SAFETY: PHP allocater handles the creation of the array.
         unsafe {
+            // SAFETY: PHP allocater handles the creation of the array.
             let ptr = _zend_new_array(size);
+
+            // SAFETY: `as_mut()` checks if the pointer is null, and panics if it is not.
             ZBox::from_raw(
                 ptr.as_mut()
                     .expect("Failed to allocate memory for hashtable"),
@@ -54,16 +103,58 @@ impl HashTable {
     }
 
     /// Returns the current number of elements in the array.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.push(1);
+    /// ht.push("Hello, world");
+    ///
+    /// assert_eq!(ht.len(), 2);
+    /// ```
     pub fn len(&self) -> usize {
         self.nNumOfElements as usize
     }
 
     /// Returns whether the hash table is empty.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// assert_eq!(ht.is_empty(), true);
+    ///
+    /// ht.push(1);
+    /// ht.push("Hello, world");
+    ///
+    /// assert_eq!(ht.is_empty(), false);
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Clears the hash table, removing all values.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.insert("test", "hello world");
+    /// assert_eq!(ht.is_empty(), false);
+    ///
+    /// ht.clear();
+    /// assert_eq!(ht.is_empty(), true);
+    /// ```
     pub fn clear(&mut self) {
         unsafe { zend_hash_clean(self) }
     }
@@ -79,6 +170,17 @@ impl HashTable {
     /// * `Some(&Zval)` - A reference to the zval at the position in the hash
     ///   table.
     /// * `None` - No value at the given position was found.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.insert("test", "hello world");
+    /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
+    /// ```
     pub fn get(&self, key: &'_ str) -> Option<&Zval> {
         let str = CString::new(key).ok()?;
         unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_ref() }
@@ -95,6 +197,17 @@ impl HashTable {
     /// * `Some(&Zval)` - A reference to the zval at the position in the hash
     ///   table.
     /// * `None` - No value at the given position was found.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.push(100);
+    /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
+    /// ```
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self, key).as_ref() }
     }
@@ -109,7 +222,21 @@ impl HashTable {
     ///
     /// * `Some(())` - Key was successfully removed.
     /// * `None` - No key was removed, did not exist.
-    pub fn remove<K>(&mut self, key: &str) -> Option<()> {
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.insert("test", "hello world");
+    /// assert_eq!(ht.len(), 1);
+    ///
+    /// ht.remove("test");
+    /// assert_eq!(ht.len(), 0);
+    /// ```
+    pub fn remove(&mut self, key: &str) -> Option<()> {
         let result =
             unsafe { zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _) };
 
@@ -130,6 +257,20 @@ impl HashTable {
     ///
     /// * `Ok(())` - Key was successfully removed.
     /// * `None` - No key was removed, did not exist.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.push("hello");
+    /// assert_eq!(ht.len(), 1);
+    ///
+    /// ht.remove_index(0);
+    /// assert_eq!(ht.len(), 0);
+    /// ```
     pub fn remove_index(&mut self, key: u64) -> Option<()> {
         let result = unsafe { zend_hash_index_del(self, key) };
 
@@ -147,6 +288,25 @@ impl HashTable {
     ///
     /// * `key` - The key to insert the value at in the hash table.
     /// * `value` - The value to insert into the hash table.
+    ///
+    /// # Returns
+    ///
+    /// Returns nothing in a result on success. Returns an error if the key
+    /// could not be converted into a [`CString`], or converting the value into
+    /// a [`Zval`] failed.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.insert("a", "A");
+    /// ht.insert("b", "B");
+    /// ht.insert("c", "C");
+    /// assert_eq!(ht.len(), 3);
+    /// ```
     pub fn insert<V>(&mut self, key: &str, val: V) -> Result<()>
     where
         V: IntoZval,
@@ -171,6 +331,24 @@ impl HashTable {
     ///
     /// * `key` - The index at which the value should be inserted.
     /// * `val` - The value to insert into the hash table.
+    ///
+    /// # Returns
+    ///
+    /// Returns nothing in a result on success. Returns an error if converting
+    /// the value into a [`Zval`] failed.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.insert_at_index(0, "A");
+    /// ht.insert_at_index(5, "B");
+    /// ht.insert_at_index(0, "C"); // notice overriding index 0
+    /// assert_eq!(ht.len(), 2);
+    /// ```
     pub fn insert_at_index<V>(&mut self, key: u64, val: V) -> Result<()>
     where
         V: IntoZval,
@@ -187,6 +365,24 @@ impl HashTable {
     /// # Parameters
     ///
     /// * `val` - The value to insert into the hash table.
+    ///
+    /// # Returns
+    ///
+    /// Returns nothing in a result on success. Returns an error if converting
+    /// the value into a [`Zval`] failed.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// ht.push("a");
+    /// ht.push("b");
+    /// ht.push("c");
+    /// assert_eq!(ht.len(), 3);
+    /// ```
     pub fn push<V>(&mut self, val: V) -> Result<()>
     where
         V: IntoZval,
@@ -200,6 +396,21 @@ impl HashTable {
 
     /// Returns an iterator over the key(s) and value contained inside the
     /// hashtable.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// for (idx, key, val) in ht.iter() {
+    /// //   ^ Index if inserted at an index.
+    /// //        ^ Optional string key, if inserted like a hashtable.
+    /// //             ^ Inserted value.
+    ///
+    ///     dbg!(idx, key, val);
+    /// }
     #[inline]
     pub fn iter(&self) -> Iter {
         Iter::new(self)
@@ -207,6 +418,17 @@ impl HashTable {
 
     /// Returns an iterator over the values contained inside the hashtable, as
     /// if it was a set or list.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::HashTable;
+    ///
+    /// let mut ht = HashTable::new();
+    ///
+    /// for val in ht.values() {
+    ///     dbg!(val);
+    /// }
     #[inline]
     pub fn values(&self) -> Values {
         Values::new(self)
@@ -215,6 +437,7 @@ impl HashTable {
 
 unsafe impl ZBoxable for HashTable {
     fn free(&mut self) {
+        // SAFETY: ZBox has immutable access to `self`.
         unsafe { zend_array_destroy(self) }
     }
 }
@@ -235,8 +458,14 @@ impl ToOwned for HashTable {
 
     fn to_owned(&self) -> Self::Owned {
         unsafe {
+            // SAFETY: FFI call does not modify `self`, returns a new hashtable.
             let ptr = zend_array_dup(self as *const HashTable as *mut HashTable);
-            ZBox::from_raw(ptr)
+
+            // SAFETY: `as_mut()` checks if the pointer is null, and panics if it is not.
+            ZBox::from_raw(
+                ptr.as_mut()
+                    .expect("Failed to allocate memory for hashtable"),
+            )
         }
     }
 }

@@ -3,7 +3,7 @@
 
 use std::{
     fmt::Debug,
-    mem::{self},
+    mem,
     ops::{Deref, DerefMut},
     ptr::{self, NonNull},
 };
@@ -41,6 +41,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// Panics if memory was unable to be allocated for the new object.
     pub fn new(val: T) -> ZBox<Self> {
+        // SAFETY: We are providing a value to initialize the object with.
         unsafe { Self::internal_new(Some(val)) }
     }
 

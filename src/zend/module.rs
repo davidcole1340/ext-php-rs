@@ -3,12 +3,12 @@
 
 use crate::ffi::zend_module_entry;
 
-/// A Zend module entry. Alias.
+/// A Zend module entry, also known as an extension.
 pub type ModuleEntry = zend_module_entry;
 
 impl ModuleEntry {
-    /// Converts the module entry into a raw pointer, releasing it to the C
-    /// world.
+    /// Allocates the module entry on the heap, returning a pointer to the
+    /// memory location. The caller is responsible for the memory pointed to.
     pub fn into_raw(self) -> *mut Self {
         Box::into_raw(Box::new(self))
     }

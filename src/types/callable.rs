@@ -7,13 +7,15 @@ use crate::{
     error::{Error, Result},
     ffi::_call_user_function_impl,
     flags::DataType,
+    zend::ExecutorGlobals,
 };
 
 use super::Zval;
 
 /// Acts as a wrapper around a callable [`Zval`]. Allows the owner to call the
-/// [`Zval`] as if it was a PHP function through the
-/// [`try_call`](Callable::try_call) method.
+/// [`Zval`] as if it was a PHP function through the [`try_call`] method.
+///
+/// [`try_call`]: #method.try_call
 #[derive(Debug)]
 pub struct Callable<'a>(OwnedZval<'a>);
 
@@ -56,6 +58,16 @@ impl<'a> Callable<'a> {
     /// # Parameters
     ///
     /// * `name` - Name of the callable function.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::Callable;
+    ///
+    /// let strpos = Callable::try_from_name("strpos").unwrap();
+    /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
+    /// assert_eq!(result.long(), Some(1));
+    /// ```
     pub fn try_from_name(name: &str) -> Result<Self> {
         let mut callable = Zval::new();
         callable.set_string(name, false)?;
@@ -64,10 +76,7 @@ impl<'a> Callable<'a> {
     }
 
     /// Attempts to call the callable with a list of arguments to pass to the
-    /// function. Note that a thrown exception inside the callable is not
-    /// detectable, therefore you should check if the return value is valid
-    /// rather than unwrapping. Returns a result containing the return value
-    /// of the function, or an error.
+    /// function.
     ///
     /// You should not call this function directly, rather through the
     /// [`call_user_func`] macro.
@@ -75,6 +84,21 @@ impl<'a> Callable<'a> {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
+    ///
+    /// # Returns
+    ///
+    /// Returns the result wrapped in [`Ok`] upon success. If calling the
+    /// callable fails, or an exception is thrown, an [`Err`] is returned.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::Callable;
+    ///
+    /// let strpos = Callable::try_from_name("strpos").unwrap();
+    /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
+    /// assert_eq!(result.long(), Some(1));
+    /// ```
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         if !self.0.is_callable() {
             return Err(Error::Callable);
@@ -101,6 +125,8 @@ impl<'a> Callable<'a> {
 
         if result < 0 {
             Err(Error::Callable)
+        } else if let Some(e) = ExecutorGlobals::take_exception() {
+            Err(Error::Exception(e))
         } else {
             Ok(retval)
         }

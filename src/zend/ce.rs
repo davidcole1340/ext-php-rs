@@ -1,13 +1,20 @@
+//! Stock class entries registered with PHP, primarily exceptions.
+
 #![allow(clippy::unwrap_used)]
 
 use crate::ffi::{
     zend_ce_argument_count_error, zend_ce_arithmetic_error, zend_ce_compile_error,
     zend_ce_division_by_zero_error, zend_ce_error_exception, zend_ce_exception,
     zend_ce_parse_error, zend_ce_throwable, zend_ce_type_error, zend_ce_unhandled_match_error,
-    zend_ce_value_error,
+    zend_ce_value_error, zend_standard_class_def,
 };
 
 use super::ClassEntry;
+
+/// Returns the base `stdClass` class.
+pub fn stdclass() -> &'static ClassEntry {
+    unsafe { zend_standard_class_def.as_ref() }.unwrap()
+}
 
 /// Returns the base `Throwable` class.
 pub fn throwable() -> &'static ClassEntry {

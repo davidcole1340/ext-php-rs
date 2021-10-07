@@ -1,6 +1,5 @@
 //! Represents a string in the PHP world. Similar to a C string, but is
-//! reference counted and contains the length of the string, meaning the string
-//! can contain the NUL character.
+//! reference counted and contains the length of the string.
 
 use std::{
     borrow::Cow,
@@ -10,10 +9,7 @@ use std::{
     slice,
 };
 
-use parking_lot::{
-    lock_api::{Mutex, RawMutex},
-    RawMutex as RawMutexStruct,
-};
+use parking_lot::{const_mutex, Mutex};
 
 use crate::{
     boxed::{ZBox, ZBoxable},
@@ -28,7 +24,7 @@ use crate::{
     types::Zval,
 };
 
-/// A borrowed Zend-string.
+/// A borrowed Zend string.
 ///
 /// Although this object does implement [`Sized`], it is in fact not sized. As C
 /// cannot represent unsized types, an array of size 1 is used at the end of the
@@ -43,8 +39,8 @@ pub type ZendStr = zend_string;
 // Adding to the Zend interned string hashtable is not atomic and can be
 // contested when PHP is compiled with ZTS, so an empty mutex is used to ensure
 // no collisions occur on the Rust side. Not much we can do about collisions
-// on the PHP side.
-static INTERNED_LOCK: Mutex<RawMutexStruct, ()> = Mutex::const_new(RawMutex::INIT, ());
+// on the PHP side, but some safety is better than none.
+static INTERNED_LOCK: Mutex<()> = const_mutex(());
 
 // Clippy complains about there being no `is_empty` function when implementing
 // on the alias `ZendStr` :( <https://github.com/rust-lang/rust-clippy/issues/7702>
@@ -68,6 +64,22 @@ impl ZendStr {
     ///
     /// Panics if the function was unable to allocate memory for the Zend
     /// string.
+    ///
+    /// # Safety
+    ///
+    /// When passing `persistent` as `false`, the caller must ensure that the
+    /// object does not attempt to live after the request finishes. When a
+    /// request starts and finishes in PHP, the Zend heap is deallocated and a
+    /// new one is created, which would leave a dangling pointer in the
+    /// [`ZBox`].
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendStr;
+    ///
+    /// let s = ZendStr::new("Hello, world!", false).unwrap();
+    /// ```
     pub fn new(str: &str, persistent: bool) -> Result<ZBox<Self>> {
         Ok(Self::from_c_str(&CString::new(str)?, persistent))
     }
@@ -84,6 +96,24 @@ impl ZendStr {
     ///
     /// Panics if the function was unable to allocate memory for the Zend
     /// string.
+    ///
+    /// # Safety
+    ///
+    /// When passing `persistent` as `false`, the caller must ensure that the
+    /// object does not attempt to live after the request finishes. When a
+    /// request starts and finishes in PHP, the Zend heap is deallocated and a
+    /// new one is created, which would leave a dangling pointer in the
+    /// [`ZBox`].
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendStr;
+    /// use std::ffi::CString;
+    ///
+    /// let c_s = CString::new("Hello world!").unwrap();
+    /// let s = ZendStr::from_c_str(&c_s, false);
+    /// ```
     pub fn from_c_str(str: &CStr, persistent: bool) -> ZBox<Self> {
         unsafe {
             let ptr =
@@ -105,6 +135,10 @@ impl ZendStr {
     /// As Zend hashtables are not thread-safe, a mutex is used to prevent two
     /// interned strings from being created at the same time.
     ///
+    /// Interned strings are not used very often. You should almost always use a
+    /// regular zend string, except in the case that you know you will use a
+    /// string that PHP will already have interned, such as "PHP".
+    ///
     /// # Parameters
     ///
     /// * `str` - String content.
@@ -121,6 +155,22 @@ impl ZendStr {
     ///
     /// Panics if the function was unable to allocate memory for the Zend
     /// string.
+    ///
+    /// # Safety
+    ///
+    /// When passing `persistent` as `false`, the caller must ensure that the
+    /// object does not attempt to live after the request finishes. When a
+    /// request starts and finishes in PHP, the Zend heap is deallocated and a
+    /// new one is created, which would leave a dangling pointer in the
+    /// [`ZBox`].
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendStr;
+    ///
+    /// let s = ZendStr::new_interned("PHP", true);
+    /// ```
     pub fn new_interned(str: &str, persistent: bool) -> Result<ZBox<Self>> {
         Ok(Self::interned_from_c_str(&CString::new(str)?, persistent))
     }
@@ -134,6 +184,10 @@ impl ZendStr {
     /// As Zend hashtables are not thread-safe, a mutex is used to prevent two
     /// interned strings from being created at the same time.
     ///
+    /// Interned strings are not used very often. You should almost always use a
+    /// regular zend string, except in the case that you know you will use a
+    /// string that PHP will already have interned, such as "PHP".
+    ///
     /// # Parameters
     ///
     /// * `str` - String content.
@@ -146,6 +200,24 @@ impl ZendStr {
     ///
     /// * The function used to create interned strings has not been set.
     /// * The function could not allocate enough memory for the Zend string.
+    ///
+    /// # Safety
+    ///
+    /// When passing `persistent` as `false`, the caller must ensure that the
+    /// object does not attempt to live after the request finishes. When a
+    /// request starts and finishes in PHP, the Zend heap is deallocated and a
+    /// new one is created, which would leave a dangling pointer in the
+    /// [`ZBox`].
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendStr;
+    /// use std::ffi::CString;
+    ///
+    /// let c_s = CString::new("PHP").unwrap();
+    /// let s = ZendStr::interned_from_c_str(&c_s, true);
+    /// ```
     pub fn interned_from_c_str(str: &CStr, persistent: bool) -> ZBox<Self> {
         let _lock = INTERNED_LOCK.lock();
 
@@ -164,11 +236,29 @@ impl ZendStr {
     }
 
     /// Returns the length of the string.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendStr;
+    ///
+    /// let s = ZendStr::new("hello, world!", false).unwrap();
+    /// assert_eq!(s.len(), 13);
+    /// ```
     pub fn len(&self) -> usize {
         self.len as usize
     }
 
     /// Returns true if the string is empty, false otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendStr;
+    ///
+    /// let s = ZendStr::new("hello, world!", false).unwrap();
+    /// assert_eq!(s.is_empty(), false);
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -187,6 +277,16 @@ impl ZendStr {
     ///
     /// Returns the [`None`] variant if the [`CStr`] contains non-UTF-8
     /// characters.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendStr;
+    ///
+    /// let s = ZendStr::new("hello, world!", false).unwrap();
+    /// let as_str = s.as_str();
+    /// assert_eq!(as_str, Some("hello, world!"));
+    /// ```
     pub fn as_str(&self) -> Option<&str> {
         self.as_c_str().to_str().ok()
     }

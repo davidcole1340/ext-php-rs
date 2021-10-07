@@ -18,7 +18,7 @@
 //! returns a [`ZBox<ZendStr>`].
 //!
 //! [memory arenas]: https://en.wikipedia.org/wiki/Region-based_memory_management
-//! [`ZendStr`]: super::types::string::ZendStr
+//! [`ZendStr`]: crate::types::ZendStr
 //! [`emalloc`]: super::alloc::efree
 
 use std::{
