@@ -9,6 +9,7 @@ version = "0.5.3"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
 categories = ["api-bindings"]
+exclude = ["/.github", "/.crates", "/guide"]
 
 [dependencies]
 bitflags = "1.2.1"
