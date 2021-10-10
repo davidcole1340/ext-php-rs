@@ -104,3 +104,8 @@ jobs:
         with:
           command: clippy
           args: -- -D warnings
+      - name: Build with docs stub
+        env:
+          DOCS_RS:
+        run:
+          cargo clean && cargo build
