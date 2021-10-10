@@ -5,19 +5,58 @@
 #![allow(non_snake_case)]
 #![cfg_attr(docs, feature(doc_cfg))]
 
+pub mod alloc;
+pub mod args;
+pub mod binary;
+pub mod builders;
+pub mod convert;
+pub mod error;
+pub mod exception;
+pub mod ffi;
+pub mod flags;
 #[macro_use]
 pub mod macros;
-pub mod bindings;
-pub mod errors;
-pub mod php;
+pub mod boxed;
+pub mod class;
+#[cfg(any(docs, feature = "closure"))]
+#[cfg_attr(docs, doc(cfg(feature = "closure")))]
+pub mod closure;
+pub mod constant;
+#[doc(hidden)]
+pub mod internal;
+pub mod props;
+pub mod rc;
+pub mod types;
+pub mod zend;
+
+/// A module typically glob-imported containing the typically required macros
+/// and imports.
+pub mod prelude {
+    pub use crate::builders::ModuleBuilder;
+    #[cfg(any(docs, feature = "closure"))]
+    #[cfg_attr(docs, doc(cfg(feature = "closure")))]
+    pub use crate::closure::Closure;
+    pub use crate::exception::{PhpException, PhpResult};
+    pub use crate::php_class;
+    pub use crate::php_const;
+    pub use crate::php_extern;
+    pub use crate::php_function;
+    pub use crate::php_impl;
+    pub use crate::php_module;
+    pub use crate::php_startup;
+    pub use crate::types::ZendCallable;
+    pub use crate::ZvalConvert;
+}
 
 /// Attribute used to annotate constants to be exported to PHP.
 ///
-/// The declared constant is left intact (apart from the addition of the `#[allow(dead_code)]`
-/// attribute in the case that you do not use the Rust constant).
+/// The declared constant is left intact (apart from the addition of the
+/// `#[allow(dead_code)]` attribute in the case that you do not use the Rust
+/// constant).
 ///
-/// These declarations must happen before you declare your [`macro@php_startup`] function (or
-/// [`macro@php_module`] function if you do not have a startup function).
+/// These declarations must happen before you declare your [`macro@php_startup`]
+/// function (or [`macro@php_module`] function if you do not have a startup
+/// function).
 ///
 /// # Example
 ///
@@ -35,12 +74,14 @@ pub mod php;
 /// ```
 pub use ext_php_rs_derive::php_const;
 
-/// Attribute used to annotate `extern` blocks which are deemed as PHP functions.
+/// Attribute used to annotate `extern` blocks which are deemed as PHP
+/// functions.
 ///
-/// This allows you to 'import' PHP functions into Rust so that they can be called like regular
-/// Rust functions. Parameters can be any type that implements [`IntoZval`], and the return type
-/// can be anything that implements [`From<Zval>`] (notice how [`Zval`] is consumed rather than
-/// borrowed in this case).
+/// This allows you to 'import' PHP functions into Rust so that they can be
+/// called like regular Rust functions. Parameters can be any type that
+/// implements [`IntoZval`], and the return type can be anything that implements
+/// [`From<Zval>`] (notice how [`Zval`] is consumed rather than borrowed in this
+/// case).
 ///
 /// # Panics
 ///
@@ -51,19 +92,21 @@ pub use ext_php_rs_derive::php_const;
 /// * The actual function call failed internally.
 /// * The output [`Zval`] could not be parsed into the output type.
 ///
-/// The last point can be important when interacting with functions that return unions, such as
-/// [`strpos`] which can return an integer or a boolean. In this case, a [`Zval`] should be
-/// returned as parsing a boolean to an integer is invalid, and vice versa.
+/// The last point can be important when interacting with functions that return
+/// unions, such as [`strpos`] which can return an integer or a boolean. In this
+/// case, a [`Zval`] should be returned as parsing a boolean to an integer is
+/// invalid, and vice versa.
 ///
 /// # Example
 ///
-/// This `extern` block imports the [`strpos`] function from PHP. Notice that the string parameters
-/// can take either [`String`] or [`&str`], the optional parameter `offset` is an [`Option<i64>`],
-/// and the return value is a [`Zval`] as the return type is an integer-boolean union.
+/// This `extern` block imports the [`strpos`] function from PHP. Notice that
+/// the string parameters can take either [`String`] or [`&str`], the optional
+/// parameter `offset` is an [`Option<i64>`], and the return value is a [`Zval`]
+/// as the return type is an integer-boolean union.
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
-/// # use ext_php_rs::php::types::zval::Zval;
+/// # use ext_php_rs::types::Zval;
 /// #[php_extern]
 /// extern "C" {
 ///     fn strpos(haystack: &str, needle: &str, offset: Option<i64>) -> Zval;
@@ -86,46 +129,53 @@ pub use ext_php_rs_derive::php_extern;
 
 /// Attribute used to annotate a function as a PHP function.
 ///
-/// Only types that implement [`FromZval`] can be used as parameter and return types. These include
-/// but are not limited to the following:
+/// Only types that implement [`FromZval`] can be used as parameter and return
+/// types. These include but are not limited to the following:
 ///
-/// - Most primitive integers ([`i8`], [`i16`], [`i32`], [`i64`], [`u8`], [`u16`], [`u32`], [`u64`],
+/// - Most primitive integers ([`i8`], [`i16`], [`i32`], [`i64`], [`u8`],
+///   [`u16`], [`u32`], [`u64`],
 /// [`usize`], [`isize`])
 /// - Double-precision floating point numbers ([`f64`])
 /// - [`bool`]
 /// - [`String`]
-/// - [`Vec<T>`] and [`HashMap<String, T>`](std::collections::HashMap) where `T: FromZval`.
+/// - [`Vec<T>`] and [`HashMap<String, T>`](std::collections::HashMap) where `T:
+///   FromZval`.
 /// - [`Binary<T>`] for passing binary data as a string, where `T: Pack`.
-/// - [`Callable`] for receiving PHP callables, not applicable for return values.
-/// - [`Option<T>`] where `T: FromZval`. When used as a parameter, the parameter will be
-/// deemed nullable, and will contain [`None`] when `null` is passed. When used as a return type,
-/// if [`None`] is returned the [`Zval`] will be set to null. Optional parameters *must* be of the
-/// type [`Option<T>`].
+/// - [`ZendCallable`] for receiving PHP callables, not applicable for return
+///   values.
+/// - [`Option<T>`] where `T: FromZval`. When used as a parameter, the parameter
+///   will be
+/// deemed nullable, and will contain [`None`] when `null` is passed. When used
+/// as a return type, if [`None`] is returned the [`Zval`] will be set to null.
+/// Optional parameters *must* be of the type [`Option<T>`].
 ///
-/// Additionally, you are able to return a variant of [`Result<T, E>`]. `T` must implement
-/// [`IntoZval`] and `E` must implement `Into<PhpException>`. If an error variant is returned, a
-/// PHP exception is thrown using the [`PhpException`] struct contents.
+/// Additionally, you are able to return a variant of [`Result<T, E>`]. `T` must
+/// implement [`IntoZval`] and `E` must implement `Into<PhpException>`. If an
+/// error variant is returned, a PHP exception is thrown using the
+/// [`PhpException`] struct contents.
 ///
-/// You are able to implement [`FromZval`] on your own custom types to have arguments passed in
-/// seamlessly. Similarly, you can implement [`IntoZval`] on values that you want to be able to be
-/// returned from PHP fucntions.
+/// You are able to implement [`FromZval`] on your own custom types to have
+/// arguments passed in seamlessly. Similarly, you can implement [`IntoZval`] on
+/// values that you want to be able to be returned from PHP fucntions.
 ///
-/// Parameters may be deemed optional by passing the parameter name into the attribute options.
-/// Note that all parameters that are optional (which includes the given optional parameter as well
-/// as all parameters after) *must* be of the type [`Option<T>`], where `T` is a valid type.
+/// Parameters may be deemed optional by passing the parameter name into the
+/// attribute options. Note that all parameters that are optional (which
+/// includes the given optional parameter as well as all parameters after)
+/// *must* be of the type [`Option<T>`], where `T` is a valid type.
 ///
 /// Generics are *not* supported.
 ///
-/// Behind the scenes, an `extern "C"` wrapper function is generated, which is actually called by
-/// PHP. The first example function would be converted into a function which looks like so:
+/// Behind the scenes, an `extern "C"` wrapper function is generated, which is
+/// actually called by PHP. The first example function would be converted into a
+/// function which looks like so:
 ///
 /// ```no_run
-/// # use ext_php_rs::{prelude::*, php::{exceptions::PhpException, execution_data::ExecutionData, types::zval::{FromZval, IntoZval, Zval}, args::{Arg, ArgParser}}};
+/// # use ext_php_rs::{prelude::*, exception::PhpException, zend::ExecuteData, convert::{FromZval, IntoZval}, types::Zval, args::{Arg, ArgParser}};
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
 /// }
 ///
-/// pub extern "C" fn _internal_php_hello(ex: &mut ExecutionData, retval: &mut Zval) {
+/// pub extern "C" fn _internal_php_hello(ex: &mut ExecuteData, retval: &mut Zval) {
 ///     let mut name = Arg::new("name", <String as FromZval>::TYPE);
 ///     let parser = ex.parser()
 ///         .arg(&mut name)
@@ -155,13 +205,13 @@ pub use ext_php_rs_derive::php_extern;
 /// }
 /// ```
 ///
-/// This allows the original function to continue being used while also being exported as a PHP
-/// function.
+/// This allows the original function to continue being used while also being
+/// exported as a PHP function.
 ///
 /// # Examples
 ///
-/// Creating a simple function which will return a string. The function still must be declared in
-/// the PHP module to be able to call.
+/// Creating a simple function which will return a string. The function still
+/// must be declared in the PHP module to be able to call.
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
@@ -175,9 +225,9 @@ pub use ext_php_rs_derive::php_extern;
 /// # }
 /// ```
 ///
-/// Parameters can also be deemed optional by passing the parameter name in the attribute options.
-/// This function takes one required parameter (`hello`) and two optional parameters (`description`
-/// and `age`).
+/// Parameters can also be deemed optional by passing the parameter name in the
+/// attribute options. This function takes one required parameter (`hello`) and
+/// two optional parameters (`description` and `age`).
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
@@ -201,8 +251,9 @@ pub use ext_php_rs_derive::php_extern;
 /// # }
 /// ```
 ///
-/// Defaults can also be given in a similar fashion. For example, the above function could have
-/// default values for `description` and `age` by changing the attribute to the following:
+/// Defaults can also be given in a similar fashion. For example, the above
+/// function could have default values for `description` and `age` by changing
+/// the attribute to the following:
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
@@ -222,48 +273,55 @@ pub use ext_php_rs_derive::php_extern;
 /// [`IntoZval`]: crate::php::types::zval::IntoZval
 /// [`Zval`]: crate::php::types::zval::Zval
 /// [`Binary<T>`]: crate::php::types::binary::Binary
-/// [`Callable`]: crate::php::types::callable::Callable
+/// [`ZendCallable`]: crate::php::types::callable::ZendCallable
 /// [`PhpException`]: crate::php::exceptions::PhpException
 pub use ext_php_rs_derive::php_function;
 
-/// Annotates a structs `impl` block, declaring that all methods and constants declared
-/// inside the `impl` block will be declared as PHP methods and constants.
+/// Annotates a structs `impl` block, declaring that all methods and constants
+/// declared inside the `impl` block will be declared as PHP methods and
+/// constants.
 ///
-/// If you do not want to export a method to PHP, declare it in another `impl` block that is not
-/// tagged with this macro.
+/// If you do not want to export a method to PHP, declare it in another `impl`
+/// block that is not tagged with this macro.
 ///
-/// The declared methods and functions are kept intact so they can continue to be called from Rust.
-/// Methods do generate an additional function, with an identifier in the format
-/// `_internal_php_#ident`.
+/// The declared methods and functions are kept intact so they can continue to
+/// be called from Rust. Methods do generate an additional function, with an
+/// identifier in the format `_internal_php_#ident`.
 ///
-/// Methods and constants are declared mostly the same as their global counterparts, so read the
-/// documentation on the [`macro@php_function`] and [`macro@php_const`] macros for more details.
+/// Methods and constants are declared mostly the same as their global
+/// counterparts, so read the documentation on the [`macro@php_function`] and
+/// [`macro@php_const`] macros for more details.
 ///
-/// The main difference is that the contents of the `impl` block *do not* need to be tagged with
-/// additional attributes - this macro assumes that all contents of the `impl` block are to be
-/// exported to PHP.
+/// The main difference is that the contents of the `impl` block *do not* need
+/// to be tagged with additional attributes - this macro assumes that all
+/// contents of the `impl` block are to be exported to PHP.
 ///
-/// The only contrary to this is setting the visibility, optional argument and default arguments
-/// for methods. These are done through seperate macros:
+/// The only contrary to this is setting the visibility, optional argument and
+/// default arguments for methods. These are done through seperate macros:
 ///
-/// - `#[defaults(key = value, ...)]` for setting defaults of method variables, similar to the
+/// - `#[defaults(key = value, ...)]` for setting defaults of method variables,
+///   similar to the
 /// function macro. Arguments with defaults need to be optional.
-/// - `#[optional(key)]` for setting `key` as an optional argument (and therefore the rest of the
+/// - `#[optional(key)]` for setting `key` as an optional argument (and
+///   therefore the rest of the
 /// arguments).
-/// - `#[public]`, `#[protected]` and `#[private]` for setting the visibility of the method,
-/// defaulting to public. The Rust visibility has no effect on the PHP visibility.
+/// - `#[public]`, `#[protected]` and `#[private]` for setting the visibility of
+///   the method,
+/// defaulting to public. The Rust visibility has no effect on the PHP
+/// visibility.
 ///
-/// Methods can take a immutable or a mutable reference to `self`, but cannot consume `self`. They
-/// can also take no reference to `self` which indicates a static method.
+/// Methods can take a immutable or a mutable reference to `self`, but cannot
+/// consume `self`. They can also take no reference to `self` which indicates a
+/// static method.
 ///
 /// ## Constructors
 ///
-/// You may add *one* constructor to the impl block. This method must be called `__construct` or be
-/// tagged with the `#[constructor]` attribute, and it will not be exported to PHP like a regular
-/// method.
+/// You may add *one* constructor to the impl block. This method must be called
+/// `__construct` or be tagged with the `#[constructor]` attribute, and it will
+/// not be exported to PHP like a regular method.
 ///
-/// The constructor method must not take a reference to `self` and must return `Self` or
-/// [`Result<Self, E>`][`Result`], where `E: Into<PhpException>`.
+/// The constructor method must not take a reference to `self` and must return
+/// `Self` or [`Result<Self, E>`][`Result`], where `E: Into<PhpException>`.
 ///
 /// # Example
 ///
@@ -308,29 +366,33 @@ pub use ext_php_rs_derive::php_function;
 /// ```
 pub use ext_php_rs_derive::php_impl;
 
-/// Annotates a function that will be used by PHP to retrieve information about the module.
+/// Annotates a function that will be used by PHP to retrieve information about
+/// the module.
 ///
-/// In the process, the function is wrapped by an `extern "C"` function which is called from PHP,
-/// which then calls the given function.
+/// In the process, the function is wrapped by an `extern "C"` function which is
+/// called from PHP, which then calls the given function.
 ///
-/// As well as wrapping the function, the `ModuleBuilder` is initialized and functions which have
-/// already been declared with the [`macro@php_function`] attribute will be registered with the
-/// module, so ideally you won't have to do anything inside the function.
+/// As well as wrapping the function, the `ModuleBuilder` is initialized and
+/// functions which have already been declared with the [`macro@php_function`]
+/// attribute will be registered with the module, so ideally you won't have to
+/// do anything inside the function.
 ///
-/// The attribute must be called on a function *last*, i.e. the last proc-macro to be compiled, as
-/// the attribute relies on all other PHP attributes being compiled before the module. If another
-/// PHP attribute is compiled after the module attribute, an error will be thrown.
+/// The attribute must be called on a function *last*, i.e. the last proc-macro
+/// to be compiled, as the attribute relies on all other PHP attributes being
+/// compiled before the module. If another PHP attribute is compiled after the
+/// module attribute, an error will be thrown.
 ///
 /// Note that if the function is not called `get_module`, it will be renamed.
 ///
-/// If you have defined classes using the [`macro@php_class`] macro and you have not defined
-/// a startup function, it will be automatically declared and registered.
+/// If you have defined classes using the [`macro@php_class`] macro and you have
+/// not defined a startup function, it will be automatically declared and
+/// registered.
 ///
 /// # Example
 ///
-/// The `get_module` function is required in every PHP extension. This is a bare minimum example,
-/// since the function is declared above the module it will automatically be registered when the
-/// module attribute is called.
+/// The `get_module` function is required in every PHP extension. This is a bare
+/// minimum example, since the function is declared above the module it will
+/// automatically be registered when the module attribute is called.
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
@@ -348,29 +410,32 @@ pub use ext_php_rs_derive::php_module;
 
 /// Annotates a struct that will be exported to PHP as a class.
 ///
-/// By default, the class cannot be constructed from PHP. You must add a constructor method in the
-/// [`macro@php_impl`] impl block to be able to construct the object from PHP.
+/// By default, the class cannot be constructed from PHP. You must add a
+/// constructor method in the [`macro@php_impl`] impl block to be able to
+/// construct the object from PHP.
 ///
 /// This attribute takes a set of optional arguments:
 ///
-/// * `name` - The name of the exported class, if it is different from the Rust struct name. This
-///    can be useful for namespaced classes, as you cannot place backslashes in Rust struct names.
+/// * `name` - The name of the exported class, if it is different from the Rust
+///   struct name. This can be useful for namespaced classes, as you cannot
+///   place backslashes in Rust struct names.
 ///
-/// Any struct that uses this attribute can also provide an optional set of extra attributes, used
-/// to modify the class. These attributes must be used **underneath** this attribute, as they are
-/// not valid Rust attributes, and instead are parsed by this attribute:
+/// Any struct that uses this attribute can also provide an optional set of
+/// extra attributes, used to modify the class. These attributes must be used
+/// **underneath** this attribute, as they are not valid Rust attributes, and
+/// instead are parsed by this attribute:
 ///
-/// * `#[extends(ce)]` - Sets the parent class of this new class. Can only be used once, and `ce`
-///   may be any valid expression.
-/// * `#[implements(ce)]` - Implements an interface on the new class. Can be used multiple times,
-///   and `ce` may be any valid expression.
+/// * `#[extends(ce)]` - Sets the parent class of this new class. Can only be
+///   used once, and `ce` may be any valid expression.
+/// * `#[implements(ce)]` - Implements an interface on the new class. Can be
+///   used multiple times, and `ce` may be any valid expression.
 ///
-/// This attribute (and its associated structs) must be defined *above* the startup function (which
-/// is annotated by the [`macro@php_startup`] macro, or automatically generated just above the
-/// [`macro@php_module`] function).
+/// This attribute (and its associated structs) must be defined *above* the
+/// startup function (which is annotated by the [`macro@php_startup`] macro, or
+/// automatically generated just above the [`macro@php_module`] function).
 ///
-/// Fields defined on the struct *are not* the same as PHP properties, and are only accessible from
-/// Rust.
+/// Fields defined on the struct *are not* the same as PHP properties, and are
+/// only accessible from Rust.
 ///
 /// # Example
 ///
@@ -391,15 +456,16 @@ pub use ext_php_rs_derive::php_module;
 /// }
 /// ```
 ///
-/// Create a custom exception `RedisException` inside the namespace `Redis\Exception`:
+/// Create a custom exception `RedisException` inside the namespace
+/// `Redis\Exception`:
 ///
 /// ```
 /// # use ext_php_rs::prelude::*;
-/// use ext_php_rs::php::exceptions::PhpException;
-/// use ext_php_rs::php::class::ClassEntry;
+/// use ext_php_rs::exception::PhpException;
+/// use ext_php_rs::zend::ce;
 ///
 /// #[php_class(name = "Redis\\Exception\\RedisException")]
-/// #[extends(ClassEntry::exception())]
+/// #[extends(ce::exception())]
 /// pub struct Example;
 ///
 /// #[php_function]
@@ -414,18 +480,19 @@ pub use ext_php_rs_derive::php_module;
 /// ```
 pub use ext_php_rs_derive::php_class;
 
-/// Annotates a function that will be called by PHP when the module starts up. Generally used to
-/// register classes and constants.
+/// Annotates a function that will be called by PHP when the module starts up.
+/// Generally used to register classes and constants.
 ///
-/// As well as annotating the function, any classes and constants that had been declared using the
-/// [`macro@php_class`], [`macro@php_const`] and [`macro@php_impl`] attributes will be registered
-/// inside this function.
+/// As well as annotating the function, any classes and constants that had been
+/// declared using the [`macro@php_class`], [`macro@php_const`] and
+/// [`macro@php_impl`] attributes will be registered inside this function.
 ///
-/// This function *must* be declared before the [`macro@php_module`] function, as this function
-/// needs to be declared when building the module.
+/// This function *must* be declared before the [`macro@php_module`] function,
+/// as this function needs to be declared when building the module.
 ///
-/// This function will automatically be generated if not already declared with this macro if you
-/// have registered any classes or constants when using the [`macro@php_module`] macro.
+/// This function will automatically be generated if not already declared with
+/// this macro if you have registered any classes or constants when using the
+/// [`macro@php_module`] macro.
 ///
 /// # Example
 ///
@@ -442,19 +509,22 @@ pub use ext_php_rs_derive::php_class;
 /// ```
 pub use ext_php_rs_derive::php_startup;
 
-/// Derives the traits required to convert a struct or enum to and from a [`Zval`].
-/// Both [`FromZval`] and [`IntoZval`] are implemented on types which use this macro.
+/// Derives the traits required to convert a struct or enum to and from a
+/// [`Zval`]. Both [`FromZval`] and [`IntoZval`] are implemented on types which
+/// use this macro.
 ///
 /// # Structs
 ///
-/// When the macro is used on a struct, the [`FromZendObject`] and [`IntoZendObject`] traits are also
-/// implemented, and will attempt to retrieve values for the struct fields from the objects properties.
-/// This can be useful when you expect some arbitrary object (of which the type does not matter), but
-/// you care about the value of the properties.
+/// When the macro is used on a struct, the [`FromZendObject`] and
+/// [`IntoZendObject`] traits are also implemented, and will attempt to retrieve
+/// values for the struct fields from the objects properties. This can be useful
+/// when you expect some arbitrary object (of which the type does not matter),
+/// but you care about the value of the properties.
 ///
-/// All properties must implement [`FromZval`] and [`IntoZval`] themselves. Generics are supported,
-/// however, a [`FromZval`] and [`IntoZval`] bound will be added. If one property cannot be retrieved
-/// from the object, the whole conversion will fail.
+/// All properties must implement [`FromZval`] and [`IntoZval`] themselves.
+/// Generics are supported, however, a [`FromZval`] and [`IntoZval`] bound will
+/// be added. If one property cannot be retrieved from the object, the whole
+/// conversion will fail.
 ///
 /// ## Examples
 ///
@@ -514,19 +584,22 @@ pub use ext_php_rs_derive::php_startup;
 ///
 /// # Enums
 ///
-/// When the macro is used on an enum, the [`FromZval`] and [`IntoZval`] implementations will treat
-/// the enum as a tagged union with a mixed datatype. This allows you to accept two different types
-/// in a parameter, for example, a string and an integer.
+/// When the macro is used on an enum, the [`FromZval`] and [`IntoZval`]
+/// implementations will treat the enum as a tagged union with a mixed datatype.
+/// This allows you to accept two different types in a parameter, for example, a
+/// string and an integer.
 ///
-/// The enum variants must not have named fields (i.e. not in the form of a struct), and must have
-/// exactly one field, the type to extract from the [`Zval`]. Optionally, the enum may have a
-/// single default, empty variant, which is used when the [`Zval`] did not contain any data to fill
+/// The enum variants must not have named fields (i.e. not in the form of a
+/// struct), and must have exactly one field, the type to extract from the
+/// [`Zval`]. Optionally, the enum may have a single default, empty variant,
+/// which is used when the [`Zval`] did not contain any data to fill
 /// the other variants. This empty variant is equivalent to `null` in PHP.
 ///
-/// The ordering of the enum variants is important, as the [`Zval`] contents is matched in order of
-/// the variants. For example, [`Zval::string`] will attempt to read a string from the [`Zval`],
-/// and if the [`Zval`] contains a long, the long will be converted to a string. If a string
-/// variant was placed above an integer variant in the enum, the integer would be converted into a
+/// The ordering of the enum variants is important, as the [`Zval`] contents is
+/// matched in order of the variants. For example, [`Zval::string`] will attempt
+/// to read a string from the [`Zval`], and if the [`Zval`] contains a long, the
+/// long will be converted to a string. If a string variant was placed above an
+/// integer variant in the enum, the integer would be converted into a
 /// string and passed as the string variant.
 ///
 /// ## Examples
@@ -571,21 +644,3 @@ pub use ext_php_rs_derive::php_startup;
 /// [`Zval`]: crate::php::types::zval::Zval
 /// [`Zval::string`]: crate::php::types::zval::Zval::string
 pub use ext_php_rs_derive::ZvalConvert;
-
-/// A module typically glob-imported containing the typically required macros and imports.
-pub mod prelude {
-    pub use crate::php::exceptions::{PhpException, PhpResult};
-    pub use crate::php::module::ModuleBuilder;
-    pub use crate::php::types::callable::Callable;
-    #[cfg(any(docs, feature = "closure"))]
-    #[cfg_attr(docs, doc(cfg(feature = "closure")))]
-    pub use crate::php::types::closure::Closure;
-    pub use crate::php_class;
-    pub use crate::php_const;
-    pub use crate::php_extern;
-    pub use crate::php_function;
-    pub use crate::php_impl;
-    pub use crate::php_module;
-    pub use crate::php_startup;
-    pub use crate::ZvalConvert;
-}

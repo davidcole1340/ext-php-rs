@@ -16,9 +16,9 @@ PHP callables (which includes closures) can be passed to Rust through the
 `Callable` type. When calling a callable, you must provide it with a `Vec` of
 arguemnts, all of which must implement `IntoZval` and `Clone`.
 
-| `T` parameter | `&T` parameter | `T` Return type                     | `&T` Return type | PHP representation                                                                         |
-| ------------- | -------------- | ----------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
-| `Callable`    | No             | `Closure`, `Callable` for functions | No               | Callables are implemented in PHP, closures are represented as an instance of `PhpClosure`. |
+| `T` parameter | `&T` parameter | `T` Return type                        | `&T` Return type | PHP representation                                                                         |
+| ------------- | -------------- | -------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
+| `Callable`    | No             | `Closure`, `Callable`for PHP functions | No               | Callables are implemented in PHP, closures are represented as an instance of `PhpClosure`. |
 
 Internally, when you enable the `closure` feature, a class `PhpClosure` is
 registered alongside your other classes:
@@ -112,7 +112,7 @@ function by its name, or as a parameter. They can be called through the
 use ext_php_rs::prelude::*;
 
 #[php_function]
-pub fn callable_parameter(call: Callable) {
+pub fn callable_parameter(call: ZendCallable) {
     let val = call.try_call(vec![&0, &1, &"Hello"]).expect("Failed to call function");
     dbg!(val);
 }

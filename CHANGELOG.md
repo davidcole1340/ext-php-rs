@@ -1,5 +1,14 @@
 # Changelog
 
+## Version 0.6.0
+
+- Reorganized project. [#101]
+  - Changed (almost all) module paths. Too many changes to list them all, check
+    out the docs.
+  - Removed `skel` project.
+
+[#101]: https://github.com/davidcole1340/ext-php-rs/pull/101
+
 ## Version 0.5.3
 
 - Fixed docs.rs PHP bindings file.

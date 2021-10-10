@@ -4,9 +4,9 @@ Vectors can contain any type that can be represented as a zval. Note that the
 data contained in the array will be copied into Rust types and stored inside the
 vector. The internal representation of a PHP array is discussed below.
 
-| `T` parameter | `&T` parameter | `T` Return type | PHP representation |
-| ------------- | -------------- | --------------- | ------------------ |
-| Yes           | No             | Yes             | `HashTable`        |
+| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation |
+| ------------- | -------------- | --------------- | ---------------- | ------------------ |
+| Yes           | No             | Yes             | No               | `ZendHashTable`    |
 
 Internally, PHP arrays are hash tables where the key can be an unsigned long or
 a string. Zvals are contained inside arrays therefore the data does not have to

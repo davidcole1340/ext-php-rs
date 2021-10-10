@@ -2,9 +2,9 @@
 
 A boolean. Not much else to say here.
 
-| `T` parameter | `&T` parameter | `T` Return type | PHP representation |
-| ------------- | -------------- | --------------- | ------------------ |
-| Yes           | No             | Yes             | Union flag         |
+| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation |
+| ------------- | -------------- | --------------- | ---------------- | ------------------ |
+| Yes           | No             | Yes             | No               | Union flag         |
 
 Booleans are not actually stored inside the zval. Instead, they are treated as
 two different union types (the zval can be in a true or false state). An

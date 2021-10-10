@@ -9,11 +9,12 @@ version = "0.5.3"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
 categories = ["api-bindings"]
+exclude = ["/.github", "/.crates", "/guide"]
 
 [dependencies]
 bitflags = "1.2.1"
 parking_lot = "0.11.2"
-ext-php-rs-derive = { version = "=0.5.2", path = "./ext-php-rs-derive" }
+ext-php-rs-derive = { version = "=0.5.2", path = "./crates/macros" }
 
 [build-dependencies]
 bindgen = { version = "0.59" }
@@ -25,8 +26,7 @@ closure = []
 
 [workspace]
 members = [
-    "ext-php-rs-derive",
-    "example/skel"
+    "crates/macros",
 ]
 
 [package.metadata.docs.rs]

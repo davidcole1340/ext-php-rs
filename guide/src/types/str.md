@@ -4,9 +4,9 @@ A borrowed string. When this type is encountered, you are given a reference to
 the actual zend string memory, rather than copying the contents like if you were
 taking an owned `String` argument.
 
-| `T` parameter | `&T` parameter | `&T` Return type | PHP representation       |
-| ------------- | -------------- | ---------------- | ------------------------ |
-| No            | Yes            | Yes              | `zend_string` (C-string) |
+| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation       |
+| ------------- | -------------- | --------------- | ---------------- | ------------------------ |
+| No            | Yes            | No              | Yes              | `zend_string` (C-string) |
 
 Note that you cannot expect the function to operate the same by swapping out
 `String` and `&str` - since the zend string memory is read directly, this

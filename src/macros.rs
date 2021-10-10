@@ -1,43 +1,47 @@
-//! Macros for interacting with PHP, mainly when the function takes variadic arguments.
-//! Unforutunately, this is the best way to handle these.
+//! Macros for interacting with PHP, mainly when the function takes variadic
+//! arguments. Unforutunately, this is the best way to handle these.
 //! Note that most of these will introduce unsafe into your code base.
 
-/// Starts the PHP extension information table displayed when running `phpinfo();`
-/// Must be run *before* rows are inserted into the table.
+/// Starts the PHP extension information table displayed when running
+/// `phpinfo();` Must be run *before* rows are inserted into the table.
 #[macro_export]
 macro_rules! info_table_start {
     () => {
-        unsafe { $crate::bindings::php_info_print_table_start() };
+        unsafe { $crate::ffi::php_info_print_table_start() };
     };
 }
 
-/// Ends the PHP extension information table. Must be run *after* all rows have been inserted into the table.
+/// Ends the PHP extension information table. Must be run *after* all rows have
+/// been inserted into the table.
 #[macro_export]
 macro_rules! info_table_end {
     () => {
-        unsafe { $crate::bindings::php_info_print_table_end() }
+        unsafe { $crate::ffi::php_info_print_table_end() }
     };
 }
 
-/// Sets the header for the PHP extension information table. Takes as many string arguments as required.
+/// Sets the header for the PHP extension information table. Takes as many
+/// string arguments as required.
 #[macro_export]
 macro_rules! info_table_header {
     ($($element:expr),*) => {$crate::_info_table_row!(php_info_print_table_header, $($element),*)};
 }
 
-/// Adds a row to the PHP extension information table. Takes as many string arguments as required.
+/// Adds a row to the PHP extension information table. Takes as many string
+/// arguments as required.
 #[macro_export]
 macro_rules! info_table_row {
     ($($element:expr),*) => {$crate::_info_table_row!(php_info_print_table_row, $($element),*)};
 }
 
-/// INTERNAL: Calls a variadic C function with the number of parameters, then following with the parameters.
+/// INTERNAL: Calls a variadic C function with the number of parameters, then
+/// following with the parameters.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! _info_table_row {
     ($fn: ident, $($element: expr),*) => {
         unsafe {
-            $crate::bindings::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $(::std::ffi::CString::new($element).unwrap().as_ptr()),*);
+            $crate::ffi::$fn($crate::_info_table_row!(@COUNT; $($element),*) as i32, $(::std::ffi::CString::new($element).unwrap().as_ptr()),*);
         }
     };
 
@@ -51,10 +55,12 @@ macro_rules! _info_table_row {
 ///
 /// # Parameters
 ///
-/// * `$fn` - The 'function' to call. Can be an [`Arg`](crate::php::args::Arg) or a
-/// [`Zval`](crate::php::types::zval::Zval).
-/// * ...`$param` - The parameters to pass to the function. Must be able to be converted into a
-/// [`Zval`](crate::php::types::zval::Zval).
+/// * `$fn` - The 'function' to call. Can be an [`Arg`] or a [`Zval`].
+/// * ...`$param` - The parameters to pass to the function. Must be able to be
+///   converted into a [`Zval`].
+///
+/// [`Arg`]: crate::args::Arg
+/// [`Zval`]: crate::types::Zval
 #[macro_export]
 macro_rules! call_user_func {
     ($fn: expr) => {
@@ -66,24 +72,27 @@ macro_rules! call_user_func {
     };
 }
 
-/// Parses a given list of arguments using the [`ArgParser`](crate::php::args::ArgParser) class.
+/// Parses a given list of arguments using the [`ArgParser`] class.
 ///
 /// # Examples
 ///
-/// This example parses all of the arguments. If one is invalid, execution of the function will
-/// stop at the `parse_args!` macro invocation. The user is notified via PHP's argument parsing
-/// system.
+/// This example parses all of the arguments. If one is invalid, execution of
+/// the function will stop at the `parse_args!` macro invocation. The user is
+/// notified via PHP's argument parsing system.
 ///
 /// In this case, all of the arguments are required.
 ///
 /// ```
 /// # #[macro_use] extern crate ext_php_rs;
 /// use ext_php_rs::{
-///    parse_args,
-///    php::{args::Arg, enums::DataType, execution_data::ExecutionData, types::zval::Zval},
+///     parse_args,
+///     args::Arg,
+///     flags::DataType,
+///     zend::ExecuteData,
+///     types::Zval,
 /// };
 ///
-/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+/// pub extern "C" fn example_fn(execute_data: &mut ExecuteData, _: &mut Zval) {
 ///     let mut x = Arg::new("x", DataType::Long);
 ///     let mut y = Arg::new("y", DataType::Long);
 ///     let mut z = Arg::new("z", DataType::Long);
@@ -92,16 +101,20 @@ macro_rules! call_user_func {
 /// }
 /// ```
 ///
-/// This example is similar to the one above, apart from the fact that the `z` argument is not
-/// required. Note the semicolon seperating the first two arguments from the second.
+/// This example is similar to the one above, apart from the fact that the `z`
+/// argument is not required. Note the semicolon seperating the first two
+/// arguments from the second.
 ///
 /// ```
 /// use ext_php_rs::{
-///    parse_args,
-///    php::{args::Arg, enums::DataType, execution_data::ExecutionData, types::zval::Zval},
+///     parse_args,
+///     args::Arg,
+///     flags::DataType,
+///     zend::ExecuteData,
+///     types::Zval,
 /// };
 ///
-/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+/// pub extern "C" fn example_fn(execute_data: &mut ExecuteData, _: &mut Zval) {
 ///     let mut x = Arg::new("x", DataType::Long);
 ///     let mut y = Arg::new("y", DataType::Long);
 ///     let mut z = Arg::new("z", DataType::Long);
@@ -109,6 +122,8 @@ macro_rules! call_user_func {
 ///     parse_args!(execute_data, x, y; z);
 /// }
 /// ```
+///
+/// [`ArgParser`]: crate::args::ArgParser
 #[macro_export]
 macro_rules! parse_args {
     ($ed: expr, $($arg: expr),*) => {{
@@ -121,8 +136,6 @@ macro_rules! parse_args {
     }};
 
     ($ed: expr, $($arg: expr),* ; $($opt: expr),*) => {{
-        use $crate::php::args::ArgParser;
-
         let parser = $ed.parser()
             $(.arg(&mut $arg))*
             .not_required()
@@ -136,19 +149,24 @@ macro_rules! parse_args {
 
 /// Throws an exception and returns from the current function.
 ///
-/// Wraps the [`throw`] function by inserting a `return` statement after throwing the exception.
+/// Wraps the [`throw`] function by inserting a `return` statement after
+/// throwing the exception.
 ///
-/// [`throw`]: crate::php::exceptions::throw
+/// [`throw`]: crate::exception::throw
 ///
 /// # Examples
 ///
 /// ```
-/// use ext_php_rs::{throw, php::{class::ClassEntry, execution_data::ExecutionData, types::zval::Zval}};
+/// use ext_php_rs::{
+///     throw,
+///     zend::{ce, ClassEntry, ExecuteData},
+///     types::Zval,
+/// };
 ///
-/// pub extern "C" fn example_fn(execute_data: &mut ExecutionData, _: &mut Zval) {
+/// pub extern "C" fn example_fn(execute_data: &mut ExecuteData, _: &mut Zval) {
 ///     let something_wrong = true;
 ///     if something_wrong {
-///         throw!(ClassEntry::exception(), "Something is wrong!");
+///         throw!(ce::exception(), "Something is wrong!");
 ///     }
 ///
 ///     assert!(false); // This will not run.
@@ -157,14 +175,15 @@ macro_rules! parse_args {
 #[macro_export]
 macro_rules! throw {
     ($ex: expr, $reason: expr) => {
-        $crate::php::exceptions::throw($ex, $reason);
+        $crate::exception::throw($ex, $reason);
         return;
     };
 }
 
-/// Implements a set of traits required to convert types that implement [`RegisteredClass`] to and
-/// from [`ZendObject`]s and [`Zval`]s. Generally, this macro should not be called directly, as it
-/// is called on any type that uses the [`#[php_class]`] macro.
+/// Implements a set of traits required to convert types that implement
+/// [`RegisteredClass`] to and from [`ZendObject`]s and [`Zval`]s. Generally,
+/// this macro should not be called directly, as it is called on any type that
+/// uses the [`php_class`] macro.
 ///
 /// The following traits are implemented:
 ///
@@ -175,12 +194,13 @@ macro_rules! throw {
 /// * `IntoZendObject for T`
 /// * `IntoZval for T`
 ///
-/// These implementations are required while we wait on the stabilisation of specialisation.
+/// These implementations are required while we wait on the stabilisation of
+/// specialisation.
 ///
 /// # Examples
 ///
 /// ```
-/// # use ext_php_rs::{php::types::{zval::{Zval, IntoZval, FromZval}, object::{ZendObject, RegisteredClass}}};
+/// # use ext_php_rs::{convert::{IntoZval, FromZval}, types::{Zval, ZendObject}, class::{RegisteredClass}};
 /// use ext_php_rs::class_derives;
 ///
 /// struct Test {
@@ -191,14 +211,14 @@ macro_rules! throw {
 /// impl RegisteredClass for Test {
 ///     const CLASS_NAME: &'static str = "Test";
 ///
-///     const CONSTRUCTOR: Option<ext_php_rs::php::types::object::ConstructorMeta<Self>> = None;
+///     const CONSTRUCTOR: Option<ext_php_rs::class::ConstructorMeta<Self>> = None;
 ///
-///     fn get_metadata() -> &'static ext_php_rs::php::types::object::ClassMetadata<Self> {
+///     fn get_metadata() -> &'static ext_php_rs::class::ClassMetadata<Self> {
 ///         todo!()
 ///     }
 ///
 ///     fn get_properties<'a>(
-///     ) -> std::collections::HashMap<&'static str, ext_php_rs::php::types::props::Property<'a, Self>>
+///     ) -> std::collections::HashMap<&'static str, ext_php_rs::props::Property<'a, Self>>
 ///     {
 ///         todo!()
 ///     }
@@ -216,92 +236,131 @@ macro_rules! throw {
 /// }
 /// ```
 ///
-/// [`RegisteredClass`]: crate::php::types::object::RegisteredClass
-/// [`ZendObject`]: crate::php::types::object::ZendObject
-/// [`Zval`]: crate::php::types::zval::Zval
-/// [`#[php_class]`]: crate::php_class
+/// [`RegisteredClass`]: crate::class::RegisteredClass
+/// [`ZendObject`]: crate::types::ZendObject
+/// [`Zval`]: crate::types::Zval
+/// [`php_class`]: crate::php_class
 #[macro_export]
 macro_rules! class_derives {
     ($type: ty) => {
-        impl<'a> $crate::php::types::object::FromZendObject<'a> for &'a $type {
+        impl<'a> $crate::convert::FromZendObject<'a> for &'a $type {
             #[inline]
-            fn from_zend_object(
-                obj: &'a $crate::php::types::object::ZendObject,
-            ) -> $crate::errors::Result<Self> {
-                let obj = $crate::php::types::object::ZendClassObject::<$type>::from_zend_obj(obj)
-                    .ok_or($crate::errors::Error::InvalidScope)?;
+            fn from_zend_object(obj: &'a $crate::types::ZendObject) -> $crate::error::Result<Self> {
+                let obj = $crate::types::ZendClassObject::<$type>::from_zend_obj(obj)
+                    .ok_or($crate::error::Error::InvalidScope)?;
                 Ok(&**obj)
             }
         }
 
-        impl<'a> $crate::php::types::object::FromZendObjectMut<'a> for &'a mut $type {
+        impl<'a> $crate::convert::FromZendObjectMut<'a> for &'a mut $type {
             #[inline]
             fn from_zend_object_mut(
-                obj: &'a mut $crate::php::types::object::ZendObject,
-            ) -> $crate::errors::Result<Self> {
-                let obj =
-                    $crate::php::types::object::ZendClassObject::<$type>::from_zend_obj_mut(obj)
-                        .ok_or($crate::errors::Error::InvalidScope)?;
+                obj: &'a mut $crate::types::ZendObject,
+            ) -> $crate::error::Result<Self> {
+                let obj = $crate::types::ZendClassObject::<$type>::from_zend_obj_mut(obj)
+                    .ok_or($crate::error::Error::InvalidScope)?;
                 Ok(&mut **obj)
             }
         }
 
-        impl<'a> $crate::php::types::zval::FromZval<'a> for &'a $type {
-            const TYPE: $crate::php::enums::DataType = $crate::php::enums::DataType::Object(Some(
-                <$type as $crate::php::types::object::RegisteredClass>::CLASS_NAME,
+        impl<'a> $crate::convert::FromZval<'a> for &'a $type {
+            const TYPE: $crate::flags::DataType = $crate::flags::DataType::Object(Some(
+                <$type as $crate::class::RegisteredClass>::CLASS_NAME,
             ));
 
             #[inline]
-            fn from_zval(zval: &'a $crate::php::types::zval::Zval) -> ::std::option::Option<Self> {
-                <Self as $crate::php::types::object::FromZendObject>::from_zend_object(
-                    zval.object()?,
-                )
-                .ok()
+            fn from_zval(zval: &'a $crate::types::Zval) -> ::std::option::Option<Self> {
+                <Self as $crate::convert::FromZendObject>::from_zend_object(zval.object()?).ok()
             }
         }
 
-        impl<'a> $crate::php::types::zval::FromZvalMut<'a> for &'a mut $type {
-            const TYPE: $crate::php::enums::DataType = $crate::php::enums::DataType::Object(Some(
-                <$type as $crate::php::types::object::RegisteredClass>::CLASS_NAME,
+        impl<'a> $crate::convert::FromZvalMut<'a> for &'a mut $type {
+            const TYPE: $crate::flags::DataType = $crate::flags::DataType::Object(Some(
+                <$type as $crate::class::RegisteredClass>::CLASS_NAME,
             ));
 
             #[inline]
-            fn from_zval_mut(
-                zval: &'a mut $crate::php::types::zval::Zval,
-            ) -> ::std::option::Option<Self> {
-                <Self as $crate::php::types::object::FromZendObjectMut>::from_zend_object_mut(
+            fn from_zval_mut(zval: &'a mut $crate::types::Zval) -> ::std::option::Option<Self> {
+                <Self as $crate::convert::FromZendObjectMut>::from_zend_object_mut(
                     zval.object_mut()?,
                 )
                 .ok()
             }
         }
 
-        impl $crate::php::types::object::IntoZendObject for $type {
+        impl $crate::convert::IntoZendObject for $type {
             #[inline]
             fn into_zend_object(
                 self,
-            ) -> $crate::errors::Result<
-                $crate::php::boxed::ZBox<$crate::php::types::object::ZendObject>,
-            > {
-                Ok($crate::php::types::object::ZendClassObject::new(self).into())
+            ) -> $crate::error::Result<$crate::boxed::ZBox<$crate::types::ZendObject>> {
+                Ok($crate::types::ZendClassObject::new(self).into())
             }
         }
 
-        impl $crate::php::types::zval::IntoZval for $type {
-            const TYPE: $crate::php::enums::DataType = $crate::php::enums::DataType::Object(Some(
-                <$type as $crate::php::types::object::RegisteredClass>::CLASS_NAME,
+        impl $crate::convert::IntoZval for $type {
+            const TYPE: $crate::flags::DataType = $crate::flags::DataType::Object(Some(
+                <$type as $crate::class::RegisteredClass>::CLASS_NAME,
             ));
 
             #[inline]
             fn set_zval(
                 self,
-                zv: &mut $crate::php::types::zval::Zval,
+                zv: &mut $crate::types::Zval,
                 persistent: bool,
-            ) -> $crate::errors::Result<()> {
-                use $crate::php::types::object::IntoZendObject;
+            ) -> $crate::error::Result<()> {
+                use $crate::convert::IntoZendObject;
 
                 self.into_zend_object()?.set_zval(zv, persistent)
             }
         }
     };
 }
+
+/// Derives `From<T> for Zval` and `IntoZval` for a given type.
+macro_rules! into_zval {
+    ($type: ty, $fn: ident, $dt: ident) => {
+        impl From<$type> for $crate::types::Zval {
+            fn from(val: $type) -> Self {
+                let mut zv = Self::new();
+                zv.$fn(val);
+                zv
+            }
+        }
+
+        impl $crate::convert::IntoZval for $type {
+            const TYPE: $crate::flags::DataType = $crate::flags::DataType::$dt;
+
+            fn set_zval(self, zv: &mut $crate::types::Zval, _: bool) -> $crate::error::Result<()> {
+                zv.$fn(self);
+                Ok(())
+            }
+        }
+    };
+}
+
+/// Derives `TryFrom<Zval> for T` and `FromZval for T` on a given type.
+macro_rules! try_from_zval {
+    ($type: ty, $fn: ident, $dt: ident) => {
+        impl $crate::convert::FromZval<'_> for $type {
+            const TYPE: $crate::flags::DataType = $crate::flags::DataType::$dt;
+
+            fn from_zval(zval: &$crate::types::Zval) -> ::std::option::Option<Self> {
+                use ::std::convert::TryInto;
+
+                zval.$fn().and_then(|val| val.try_into().ok())
+            }
+        }
+
+        impl ::std::convert::TryFrom<$crate::types::Zval> for $type {
+            type Error = $crate::error::Error;
+
+            fn try_from(value: $crate::types::Zval) -> $crate::error::Result<Self> {
+                <Self as $crate::convert::FromZval>::from_zval(&value)
+                    .ok_or($crate::error::Error::ZvalConversion(value.get_type()))
+            }
+        }
+    };
+}
+
+pub(crate) use into_zval;
+pub(crate) use try_from_zval;
