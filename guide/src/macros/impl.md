@@ -17,6 +17,11 @@ methods is they are bounded by their class object.
 Class methods can take a `&self` or `&mut self` parameter. They cannot take a
 consuming `self` parameter. Static methods can omit this `self` parameter.
 
+To access the underlying Zend object, you can take a reference to a
+`ZendClassObject<T>` in place of the self parameter, where the parameter is
+annotated with the `#[this]` attribute. This can also be used to return a
+reference to `$this`.
+
 By default, all methods are renamed in PHP to the camel-case variant of the Rust
 method name. This can be changed on the `#[php_impl]` attribute, by passing one
 of the following as the `rename_methods` option:
@@ -92,9 +97,9 @@ constant for the maximum age of a `Human`.
 
 ```rust
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
+# use ext_php_rs::{prelude::*, types::ZendClassObject};
 # #[php_class]
-# #[derive(Default)]
+# #[derive(Debug, Default)]
 # pub struct Human {
 #     name: String,
 #     age: i32,
@@ -127,6 +132,10 @@ impl Human {
 
     pub fn introduce(&self) {
         println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
+    }
+
+    pub fn get_raw_obj(#[this] this: &mut ZendClassObject<Human>) {
+        dbg!(this);   
     }
 
     pub fn get_max_age() -> i32 {
