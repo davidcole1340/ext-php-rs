@@ -17,10 +17,10 @@ use super::Zval;
 ///
 /// [`try_call`]: #method.try_call
 #[derive(Debug)]
-pub struct Callable<'a>(OwnedZval<'a>);
+pub struct ZendCallable<'a>(OwnedZval<'a>);
 
-impl<'a> Callable<'a> {
-    /// Attempts to create a new [`Callable`] from a zval.
+impl<'a> ZendCallable<'a> {
+    /// Attempts to create a new [`ZendCallable`] from a zval.
     ///
     /// # Parameters
     ///
@@ -37,7 +37,7 @@ impl<'a> Callable<'a> {
         }
     }
 
-    /// Attempts to create a new [`Callable`] by taking ownership of a Zval.
+    /// Attempts to create a new [`ZendCallable`] by taking ownership of a Zval.
     /// Returns a result containing the callable if the zval was callable.
     ///
     /// # Parameters
@@ -51,8 +51,8 @@ impl<'a> Callable<'a> {
         }
     }
 
-    /// Attempts to create a new [`Callable`] from a function name. Returns a
-    /// result containing the callable if the function existed and was
+    /// Attempts to create a new [`ZendCallable`] from a function name. Returns
+    /// a result containing the callable if the function existed and was
     /// callable.
     ///
     /// # Parameters
@@ -62,9 +62,9 @@ impl<'a> Callable<'a> {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::Callable;
+    /// use ext_php_rs::types::ZendCallable;
     ///
-    /// let strpos = Callable::try_from_name("strpos").unwrap();
+    /// let strpos = ZendCallable::try_from_name("strpos").unwrap();
     /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
     /// assert_eq!(result.long(), Some(1));
     /// ```
@@ -93,9 +93,9 @@ impl<'a> Callable<'a> {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::Callable;
+    /// use ext_php_rs::types::ZendCallable;
     ///
-    /// let strpos = Callable::try_from_name("strpos").unwrap();
+    /// let strpos = ZendCallable::try_from_name("strpos").unwrap();
     /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
     /// assert_eq!(result.long(), Some(1));
     /// ```
@@ -133,19 +133,19 @@ impl<'a> Callable<'a> {
     }
 }
 
-impl<'a> FromZval<'a> for Callable<'a> {
+impl<'a> FromZval<'a> for ZendCallable<'a> {
     const TYPE: DataType = DataType::Callable;
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
-        Callable::new(zval).ok()
+        ZendCallable::new(zval).ok()
     }
 }
 
-impl<'a> TryFrom<Zval> for Callable<'a> {
+impl<'a> TryFrom<Zval> for ZendCallable<'a> {
     type Error = Error;
 
     fn try_from(value: Zval) -> Result<Self> {
-        Callable::new_owned(value)
+        ZendCallable::new_owned(value)
     }
 }
 

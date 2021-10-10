@@ -38,9 +38,9 @@ use crate::{
 /// # Examples
 ///
 /// ```no_run
-/// use ext_php_rs::types::HashTable;
+/// use ext_php_rs::types::ZendHashTable;
 ///
-/// let mut ht = HashTable::new();
+/// let mut ht = ZendHashTable::new();
 /// ht.push(1);
 /// ht.push("Hello, world!");
 /// ht.insert("Like", "Hashtable");
@@ -48,20 +48,20 @@ use crate::{
 /// assert_eq!(ht.len(), 3);
 /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(1));
 /// ```
-pub type HashTable = crate::ffi::HashTable;
+pub type ZendHashTable = crate::ffi::HashTable;
 
 // Clippy complains about there being no `is_empty` function when implementing
 // on the alias `ZendStr` :( <https://github.com/rust-lang/rust-clippy/issues/7702>
 #[allow(clippy::len_without_is_empty)]
-impl HashTable {
+impl ZendHashTable {
     /// Creates a new, empty, PHP hashtable, returned inside a [`ZBox`].
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let ht = HashTable::new();
+    /// let ht = ZendHashTable::new();
     /// ```
     ///
     /// # Panics
@@ -81,9 +81,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let ht = HashTable::with_capacity(10);
+    /// let ht = ZendHashTable::with_capacity(10);
     /// ```
     ///
     /// # Panics
@@ -107,9 +107,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.push(1);
     /// ht.push("Hello, world");
@@ -125,9 +125,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// assert_eq!(ht.is_empty(), true);
     ///
@@ -145,9 +145,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.insert("test", "hello world");
     /// assert_eq!(ht.is_empty(), false);
@@ -174,9 +174,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.insert("test", "hello world");
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
@@ -201,9 +201,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.push(100);
     /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
@@ -226,9 +226,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.insert("test", "hello world");
     /// assert_eq!(ht.len(), 1);
@@ -261,9 +261,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.push("hello");
     /// assert_eq!(ht.len(), 1);
@@ -298,9 +298,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.insert("a", "A");
     /// ht.insert("b", "B");
@@ -340,9 +340,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.insert_at_index(0, "A");
     /// ht.insert_at_index(5, "B");
@@ -374,9 +374,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// ht.push("a");
     /// ht.push("b");
@@ -400,9 +400,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// for (idx, key, val) in ht.iter() {
     /// //   ^ Index if inserted at an index.
@@ -422,9 +422,9 @@ impl HashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::HashTable;
+    /// use ext_php_rs::types::ZendHashTable;
     ///
-    /// let mut ht = HashTable::new();
+    /// let mut ht = ZendHashTable::new();
     ///
     /// for val in ht.values() {
     ///     dbg!(val);
@@ -435,14 +435,14 @@ impl HashTable {
     }
 }
 
-unsafe impl ZBoxable for HashTable {
+unsafe impl ZBoxable for ZendHashTable {
     fn free(&mut self) {
         // SAFETY: ZBox has immutable access to `self`.
         unsafe { zend_array_destroy(self) }
     }
 }
 
-impl Debug for HashTable {
+impl Debug for ZendHashTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
             .entries(
@@ -453,13 +453,13 @@ impl Debug for HashTable {
     }
 }
 
-impl ToOwned for HashTable {
-    type Owned = ZBox<HashTable>;
+impl ToOwned for ZendHashTable {
+    type Owned = ZBox<ZendHashTable>;
 
     fn to_owned(&self) -> Self::Owned {
         unsafe {
             // SAFETY: FFI call does not modify `self`, returns a new hashtable.
-            let ptr = zend_array_dup(self as *const HashTable as *mut HashTable);
+            let ptr = zend_array_dup(self as *const ZendHashTable as *mut ZendHashTable);
 
             // SAFETY: `as_mut()` checks if the pointer is null, and panics if it is not.
             ZBox::from_raw(
@@ -472,7 +472,7 @@ impl ToOwned for HashTable {
 
 /// Immutable iterator upon a reference to a hashtable.
 pub struct Iter<'a> {
-    ht: &'a HashTable,
+    ht: &'a ZendHashTable,
     pos: Option<NonNull<_Bucket>>,
     end: Option<NonNull<_Bucket>>,
 }
@@ -483,7 +483,7 @@ impl<'a> Iter<'a> {
     /// # Parameters
     ///
     /// * `ht` - The hashtable to iterate.
-    pub fn new(ht: &'a HashTable) -> Self {
+    pub fn new(ht: &'a ZendHashTable) -> Self {
         Self {
             ht,
             pos: NonNull::new(ht.arData),
@@ -551,7 +551,7 @@ impl<'a> Values<'a> {
     /// # Parameters
     ///
     /// * `ht` - The hashtable to iterate.
-    pub fn new(ht: &'a HashTable) -> Self {
+    pub fn new(ht: &'a ZendHashTable) -> Self {
         Self(Iter::new(ht))
     }
 }
@@ -583,19 +583,19 @@ impl<'a> DoubleEndedIterator for Values<'a> {
     }
 }
 
-impl Default for ZBox<HashTable> {
+impl Default for ZBox<ZendHashTable> {
     fn default() -> Self {
-        HashTable::new()
+        ZendHashTable::new()
     }
 }
 
-impl Clone for ZBox<HashTable> {
+impl Clone for ZBox<ZendHashTable> {
     fn clone(&self) -> Self {
         (**self).to_owned()
     }
 }
 
-impl IntoZval for ZBox<HashTable> {
+impl IntoZval for ZBox<ZendHashTable> {
     const TYPE: DataType = DataType::Array;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
@@ -604,7 +604,7 @@ impl IntoZval for ZBox<HashTable> {
     }
 }
 
-impl<'a> FromZval<'a> for &'a HashTable {
+impl<'a> FromZval<'a> for &'a ZendHashTable {
     const TYPE: DataType = DataType::Array;
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
@@ -616,13 +616,13 @@ impl<'a> FromZval<'a> for &'a HashTable {
 //// HashMap
 ///////////////////////////////////////////
 
-impl<V> TryFrom<&HashTable> for HashMap<String, V>
+impl<V> TryFrom<&ZendHashTable> for HashMap<String, V>
 where
     for<'a> V: FromZval<'a>,
 {
     type Error = Error;
 
-    fn try_from(value: &HashTable) -> Result<Self> {
+    fn try_from(value: &ZendHashTable) -> Result<Self> {
         let mut hm = HashMap::with_capacity(value.len());
 
         for (idx, key, val) in value.iter() {
@@ -636,7 +636,7 @@ where
     }
 }
 
-impl<K, V> TryFrom<HashMap<K, V>> for ZBox<HashTable>
+impl<K, V> TryFrom<HashMap<K, V>> for ZBox<ZendHashTable>
 where
     K: AsRef<str>,
     V: IntoZval,
@@ -644,8 +644,9 @@ where
     type Error = Error;
 
     fn try_from(value: HashMap<K, V>) -> Result<Self> {
-        let mut ht =
-            HashTable::with_capacity(value.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+        let mut ht = ZendHashTable::with_capacity(
+            value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
+        );
 
         for (k, v) in value.into_iter() {
             ht.insert(k.as_ref(), v)?;
@@ -684,13 +685,13 @@ where
 //// Vec
 ///////////////////////////////////////////
 
-impl<T> TryFrom<&HashTable> for Vec<T>
+impl<T> TryFrom<&ZendHashTable> for Vec<T>
 where
     for<'a> T: FromZval<'a>,
 {
     type Error = Error;
 
-    fn try_from(value: &HashTable) -> Result<Self> {
+    fn try_from(value: &ZendHashTable) -> Result<Self> {
         let mut vec = Vec::with_capacity(value.len());
 
         for (_, _, val) in value.iter() {
@@ -701,15 +702,16 @@ where
     }
 }
 
-impl<T> TryFrom<Vec<T>> for ZBox<HashTable>
+impl<T> TryFrom<Vec<T>> for ZBox<ZendHashTable>
 where
     T: IntoZval,
 {
     type Error = Error;
 
     fn try_from(value: Vec<T>) -> Result<Self> {
-        let mut ht =
-            HashTable::with_capacity(value.len().try_into().map_err(|_| Error::IntegerOverflow)?);
+        let mut ht = ZendHashTable::with_capacity(
+            value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
+        );
 
         for val in value.into_iter() {
             ht.push(val)?;
@@ -743,9 +745,9 @@ where
     }
 }
 
-impl FromIterator<Zval> for ZBox<HashTable> {
+impl FromIterator<Zval> for ZBox<ZendHashTable> {
     fn from_iter<T: IntoIterator<Item = Zval>>(iter: T) -> Self {
-        let mut ht = HashTable::new();
+        let mut ht = ZendHashTable::new();
         for item in iter.into_iter() {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting
             // `val` to a zval fails.
@@ -755,9 +757,9 @@ impl FromIterator<Zval> for ZBox<HashTable> {
     }
 }
 
-impl FromIterator<(u64, Zval)> for ZBox<HashTable> {
+impl FromIterator<(u64, Zval)> for ZBox<ZendHashTable> {
     fn from_iter<T: IntoIterator<Item = (u64, Zval)>>(iter: T) -> Self {
-        let mut ht = HashTable::new();
+        let mut ht = ZendHashTable::new();
         for (key, val) in iter.into_iter() {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting
             // `val` to a zval fails.
@@ -767,9 +769,9 @@ impl FromIterator<(u64, Zval)> for ZBox<HashTable> {
     }
 }
 
-impl<'a> FromIterator<(&'a str, Zval)> for ZBox<HashTable> {
+impl<'a> FromIterator<(&'a str, Zval)> for ZBox<ZendHashTable> {
     fn from_iter<T: IntoIterator<Item = (&'a str, Zval)>>(iter: T) -> Self {
-        let mut ht = HashTable::new();
+        let mut ht = ZendHashTable::new();
         for (key, val) in iter.into_iter() {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting
             // `val` to a zval fails.

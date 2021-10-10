@@ -112,7 +112,7 @@ function by its name, or as a parameter. They can be called through the
 use ext_php_rs::prelude::*;
 
 #[php_function]
-pub fn callable_parameter(call: Callable) {
+pub fn callable_parameter(call: ZendCallable) {
     let val = call.try_call(vec![&0, &1, &"Hello"]).expect("Failed to call function");
     dbg!(val);
 }

@@ -11,8 +11,8 @@ mod object;
 mod string;
 mod zval;
 
-pub use array::HashTable;
-pub use callable::Callable;
+pub use array::ZendHashTable;
+pub use callable::ZendCallable;
 pub use class_object::ZendClassObject;
 pub use long::ZendLong;
 pub use object::{PropertyQuery, ZendObject};

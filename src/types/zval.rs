@@ -16,7 +16,7 @@ use crate::{
     flags::DataType,
     flags::ZvalTypeFlags,
     rc::PhpRc,
-    types::{Callable, HashTable, ZendLong, ZendObject, ZendStr},
+    types::{ZendCallable, ZendHashTable, ZendLong, ZendObject, ZendStr},
 };
 
 /// A zend value. This is the primary storage container used throughout the Zend
@@ -150,7 +150,7 @@ impl Zval {
 
     /// Returns an immutable reference to the underlying zval hashtable if the
     /// zval contains an array.
-    pub fn array(&self) -> Option<&HashTable> {
+    pub fn array(&self) -> Option<&ZendHashTable> {
         if self.is_array() {
             unsafe { self.value.arr.as_ref() }
         } else {
@@ -160,7 +160,7 @@ impl Zval {
 
     /// Returns a mutable reference to the underlying zval hashtable if the zval
     /// contains an array.
-    pub fn array_mut(&mut self) -> Option<&mut HashTable> {
+    pub fn array_mut(&mut self) -> Option<&mut ZendHashTable> {
         if self.is_array() {
             unsafe { self.value.arr.as_mut() }
         } else {
@@ -206,9 +206,9 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is callable.
-    pub fn callable(&self) -> Option<Callable> {
+    pub fn callable(&self) -> Option<ZendCallable> {
         // The Zval is checked if it is callable in the `new` function.
-        Callable::new(self).ok()
+        ZendCallable::new(self).ok()
     }
 
     /// Returns the value of the zval if it is a pointer.
@@ -438,7 +438,10 @@ impl Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_array<T: TryInto<ZBox<HashTable>, Error = Error>>(&mut self, val: T) -> Result<()> {
+    pub fn set_array<T: TryInto<ZBox<ZendHashTable>, Error = Error>>(
+        &mut self,
+        val: T,
+    ) -> Result<()> {
         self.set_hashtable(val.try_into()?);
         Ok(())
     }
@@ -449,7 +452,7 @@ impl Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
-    pub fn set_hashtable(&mut self, val: ZBox<HashTable>) {
+    pub fn set_hashtable(&mut self, val: ZBox<ZendHashTable>) {
         self.change_type(ZvalTypeFlags::ArrayEx);
         self.value.arr = val.into_raw();
     }

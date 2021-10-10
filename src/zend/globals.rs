@@ -7,7 +7,7 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use crate::boxed::ZBox;
 use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
 
-use crate::types::{HashTable, ZendObject};
+use crate::types::{ZendHashTable, ZendObject};
 
 /// Stores global variables used in the PHP executor.
 pub type ExecutorGlobals = _zend_executor_globals;
@@ -46,7 +46,7 @@ impl ExecutorGlobals {
     }
 
     /// Attempts to retrieve the global class hash table.
-    pub fn class_table(&self) -> Option<&HashTable> {
+    pub fn class_table(&self) -> Option<&ZendHashTable> {
         unsafe { self.class_table.as_ref() }
     }
 

@@ -44,7 +44,7 @@ pub mod prelude {
     pub use crate::php_impl;
     pub use crate::php_module;
     pub use crate::php_startup;
-    pub use crate::types::Callable;
+    pub use crate::types::ZendCallable;
     pub use crate::ZvalConvert;
 }
 
@@ -141,7 +141,7 @@ pub use ext_php_rs_derive::php_extern;
 /// - [`Vec<T>`] and [`HashMap<String, T>`](std::collections::HashMap) where `T:
 ///   FromZval`.
 /// - [`Binary<T>`] for passing binary data as a string, where `T: Pack`.
-/// - [`Callable`] for receiving PHP callables, not applicable for return
+/// - [`ZendCallable`] for receiving PHP callables, not applicable for return
 ///   values.
 /// - [`Option<T>`] where `T: FromZval`. When used as a parameter, the parameter
 ///   will be
@@ -273,7 +273,7 @@ pub use ext_php_rs_derive::php_extern;
 /// [`IntoZval`]: crate::php::types::zval::IntoZval
 /// [`Zval`]: crate::php::types::zval::Zval
 /// [`Binary<T>`]: crate::php::types::binary::Binary
-/// [`Callable`]: crate::php::types::callable::Callable
+/// [`ZendCallable`]: crate::php::types::callable::ZendCallable
 /// [`PhpException`]: crate::php::exceptions::PhpException
 pub use ext_php_rs_derive::php_function;
 

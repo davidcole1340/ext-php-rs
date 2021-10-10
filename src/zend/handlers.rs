@@ -9,7 +9,7 @@ use crate::{
         zend_std_write_property,
     },
     flags::ZvalTypeFlags,
-    types::{HashTable, ZendClassObject, ZendObject, ZendStr, Zval},
+    types::{ZendClassObject, ZendHashTable, ZendObject, ZendStr, Zval},
 };
 
 /// A set of functions associated with a PHP class.
@@ -144,11 +144,11 @@ impl ZendObjectHandlers {
 
     unsafe extern "C" fn get_properties<T: RegisteredClass>(
         object: *mut ZendObject,
-    ) -> *mut HashTable {
+    ) -> *mut ZendHashTable {
         #[inline(always)]
         unsafe fn internal<T: RegisteredClass>(
             object: *mut ZendObject,
-            props: &mut HashTable,
+            props: &mut ZendHashTable,
         ) -> PhpResult {
             let obj = object
                 .as_mut()
@@ -172,7 +172,7 @@ impl ZendObjectHandlers {
 
         let props = zend_std_get_properties(object)
             .as_mut()
-            .or_else(|| Some(HashTable::new().into_raw()))
+            .or_else(|| Some(ZendHashTable::new().into_raw()))
             .expect("Failed to get property hashtable");
 
         if let Err(e) = internal::<T>(object, props) {
