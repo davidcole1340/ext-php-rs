@@ -8,11 +8,11 @@ use crate::{
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{punctuated::Punctuated, FnArg, ImplItemMethod, Lit, Pat, Signature, Token, Type};
+use syn::{punctuated::Punctuated, FnArg, ImplItemMethod, Lit, Pat, Token, Type};
 
 #[derive(Debug, Clone)]
 pub enum Arg {
-    Receiver(bool),
+    Receiver(MethodType),
     Typed(function::Arg),
 }
 
@@ -45,6 +45,13 @@ pub struct ParsedMethod {
     pub constructor: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum MethodType {
+    Receiver { mutable: bool },
+    ReceiverClassObject,
+    Static,
+}
+
 impl ParsedMethod {
     pub fn new(
         tokens: TokenStream,
@@ -61,7 +68,7 @@ impl ParsedMethod {
     }
 }
 
-pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<ParsedMethod> {
+pub fn parser(mut input: ImplItemMethod, rename_rule: RenameRule) -> Result<ParsedMethod> {
     let mut defaults = HashMap::new();
     let mut optional = None;
     let mut visibility = Visibility::Public;
@@ -94,19 +101,13 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
                 as_prop = Some((prop_name, ty))
             }
             ParsedAttribute::Constructor => is_constructor = true,
+            _ => bail!("Invalid attribute for method."),
         }
     }
 
     input.attrs.clear();
 
-    let ImplItemMethod { sig, .. } = &input;
-    let Signature {
-        ident,
-        output,
-        inputs,
-        ..
-    } = &sig;
-
+    let ident = &input.sig.ident;
     let name = identifier.unwrap_or_else(|| rename_rule.rename(ident.to_string()));
     if name == "__construct" {
         is_constructor = true;
@@ -122,7 +123,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
         quote! { return; }
     };
     let internal_ident = Ident::new(&format!("_internal_php_{}", ident), Span::call_site());
-    let args = build_args(inputs, &defaults)?;
+    let args = build_args(&mut input.sig.inputs, &defaults)?;
     let optional = function::find_optional_parameter(
         args.iter().filter_map(|arg| match arg {
             Arg::Typed(arg) => Some(arg),
@@ -130,23 +131,17 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
         }),
         optional,
     );
-    let (arg_definitions, is_static) = build_arg_definitions(&args);
+    let (arg_definitions, method_type) = build_arg_definitions(&args);
     let arg_parser = build_arg_parser(
         args.iter(),
         &optional,
         &bail,
-        if is_static {
-            ParserType::StaticMethod
-        } else {
-            ParserType::Method
+        match method_type {
+            MethodType::Static => ParserType::StaticMethod,
+            _ => ParserType::Method,
         },
     )?;
     let arg_accessors = build_arg_accessors(&args, &bail);
-    let this = if is_static {
-        quote! { Self:: }
-    } else {
-        quote! { this. }
-    };
 
     let func = if is_constructor {
         quote! {
@@ -166,6 +161,11 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
             }
         }
     } else {
+        let this = match method_type {
+            MethodType::Receiver { .. } => quote! { this. },
+            MethodType::ReceiverClassObject | MethodType::Static => quote! { Self:: },
+        };
+
         quote! {
             #input
 
@@ -179,7 +179,7 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
                 #(#arg_definitions)*
                 #arg_parser
 
-                let result = #this #ident(#(#arg_accessors, )*);
+                let result = #this #ident(#(#arg_accessors,)*);
 
                 if let Err(e) = result.set_zval(retval, false) {
                     let e: ::ext_php_rs::exception::PhpException = e.into();
@@ -195,8 +195,8 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
         orig_ident: ident.to_string(),
         args,
         optional,
-        output: crate::function::get_return_type(output)?,
-        _static: is_static,
+        output: crate::function::get_return_type(&input.sig.output)?,
+        _static: matches!(method_type, MethodType::Static),
         visibility,
     };
 
@@ -204,42 +204,56 @@ pub fn parser(input: &mut ImplItemMethod, rename_rule: RenameRule) -> Result<Par
 }
 
 fn build_args(
-    inputs: &Punctuated<FnArg, Token![,]>,
+    inputs: &mut Punctuated<FnArg, Token![,]>,
     defaults: &HashMap<String, Lit>,
 ) -> Result<Vec<Arg>> {
     inputs
-        .iter()
+        .iter_mut()
         .map(|arg| match arg {
             FnArg::Receiver(receiver) => {
                 if receiver.reference.is_none() {
                     bail!("`self` parameter must be a reference.");
                 }
-                Ok(Arg::Receiver(receiver.mutability.is_some()))
+                Ok(Arg::Receiver(MethodType::Receiver {
+                    mutable: receiver.mutability.is_some(),
+                }))
             }
             FnArg::Typed(ty) => {
-                let name = match &*ty.pat {
-                    Pat::Ident(pat) => pat.ident.to_string(),
-                    _ => bail!("Invalid parameter type."),
-                };
-                let default = defaults.get(&name);
-                Ok(Arg::Typed(
-                    crate::function::Arg::from_type(name.clone(), &ty.ty, default, false)
-                        .ok_or_else(|| anyhow!("Invalid parameter type for `{}`.", name))?,
-                ))
+                let mut this = false;
+                let attrs = std::mem::take(&mut ty.attrs);
+                for attr in attrs.into_iter() {
+                    match parse_attribute(&attr)? {
+                        ParsedAttribute::This => this = true,
+                        _ => bail!("Invalid attribute for argument."),
+                    }
+                }
+
+                if this {
+                    Ok(Arg::Receiver(MethodType::ReceiverClassObject))
+                } else {
+                    let name = match &*ty.pat {
+                        Pat::Ident(pat) => pat.ident.to_string(),
+                        _ => bail!("Invalid parameter type."),
+                    };
+                    let default = defaults.get(&name);
+                    Ok(Arg::Typed(
+                        crate::function::Arg::from_type(name.clone(), &ty.ty, default, false)
+                            .ok_or_else(|| anyhow!("Invalid parameter type for `{}`.", name))?,
+                    ))
+                }
             }
         })
         .collect()
 }
 
-fn build_arg_definitions(args: &[Arg]) -> (Vec<TokenStream>, bool) {
-    let mut _static = true;
+fn build_arg_definitions(args: &[Arg]) -> (Vec<TokenStream>, MethodType) {
+    let mut method_type = MethodType::Static;
 
     (
         args.iter()
             .filter_map(|ty| match ty {
-                Arg::Receiver(_) => {
-                    _static = false;
-
+                Arg::Receiver(t) => {
+                    method_type = *t;
                     None
                 }
                 Arg::Typed(arg) => {
@@ -251,7 +265,7 @@ fn build_arg_definitions(args: &[Arg]) -> (Vec<TokenStream>, bool) {
                 }
             })
             .collect(),
-        _static,
+        method_type,
     )
 }
 
@@ -276,6 +290,7 @@ fn build_arg_accessors(args: &[Arg], ret: &TokenStream) -> Vec<TokenStream> {
     args.iter()
         .filter_map(|arg| match arg {
             Arg::Typed(arg) => Some(arg.get_accessor(ret)),
+            Arg::Receiver(MethodType::ReceiverClassObject) => Some(quote! { this }),
             _ => None,
         })
         .collect()

@@ -176,7 +176,7 @@ pub use ext_php_rs_derive::php_extern;
 /// }
 ///
 /// pub extern "C" fn _internal_php_hello(ex: &mut ExecuteData, retval: &mut Zval) {
-///     let mut name = Arg::new("name", <String as FromZval>::TYPE);
+///     let mut name = Arg::new("name", <String as FromZvalMut>::TYPE);
 ///     let parser = ex.parser()
 ///         .arg(&mut name)
 ///         .parse();

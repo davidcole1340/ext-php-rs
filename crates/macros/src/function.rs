@@ -309,7 +309,7 @@ impl Arg {
     pub fn get_type_ident(&self) -> TokenStream {
         let ty: Type = syn::parse_str(&self.ty).unwrap();
         quote! {
-            <#ty as ::ext_php_rs::convert::FromZval>::TYPE
+            <#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE
         }
     }
 

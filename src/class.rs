@@ -9,19 +9,14 @@ use std::{
 
 use crate::{
     builders::FunctionBuilder,
-    convert::{FromZval, IntoZval},
     exception::PhpException,
     props::Property,
-    types::ZendClassObject,
     zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
 };
 
 /// Implemented on Rust types which are exported to PHP. Allows users to get and
 /// set PHP properties on the object.
-pub trait RegisteredClass: Sized
-where
-    Self: 'static,
-{
+pub trait RegisteredClass: Sized + 'static {
     /// PHP class name of the registered class.
     const CLASS_NAME: &'static str;
 
@@ -36,54 +31,6 @@ where
     ///
     /// [`macro@php_class`]: crate::php_class
     fn get_metadata() -> &'static ClassMetadata<Self>;
-
-    /// Attempts to retrieve a property from the class object.
-    ///
-    /// # Parameters
-    ///
-    /// * `name` - The name of the property.
-    ///
-    /// # Returns
-    ///
-    /// Returns a given type `T` inside an option which is the value of the
-    /// zval, or [`None`] if the property could not be found.
-    ///
-    /// # Safety
-    ///
-    /// Caller must guarantee that the object the function is called on is
-    /// immediately followed by a [`ZendObject`], which is true when the
-    /// object was instantiated by PHP.
-    ///
-    /// [`ZendObject`]: crate::types::ZendObject
-    unsafe fn get_property<'a, T: FromZval<'a>>(&'a self, name: &str) -> Option<T> {
-        let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
-        obj.std.get_property(name).ok()
-    }
-
-    /// Attempts to set the value of a property on the class object.
-    ///
-    /// # Parameters
-    ///
-    /// * `name` - The name of the property to set.
-    /// * `value` - The value to set the property to.
-    ///
-    /// # Returns
-    ///
-    /// Returns nothing in an option if the property was successfully set.
-    /// Returns none if setting the value failed.
-    ///
-    /// # Safety
-    ///
-    /// Caller must guarantee that the object the function is called on is
-    /// immediately followed by a [`ZendObject`], which is true when the
-    /// object was instantiated by PHP.
-    ///
-    /// [`ZendObject`]: crate::types::ZendObject
-    unsafe fn set_property(&mut self, name: &str, value: impl IntoZval) -> Option<()> {
-        let obj = ZendClassObject::<Self>::from_obj_ptr(self)?;
-        obj.std.set_property(name, value).ok()?;
-        Some(())
-    }
 
     /// Returns a hash table containing the properties of the class.
     ///

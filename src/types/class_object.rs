@@ -23,6 +23,7 @@ use crate::{
 
 /// Representation of a Zend class object in memory.
 #[repr(C)]
+#[derive(Debug)]
 pub struct ZendClassObject<T> {
     pub obj: Option<T>,
     pub std: ZendObject,
@@ -134,28 +135,6 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// initialized, [`None`] otherwise.
     pub fn initialize(&mut self, val: T) -> Option<T> {
         self.obj.replace(val)
-    }
-
-    /// Returns a reference to the [`ZendClassObject`] of a given object `T`.
-    /// Returns [`None`] if the given object is not of the type `T`.
-    ///
-    /// # Parameters
-    ///
-    /// * `obj` - The object to get the [`ZendClassObject`] for.
-    ///
-    /// # Safety
-    ///
-    /// Caller must guarantee that the given `obj` was created by Zend, which
-    /// means that it is immediately followed by a [`zend_object`].
-    pub(crate) unsafe fn from_obj_ptr(obj: &T) -> Option<&mut Self> {
-        // TODO(david): Remove this function
-        let ptr = (obj as *const T as *mut Self).as_mut()?;
-
-        if ptr.std.is_instance::<T>() {
-            Some(ptr)
-        } else {
-            None
-        }
     }
 
     /// Returns a mutable reference to the [`ZendClassObject`] of a given zend
@@ -288,18 +267,22 @@ impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
     }
 }
 
-impl<T: RegisteredClass + Debug> Debug for ZendClassObject<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        (&**self).fmt(f)
-    }
-}
-
 impl<T: RegisteredClass> IntoZval for ZBox<ZendClassObject<T>> {
     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         let obj = self.into_raw();
         zv.set_object(&mut obj.std);
+        Ok(())
+    }
+}
+
+impl<T: RegisteredClass> IntoZval for &mut ZendClassObject<T> {
+    const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
+
+    #[inline]
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        zv.set_object(&mut self.std);
         Ok(())
     }
 }
