@@ -138,8 +138,8 @@
 <p>A borrowed string. When this type is encountered, you are given a reference to
 the actual zend string memory, rather than copying the contents like if you were
 taking an owned <code>String</code> argument.</p>
-<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
-<tr><td>No</td><td>Yes</td><td>Yes</td><td><code>zend_string</code> (C-string)</td></tr>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>No</td><td>Yes</td><td>No</td><td>Yes</td><td><code>zend_string</code> (C-string)</td></tr>
 </tbody></table>
 <p>Note that you cannot expect the function to operate the same by swapping out
 <code>String</code> and <code>&amp;str</code> - since the zend string memory is read directly, this

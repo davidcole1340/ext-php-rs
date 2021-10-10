@@ -137,8 +137,8 @@
                         <h1 id="primitive-numbers"><a class="header" href="#primitive-numbers">Primitive Numbers</a></h1>
 <p>Primitive integers include <code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code>, <code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>,
 <code>isize</code>, <code>usize</code>, <code>f32</code> and <code>f64</code>.</p>
-<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
-<tr><td>Yes</td><td>No</td><td>Yes</td><td><code>i32</code> on 32-bit platforms, <code>i64</code> on 64-bit platforms, <code>f64</code> platform-independent</td></tr>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td>No</td><td><code>i32</code> on 32-bit platforms, <code>i64</code> on 64-bit platforms, <code>f64</code> platform-independent</td></tr>
 </tbody></table>
 <p>Note that internally, PHP treats <strong>all</strong> of these integers the same (a 'long'),
 and therefore it must be converted into a long to be stored inside the zval. A

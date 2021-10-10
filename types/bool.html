@@ -136,8 +136,8 @@
                     <main>
                         <h1 id="bool"><a class="header" href="#bool"><code>bool</code></a></h1>
 <p>A boolean. Not much else to say here.</p>
-<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
-<tr><td>Yes</td><td>No</td><td>Yes</td><td>Union flag</td></tr>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>Yes</td><td>No</td><td>Yes</td><td>No</td><td>Union flag</td></tr>
 </tbody></table>
 <p>Booleans are not actually stored inside the zval. Instead, they are treated as
 two different union types (the zval can be in a true or false state). An
