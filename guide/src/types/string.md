@@ -4,9 +4,9 @@ When a `String` type is encountered, the zend string content is copied to/from a
 Rust `String` object. If the zval does not contain a string, it will attempt to
 read a `double` from the zval and convert it into a `String` object.
 
-| `T` parameter | `&T` parameter | `T` Return type | PHP representation       |
-| ------------- | -------------- | --------------- | ------------------------ |
-| Yes           | No             | Yes             | `zend_string` (C-string) |
+| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation       |
+| ------------- | -------------- | --------------- | ---------------- | ------------------------ |
+| Yes           | No             | Yes             | No               | `zend_string` (C-string) |
 
 Internally, PHP stores strings in `zend_string` objects, which is a refcounted C
 struct containing the string length with the content of the string appended to
@@ -20,7 +20,7 @@ be thrown if one is encountered while converting a `String` to a zval.
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_function]
-pub fn str_example(input: &str) -> String {
+pub fn str_example(input: String) -> String {
     format!("Hello {}", input)
 }
 ```

@@ -3,9 +3,9 @@
 Primitive integers include `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`,
 `isize`, `usize`, `f32` and `f64`.
 
-| `T` parameter | `&T` parameter | `T` Return type | PHP representation                                                               |
-| ------------- | -------------- | --------------- | -------------------------------------------------------------------------------- |
-| Yes           | No             | Yes             | `i32` on 32-bit platforms, `i64` on 64-bit platforms, `f64` platform-independent |
+| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation                                                               |
+| ------------- | -------------- | --------------- | ---------------- | -------------------------------------------------------------------------------- |
+| Yes           | No             | Yes             | No               | `i32` on 32-bit platforms, `i64` on 64-bit platforms, `f64` platform-independent |
 
 Note that internally, PHP treats **all** of these integers the same (a 'long'),
 and therefore it must be converted into a long to be stored inside the zval. A

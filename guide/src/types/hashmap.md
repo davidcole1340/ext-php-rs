@@ -2,9 +2,9 @@
 
 `HashMap`s are represented as associative arrays in PHP.
 
-| `T` parameter | `&T` parameter | `T` Return type | PHP representation |
-| ------------- | -------------- | --------------- | ------------------ |
-| Yes           | No             | Yes             | `HashTable`        |
+| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation |
+| ------------- | -------------- | --------------- | ---------------- | ------------------ |
+| Yes           | No             | Yes             | No               | `ZendHashTable`    |
 
 Converting from a zval to a `HashMap` is valid when the key is a `String`, and
 the value implements `FromZval`. The key and values are copied into Rust types
