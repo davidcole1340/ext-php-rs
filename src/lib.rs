@@ -170,13 +170,13 @@ pub use ext_php_rs_derive::php_extern;
 /// function which looks like so:
 ///
 /// ```no_run
-/// # use ext_php_rs::{prelude::*, exception::PhpException, zend::ExecuteData, convert::{FromZval, IntoZval}, types::Zval, args::{Arg, ArgParser}};
+/// # use ext_php_rs::{prelude::*, exception::PhpException, zend::ExecuteData, convert::{FromZvalMut, IntoZval}, types::Zval, args::{Arg, ArgParser}};
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
 /// }
 ///
 /// pub extern "C" fn _internal_php_hello(ex: &mut ExecuteData, retval: &mut Zval) {
-///     let mut name = Arg::new("name", <String as FromZval>::TYPE);
+///     let mut name = Arg::new("name", <String as FromZvalMut>::TYPE);
 ///     let parser = ex.parser()
 ///         .arg(&mut name)
 ///         .parse();

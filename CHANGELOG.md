@@ -6,8 +6,11 @@
   - Changed (almost all) module paths. Too many changes to list them all, check
     out the docs.
   - Removed `skel` project.
+- Allow methods to accept references to `ZendClassObject<T>` instead of `self`.
+  [#103]
 
 [#101]: https://github.com/davidcole1340/ext-php-rs/pull/101
+[#103]: https://github.com/davidcole1340/ext-php-rs/pull/103
 
 ## Version 0.5.3
 

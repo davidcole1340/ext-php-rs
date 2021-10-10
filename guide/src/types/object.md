@@ -1,63 +1,55 @@
 # Object
 
-Objects can be returned from functions as instances or references. You can only
-return a reference when you are returning an immutable reference to the object
-the method is implemented on.
+An object is any object type in PHP. This can include a PHP class and PHP
+`stdClass`. A Rust struct registered as a PHP class is a [class object], which
+contains an object.
 
-| `T` parameter | `&T` parameter | `T` Return type | `&T` Return type | PHP representation               |
-| ------------- | -------------- | --------------- | ---------------- | -------------------------------- |
-| No            | No             | Yes             | No - planned     | A Rust struct and a Zend object. |
+Objects are valid as parameters but only as an immutable or mutable reference.
+You cannot take ownership of an object as objects are reference counted, and
+multiple zvals can point to the same object. You can return a boxed owned
+object.
+
+| `T` parameter | `&T` parameter | `T` Return type    | `&T` Return type  | PHP representation |
+| ------------- | -------------- | ------------------ | ----------------- | ------------------ |
+| No            | Yes            | `ZBox<ZendObject>` | Yes, mutable only | Zend object.       |
 
 ## Examples
 
-<!-- ### Returning a reference to `self`
+### Taking an object reference
 
 ```rust
 # extern crate ext_php_rs;
-use ext_php_rs::prelude::*;
-use ext_php_rs::php::types::object::ClassRef;
+use ext_php_rs::{prelude::*, types::ZendObject};
 
-#[php_class]
-#[derive(Default)]
-pub struct Example {
-    foo: i32,
-    bar: i32
-}
-
-#[php_impl]
-impl Example {
-    pub fn builder_pattern(&self) -> ClassRef<Example> {
-        // As long as you return `self` from a method, you can unwrap this option.
-        ClassRef::from_ref(self).unwrap()
-    }
-}
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
-``` -->
-
-### Creating a new class instance
-
-```rust
-# extern crate ext_php_rs;
-use ext_php_rs::prelude::*;
-
-#[php_class]
-#[derive(Default)]
-pub struct Example {
-    foo: i32,
-    bar: i32
-}
-
-#[php_impl]
-impl Example {
-    pub fn make_new(&self, foo: i32, bar: i32) -> Example {
-        Example { foo, bar }
-    }
+// Take an object reference and also return it.
+#[php_function]
+pub fn take_obj(obj: &mut ZendObject) -> &mut ZendObject {
+    let _ = obj.set_property("hello", 5);
+    dbg!(obj)
 }
 # #[php_module]
 # pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 #     module
 # }
 ```
+
+### Creating a new object
+
+```rust
+# extern crate ext_php_rs;
+use ext_php_rs::{prelude::*, types::ZendObject, boxed::ZBox};
+
+// Create a new `stdClass` and return it.
+#[php_function]
+pub fn make_object() -> ZBox<ZendObject> {
+    let mut obj = ZendObject::new_stdclass();
+    let _ = obj.set_property("hello", 5);
+    obj
+}
+# #[php_module]
+# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+#     module
+# }
+```
+
+[class object]: ./class_object.md

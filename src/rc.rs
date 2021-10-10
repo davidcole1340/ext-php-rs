@@ -1,5 +1,7 @@
 //! Traits and types for interacting with reference counted PHP types.
 
+use std::fmt::Debug;
+
 use crate::{
     ffi::{zend_refcounted_h, zend_string},
     types::ZendObject,
@@ -7,6 +9,14 @@ use crate::{
 
 /// Object used to store Zend reference counter.
 pub type ZendRefcount = zend_refcounted_h;
+
+impl Debug for ZendRefcount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ZendRefcount")
+            .field("refcount", &self.refcount)
+            .finish()
+    }
+}
 
 /// Implemented on refcounted types.
 pub trait PhpRc {

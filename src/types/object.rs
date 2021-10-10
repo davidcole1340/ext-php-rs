@@ -6,7 +6,7 @@ use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
 use crate::{
     boxed::{ZBox, ZBoxable},
     class::RegisteredClass,
-    convert::{FromZendObject, FromZval, IntoZval},
+    convert::{FromZendObject, FromZval, FromZvalMut, IntoZval},
     error::{Error, Result},
     ffi::{
         ext_php_rs_zend_object_release, zend_call_known_function, zend_object, zend_objects_new,
@@ -243,15 +243,34 @@ impl<'a> FromZval<'a> for &'a ZendObject {
     }
 }
 
+impl<'a> FromZvalMut<'a> for &'a mut ZendObject {
+    const TYPE: DataType = DataType::Object(None);
+
+    fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
+        zval.object_mut()
+    }
+}
+
 impl IntoZval for ZBox<ZendObject> {
     const TYPE: DataType = DataType::Object(None);
 
+    #[inline]
     fn set_zval(mut self, zv: &mut Zval, _: bool) -> Result<()> {
         // We must decrement the refcounter on the object before inserting into the
         // zval, as the reference counter will be incremented on add.
         // NOTE(david): again is this needed, we increment in `set_object`.
         self.dec_count();
         zv.set_object(self.into_raw());
+        Ok(())
+    }
+}
+
+impl<'a> IntoZval for &'a mut ZendObject {
+    const TYPE: DataType = DataType::Object(None);
+
+    #[inline]
+    fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
+        zv.set_object(self);
         Ok(())
     }
 }

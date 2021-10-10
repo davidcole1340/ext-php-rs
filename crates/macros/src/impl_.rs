@@ -83,6 +83,7 @@ pub enum ParsedAttribute {
         ty: PropAttrTy,
     },
     Constructor,
+    This,
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -138,9 +139,9 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                         #constant
                     }
                 }
-                syn::ImplItem::Method(mut method) => {
+                syn::ImplItem::Method(method) => {
                     let parsed_method =
-                        method::parser(&mut method, args.rename_methods.unwrap_or_default())?;
+                        method::parser(method, args.rename_methods.unwrap_or_default())?;
                     if let Some((prop, ty)) = parsed_method.property {
                         let prop = match class.properties.entry(prop) {
                             Entry::Occupied(entry) => entry.into_mut(),
@@ -248,6 +249,7 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
             }
         }
         "constructor" => ParsedAttribute::Constructor,
+        "this" => ParsedAttribute::This,
         attr => bail!("Invalid attribute `#[{}]`.", attr),
     })
 }
