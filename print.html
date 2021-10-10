@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="types/closure.html"><strong aria-hidden="true">3.10.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="macros/classes.html"><strong aria-hidden="true">4.4.</strong> Classes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li><li class="chapter-item expanded "><a href="macros/zval_convert.html"><strong aria-hidden="true">4.6.</strong> ZvalConvert</a></li></ol></li><li class="chapter-item expanded "><a href="exceptions.html"><strong aria-hidden="true">5.</strong> Exceptions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="examples/index.html"><strong aria-hidden="true">2.</strong> Examples</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="examples/hello_world.html"><strong aria-hidden="true">2.1.</strong> Hello World</a></li></ol></li><li class="chapter-item expanded "><a href="types/index.html"><strong aria-hidden="true">3.</strong> Types</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="types/numbers.html"><strong aria-hidden="true">3.1.</strong> Primitive Numbers</a></li><li class="chapter-item expanded "><a href="types/string.html"><strong aria-hidden="true">3.2.</strong> String</a></li><li class="chapter-item expanded "><a href="types/str.html"><strong aria-hidden="true">3.3.</strong> &amp;str</a></li><li class="chapter-item expanded "><a href="types/bool.html"><strong aria-hidden="true">3.4.</strong> bool</a></li><li class="chapter-item expanded "><a href="types/vec.html"><strong aria-hidden="true">3.5.</strong> Vec</a></li><li class="chapter-item expanded "><a href="types/hashmap.html"><strong aria-hidden="true">3.6.</strong> HashMap</a></li><li class="chapter-item expanded "><a href="types/binary.html"><strong aria-hidden="true">3.7.</strong> Binary</a></li><li class="chapter-item expanded "><a href="types/option.html"><strong aria-hidden="true">3.8.</strong> Option</a></li><li class="chapter-item expanded "><a href="types/object.html"><strong aria-hidden="true">3.9.</strong> Object</a></li><li class="chapter-item expanded "><a href="types/class_object.html"><strong aria-hidden="true">3.10.</strong> Class Object</a></li><li class="chapter-item expanded "><a href="types/closure.html"><strong aria-hidden="true">3.11.</strong> Closure</a></li></ol></li><li class="chapter-item expanded "><a href="macros/index.html"><strong aria-hidden="true">4.</strong> Macros</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/module.html"><strong aria-hidden="true">4.1.</strong> Module</a></li><li class="chapter-item expanded "><a href="macros/module_startup.html"><strong aria-hidden="true">4.2.</strong> Module Startup Function</a></li><li class="chapter-item expanded "><a href="macros/function.html"><strong aria-hidden="true">4.3.</strong> Function</a></li><li class="chapter-item expanded "><a href="macros/classes.html"><strong aria-hidden="true">4.4.</strong> Classes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="macros/impl.html"><strong aria-hidden="true">4.4.1.</strong> impls</a></li></ol></li><li class="chapter-item expanded "><a href="macros/constant.html"><strong aria-hidden="true">4.5.</strong> Constants</a></li><li class="chapter-item expanded "><a href="macros/zval_convert.html"><strong aria-hidden="true">4.6.</strong> ZvalConvert</a></li></ol></li><li class="chapter-item expanded "><a href="exceptions.html"><strong aria-hidden="true">5.</strong> Exceptions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -563,22 +563,72 @@ var_dump(test_option_null(&quot;World&quot;)); // string(11) &quot;Hello World&q
 var_dump(test_option_null()); // null
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="object"><a class="header" href="#object">Object</a></h1>
-<p>Objects can be returned from functions as instances or references. You can only
-return a reference when you are returning an immutable reference to the object
-the method is implemented on.</p>
+<p>An object is any object type in PHP. This can include a PHP class and PHP
+<code>stdClass</code>. A Rust struct registered as a PHP class is a <a href="types/./class_object.html">class object</a>, which
+contains an object.</p>
+<p>Objects are valid as parameters but only as an immutable or mutable reference.
+You cannot take ownership of an object as objects are reference counted, and
+multiple zvals can point to the same object. You can return a boxed owned
+object.</p>
 <table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
-<tr><td>No</td><td>No</td><td>Yes</td><td>No - planned</td><td>A Rust struct and a Zend object.</td></tr>
+<tr><td>No</td><td>Yes</td><td><code>ZBox&lt;ZendObject&gt;</code></td><td>Yes, mutable only</td><td>Zend object.</td></tr>
 </tbody></table>
 <h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
-<!-- ### Returning a reference to `self`
+<h3 id="taking-an-object-reference"><a class="header" href="#taking-an-object-reference">Taking an object reference</a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::{prelude::*, types::ZendObject};
 
-```rust
-# extern crate ext_php_rs;
-use ext_php_rs::prelude::*;
-use ext_php_rs::php::types::object::ClassRef;
+// Take an object reference and also return it.
+#[php_function]
+pub fn take_obj(obj: &amp;mut ZendObject) -&gt; &amp;mut ZendObject {
+    let _ = obj.set_property(&quot;hello&quot;, 5);
+    dbg!(obj)
+}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<h3 id="creating-a-new-object"><a class="header" href="#creating-a-new-object">Creating a new object</a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::{prelude::*, types::ZendObject, boxed::ZBox};
+
+// Create a new `stdClass` and return it.
+#[php_function]
+pub fn make_object() -&gt; ZBox&lt;ZendObject&gt; {
+    let mut obj = ZendObject::new_stdclass();
+    let _ = obj.set_property(&quot;hello&quot;, 5);
+    obj
+}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="class-object"><a class="header" href="#class-object">Class Object</a></h1>
+<p>A class object is an instance of a Rust struct (which has been registered as a
+PHP class) that has been allocated alongside an object. You can think of a class
+object as a superset of an object, as a class object contains a Zend object.</p>
+<table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
+<tr><td>No</td><td><code>&amp;ZendClassObject&lt;T&gt;</code></td><td>Yes</td><td><code>&amp;mut ZendClassObject&lt;T&gt;</code></td><td>Zend object and a Rust struct.</td></tr>
+</tbody></table>
+<h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
+<h3 id="returning-a-reference-to-self"><a class="header" href="#returning-a-reference-to-self">Returning a reference to <code>self</code></a></h3>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::{prelude::*, types::ZendClassObject};
 
 #[php_class]
-#[derive(Default)]
 pub struct Example {
     foo: i32,
     bar: i32
@@ -586,16 +636,19 @@ pub struct Example {
 
 #[php_impl]
 impl Example {
-    pub fn builder_pattern(&self) -> ClassRef<Example> {
-        // As long as you return `self` from a method, you can unwrap this option.
-        ClassRef::from_ref(self).unwrap()
+    // Even though this function doesn't have a `self` type, it is still treated as an associated method
+    // and not a static method.
+    pub fn builder_pattern(#[this] this: &amp;mut ZendClassObject&lt;Example&gt;) -&gt; &amp;mut ZendClassObject&lt;Example&gt; {
+        // do something with `this`
+        this
     }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
-``` -->
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">}
+</span></code></pre></pre>
 <h3 id="creating-a-new-class-instance"><a class="header" href="#creating-a-new-class-instance">Creating a new class instance</a></h3>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -604,7 +657,6 @@ impl Example {
 </span>use ext_php_rs::prelude::*;
 
 #[php_class]
-#[derive(Default)]
 pub struct Example {
     foo: i32,
     bar: i32
@@ -612,7 +664,7 @@ pub struct Example {
 
 #[php_impl]
 impl Example {
-    pub fn make_new(&amp;self, foo: i32, bar: i32) -&gt; Example {
+    pub fn make_new(foo: i32, bar: i32) -&gt; Example {
         Example { foo, bar }
     }
 }
@@ -1008,6 +1060,10 @@ implementations cannot be exported to PHP.</p>
 methods is they are bounded by their class object.</p>
 <p>Class methods can take a <code>&amp;self</code> or <code>&amp;mut self</code> parameter. They cannot take a
 consuming <code>self</code> parameter. Static methods can omit this <code>self</code> parameter.</p>
+<p>To access the underlying Zend object, you can take a reference to a
+<code>ZendClassObject&lt;T&gt;</code> in place of the self parameter, where the parameter is
+annotated with the <code>#[this]</code> attribute. This can also be used to return a
+reference to <code>$this</code>.</p>
 <p>By default, all methods are renamed in PHP to the camel-case variant of the Rust
 method name. This can be changed on the <code>#[php_impl]</code> attribute, by passing one
 of the following as the <code>rename_methods</code> option:</p>
@@ -1068,9 +1124,9 @@ constant for the maximum age of a <code>Human</code>.</p>
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
+</span><span class="boring">use ext_php_rs::{prelude::*, types::ZendClassObject};
 </span><span class="boring">#[php_class]
-</span><span class="boring">#[derive(Default)]
+</span><span class="boring">#[derive(Debug, Default)]
 </span><span class="boring">pub struct Human {
 </span><span class="boring">    name: String,
 </span><span class="boring">    age: i32,
@@ -1105,6 +1161,10 @@ impl Human {
         println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, self.address);
     }
 
+    pub fn get_raw_obj(#[this] this: &amp;mut ZendClassObject&lt;Human&gt;) {
+        dbg!(this);   
+    }
+
     pub fn get_max_age() -&gt; i32 {
         Self::MAX_AGE
     }
@@ -1127,7 +1187,7 @@ var_dump(Human::MAX_AGE); // int(100)
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_const"><a class="header" href="#php_const"><code>#[php_const]</code></a></h1>
 <p>Exports a Rust constant as a global PHP constant. The constant can be any type
 that implements <code>IntoConst</code>.</p>
-<h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
+<h2 id="examples-3"><a class="header" href="#examples-3">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1155,7 +1215,7 @@ implemented, mapping fields to properties in both directions. All fields on the
 struct must implement <code>FromZval</code> as well. Generics are allowed on structs that
 use the derive macro, however, the implementation will add a <code>FromZval</code> bound to
 all generics types.</p>
-<h3 id="examples-3"><a class="header" href="#examples-3">Examples</a></h3>
+<h3 id="examples-4"><a class="header" href="#examples-4">Examples</a></h3>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1227,7 +1287,7 @@ variants could not be extracted from the zval.</p>
 implementation will attempt to parse the zval data in order. For example, if you
 put a <code>String</code> variant before an integer variant, the integer would be converted
 to a string and passed as the string variant.</p>
-<h3 id="examples-4"><a class="header" href="#examples-4">Examples</a></h3>
+<h3 id="examples-5"><a class="header" href="#examples-5">Examples</a></h3>
 <p>Basic example showing the importance of variant ordering and default field:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -1280,7 +1340,7 @@ returned.</p>
 <code>E: Into&lt;PhpException&gt;</code>. If the result contains the error variant, the exception
 is thrown. This allows you to return a result from a PHP function annotated with
 the <code>#[php_function]</code> attribute.</p>
-<h3 id="examples-5"><a class="header" href="#examples-5">Examples</a></h3>
+<h3 id="examples-6"><a class="header" href="#examples-6">Examples</a></h3>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
