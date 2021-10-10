@@ -3,6 +3,10 @@
 #include "zend_exceptions.h"
 #include "zend_inheritance.h"
 
+#if PHP_API_VERSION >= 20210902
+# include "zend_enum.h"
+#endif
+
 zend_string *ext_php_rs_zend_string_init(const char *str, size_t len, bool persistent);
 void ext_php_rs_zend_string_release(zend_string *zs);
 const char *ext_php_rs_php_build_id();

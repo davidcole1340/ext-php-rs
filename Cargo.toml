@@ -23,6 +23,7 @@ cc = "1.0"
 
 [features]
 closure = []
+php81 = []
 
 [workspace]
 members = [

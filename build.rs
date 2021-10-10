@@ -7,7 +7,11 @@ use std::{
 
 use regex::Regex;
 
+#[cfg(feature = "php81")]
+const MIN_PHP_API_VER: u32 = 20210902;
+#[cfg(not(any(feature = "php81")))]
 const MIN_PHP_API_VER: u32 = 20200930;
+
 const MAX_PHP_API_VER: u32 = 20210902;
 
 fn main() {
@@ -328,4 +332,6 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "zend_std_has_property",
     "zend_objects_new",
     "zend_standard_class_def",
+    "zend_enum_add_case_cstr",
+    "zend_register_internal_enum",
 ];
