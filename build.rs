@@ -328,4 +328,6 @@ const ALLOWED_BINDINGS: &[&str] = &[
     "zend_std_has_property",
     "zend_objects_new",
     "zend_standard_class_def",
+    "zend_class_serialize_deny",
+    "zend_class_unserialize_deny",
 ];
