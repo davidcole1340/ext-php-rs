@@ -75,7 +75,7 @@ fn main() {
         .includes(
             str::replace(includes.as_ref(), "-I", "")
                 .split(' ')
-                .map(|path| Path::new(path)),
+                .map(Path::new),
         )
         .compile("wrapper");
 
