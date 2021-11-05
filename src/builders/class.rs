@@ -18,7 +18,7 @@ use crate::{
 /// Builder for registering a class in PHP.
 pub struct ClassBuilder {
     name: String,
-    ptr: Box<ClassEntry>,
+    ce: ClassEntry,
     extends: Option<&'static ClassEntry>,
     interfaces: Vec<&'static ClassEntry>,
     methods: Vec<FunctionEntry>,
@@ -35,13 +35,11 @@ impl ClassBuilder {
     ///
     /// * `name` - The name of the class.
     pub fn new<T: Into<String>>(name: T) -> Self {
-        // SAFETY: A zeroed class entry is in an initalized state, as it is a raw C type
-        // whose fields do not have a drop implementation.
-        let ptr = unsafe { Box::new(MaybeUninit::zeroed().assume_init()) };
-
         Self {
             name: name.into(),
-            ptr,
+            // SAFETY: A zeroed class entry is in an initalized state, as it is a raw C type
+            // whose fields do not have a drop implementation.
+            ce: unsafe { MaybeUninit::zeroed().assume_init() },
             extends: None,
             interfaces: vec![],
             methods: vec![],
@@ -143,7 +141,7 @@ impl ClassBuilder {
     ///
     /// * `flags` - Flags relating to the class. See [`ClassFlags`].
     pub fn flags(mut self, flags: ClassFlags) -> Self {
-        self.ptr.ce_flags = flags.bits();
+        self.ce.ce_flags = flags.bits();
         self
     }
 
@@ -225,15 +223,15 @@ impl ClassBuilder {
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
     pub fn build(mut self) -> Result<&'static mut ClassEntry> {
-        self.ptr.name = ZendStr::new_interned(&self.name, true)?.into_raw();
+        self.ce.name = ZendStr::new_interned(&self.name, true)?.into_raw();
 
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
-        self.ptr.info.internal.builtin_functions = func;
+        self.ce.info.internal.builtin_functions = func;
 
         let class = unsafe {
             zend_register_internal_class_ex(
-                self.ptr.as_mut(),
+                &mut self.ce,
                 match self.extends {
                     Some(ptr) => (ptr as *const _) as *mut _,
                     None => std::ptr::null_mut(),
