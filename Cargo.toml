@@ -27,6 +27,8 @@ closure = []
 [workspace]
 members = [
     "crates/macros",
+    "crates/describe",
+    "crates/cli"
 ]
 
 [package.metadata.docs.rs]

@@ -15,7 +15,8 @@ fn main() {
     println!("cargo:rerun-if-changed=src/wrapper.h");
     println!("cargo:rerun-if-changed=src/wrapper.c");
 
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");
+    let out_dir = env::var_os("OUT_DIR").expect("Failed to get OUT_DIR");
+    let out_path = PathBuf::from(out_dir).join("bindings.rs");
 
     // check for docs.rs and use stub bindings if required
     if env::var("DOCS_RS").is_ok() {
