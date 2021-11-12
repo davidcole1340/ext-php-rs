@@ -226,6 +226,9 @@ impl Describe for Class {
             .map(|iface| quote! { #iface.into(), });
         let properties = self.properties.iter().map(|d| d.describe());
         let mut methods: Vec<_> = self.methods.iter().map(Describe::describe).collect();
+        let docs = self.docs.iter().map(|c| quote! {
+            #c.into()
+        });
 
         if let Some(ctor) = &self.constructor {
             methods.insert(0, ctor.describe());
@@ -234,6 +237,7 @@ impl Describe for Class {
         quote! {
             Class {
                 name: #name.into(),
+                doc: DocBlock(vec![#(#docs,)*]),
                 extends: #extends,
                 implements: vec![#(#interfaces,)*],
                 properties: vec![#(#properties,)*],

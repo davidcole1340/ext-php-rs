@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use ext_php_rs::flags::DataType;
 
-use crate::{Class, Function, Method, MethodType, Module, Parameter, Property, Visibility};
+use crate::{Class, DocBlock, Function, Method, MethodType, Module, Parameter, Property, Visibility};
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};
 
 pub trait ToStub {
@@ -124,8 +124,23 @@ impl ToStub for DataType {
     }
 }
 
+impl ToStub for DocBlock {
+    fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        if !self.0.is_empty() {
+            writeln!(buf, "/**")?;
+            for comment in self.0.iter() {
+                writeln!(buf, " *{}", comment)?;
+            }
+            writeln!(buf, " */")?;
+        }
+        Ok(())
+    }
+}
+
 impl ToStub for Class {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        self.doc.fmt_stub(buf)?;
+
         let (_, name) = split_namespace(self.name.as_ref());
         write!(buf, "class {} ", name)?;
 

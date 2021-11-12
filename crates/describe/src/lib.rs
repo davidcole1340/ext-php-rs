@@ -22,6 +22,9 @@ impl Module {
 }
 
 #[derive(Debug)]
+pub struct DocBlock(pub Vec<Cow<'static, str>>);
+
+#[derive(Debug)]
 pub struct Function {
     pub name: Cow<'static, str>,
     pub ret: Option<Retval>,
@@ -39,6 +42,7 @@ pub struct Parameter {
 #[derive(Debug)]
 pub struct Class {
     pub name: Cow<'static, str>,
+    pub doc: DocBlock,
     pub extends: Option<Cow<'static, str>>,
     pub implements: Vec<Cow<'static, str>>,
     pub properties: Vec<Property>,

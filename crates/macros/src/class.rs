@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use crate::STATE;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitStr, Token};
+use syn::parse::ParseStream;
 
 #[derive(Debug, Default)]
 pub struct Class {
@@ -13,6 +14,7 @@ pub struct Class {
     pub struct_path: String,
     pub parent: Option<String>,
     pub interfaces: Vec<String>,
+    pub docs: Vec<String>,
     pub methods: Vec<crate::method::Method>,
     pub constructor: Option<crate::method::Method>,
     pub constants: Vec<crate::constant::Constant>,
@@ -24,6 +26,7 @@ pub enum ParsedAttribute {
     Extends(Expr),
     Implements(Expr),
     Property(PropertyAttr),
+    Comment(String),
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -39,6 +42,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
     let mut parent = None;
     let mut interfaces = vec![];
     let mut properties = HashMap::new();
+    let mut comments = vec![];
 
     input.attrs = {
         let mut unused = vec![];
@@ -50,6 +54,9 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
                     }
                     ParsedAttribute::Implements(class) => {
                         interfaces.push(class.to_token_stream().to_string());
+                    }
+                    ParsedAttribute::Comment(comment) => {
+                        comments.push(comment);
                     }
                     attr => bail!("Attribute `{:?}` is not valid for structs.", attr),
                 },
@@ -101,6 +108,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         struct_path,
         parent,
         interfaces,
+        docs: comments,
         properties,
         ..Default::default()
     };
@@ -268,6 +276,20 @@ fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
                 .parse_args()
                 .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
             Some(ParsedAttribute::Implements(meta))
+        }
+        "doc" => {
+            struct DocComment(pub String);
+
+            impl syn::parse::Parse for DocComment {
+                fn parse(input: ParseStream) -> syn::Result<Self> {
+                    input.parse::<Token![=]>()?;
+                    let comment: LitStr = input.parse()?;
+                    Ok(Self(comment.value()))
+                }
+            }
+
+            let comment: DocComment = syn::parse2(attr.tokens.clone()).with_context(|| "Failed to parse doc comment")?;
+            Some(ParsedAttribute::Comment(comment.0))
         }
         "prop" | "property" => {
             let attr = if attr.tokens.is_empty() {
