@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use ext_php_rs::flags::DataType;
 
 use crate::{Class, Function, Method, MethodType, Module, Parameter, Property, Visibility};
@@ -20,14 +21,39 @@ impl ToStub for Module {
         writeln!(buf, "// Stubs for {}", self.name)?;
         writeln!(buf)?;
 
-        for funct in &self.functions {
-            funct.fmt_stub(buf)?;
-            writeln!(buf)?;
+        // To account for namespaces we need to group by them. [`None`] as the key represents no
+        // namespace, while [`Some`] represents a namespace.
+        let mut entries: HashMap<Option<&str>, Vec<String>> = HashMap::new();
+
+        // Inserts a value into the entries hashmap. Takes a key and an entry, creating the internal
+        // vector if it doesn't already exist.
+        let mut insert = |ns, entry| {
+            let bucket = entries.entry(ns).or_insert_with(|| Vec::new());
+            bucket.push(entry);
+        };
+
+        for func in &self.functions {
+            let (ns, name) = split_namespace(func.name.as_ref());
+            insert(ns, func.to_stub()?);
         }
 
         for class in &self.classes {
-            class.fmt_stub(buf)?;
-            writeln!(buf)?;
+            let (ns, name) = split_namespace(class.name.as_ref());
+            insert(ns, class.to_stub()?);
+        }
+
+        for (ns, entries) in entries.iter() {
+            if let Some(ns) = ns {
+                writeln!(buf, "namespace {} {{", ns)?;
+            } else {
+                writeln!(buf, "namespace {{")?;
+            }
+
+            for entry in entries.iter() {
+                writeln!(buf, "{}", entry)?;
+            }
+
+            writeln!(buf, "}}")?; // /ns
         }
 
         Ok(())
@@ -36,10 +62,11 @@ impl ToStub for Module {
 
 impl ToStub for Function {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        let (_, name) = split_namespace(self.name.as_ref());
         write!(
             buf,
             "function {}({})",
-            self.name,
+            name,
             self.params
                 .iter()
                 .map(ToStub::to_stub)
@@ -99,7 +126,8 @@ impl ToStub for DataType {
 
 impl ToStub for Class {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
-        write!(buf, "class {} ", self.name)?;
+        let (_, name) = split_namespace(self.name.as_ref());
+        write!(buf, "class {} ", name)?;
 
         if let Some(extends) = &self.extends {
             write!(buf, "extends {} ", extends)?;
@@ -189,5 +217,32 @@ impl ToStub for Method {
         }
 
         write!(buf, " {{}}")
+    }
+}
+
+/// Takes a class name and splits the namespace off from the actual class name.
+///
+/// # Returns
+///
+/// A tuple, where the first item is the namespace (or [`None`] if not namespaced), and the second
+/// item is the class name.
+fn split_namespace(class: &str) -> (Option<&str>, &str) {
+    let idx = class.rfind('\\');
+
+    if let Some(idx) = idx {
+        (Some(&class[0..idx]), &class[idx + 1..])
+    } else {
+        (None, class)
+    }
+}
+
+mod test {
+    use super::split_namespace;
+
+    #[test]
+    pub fn test_split_ns() {
+        assert_eq!(split_namespace("ext\\php\\rs"), (Some("ext\\php"), "rs"));
+        assert_eq!(split_namespace("test_solo_ns"), (None, "test_solo_ns"));
+        assert_eq!(split_namespace("simple\\ns"), (Some("simple"), "ns"));
     }
 }
