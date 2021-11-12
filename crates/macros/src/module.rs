@@ -155,6 +155,7 @@ fn generate_stubs(state: &MutexGuard<State>) -> TokenStream {
     let module = state.describe();
 
     quote! {
+        #[cfg(debug_assertions)]
         #[no_mangle]
         pub fn ext_php_rs_describe_module() -> ::ext_php_rs_describe::Module {
             use ::ext_php_rs_describe::*;
@@ -248,12 +249,14 @@ impl Describe for (&String, &Property) {
 
         // TODO(david): store metadata for ty, vis, static, null, default
         quote! {
-            name: #name.into(),
-            ty: None,
-            vis: Visibility::Public,
-            static_: false,
-            nullable: false,
-            default: None,
+            Property {
+                name: #name.into(),
+                ty: None,
+                vis: Visibility::Public,
+                static_: false,
+                nullable: false,
+                default: None,
+            }
         }
     }
 }

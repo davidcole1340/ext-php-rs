@@ -1,38 +1,13 @@
-#![feature(const_maybe_uninit_assume_init)]
-#![feature(generic_const_exprs)]
-
 use ext_php_rs::ffi;
-use std::mem::ManuallyDrop;
+use std::mem::MaybeUninit;
 
 macro_rules! stub_symbol {
     ($s: ident, $t: ty) => {
         #[allow(non_upper_case_globals)]
         #[used]
         #[no_mangle]
-        pub static mut $s: $t = unsafe { StubSymbol::zeroed() };
+        pub static mut $s: MaybeUninit<$t> = MaybeUninit::uninit();
     };
-}
-
-union StubSymbol<T>
-where
-    [(); std::mem::size_of::<T>()]: Sized,
-{
-    zero: [u8; std::mem::size_of::<T>()],
-    obj: ManuallyDrop<T>,
-}
-
-impl<T> StubSymbol<T>
-where
-    [(); std::mem::size_of::<T>()]: Sized,
-{
-    pub const unsafe fn zeroed() -> T {
-        ManuallyDrop::into_inner(
-            Self {
-                zero: [0; std::mem::size_of::<T>()],
-            }
-            .obj,
-        )
-    }
 }
 
 stub_symbol!(std_object_handlers, ffi::zend_object_handlers);
@@ -41,6 +16,8 @@ stub_symbol!(zend_class_serialize_deny, *mut ());
 stub_symbol!(zend_class_unserialize_deny, *mut ());
 stub_symbol!(zend_string_init_interned, *mut ());
 
+/// Pretends to access the static stub symbols. If this function is not called,
+/// the symbols are optimised out of the resulting executable.
 pub fn link() {
     unsafe {
         std::convert::identity(&std_object_handlers);

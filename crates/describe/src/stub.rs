@@ -128,6 +128,8 @@ impl ToStub for Class {
 impl ToStub for Property {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
         self.vis.fmt_stub(buf)?;
+        write!(buf, " ")?;
+
         if self.static_ {
             write!(buf, "static ")?;
         }
