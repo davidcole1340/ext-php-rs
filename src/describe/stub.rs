@@ -2,7 +2,8 @@ use crate::flags::DataType;
 use std::collections::HashMap;
 
 use super::{
-    Class, DocBlock, Function, Method, MethodType, Module, Parameter, Property, Visibility,
+    Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
+    Visibility,
 };
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};
 
@@ -33,6 +34,11 @@ impl ToStub for Module {
             let bucket = entries.entry(ns).or_insert_with(Vec::new);
             bucket.push(entry);
         };
+
+        for c in &self.constants {
+            let (ns, _) = split_namespace(c.name.as_ref());
+            insert(ns, c.to_stub()?);
+        }
 
         for func in &self.functions {
             let (ns, _) = split_namespace(func.name.as_ref());
@@ -177,7 +183,8 @@ impl ToStub for Class {
         }
 
         buf.push_str(
-            &stub(&self.properties)
+            &stub(&self.constants)
+                .chain(stub(&self.properties))
                 .chain(stub(&self.methods))
                 .collect::<Result<Vec<_>, FmtError>>()?
                 .join(NEW_LINE_SEPARATOR),
@@ -255,6 +262,20 @@ impl ToStub for Method {
         }
 
         writeln!(buf, " {{}}")
+    }
+}
+
+impl ToStub for Constant {
+    fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        self.docs.fmt_stub(buf)?;
+
+        write!(buf, "const {} = ", self.name)?;
+        if let Some(value) = &self.value {
+            write!(buf, "{}", value)?;
+        } else {
+            write!(buf, "null")?;
+        }
+        writeln!(buf, ";")
     }
 }
 

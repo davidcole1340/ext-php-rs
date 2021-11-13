@@ -237,6 +237,7 @@ impl Describe for Class {
                 #c.into()
             }
         });
+        let constants = self.constants.iter().map(Describe::describe);
 
         if let Some(ctor) = &self.constructor {
             methods.insert(0, ctor.describe());
@@ -250,6 +251,7 @@ impl Describe for Class {
                 implements: vec![#(#interfaces,)*],
                 properties: vec![#(#properties,)*],
                 methods: vec![#(#methods,)*],
+                constants: vec![#(#constants,)*]
             }
         }
     }
@@ -338,16 +340,37 @@ impl Describe for crate::impl_::Visibility {
     }
 }
 
+impl Describe for crate::constant::Constant {
+    fn describe(&self) -> TokenStream {
+        let name = &self.name;
+        let docs = self.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
+
+        quote! {
+            Constant {
+                name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
+                value: None
+            }
+        }
+    }
+}
+
 impl Describe for State {
     fn describe(&self) -> TokenStream {
         let functs = self.functions.iter().map(Describe::describe);
         let classes = self.classes.iter().map(|(_, class)| class.describe());
+        let constants = self.constants.iter().map(Describe::describe);
 
         quote! {
             Module {
                 name: env!("CARGO_PKG_NAME").into(),
                 functions: vec![#(#functs,)*],
                 classes: vec![#(#classes,)*],
+                constants: vec![#(#constants,)*]
             }
         }
     }

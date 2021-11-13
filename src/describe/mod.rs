@@ -10,6 +10,7 @@ pub struct Module {
     pub name: Cow<'static, str>,
     pub functions: Vec<Function>,
     pub classes: Vec<Class>,
+    pub constants: Vec<Constant>,
 }
 
 impl Module {
@@ -18,6 +19,7 @@ impl Module {
             name: name.into(),
             functions: vec![],
             classes: vec![],
+            constants: vec![],
         }
     }
 }
@@ -49,6 +51,7 @@ pub struct Class {
     pub implements: Vec<Cow<'static, str>>,
     pub properties: Vec<Property>,
     pub methods: Vec<Method>,
+    pub constants: Vec<Constant>,
 }
 
 #[derive(Debug)]
@@ -91,4 +94,11 @@ pub enum Visibility {
     Private,
     Protected,
     Public,
+}
+
+#[derive(Debug)]
+pub struct Constant {
+    pub name: Cow<'static, str>,
+    pub docs: DocBlock,
+    pub value: Option<Cow<'static, str>>,
 }
