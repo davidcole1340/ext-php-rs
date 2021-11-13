@@ -1,7 +1,7 @@
-use ext_php_rs::flags::DataType;
+use crate::flags::DataType;
 use std::collections::HashMap;
 
-use crate::{
+use super::{
     Class, DocBlock, Function, Method, MethodType, Module, Parameter, Property, Visibility,
 };
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};

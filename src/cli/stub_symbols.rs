@@ -1,4 +1,4 @@
-use ext_php_rs::ffi;
+use crate::ffi;
 use std::mem::MaybeUninit;
 
 macro_rules! stub_symbol {

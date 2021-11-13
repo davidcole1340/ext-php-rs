@@ -157,8 +157,8 @@ fn generate_stubs(state: &MutexGuard<State>) -> TokenStream {
     quote! {
         #[cfg(debug_assertions)]
         #[no_mangle]
-        pub fn ext_php_rs_describe_module() -> ::ext_php_rs_describe::Module {
-            use ::ext_php_rs_describe::*;
+        pub fn ext_php_rs_describe_module() -> ::ext_php_rs::describe::Module {
+            use ::ext_php_rs::describe::*;
 
             #module
         }

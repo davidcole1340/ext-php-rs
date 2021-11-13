@@ -1,8 +1,9 @@
-pub mod stub;
+mod stub;
 
+use crate::flags::DataType;
 use std::borrow::Cow;
 
-use ext_php_rs::flags::DataType;
+pub use stub::ToStub;
 
 #[derive(Debug)]
 pub struct Module {
