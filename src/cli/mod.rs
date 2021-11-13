@@ -1,5 +1,4 @@
 mod ext;
-mod stub_symbols;
 
 use anyhow::{bail, Context, Result as AResult};
 use dialoguer::{Confirm, Select};
@@ -53,7 +52,8 @@ struct Install {
     /// Path to the `php.ini` file to update with the new extension.
     #[clap(long)]
     ini_path: Option<PathBuf>,
-    /// Disables the extension in the PHP configuration file.
+    /// Installs the extension but doesn't enable the extension in the `php.ini`
+    /// file.
     #[clap(long)]
     disable: bool,
 }
@@ -158,8 +158,6 @@ impl Install {
 
 impl Stubs {
     pub fn handle(self) -> Result {
-        stub_symbols::link();
-
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
@@ -201,12 +199,18 @@ struct PhpConfig {
 }
 
 impl PhpConfig {
+    /// Creates a new `php-config` instance.
     pub fn new() -> Self {
         Self {
-            path: get_php_config(),
+            path: if let Some(php_config) = std::env::var_os("PHP_CONFIG") {
+                php_config
+            } else {
+                OsString::from("php-config")
+            },
         }
     }
 
+    /// Calls `php-config` and retrieves the extension directory.
     pub fn get_ext_dir(&self) -> AResult<PathBuf> {
         Ok(PathBuf::from(
             self.exec(
@@ -217,6 +221,7 @@ impl PhpConfig {
         ))
     }
 
+    /// Calls `php-config` and retrieves the `php.ini` file path.
     pub fn get_php_ini(&self) -> AResult<PathBuf> {
         let mut path = PathBuf::from(
             self.exec(|cmd| cmd.arg("--ini-path"), "retrieve `php.ini` path")?
@@ -231,6 +236,9 @@ impl PhpConfig {
         Ok(path)
     }
 
+    /// Executes the `php-config` binary. The given function `f` is used to
+    /// modify the given mutable [`Command`]. If successful, a [`String`]
+    /// representing stdout is returned.
     fn exec<F>(&self, f: F, ctx: &str) -> AResult<String>
     where
         F: FnOnce(&mut Command) -> &mut Command,
@@ -242,15 +250,6 @@ impl PhpConfig {
             .with_context(|| format!("Failed to {} from `php-config`", ctx))?;
         String::from_utf8(out.stdout)
             .with_context(|| "Failed to convert `php-config` output to string")
-    }
-}
-
-/// Returns the command to call the `php-config` executable.
-fn get_php_config() -> OsString {
-    if let Some(php_config) = std::env::var_os("PHP_CONFIG") {
-        php_config
-    } else {
-        OsString::from("php-config")
     }
 }
 
@@ -284,7 +283,7 @@ fn find_ext() -> AResult<String> {
         1 => target_files.remove(0),
         _ => {
             let chosen = Select::new()
-                .with_prompt("There were multiple dylibs detected in the target directory. Which would you like to use?")
+                .with_prompt("There were multiple dynamic libraries detected in the target directory. Which would you like to use?")
                 .items(&target_files)
                 .interact()?;
             target_files.remove(chosen)
