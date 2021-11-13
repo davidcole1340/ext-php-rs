@@ -1,7 +1,7 @@
 mod ext;
 mod stub_symbols;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Result as AResult};
 use dialoguer::{Confirm, Select};
 
 use std::{
@@ -19,7 +19,9 @@ use crate::describe::ToStub;
 
 use self::ext::Ext;
 
-pub fn run() -> Result<()> {
+pub type Result = anyhow::Result<()>;
+
+pub fn run() -> Result {
     Args::parse().handle()
 }
 
@@ -72,7 +74,7 @@ struct Stubs {
 }
 
 impl Args {
-    pub fn handle(self) -> Result<()> {
+    pub fn handle(self) -> Result {
         match self {
             Args::Install(install) => install.handle(),
             Args::Stubs(stubs) => stubs.handle(),
@@ -81,7 +83,7 @@ impl Args {
 }
 
 impl Install {
-    pub fn handle(self) -> Result<()> {
+    pub fn handle(self) -> Result {
         let ext_path = find_ext()?;
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
@@ -155,7 +157,7 @@ impl Install {
 }
 
 impl Stubs {
-    pub fn handle(self) -> Result<()> {
+    pub fn handle(self) -> Result {
         stub_symbols::link();
 
         let ext_path = if let Some(ext_path) = self.ext {
@@ -205,7 +207,7 @@ impl PhpConfig {
         }
     }
 
-    pub fn get_ext_dir(&self) -> Result<PathBuf> {
+    pub fn get_ext_dir(&self) -> AResult<PathBuf> {
         Ok(PathBuf::from(
             self.exec(
                 |cmd| cmd.arg("--extension-dir"),
@@ -215,7 +217,7 @@ impl PhpConfig {
         ))
     }
 
-    pub fn get_php_ini(&self) -> Result<PathBuf> {
+    pub fn get_php_ini(&self) -> AResult<PathBuf> {
         let mut path = PathBuf::from(
             self.exec(|cmd| cmd.arg("--ini-path"), "retrieve `php.ini` path")?
                 .trim(),
@@ -229,7 +231,7 @@ impl PhpConfig {
         Ok(path)
     }
 
-    fn exec<F>(&self, f: F, ctx: &str) -> Result<String>
+    fn exec<F>(&self, f: F, ctx: &str) -> AResult<String>
     where
         F: FnOnce(&mut Command) -> &mut Command,
     {
@@ -253,7 +255,7 @@ fn get_php_config() -> OsString {
 }
 
 /// Attempts to find an extension in the target directory.
-fn find_ext() -> Result<String> {
+fn find_ext() -> AResult<String> {
     const DYLIB_EXT: &str = if cfg!(target_os = "windows") {
         "dll"
     } else if cfg!(target_os = "macos") {
@@ -268,7 +270,7 @@ fn find_ext() -> Result<String> {
 
     let mut target_files: Vec<_> = std::fs::read_dir(target_dir)
         .with_context(|| "Failed to read files from target directory")?
-        .collect::<Result<Vec<_>, std::io::Error>>()?
+        .collect::<AResult<Vec<_>, std::io::Error>>()?
         .into_iter()
         .filter(|file| {
             file.path().is_file()
