@@ -23,7 +23,8 @@ struct Opts {
     /// `<ext-name>.stubs.php` in the current directory.
     #[clap(short, long)]
     out: Option<PathBuf>,
-    /// Print stubs to stdout rather than write to file. Cannot be used with `out`.
+    /// Print stubs to stdout rather than write to file. Cannot be used with
+    /// `out`.
     #[clap(long, conflicts_with = "out")]
     stdout: bool,
 }
@@ -44,13 +45,14 @@ fn main() -> anyhow::Result<()> {
         let out_path = if let Some(out_path) = &opts.out {
             Cow::Borrowed(out_path)
         } else {
-            let mut cwd =
-                std::env::current_dir().with_context(|| "Failed to get current working directory")?;
+            let mut cwd = std::env::current_dir()
+                .with_context(|| "Failed to get current working directory")?;
             cwd.push(format!("{}.stubs.php", result.name));
             Cow::Owned(cwd)
         };
 
-        std::fs::write(out_path.as_ref(), &stubs).with_context(|| "Failed to write stubs to file")?;
+        std::fs::write(out_path.as_ref(), &stubs)
+            .with_context(|| "Failed to write stubs to file")?;
     }
 
     Ok(())

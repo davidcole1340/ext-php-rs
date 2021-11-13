@@ -2,13 +2,13 @@ mod class;
 mod constant;
 mod extern_;
 mod function;
+mod helpers;
 mod impl_;
 mod method;
 mod module;
 mod startup_function;
 mod syn_ext;
 mod zval;
-mod helpers;
 
 use std::{
     collections::HashMap,

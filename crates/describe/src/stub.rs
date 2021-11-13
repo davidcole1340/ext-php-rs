@@ -1,7 +1,9 @@
-use std::collections::HashMap;
 use ext_php_rs::flags::DataType;
+use std::collections::HashMap;
 
-use crate::{Class, DocBlock, Function, Method, MethodType, Module, Parameter, Property, Visibility};
+use crate::{
+    Class, DocBlock, Function, Method, MethodType, Module, Parameter, Property, Visibility,
+};
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};
 
 pub trait ToStub {
@@ -21,40 +23,52 @@ impl ToStub for Module {
         writeln!(buf, "// Stubs for {}", self.name)?;
         writeln!(buf)?;
 
-        // To account for namespaces we need to group by them. [`None`] as the key represents no
-        // namespace, while [`Some`] represents a namespace.
+        // To account for namespaces we need to group by them. [`None`] as the key
+        // represents no namespace, while [`Some`] represents a namespace.
         let mut entries: HashMap<Option<&str>, Vec<String>> = HashMap::new();
 
-        // Inserts a value into the entries hashmap. Takes a key and an entry, creating the internal
-        // vector if it doesn't already exist.
+        // Inserts a value into the entries hashmap. Takes a key and an entry, creating
+        // the internal vector if it doesn't already exist.
         let mut insert = |ns, entry| {
-            let bucket = entries.entry(ns).or_insert_with(|| Vec::new());
+            let bucket = entries.entry(ns).or_insert_with(Vec::new);
             bucket.push(entry);
         };
 
         for func in &self.functions {
-            let (ns, name) = split_namespace(func.name.as_ref());
+            let (ns, _) = split_namespace(func.name.as_ref());
             insert(ns, func.to_stub()?);
         }
 
         for class in &self.classes {
-            let (ns, name) = split_namespace(class.name.as_ref());
+            let (ns, _) = split_namespace(class.name.as_ref());
             insert(ns, class.to_stub()?);
         }
 
-        for (ns, entries) in entries.iter() {
-            if let Some(ns) = ns {
-                writeln!(buf, "namespace {} {{", ns)?;
-            } else {
-                writeln!(buf, "namespace {{")?;
-            }
+        buf.push_str(
+            &entries
+                .iter()
+                .map(|(ns, entries)| {
+                    let mut buf = String::new();
+                    if let Some(ns) = ns {
+                        writeln!(buf, "namespace {} {{", ns)?;
+                    } else {
+                        writeln!(buf, "namespace {{")?;
+                    }
 
-            for entry in entries.iter() {
-                writeln!(buf, "{}", entry)?;
-            }
+                    buf.push_str(
+                        &entries
+                            .iter()
+                            .map(|entry| indent(entry, 4))
+                            .collect::<Vec<_>>()
+                            .join(NEW_LINE_SEPARATOR),
+                    );
 
-            writeln!(buf, "}}")?; // /ns
-        }
+                    writeln!(buf, "}}")?;
+                    Ok(buf)
+                })
+                .collect::<Result<Vec<_>, FmtError>>()?
+                .join(NEW_LINE_SEPARATOR),
+        );
 
         Ok(())
     }
@@ -84,7 +98,7 @@ impl ToStub for Function {
             retval.ty.fmt_stub(buf)?;
         }
 
-        write!(buf, " {{}}")
+        writeln!(buf, " {{}}")
     }
 }
 
@@ -156,17 +170,20 @@ impl ToStub for Class {
 
         writeln!(buf, "{{")?;
 
-        for prop in self.properties.iter() {
-            prop.fmt_stub(buf)?;
-            writeln!(buf)?;
+        fn stub<T: ToStub>(items: &[T]) -> impl Iterator<Item = Result<String, FmtError>> + '_ {
+            items
+                .iter()
+                .map(|item| item.to_stub().map(|stub| indent(&stub, 4)))
         }
 
-        for method in self.methods.iter() {
-            method.fmt_stub(buf)?;
-            writeln!(buf)?;
-        }
+        buf.push_str(
+            &stub(&self.properties)
+                .chain(stub(&self.methods))
+                .collect::<Result<Vec<_>, FmtError>>()?
+                .join(NEW_LINE_SEPARATOR),
+        );
 
-        write!(buf, "}}")
+        writeln!(buf, "}}")
     }
 }
 
@@ -187,7 +204,7 @@ impl ToStub for Property {
         if let Some(default) = &self.default {
             write!(buf, " = {}", default)?;
         }
-        write!(buf, ";")
+        writeln!(buf, ";")
     }
 }
 
@@ -237,16 +254,21 @@ impl ToStub for Method {
             }
         }
 
-        write!(buf, " {{}}")
+        writeln!(buf, " {{}}")
     }
 }
+
+#[cfg(windows)]
+const NEW_LINE_SEPARATOR: &str = "\r\n";
+#[cfg(not(windows))]
+const NEW_LINE_SEPARATOR: &str = "\n";
 
 /// Takes a class name and splits the namespace off from the actual class name.
 ///
 /// # Returns
 ///
-/// A tuple, where the first item is the namespace (or [`None`] if not namespaced), and the second
-/// item is the class name.
+/// A tuple, where the first item is the namespace (or [`None`] if not
+/// namespaced), and the second item is the class name.
 fn split_namespace(class: &str) -> (Option<&str>, &str) {
     let idx = class.rfind('\\');
 
@@ -257,13 +279,48 @@ fn split_namespace(class: &str) -> (Option<&str>, &str) {
     }
 }
 
+/// Indents a given string to a given depth. Depth is given in number of spaces
+/// to be appended. Returns a new string with the new indentation. Will not
+/// indent whitespace lines.
+///
+/// # Paramters
+///
+/// * `s` - The string to indent.
+/// * `depth` - The depth to indent the lines to, in spaces.
+///
+/// # Returns
+///
+/// The indented string.
+fn indent(s: &str, depth: usize) -> String {
+    let indent = format!("{:depth$}", "", depth = depth);
+
+    s.split('\n')
+        .map(|line| {
+            let mut result = String::new();
+            if line.chars().any(|c| !c.is_whitespace()) {
+                result.push_str(&indent);
+                result.push_str(line);
+            }
+            result
+        })
+        .collect::<Vec<_>>()
+        .join(NEW_LINE_SEPARATOR)
+}
+
+#[cfg(test)]
 mod test {
-    use super::split_namespace;
+    use super::{indent, split_namespace};
 
     #[test]
     pub fn test_split_ns() {
         assert_eq!(split_namespace("ext\\php\\rs"), (Some("ext\\php"), "rs"));
         assert_eq!(split_namespace("test_solo_ns"), (None, "test_solo_ns"));
         assert_eq!(split_namespace("simple\\ns"), (Some("simple"), "ns"));
+    }
+
+    #[test]
+    pub fn test_indent() {
+        assert_eq!(indent("hello", 4), "    hello");
+        assert_eq!(indent("hello\nworld\n", 4), "    hello\n    world\n");
     }
 }
