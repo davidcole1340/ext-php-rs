@@ -2,6 +2,7 @@ use anyhow::{anyhow, bail, Result};
 use quote::ToTokens;
 use std::collections::HashMap;
 
+use crate::helpers::get_docs;
 use crate::{
     function::{self, ParserType},
     impl_::{parse_attribute, ParsedAttribute, PropAttrTy, RenameRule, Visibility},
@@ -31,6 +32,7 @@ pub struct Method {
     pub ident: String,
     /// Rust internal function ident
     pub orig_ident: String,
+    pub docs: Vec<String>,
     pub args: Vec<Arg>,
     pub optional: Option<String>,
     pub output: Option<(String, bool)>,
@@ -75,33 +77,37 @@ pub fn parser(mut input: ImplItemMethod, rename_rule: RenameRule) -> Result<Pars
     let mut as_prop = None;
     let mut identifier = None;
     let mut is_constructor = false;
+    let docs = get_docs(&input.attrs);
 
     for attr in input.attrs.iter() {
-        match parse_attribute(attr)? {
-            ParsedAttribute::Default(list) => defaults = list,
-            ParsedAttribute::Optional(name) => optional = Some(name),
-            ParsedAttribute::Visibility(vis) => visibility = vis,
-            ParsedAttribute::Rename(ident) => identifier = Some(ident),
-            ParsedAttribute::Property { prop_name, ty } => {
-                if as_prop.is_some() {
-                    bail!(
-                        "Only one `#[getter]` and/or `#[setter]` attribute may be used per method."
-                    );
+        if let Some(attr) = parse_attribute(attr)? {
+            match attr {
+                ParsedAttribute::Default(list) => defaults = list,
+                ParsedAttribute::Optional(name) => optional = Some(name),
+                ParsedAttribute::Visibility(vis) => visibility = vis,
+                ParsedAttribute::Rename(ident) => identifier = Some(ident),
+                ParsedAttribute::Property { prop_name, ty } => {
+                    if as_prop.is_some() {
+                        bail!(
+                            "Only one `#[getter]` and/or `#[setter]` attribute may be used per method."
+                        );
+                    }
+
+                    let prop_name = prop_name.unwrap_or_else(|| {
+                        input
+                            .sig
+                            .ident
+                            .to_token_stream()
+                            .to_string()
+                            .trim_start_matches("get_")
+                            .trim_start_matches("set_")
+                            .to_string()
+                    });
+                    as_prop = Some((prop_name, ty))
                 }
-                let prop_name = prop_name.unwrap_or_else(|| {
-                    input
-                        .sig
-                        .ident
-                        .to_token_stream()
-                        .to_string()
-                        .trim_start_matches("get_")
-                        .trim_start_matches("set_")
-                        .to_string()
-                });
-                as_prop = Some((prop_name, ty))
+                ParsedAttribute::Constructor => is_constructor = true,
+                _ => bail!("Invalid attribute for method."),
             }
-            ParsedAttribute::Constructor => is_constructor = true,
-            _ => bail!("Invalid attribute for method."),
         }
     }
 
@@ -193,6 +199,7 @@ pub fn parser(mut input: ImplItemMethod, rename_rule: RenameRule) -> Result<Pars
         name,
         ident: internal_ident.to_string(),
         orig_ident: ident.to_string(),
+        docs,
         args,
         optional,
         output: crate::function::get_return_type(&input.sig.output)?,
@@ -222,9 +229,11 @@ fn build_args(
                 let mut this = false;
                 let attrs = std::mem::take(&mut ty.attrs);
                 for attr in attrs.into_iter() {
-                    match parse_attribute(&attr)? {
-                        ParsedAttribute::This => this = true,
-                        _ => bail!("Invalid attribute for argument."),
+                    if let Some(attr) = parse_attribute(&attr)? {
+                        match attr {
+                            ParsedAttribute::This => this = true,
+                            _ => bail!("Invalid attribute for argument."),
+                        }
                     }
                 }
 

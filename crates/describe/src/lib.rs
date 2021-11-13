@@ -27,6 +27,7 @@ pub struct DocBlock(pub Vec<Cow<'static, str>>);
 #[derive(Debug)]
 pub struct Function {
     pub name: Cow<'static, str>,
+    pub docs: DocBlock,
     pub ret: Option<Retval>,
     pub params: Vec<Parameter>,
 }
@@ -42,7 +43,7 @@ pub struct Parameter {
 #[derive(Debug)]
 pub struct Class {
     pub name: Cow<'static, str>,
-    pub doc: DocBlock,
+    pub docs: DocBlock,
     pub extends: Option<Cow<'static, str>>,
     pub implements: Vec<Cow<'static, str>>,
     pub properties: Vec<Property>,
@@ -52,6 +53,7 @@ pub struct Class {
 #[derive(Debug)]
 pub struct Property {
     pub name: Cow<'static, str>,
+    pub docs: DocBlock,
     pub ty: Option<DataType>,
     pub vis: Visibility,
     pub static_: bool,
@@ -62,6 +64,7 @@ pub struct Property {
 #[derive(Debug)]
 pub struct Method {
     pub name: Cow<'static, str>,
+    pub docs: DocBlock,
     pub ty: MethodType,
     pub params: Vec<Parameter>,
     pub retval: Option<Retval>,

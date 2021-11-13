@@ -62,6 +62,8 @@ impl ToStub for Module {
 
 impl ToStub for Function {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        self.docs.fmt_stub(buf)?;
+
         let (_, name) = split_namespace(self.name.as_ref());
         write!(
             buf,
@@ -139,7 +141,7 @@ impl ToStub for DocBlock {
 
 impl ToStub for Class {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
-        self.doc.fmt_stub(buf)?;
+        self.docs.fmt_stub(buf)?;
 
         let (_, name) = split_namespace(self.name.as_ref());
         write!(buf, "class {} ", name)?;
@@ -170,7 +172,9 @@ impl ToStub for Class {
 
 impl ToStub for Property {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        self.docs.fmt_stub(buf)?;
         self.vis.fmt_stub(buf)?;
+
         write!(buf, " ")?;
 
         if self.static_ {
@@ -203,7 +207,9 @@ impl ToStub for Visibility {
 
 impl ToStub for Method {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        self.docs.fmt_stub(buf)?;
         self.visibility.fmt_stub(buf)?;
+
         write!(buf, " ")?;
 
         if matches!(self.ty, MethodType::Static) {

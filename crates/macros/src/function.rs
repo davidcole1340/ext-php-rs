@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::helpers::get_docs;
 use crate::{syn_ext::DropLifetimes, STATE};
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
@@ -29,6 +30,7 @@ pub struct Arg {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
+    pub docs: Vec<String>,
     pub ident: String,
     pub args: Vec<Arg>,
     pub optional: Option<String>,
@@ -90,6 +92,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
 
     let function = Function {
         name: ident.to_string(),
+        docs: get_docs(&input.attrs),
         ident: internal_ident.to_string(),
         args,
         optional,

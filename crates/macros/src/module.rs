@@ -180,10 +180,16 @@ impl Describe for Function {
             quote! { None }
         };
         let params = self.args.iter().map(Describe::describe);
+        let docs = self.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
 
         quote! {
             Function {
                 name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
                 ret: #ret,
                 params: vec![#(#params,)*],
             }
@@ -226,8 +232,10 @@ impl Describe for Class {
             .map(|iface| quote! { #iface.into(), });
         let properties = self.properties.iter().map(|d| d.describe());
         let mut methods: Vec<_> = self.methods.iter().map(Describe::describe).collect();
-        let docs = self.docs.iter().map(|c| quote! {
-            #c.into()
+        let docs = self.docs.iter().map(|c| {
+            quote! {
+                #c.into()
+            }
         });
 
         if let Some(ctor) = &self.constructor {
@@ -237,7 +245,7 @@ impl Describe for Class {
         quote! {
             Class {
                 name: #name.into(),
-                doc: DocBlock(vec![#(#docs,)*]),
+                docs: DocBlock(vec![#(#docs,)*]),
                 extends: #extends,
                 implements: vec![#(#interfaces,)*],
                 properties: vec![#(#properties,)*],
@@ -250,11 +258,17 @@ impl Describe for Class {
 impl Describe for (&String, &Property) {
     fn describe(&self) -> TokenStream {
         let name = self.0;
+        let docs = self.1.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
 
         // TODO(david): store metadata for ty, vis, static, null, default
         quote! {
             Property {
                 name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
                 ty: None,
                 vis: Visibility::Public,
                 static_: false,
@@ -294,10 +308,16 @@ impl Describe for crate::method::Method {
             quote! { None }
         };
         let vis = self.visibility.describe();
+        let docs = self.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
 
         quote! {
             Method {
                 name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
                 ty: #ty,
                 params: vec![#(#parameters,)*],
                 retval: #ret,

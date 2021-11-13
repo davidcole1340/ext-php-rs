@@ -8,6 +8,7 @@ mod module;
 mod startup_function;
 mod syn_ext;
 mod zval;
+mod helpers;
 
 use std::{
     collections::HashMap,
