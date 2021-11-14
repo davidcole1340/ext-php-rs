@@ -158,6 +158,7 @@ impl Install {
 
 impl Stubs {
     pub fn handle(self) -> Result {
+        let php_config = PhpConfig::new();
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
@@ -168,8 +169,9 @@ impl Stubs {
             bail!("Invalid extension path given, not a file.");
         }
 
-        let ext = Ext::load(ext_path)?;
-        let result = ext.ext_php_rs_describe_module();
+        let php_path = php_config.get_php_path()?;
+        let ext = Ext::load(ext_path, php_path)?;
+        let result = ext.describe();
         let stubs = result
             .to_stub()
             .with_context(|| "Failed to generate stubs.")?;
@@ -236,6 +238,20 @@ impl PhpConfig {
         Ok(path)
     }
 
+    /// Calls `php-config` and retrieves the path to the PHP binary.
+    pub fn get_php_path(&self) -> AResult<PathBuf> {
+        let path = PathBuf::from(
+            self.exec(|cmd| cmd.arg("--php-binary"), "retrieve PHP binary path")?
+                .trim(),
+        );
+
+        if !path.is_file() {
+            bail!("Invalid path given for PHP executable");
+        }
+
+        Ok(path)
+    }
+
     /// Executes the `php-config` binary. The given function `f` is used to
     /// modify the given mutable [`Command`]. If successful, a [`String`]
     /// representing stdout is returned.
@@ -255,14 +271,6 @@ impl PhpConfig {
 
 /// Attempts to find an extension in the target directory.
 fn find_ext() -> AResult<String> {
-    const DYLIB_EXT: &str = if cfg!(target_os = "windows") {
-        "dll"
-    } else if cfg!(target_os = "macos") {
-        "dylib"
-    } else {
-        "so"
-    };
-
     let mut target_dir = std::env::current_exe()
         .with_context(|| "Failed to retrieve the path of the current executable")?;
     target_dir.pop();
@@ -273,7 +281,8 @@ fn find_ext() -> AResult<String> {
         .into_iter()
         .filter(|file| {
             file.path().is_file()
-                && file.path().extension() == Some(OsString::from(DYLIB_EXT).as_os_str())
+                && file.path().extension()
+                    == Some(OsString::from(std::env::consts::DLL_EXTENSION).as_os_str())
         })
         .filter_map(|file| file.path().to_str().map(|s| s.to_string()))
         .collect();

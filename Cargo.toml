@@ -20,8 +20,7 @@ ext-php-rs-derive = { version = "=0.6.0", path = "./crates/macros" }
 clap = "3.0.0-beta.5"
 anyhow = "1"
 dialoguer = "0.9"
-dlopen = "0.1.8"
-dlopen_derive = "0.1.4"
+libloading = "0.7"
 
 [build-dependencies]
 bindgen = { version = "0.59" }
