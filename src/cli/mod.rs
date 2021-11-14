@@ -172,7 +172,7 @@ impl Stubs {
         }
 
         let php_path = php_config.get_php_path()?;
-        let ext = Ext::load(ext_path, php_path)?;
+        let ext = Ext::load(ext_path)?;
         let result = ext.describe();
         let stubs = result
             .to_stub()
