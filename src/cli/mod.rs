@@ -1,4 +1,6 @@
 mod ext;
+#[macro_use]
+pub mod stub_symbols;
 
 use anyhow::{bail, Context, Result as AResult};
 use dialoguer::{Confirm, Select};
