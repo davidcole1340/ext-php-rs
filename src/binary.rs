@@ -149,7 +149,7 @@ macro_rules! pack_impl {
             fn pack_into(vec: Vec<Self>) -> *mut zend_string {
                 let len = vec.len() * ($d as usize / 8);
                 let ptr = Box::into_raw(vec.into_boxed_slice());
-                unsafe { ext_php_rs_zend_string_init(ptr as *mut i8, len as _, false) }
+                unsafe { ext_php_rs_zend_string_init(ptr.cast(), len as _, false) }
             }
 
             fn unpack_into(s: &zend_string) -> Vec<Self> {
