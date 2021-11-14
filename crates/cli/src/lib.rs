@@ -3,6 +3,8 @@ mod ext;
 pub mod stub_symbols;
 
 use anyhow::{bail, Context, Result as AResult};
+use cargo_metadata::{camino::Utf8PathBuf, Target};
+use clap::Parser;
 use dialoguer::{Confirm, Select};
 
 use std::{
@@ -11,19 +13,25 @@ use std::{
     fs::{File, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::PathBuf,
-    process::Command,
+    process::{Command, Stdio},
 };
 
-use clap::Parser;
-
-use crate::describe::ToStub;
-
 use self::ext::Ext;
+use ext_php_rs::describe::ToStub;
 
 pub type Result = anyhow::Result<()>;
 
 pub fn run() -> Result {
-    Args::parse().handle()
+    let mut args: Vec<_> = std::env::args().collect();
+
+    // When called as a cargo subcommand, the second argument given will be the
+    // subcommand, in this case `php`. We don't want this so we remove from args and
+    // pass it to clap.
+    if args.get(1).map(|nth| nth == "php").unwrap_or(false) {
+        args.remove(1);
+    }
+
+    Args::parse_from(args).handle()
 }
 
 #[derive(Parser)]
@@ -58,6 +66,9 @@ struct Install {
     /// file.
     #[clap(long)]
     disable: bool,
+    /// Whether to install the release version of the extension.
+    #[clap(long)]
+    release: bool,
 }
 
 #[derive(Parser)]
@@ -86,7 +97,9 @@ impl Args {
 
 impl Install {
     pub fn handle(self) -> Result {
-        let ext_path = find_ext()?;
+        let artifact = find_ext()?;
+        let ext_path = build_ext(&artifact, self.release)?;
+
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
         } else {
@@ -101,14 +114,13 @@ impl Install {
         if !Confirm::new()
             .with_prompt(format!(
                 "Are you sure you want to install the extension `{}`?",
-                ext_path
+                artifact.name
             ))
             .interact()?
         {
             bail!("Installation cancelled.");
         }
 
-        let ext_path = PathBuf::from(ext_path);
         debug_assert!(ext_path.is_file());
         let ext_name = ext_path.file_name().expect("ext path wasn't a filepath");
 
@@ -129,12 +141,7 @@ impl Install {
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 
-            let mut ext_line = format!(
-                "extension={}",
-                ext_name
-                    .to_str()
-                    .with_context(|| "Failed to convert extension name to unicode string")?
-            );
+            let mut ext_line = format!("extension={}", ext_name);
 
             let mut new_lines = vec![];
             for line in BufReader::new(&file).lines() {
@@ -160,18 +167,17 @@ impl Install {
 
 impl Stubs {
     pub fn handle(self) -> Result {
-        let php_config = PhpConfig::new();
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
-            PathBuf::from(find_ext()?)
+            let target = find_ext()?;
+            build_ext(&target, false)?.into()
         };
 
         if !ext_path.is_file() {
             bail!("Invalid extension path given, not a file.");
         }
 
-        let php_path = php_config.get_php_path()?;
         let ext = Ext::load(ext_path)?;
         let result = ext.describe();
         let stubs = result
@@ -240,20 +246,6 @@ impl PhpConfig {
         Ok(path)
     }
 
-    /// Calls `php-config` and retrieves the path to the PHP binary.
-    pub fn get_php_path(&self) -> AResult<PathBuf> {
-        let path = PathBuf::from(
-            self.exec(|cmd| cmd.arg("--php-binary"), "retrieve PHP binary path")?
-                .trim(),
-        );
-
-        if !path.is_file() {
-            bail!("Invalid path given for PHP executable");
-        }
-
-        Ok(path)
-    }
-
     /// Executes the `php-config` binary. The given function `f` is used to
     /// modify the given mutable [`Command`]. If successful, a [`String`]
     /// representing stdout is returned.
@@ -272,34 +264,98 @@ impl PhpConfig {
 }
 
 /// Attempts to find an extension in the target directory.
-fn find_ext() -> AResult<String> {
-    let mut target_dir = std::env::current_exe()
-        .with_context(|| "Failed to retrieve the path of the current executable")?;
-    target_dir.pop();
+fn find_ext() -> AResult<cargo_metadata::Target> {
+    // TODO(david): Look for cargo manifest option or env
+    let meta = cargo_metadata::MetadataCommand::new()
+        .features(cargo_metadata::CargoOpt::AllFeatures)
+        .exec()
+        .with_context(|| "Failed to call `cargo metadata`")?;
+    let package = meta
+        .root_package()
+        .with_context(|| "Failed to retrieve metadata about crate")?;
 
-    let mut target_files: Vec<_> = std::fs::read_dir(target_dir)
-        .with_context(|| "Failed to read files from target directory")?
-        .collect::<AResult<Vec<_>, std::io::Error>>()?
-        .into_iter()
-        .filter(|file| {
-            file.path().is_file()
-                && file.path().extension()
-                    == Some(OsString::from(std::env::consts::DLL_EXTENSION).as_os_str())
+    let dylib = String::from("dylib");
+    let cdylib = String::from("cdylib");
+    let targets: Vec<_> = package
+        .targets
+        .iter()
+        .filter(|target| {
+            target.crate_types.contains(&dylib) || target.crate_types.contains(&cdylib)
         })
-        .filter_map(|file| file.path().to_str().map(|s| s.to_string()))
         .collect();
 
-    let ext_path = match target_files.len() {
-        0 => bail!("No extensions were found in the target directory."),
-        1 => target_files.remove(0),
+    let target = match targets.len() {
+        0 => bail!("No library targets were found."),
+        1 => targets[0],
         _ => {
+            let target_names: Vec<_> = targets.iter().map(|target| &target.name).collect();
             let chosen = Select::new()
-                .with_prompt("There were multiple dynamic libraries detected in the target directory. Which would you like to use?")
-                .items(&target_files)
+                .with_prompt("There were multiple library targets detected in the project. Which would you like to use?")
+                .items(&target_names)
                 .interact()?;
-            target_files.remove(chosen)
+            targets[chosen]
         }
     };
 
-    Ok(ext_path)
+    Ok(target.clone())
+}
+
+/// Compiles the extension, searching for the given target artifact. If found,
+/// the path to the extension dynamic library is returned.
+///
+/// # Parameters
+///
+/// * `target` - The target to compile.
+/// * `release` - Whether to compile the target in release mode.
+///
+/// # Returns
+///
+/// The path to the target artifact.
+fn build_ext(target: &Target, release: bool) -> AResult<Utf8PathBuf> {
+    let mut cmd = Command::new("cargo");
+    cmd.arg("build")
+        .arg("--message-format=json-render-diagnostics");
+    if release {
+        cmd.arg("--release");
+    }
+
+    let mut spawn = cmd
+        .stdout(Stdio::piped())
+        .spawn()
+        .with_context(|| "Failed to spawn `cargo build`")?;
+    let reader = BufReader::new(
+        spawn
+            .stdout
+            .take()
+            .with_context(|| "Failed to take `cargo build` stdout")?,
+    );
+
+    let mut artifact = None;
+    for message in cargo_metadata::Message::parse_stream(reader) {
+        let message = message.with_context(|| "Invalid message received from `cargo build`")?;
+        match message {
+            cargo_metadata::Message::CompilerArtifact(a) => {
+                if &a.target == target {
+                    artifact = Some(a);
+                }
+            }
+            cargo_metadata::Message::BuildFinished(b) => {
+                if !b.success {
+                    bail!("Compilation failed, cancelling installation.")
+                } else {
+                    break;
+                }
+            }
+            _ => continue,
+        }
+    }
+
+    let artifact = artifact.with_context(|| "Extension artifact was not compiled")?;
+    for file in artifact.filenames {
+        if file.extension() == Some(std::env::consts::DLL_EXTENSION) {
+            return Ok(file);
+        }
+    }
+
+    bail!("Failed to retrieve extension path from artifact")
 }

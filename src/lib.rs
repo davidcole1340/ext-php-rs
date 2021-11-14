@@ -18,8 +18,6 @@ pub mod flags;
 pub mod macros;
 pub mod boxed;
 pub mod class;
-#[macro_use]
-pub mod cli;
 #[cfg(any(docs, feature = "closure"))]
 #[cfg_attr(docs, doc(cfg(feature = "closure")))]
 pub mod closure;

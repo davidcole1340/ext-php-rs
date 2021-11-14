@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::describe::Module;
 use anyhow::{Context, Result};
+use ext_php_rs::describe::Module;
 use libloading::os::unix::{Library, Symbol};
 
 pub struct Ext {
