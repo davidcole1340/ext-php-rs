@@ -105,7 +105,7 @@ impl<'a> FunctionBuilder<'a> {
 
         // argument header, retval etc
         args.push(ArgInfo {
-            name: self.n_req.unwrap_or(self.args.len()) as *const i8,
+            name: self.n_req.unwrap_or(self.args.len()) as *const _,
             type_: match self.retval {
                 Some(retval) => {
                     ZendType::empty_from_type(retval, self.ret_as_ref, false, self.ret_as_null)
