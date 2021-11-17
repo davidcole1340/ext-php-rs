@@ -46,7 +46,7 @@ jobs:
         env:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
           EXT_PHP_RS_TEST:
-        run: cargo build --release --all-features
+        run: cargo build --release --all-features --all
       - name: Test guide examples
         env:
           CARGO_PKG_NAME: mdbook-tests
@@ -59,7 +59,7 @@ jobs:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
         with:
           command: test
-          args: --release
+          args: --release --all
   build-zts:
     name: Build with ZTS
     runs-on: ubuntu-latest
@@ -103,7 +103,7 @@ jobs:
           LIBCLANG_PATH: ${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib
         with:
           command: clippy
-          args: -- -D warnings
+          args: --all -- -D warnings
       - name: Build with docs stub
         env:
           DOCS_RS:

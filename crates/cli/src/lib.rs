@@ -1,6 +1,6 @@
+#![doc = include_str!("../README.md")]
+
 mod ext;
-#[macro_use]
-pub mod stub_symbols;
 
 use anyhow::{bail, Context, Result as AResult};
 use cargo_metadata::{camino::Utf8PathBuf, Target};
@@ -19,8 +19,26 @@ use std::{
 use self::ext::Ext;
 use ext_php_rs::describe::ToStub;
 
+/// Generates mock symbols required to generate stub files from a downstream
+/// crates CLI application.
+#[macro_export]
+macro_rules! stub_symbols {
+    ($($s: ident),*) => {
+        $(
+            $crate::stub_symbols!(@INTERNAL; $s);
+        )*
+    };
+    (@INTERNAL; $s: ident) => {
+        #[allow(non_upper_case_globals)]
+        #[no_mangle]
+        pub static mut $s: *mut () = ::std::ptr::null_mut();
+    };
+}
+
+/// Result type returned from the [`run`] function.
 pub type Result = anyhow::Result<()>;
 
+/// Runs the CLI application. Returns nothing in a result on success.
 pub fn run() -> Result {
     let mut args: Vec<_> = std::env::args().collect();
 

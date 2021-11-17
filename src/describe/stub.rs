@@ -1,3 +1,5 @@
+//! Traits and implementations to convert describe units into PHP stub code.
+
 use crate::flags::DataType;
 use std::collections::HashMap;
 
@@ -7,13 +9,31 @@ use super::{
 };
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};
 
+/// Implemented on types which can be converted into PHP stubs.
 pub trait ToStub {
+    /// Converts the implementor into PHP code, represented as a PHP stub.
+    /// Returned as a string.
+    ///
+    /// # Returns
+    ///
+    /// Returns a string on success. Returns an error if there was an error
+    /// writing into the string.
     fn to_stub(&self) -> Result<String, FmtError> {
         let mut buf = String::new();
         self.fmt_stub(&mut buf)?;
         Ok(buf)
     }
 
+    /// Converts the implementor into PHP code, represented as a PHP stub.
+    ///
+    /// # Parameters
+    ///
+    /// * `buf` - The buffer to write the PHP code into.
+    ///
+    /// # Returns
+    ///
+    /// Returns nothing on success. Returns an error if there was an error
+    /// writing into the buffer.
     fn fmt_stub(&self, buf: &mut String) -> FmtResult;
 }
 

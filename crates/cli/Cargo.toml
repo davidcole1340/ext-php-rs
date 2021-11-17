@@ -1,12 +1,17 @@
 [package]
 name = "cargo-php"
+description = "Installs extensions and generates stub files for PHP extensions generated with `ext-php-rs`."
+repository = "https://github.com/davidcole1340/ext-php-rs"
+homepage = "https://github.com/davidcole1340/ext-php-rs"
+license = "MIT OR Apache-2.0"
+keywords = ["php", "ffi", "zend"]
 version = "0.1.0"
+authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+categories = ["api-bindings", "command-line-interface"]
 
 [dependencies]
-ext-php-rs = { path = "../../" }
+ext-php-rs = { version = "0.6", path = "../../" }
 
 clap = "3.0.0-beta.5"
 anyhow = "1"
