@@ -46,6 +46,11 @@ enum Args {
     /// This copies the extension to the PHP installation and adds the
     /// extension to a PHP configuration file.
     Install(Install),
+    /// Removes the extension in the current PHP installation.
+    ///
+    /// This deletes the extension from the PHP installation and also removes it
+    /// from the main PHP configuration file.
+    Remove(Remove),
     /// Generates stub PHP files for the extension.
     ///
     /// These stub files can be used in IDEs to provide typehinting for
@@ -69,6 +74,26 @@ struct Install {
     /// Whether to install the release version of the extension.
     #[clap(long)]
     release: bool,
+    /// Path to the Cargo manifest of the extension. Defaults to the manifest in
+    /// the directory the command is called.
+    #[clap(long)]
+    manifest: Option<PathBuf>,
+}
+
+#[derive(Parser)]
+struct Remove {
+    /// Changes the path that the extension will be removed from. This will not
+    /// remove the extension from a configuration file unless `ini_path` is also
+    /// passed.
+    #[clap(long)]
+    install_dir: Option<PathBuf>,
+    /// Path to the `php.ini` file to remove the extension from.
+    #[clap(long)]
+    ini_path: Option<PathBuf>,
+    /// Path to the Cargo manifest of the extension. Defaults to the manifest in
+    /// the directory the command is called.
+    #[clap(long)]
+    manifest: Option<PathBuf>,
 }
 
 #[derive(Parser)]
@@ -84,12 +109,20 @@ struct Stubs {
     /// `out`.
     #[clap(long, conflicts_with = "out")]
     stdout: bool,
+    /// Path to the Cargo manifest of the extension. Defaults to the manifest in
+    /// the directory the command is called.
+    ///
+    /// This cannot be provided alongside the `ext` option, as that option
+    /// provides a direct path to the extension shared library.
+    #[clap(long, conflicts_with = "ext")]
+    manifest: Option<PathBuf>,
 }
 
 impl Args {
     pub fn handle(self) -> Result {
         match self {
             Args::Install(install) => install.handle(),
+            Args::Remove(remove) => remove.handle(),
             Args::Stubs(stubs) => stubs.handle(),
         }
     }
@@ -97,7 +130,7 @@ impl Args {
 
 impl Install {
     pub fn handle(self) -> Result {
-        let artifact = find_ext()?;
+        let artifact = find_ext(&self.manifest)?;
         let ext_path = build_ext(&artifact, self.release)?;
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
@@ -165,12 +198,78 @@ impl Install {
     }
 }
 
+impl Remove {
+    pub fn handle(self) -> Result {
+        use std::env::consts;
+
+        let artifact = find_ext(&self.manifest)?;
+
+        let (mut ext_path, mut php_ini) = if let Some(install_dir) = self.install_dir {
+            (install_dir, None)
+        } else {
+            let php_config = PhpConfig::new();
+            (php_config.get_ext_dir()?, Some(php_config.get_php_ini()?))
+        };
+
+        if let Some(ini_path) = self.ini_path {
+            php_ini = Some(ini_path);
+        }
+
+        let ext_file = format!(
+            "{}{}{}",
+            consts::DLL_PREFIX,
+            artifact.name.replace("-", "_"),
+            consts::DLL_SUFFIX
+        );
+        ext_path.push(&ext_file);
+
+        if !ext_path.is_file() {
+            bail!("Unable to find extension installed.");
+        }
+
+        if !Confirm::new()
+            .with_prompt(format!(
+                "Are you sure you want to remove the extension `{}`?",
+                artifact.name
+            ))
+            .interact()?
+        {
+            bail!("Installation cancelled.");
+        }
+
+        std::fs::remove_file(ext_path).with_context(|| "Failed to remove extension")?;
+
+        if let Some(php_ini) = php_ini.filter(|path| path.is_file()) {
+            let mut file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(php_ini)
+                .with_context(|| "Failed to open `php.ini`")?;
+
+            let mut new_lines = vec![];
+            for line in BufReader::new(&file).lines() {
+                let line = line.with_context(|| "Failed to read line from `php.ini`")?;
+                if !line.contains(&ext_file) {
+                    new_lines.push(line);
+                }
+            }
+
+            file.write(new_lines.join("\n").as_bytes())
+                .with_context(|| "Failed to update `php.ini`")?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Stubs {
     pub fn handle(self) -> Result {
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
-            let target = find_ext()?;
+            let target = find_ext(&self.manifest)?;
             build_ext(&target, false)?.into()
         };
 
@@ -264,23 +363,30 @@ impl PhpConfig {
 }
 
 /// Attempts to find an extension in the target directory.
-fn find_ext() -> AResult<cargo_metadata::Target> {
+fn find_ext(manifest: &Option<PathBuf>) -> AResult<cargo_metadata::Target> {
     // TODO(david): Look for cargo manifest option or env
-    let meta = cargo_metadata::MetadataCommand::new()
+    let mut cmd = cargo_metadata::MetadataCommand::new();
+    if let Some(manifest) = manifest {
+        cmd.manifest_path(manifest);
+    }
+
+    let meta = cmd
         .features(cargo_metadata::CargoOpt::AllFeatures)
         .exec()
         .with_context(|| "Failed to call `cargo metadata`")?;
+
     let package = meta
         .root_package()
         .with_context(|| "Failed to retrieve metadata about crate")?;
 
-    let dylib = String::from("dylib");
-    let cdylib = String::from("cdylib");
     let targets: Vec<_> = package
         .targets
         .iter()
         .filter(|target| {
-            target.crate_types.contains(&dylib) || target.crate_types.contains(&cdylib)
+            target
+                .crate_types
+                .iter()
+                .any(|ty| ty == "dylib" || ty == "cdylib")
         })
         .collect();
 
