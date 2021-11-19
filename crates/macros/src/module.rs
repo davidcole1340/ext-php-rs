@@ -3,7 +3,7 @@ use std::sync::MutexGuard;
 use anyhow::{anyhow, bail, Result};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{ItemFn, Signature};
+use syn::{ItemFn, Signature, Type};
 
 use crate::{
     class::{Class, Property},
@@ -169,7 +169,8 @@ impl Describe for Function {
     fn describe(&self) -> TokenStream {
         let name = &self.name;
         let ret = if let Some((ty, null)) = &self.output {
-            let ty = Ident::new(ty, Span::call_site());
+            let ty: Type = syn::parse_str(ty)
+                .expect("unreachable - failed to parse previosuly parsed function return type");
             quote! {
                 Some(Retval {
                     ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,
