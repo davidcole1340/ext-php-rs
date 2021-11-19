@@ -1,7 +1,7 @@
 //! Traits and implementations to convert describe units into PHP stub code.
 
 use crate::flags::DataType;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 use super::{
     Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
@@ -70,9 +70,16 @@ impl ToStub for Module {
             insert(ns, class.to_stub()?);
         }
 
+        let mut entries: Vec<_> = entries.iter().collect();
+        entries.sort_by(|(l, _), (r, _)| match (l, r) {
+            (None, _) => Ordering::Greater,
+            (_, None) => Ordering::Less,
+            (Some(l), Some(r)) => l.cmp(r),
+        });
+
         buf.push_str(
             &entries
-                .iter()
+                .into_iter()
                 .map(|(ns, entries)| {
                     let mut buf = String::new();
                     if let Some(ns) = ns {
