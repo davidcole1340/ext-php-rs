@@ -1,5 +1,22 @@
 # Changelog
 
+## Version 0.7.0
+
+- Disabled serialization and unserialization of Rust structs exported as PHP
+  classes. [#105]
+  - You can't serialize an associated Rust struct so this would have never
+    worked, but disabling them fixes crashes when running in an environment like
+    psysh.
+- Replaced boxed module inside `ModuleBuilder` with in-struct module.
+- Fixed builds failing on Linux AArch64 systems. [#106]
+- Added `cargo-php` for creating stubs, installing and uninstalling extensions.
+  [#107]
+  - Check out the guide for more information on this.
+
+[#105]: https://github.com/davidcole1340/ext-php-rs/pull/105
+[#106]: https://github.com/davidcole1340/ext-php-rs/pull/106
+[#107]: https://github.com/davidcole1340/ext-php-rs/pull/107
+
 ## Version 0.6.0
 
 - Reorganized project. [#101]

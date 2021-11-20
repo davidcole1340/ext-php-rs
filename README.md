@@ -12,6 +12,11 @@ Export a simple function `function hello_world(string $name): string` to PHP:
 ```rust
 use ext_php_rs::prelude::*;
 
+/// Gives you a nice greeting!
+/// 
+/// @param string $name Your name.
+/// 
+/// @return string Nice greeting!
 #[php_function]
 pub fn hello_world(name: String) -> String {
     format!("Hello, {}!", name)
@@ -24,6 +29,37 @@ pub fn module(module: ModuleBuilder) -> ModuleBuilder {
 }
 ```
 
+Use [`cargo-php`] to build IDE stubs and install the extension:
+
+```text
+$ cargo install cargo-php
+  Installing cargo-php v0.1.0
+$ cargo php stubs --stdout
+  Compiling example-ext v0.1.0
+  Finished dev [unoptimized + debuginfo] target(s) in 3.57s
+<?php
+
+// Stubs for example-ext
+
+/**
+ * Gives you a nice greeting!
+ *
+ * @param string $name Your name.
+ *
+ * @return string Nice greeting!
+ */
+function hello_world(string $name): string {}
+$ cargo php install --release
+  Compiling example-ext v0.1.0
+  Finished release [optimized] target(s) in 1.68s
+Are you sure you want to install the extension `example-ext`? yes
+$ php -m
+[PHP Modules]
+// ...
+example-ext
+// ...
+```
+
 Calling the function from PHP:
 
 ```php
@@ -32,6 +68,8 @@ var_dump(hello_world("David")); // string(13) "Hello, David!"
 
 For more examples read the library
 [guide](https://davidcole1340.github.io/ext-php-rs/guide).
+
+[`cargo-php`]: https://crates.io/crates/cargo-php
 
 ## Features
 
