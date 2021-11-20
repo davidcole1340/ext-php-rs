@@ -63,11 +63,23 @@ enum Args {
     ///
     /// This copies the extension to the PHP installation and adds the
     /// extension to a PHP configuration file.
+    ///
+    /// Note that this uses the `php-config` executable installed alongside PHP
+    /// to locate your `php.ini` file and extension directory. If you want to
+    /// use a different `php-config`, the application will read the `PHP_CONFIG`
+    /// variable (if it is set), and will use this as the path to the executable
+    /// instead.
     Install(Install),
     /// Removes the extension in the current PHP installation.
     ///
     /// This deletes the extension from the PHP installation and also removes it
     /// from the main PHP configuration file.
+    ///
+    /// Note that this uses the `php-config` executable installed alongside PHP
+    /// to locate your `php.ini` file and extension directory. If you want to
+    /// use a different `php-config`, the application will read the `PHP_CONFIG`
+    /// variable (if it is set), and will use this as the path to the executable
+    /// instead.
     Remove(Remove),
     /// Generates stub PHP files for the extension.
     ///
