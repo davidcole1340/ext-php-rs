@@ -1,6 +1,7 @@
 # Summary
 
 - [Introduction](./introduction.md)
+- [`cargo php`](./cargo-php.md)
 - [Examples](./examples/index.md)
   - [Hello World](./examples/hello_world.md)
 - [Types](./types/index.md)

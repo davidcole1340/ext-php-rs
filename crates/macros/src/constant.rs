@@ -1,3 +1,4 @@
+use crate::helpers::get_docs;
 use anyhow::{bail, Result};
 use darling::ToTokens;
 use proc_macro2::{Ident, Literal, TokenStream};
@@ -10,6 +11,7 @@ use crate::STATE;
 pub struct Constant {
     pub name: String,
     // pub visibility: Visibility,
+    pub docs: Vec<String>,
     pub value: String,
 }
 
@@ -22,6 +24,7 @@ pub fn parser(input: ItemConst) -> Result<TokenStream> {
 
     state.constants.push(Constant {
         name: input.ident.to_string(),
+        docs: get_docs(&input.attrs),
         value: input.expr.to_token_stream().to_string(),
     });
 

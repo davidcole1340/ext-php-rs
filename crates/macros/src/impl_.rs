@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
@@ -6,6 +6,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
+use crate::helpers::get_docs;
 use crate::{
     class::{Property, PropertyAttr},
     constant::Constant,
@@ -131,6 +132,7 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                     class.constants.push(Constant {
                         name: constant.ident.to_string(),
                         // visibility: Visibility::Public,
+                        docs: get_docs(&constant.attrs),
                         value: constant.expr.to_token_stream().to_string(),
                     });
 
@@ -141,13 +143,17 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                 }
                 syn::ImplItem::Method(method) => {
                     let parsed_method =
-                        method::parser(method, args.rename_methods.unwrap_or_default())?;
+                        method::parser(&self_ty, method, args.rename_methods.unwrap_or_default())?;
+
+                    // TODO(david): How do we handle comments for getter/setter? Take the comments
+                    // from the methods??
                     if let Some((prop, ty)) = parsed_method.property {
-                        let prop = match class.properties.entry(prop) {
-                            Entry::Occupied(entry) => entry.into_mut(),
-                            Entry::Vacant(vacant) => vacant.insert(Property::method(None)),
-                        };
+                        let prop = class
+                            .properties
+                            .entry(prop)
+                            .or_insert_with(|| Property::method(vec![], None));
                         let ident = parsed_method.method.orig_ident.clone();
+
                         match ty {
                             PropAttrTy::Getter => prop.add_getter(ident)?,
                             PropAttrTy::Setter => prop.add_setter(ident)?,
@@ -177,13 +183,13 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
     Ok(output)
 }
 
-pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
+pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
     let name = attr.path.to_token_stream().to_string();
     let meta = attr
         .parse_meta()
         .map_err(|_| anyhow!("Unable to parse attribute."))?;
 
-    Ok(match name.as_ref() {
+    Ok(Some(match name.as_ref() {
         "defaults" => {
             let defaults = HashMap::from_meta(&meta)
                 .map_err(|_| anyhow!("Unable to parse `#[default]` macro."))?;
@@ -250,8 +256,8 @@ pub fn parse_attribute(attr: &Attribute) -> Result<ParsedAttribute> {
         }
         "constructor" => ParsedAttribute::Constructor,
         "this" => ParsedAttribute::This,
-        attr => bail!("Invalid attribute `#[{}]`.", attr),
-    })
+        _ => return Ok(None),
+    }))
 }
 
 #[cfg(test)]

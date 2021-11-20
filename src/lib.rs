@@ -22,6 +22,7 @@ pub mod class;
 #[cfg_attr(docs, doc(cfg(feature = "closure")))]
 pub mod closure;
 pub mod constant;
+pub mod describe;
 #[doc(hidden)]
 pub mod internal;
 pub mod props;

@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use crate::STATE;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use syn::parse::ParseStream;
 use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitStr, Token};
 
 #[derive(Debug, Default)]
@@ -13,6 +14,7 @@ pub struct Class {
     pub struct_path: String,
     pub parent: Option<String>,
     pub interfaces: Vec<String>,
+    pub docs: Vec<String>,
     pub methods: Vec<crate::method::Method>,
     pub constructor: Option<crate::method::Method>,
     pub constants: Vec<crate::constant::Constant>,
@@ -24,6 +26,7 @@ pub enum ParsedAttribute {
     Extends(Expr),
     Implements(Expr),
     Property(PropertyAttr),
+    Comment(String),
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -39,6 +42,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
     let mut parent = None;
     let mut interfaces = vec![];
     let mut properties = HashMap::new();
+    let mut comments = vec![];
 
     input.attrs = {
         let mut unused = vec![];
@@ -50,6 +54,9 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
                     }
                     ParsedAttribute::Implements(class) => {
                         interfaces.push(class.to_token_stream().to_string());
+                    }
+                    ParsedAttribute::Comment(comment) => {
+                        comments.push(comment);
                     }
                     attr => bail!("Attribute `{:?}` is not valid for structs.", attr),
                 },
@@ -65,9 +72,12 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
     }) = &mut input.fields
     {
         for field in named.iter_mut() {
+            let mut docs = vec![];
             let mut attrs = vec![];
             attrs.append(&mut field.attrs);
+
             for attr in attrs.into_iter() {
+                let mut result_prop = None;
                 match parse_attribute(&attr)? {
                     Some(parsed) => match parsed {
                         ParsedAttribute::Property(prop) => {
@@ -77,17 +87,24 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
                                 .ok_or_else(|| anyhow!("Only named fields can be properties."))?
                                 .to_string();
                             let prop_name = prop.rename.unwrap_or_else(|| field_name.clone());
-                            properties.insert(
+                            result_prop = Some((
                                 prop_name,
                                 Property::field(
                                     field_name,
+                                    vec![],
                                     prop.flags.map(|flags| flags.to_token_stream().to_string()),
                                 ),
-                            );
+                            ));
                         }
+                        ParsedAttribute::Comment(doc) => docs.push(doc),
                         _ => bail!("Attribute {:?} is not valid for struct fields.", attr),
                     },
                     None => field.attrs.push(attr),
+                }
+
+                if let Some(mut prop) = result_prop {
+                    prop.1.docs.append(&mut docs);
+                    properties.insert(prop.0, prop.1);
                 }
             }
         }
@@ -101,6 +118,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         struct_path,
         parent,
         interfaces,
+        docs: comments,
         properties,
         ..Default::default()
     };
@@ -126,9 +144,10 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
 #[derive(Debug)]
 pub struct Property {
-    ty: PropertyType,
+    pub ty: PropertyType,
+    pub docs: Vec<String>,
     #[allow(dead_code)]
-    flags: Option<String>,
+    pub flags: Option<String>,
 }
 
 #[derive(Debug)]
@@ -177,19 +196,21 @@ impl Property {
         }
     }
 
-    pub fn field(field_name: String, flags: Option<String>) -> Self {
+    pub fn field(field_name: String, docs: Vec<String>, flags: Option<String>) -> Self {
         Self {
             ty: PropertyType::Field { field_name },
+            docs,
             flags,
         }
     }
 
-    pub fn method(flags: Option<String>) -> Self {
+    pub fn method(docs: Vec<String>, flags: Option<String>) -> Self {
         Self {
             ty: PropertyType::Method {
                 getter: None,
                 setter: None,
             },
+            docs,
             flags,
         }
     }
@@ -253,7 +274,7 @@ impl syn::parse::Parse for PropertyAttr {
     }
 }
 
-fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
+pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
     let name = attr.path.to_token_stream().to_string();
 
     Ok(match name.as_ref() {
@@ -268,6 +289,21 @@ fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
                 .parse_args()
                 .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
             Some(ParsedAttribute::Implements(meta))
+        }
+        "doc" => {
+            struct DocComment(pub String);
+
+            impl syn::parse::Parse for DocComment {
+                fn parse(input: ParseStream) -> syn::Result<Self> {
+                    input.parse::<Token![=]>()?;
+                    let comment: LitStr = input.parse()?;
+                    Ok(Self(comment.value()))
+                }
+            }
+
+            let comment: DocComment =
+                syn::parse2(attr.tokens.clone()).with_context(|| "Failed to parse doc comment")?;
+            Some(ParsedAttribute::Comment(comment.0))
         }
         "prop" | "property" => {
             let attr = if attr.tokens.is_empty() {

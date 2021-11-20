@@ -1,9 +1,15 @@
+use std::sync::MutexGuard;
+
 use anyhow::{anyhow, bail, Result};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{ItemFn, Signature};
+use syn::{ItemFn, Signature, Type};
 
-use crate::{class::Class, startup_function, STATE};
+use crate::{
+    class::{Class, Property},
+    function::{Arg, Function},
+    startup_function, State, STATE,
+};
 
 pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
@@ -52,6 +58,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         .iter()
         .map(|(_, class)| generate_registered_class_impl(class))
         .collect::<Result<Vec<_>>>()?;
+    let describe_fn = generate_stubs(&state);
 
     let result = quote! {
         #(#registered_classes_impls)*
@@ -81,6 +88,8 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
                 Err(e) => panic!("Failed to build PHP module: {:?}", e),
             }
         }
+
+        #describe_fn
     };
     Ok(result)
 }
@@ -136,4 +145,234 @@ pub fn generate_registered_class_impl(class: &Class) -> Result<TokenStream> {
             }
         }
     })
+}
+
+pub trait Describe {
+    fn describe(&self) -> TokenStream;
+}
+
+fn generate_stubs(state: &MutexGuard<State>) -> TokenStream {
+    let module = state.describe();
+
+    quote! {
+        #[cfg(debug_assertions)]
+        #[no_mangle]
+        pub fn ext_php_rs_describe_module() -> ::ext_php_rs::describe::Module {
+            use ::ext_php_rs::describe::*;
+
+            #module
+        }
+    }
+}
+
+impl Describe for Function {
+    fn describe(&self) -> TokenStream {
+        let name = &self.name;
+        let ret = if let Some((ty, null)) = &self.output {
+            let ty: Type = syn::parse_str(ty)
+                .expect("unreachable - failed to parse previosuly parsed function return type");
+            quote! {
+                Some(Retval {
+                    ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,
+                    nullable: #null,
+                })
+            }
+        } else {
+            quote! { None }
+        };
+        let params = self.args.iter().map(Describe::describe);
+        let docs = self.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
+
+        quote! {
+            Function {
+                name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
+                ret: #ret,
+                params: vec![#(#params,)*],
+            }
+        }
+    }
+}
+
+impl Describe for Arg {
+    fn describe(&self) -> TokenStream {
+        let Arg { name, nullable, .. } = self;
+        let ty: Type = syn::parse_str(&self.ty).expect("failed to parse previously parsed type");
+        let default = if let Some(default) = &self.default {
+            quote! { Some(#default.into()) }
+        } else {
+            quote! { None }
+        };
+
+        quote! {
+            Parameter {
+                name: #name.into(),
+                ty: Some(<#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE),
+                nullable: #nullable,
+                default: #default,
+            }
+        }
+    }
+}
+
+impl Describe for Class {
+    fn describe(&self) -> TokenStream {
+        let name = &self.class_name;
+        let extends = if let Some(parent) = &self.parent {
+            quote! { Some(#parent.into()) }
+        } else {
+            quote! { None }
+        };
+        let interfaces = self
+            .interfaces
+            .iter()
+            .map(|iface| quote! { #iface.into(), });
+        let properties = self.properties.iter().map(|d| d.describe());
+        let mut methods: Vec<_> = self.methods.iter().map(Describe::describe).collect();
+        let docs = self.docs.iter().map(|c| {
+            quote! {
+                #c.into()
+            }
+        });
+        let constants = self.constants.iter().map(Describe::describe);
+
+        if let Some(ctor) = &self.constructor {
+            methods.insert(0, ctor.describe());
+        }
+
+        quote! {
+            Class {
+                name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
+                extends: #extends,
+                implements: vec![#(#interfaces,)*],
+                properties: vec![#(#properties,)*],
+                methods: vec![#(#methods,)*],
+                constants: vec![#(#constants,)*]
+            }
+        }
+    }
+}
+
+impl Describe for (&String, &Property) {
+    fn describe(&self) -> TokenStream {
+        let name = self.0;
+        let docs = self.1.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
+
+        // TODO(david): store metadata for ty, vis, static, null, default
+        quote! {
+            Property {
+                name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
+                ty: None,
+                vis: Visibility::Public,
+                static_: false,
+                nullable: false,
+                default: None,
+            }
+        }
+    }
+}
+
+impl Describe for crate::method::Method {
+    fn describe(&self) -> TokenStream {
+        let crate::method::Method { name, _static, .. } = &self;
+        let ty = if self.name == "__construct" {
+            quote! { MethodType::Constructor }
+        } else if self._static {
+            quote! { MethodType::Static }
+        } else {
+            quote! { MethodType::Member }
+        };
+        let parameters = self.args.iter().filter_map(|arg| {
+            if let crate::method::Arg::Typed(arg) = &arg {
+                Some(arg.describe())
+            } else {
+                None
+            }
+        });
+        let ret = if let Some((ty, null)) = &self.output {
+            let ty: Type = syn::parse_str(ty).expect("failed to parse previosuly parsed type");
+            quote! {
+                Some(Retval {
+                    ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,
+                    nullable: #null,
+                })
+            }
+        } else {
+            quote! { None }
+        };
+        let vis = self.visibility.describe();
+        let docs = self.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
+
+        quote! {
+            Method {
+                name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
+                ty: #ty,
+                params: vec![#(#parameters,)*],
+                retval: #ret,
+                _static: #_static,
+                visibility: #vis,
+            }
+        }
+    }
+}
+
+impl Describe for crate::impl_::Visibility {
+    fn describe(&self) -> TokenStream {
+        match self {
+            crate::impl_::Visibility::Public => quote! { Visibility::Public },
+            crate::impl_::Visibility::Protected => quote! { Visibility::Protected },
+            crate::impl_::Visibility::Private => quote! { Visibility::Private },
+        }
+    }
+}
+
+impl Describe for crate::constant::Constant {
+    fn describe(&self) -> TokenStream {
+        let name = &self.name;
+        let docs = self.docs.iter().map(|doc| {
+            quote! {
+                #doc.into()
+            }
+        });
+
+        quote! {
+            Constant {
+                name: #name.into(),
+                docs: DocBlock(vec![#(#docs,)*]),
+                value: None
+            }
+        }
+    }
+}
+
+impl Describe for State {
+    fn describe(&self) -> TokenStream {
+        let functs = self.functions.iter().map(Describe::describe);
+        let classes = self.classes.iter().map(|(_, class)| class.describe());
+        let constants = self.constants.iter().map(Describe::describe);
+
+        quote! {
+            Module {
+                name: env!("CARGO_PKG_NAME").into(),
+                functions: vec![#(#functs,)*],
+                classes: vec![#(#classes,)*],
+                constants: vec![#(#constants,)*]
+            }
+        }
+    }
 }

@@ -4,10 +4,7 @@ use crate::{
     zend::{FunctionEntry, ModuleEntry},
 };
 
-use std::{
-    ffi::{c_void, CString},
-    mem, ptr,
-};
+use std::{ffi::CString, mem, ptr};
 
 /// Builds a Zend module extension to be registered with PHP. Must be called
 /// from within an external function called `get_module`, returning a mutable
@@ -72,15 +69,15 @@ impl ModuleBuilder {
                 version: ptr::null(),
                 globals_size: 0,
                 #[cfg(not(php_zts))]
-                globals_ptr: ptr::null::<c_void>() as *mut c_void,
+                globals_ptr: ptr::null_mut(),
                 #[cfg(php_zts)]
-                globals_id_ptr: ptr::null::<c_void>() as *mut crate::ffi::ts_rsrc_id,
+                globals_id_ptr: ptr::null_mut(),
                 globals_ctor: None,
                 globals_dtor: None,
                 post_deactivate_func: None,
                 module_started: 0,
                 type_: 0,
-                handle: ptr::null::<c_void>() as *mut c_void,
+                handle: ptr::null_mut(),
                 module_number: 0,
                 build_id: unsafe { ext_php_rs_php_build_id() },
             },
