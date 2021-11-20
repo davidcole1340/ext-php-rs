@@ -1,6 +1,7 @@
 use anyhow::{anyhow, bail, Result};
 use quote::ToTokens;
 use std::collections::HashMap;
+use syn::ReturnType;
 
 use crate::helpers::get_docs;
 use crate::{
@@ -70,7 +71,11 @@ impl ParsedMethod {
     }
 }
 
-pub fn parser(mut input: ImplItemMethod, rename_rule: RenameRule) -> Result<ParsedMethod> {
+pub fn parser(
+    struct_ty: &Type,
+    mut input: ImplItemMethod,
+    rename_rule: RenameRule,
+) -> Result<ParsedMethod> {
     let mut defaults = HashMap::new();
     let mut optional = None;
     let mut visibility = Visibility::Public;
@@ -129,7 +134,7 @@ pub fn parser(mut input: ImplItemMethod, rename_rule: RenameRule) -> Result<Pars
         quote! { return; }
     };
     let internal_ident = Ident::new(&format!("_internal_php_{}", ident), Span::call_site());
-    let args = build_args(&mut input.sig.inputs, &defaults)?;
+    let args = build_args(struct_ty, &mut input.sig.inputs, &defaults)?;
     let optional = function::find_optional_parameter(
         args.iter().filter_map(|arg| match arg {
             Arg::Typed(arg) => Some(arg),
@@ -202,7 +207,7 @@ pub fn parser(mut input: ImplItemMethod, rename_rule: RenameRule) -> Result<Pars
         docs,
         args,
         optional,
-        output: crate::function::get_return_type(&input.sig.output)?,
+        output: get_return_type(struct_ty, &input.sig.output)?,
         _static: matches!(method_type, MethodType::Static),
         visibility,
     };
@@ -210,7 +215,84 @@ pub fn parser(mut input: ImplItemMethod, rename_rule: RenameRule) -> Result<Pars
     Ok(ParsedMethod::new(func, method, as_prop, is_constructor))
 }
 
+pub fn get_return_type(self_ty: &Type, output_type: &ReturnType) -> Result<Option<(String, bool)>> {
+    Ok(match output_type {
+        ReturnType::Default => None,
+        ReturnType::Type(_, ty) => {
+            let mut ty = ty.clone();
+            replace_self(self_ty, &mut ty);
+            crate::function::Arg::from_type("".to_string(), &ty, None, true)
+                .map(|arg| (arg.ty, arg.nullable))
+        }
+    })
+}
+
+/// Takes a type `ty` and replaces all instances of `Self` with the type
+/// `self_ty`.
+fn replace_self(self_ty: &Type, ty: &mut Type) {
+    match ty {
+        Type::Array(syn::TypeArray { elem, .. }) => replace_self(self_ty, elem),
+        Type::BareFn(syn::TypeBareFn { inputs, output, .. }) => {
+            for input in inputs {
+                replace_self(self_ty, &mut input.ty);
+            }
+            if let ReturnType::Type(_, ty) = output {
+                replace_self(self_ty, ty);
+            }
+        }
+        Type::Group(syn::TypeGroup { elem, .. }) => replace_self(self_ty, elem),
+        Type::Paren(syn::TypeParen { elem, .. }) => replace_self(self_ty, elem),
+        Type::Path(syn::TypePath { qself, path }) => {
+            if let Some(syn::QSelf { ty, .. }) = qself {
+                replace_self(self_ty, ty);
+            }
+            for seg in &mut path.segments {
+                if seg.ident == "Self" {
+                    seg.ident =
+                        Ident::new(&self_ty.to_token_stream().to_string(), Span::call_site());
+                }
+                match &mut seg.arguments {
+                    syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
+                        args,
+                        ..
+                    }) => {
+                        for arg in args {
+                            if let syn::GenericArgument::Type(ty) = arg {
+                                replace_self(self_ty, ty);
+                            }
+                        }
+                    }
+                    syn::PathArguments::Parenthesized(syn::ParenthesizedGenericArguments {
+                        inputs,
+                        output,
+                        ..
+                    }) => {
+                        for input in inputs {
+                            replace_self(self_ty, input);
+                        }
+
+                        if let ReturnType::Type(_, ty) = output {
+                            replace_self(self_ty, ty);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Type::Ptr(syn::TypePtr { elem, .. }) => replace_self(self_ty, elem),
+        Type::Reference(syn::TypeReference { elem, .. }) => replace_self(self_ty, elem),
+        Type::Slice(syn::TypeSlice { elem, .. }) => replace_self(self_ty, elem),
+        Type::Tuple(syn::TypeTuple { elems, .. }) => {
+            for elem in elems {
+                replace_self(self_ty, elem);
+            }
+        }
+        _ => {}
+    }
+}
+
 fn build_args(
+    struct_ty: &Type,
     inputs: &mut Punctuated<FnArg, Token![,]>,
     defaults: &HashMap<String, Lit>,
 ) -> Result<Vec<Arg>> {
@@ -245,8 +327,11 @@ fn build_args(
                         _ => bail!("Invalid parameter type."),
                     };
                     let default = defaults.get(&name);
+                    let mut ty = ty.ty.clone();
+                    replace_self(struct_ty, &mut ty);
+
                     Ok(Arg::Typed(
-                        crate::function::Arg::from_type(name.clone(), &ty.ty, default, false)
+                        crate::function::Arg::from_type(name.clone(), &ty, default, false)
                             .ok_or_else(|| anyhow!("Invalid parameter type for `{}`.", name))?,
                     ))
                 }

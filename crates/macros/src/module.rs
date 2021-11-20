@@ -201,7 +201,7 @@ impl Describe for Function {
 impl Describe for Arg {
     fn describe(&self) -> TokenStream {
         let Arg { name, nullable, .. } = self;
-        let ty = Ident::new(&self.ty, Span::call_site());
+        let ty: Type = syn::parse_str(&self.ty).expect("failed to parse previously parsed type");
         let default = if let Some(default) = &self.default {
             quote! { Some(#default.into()) }
         } else {
@@ -211,7 +211,7 @@ impl Describe for Arg {
         quote! {
             Parameter {
                 name: #name.into(),
-                ty: Some(<#ty as ::ext_php_rs::convert::IntoZval>::TYPE),
+                ty: Some(<#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE),
                 nullable: #nullable,
                 default: #default,
             }
@@ -300,7 +300,7 @@ impl Describe for crate::method::Method {
             }
         });
         let ret = if let Some((ty, null)) = &self.output {
-            let ty = Ident::new(ty, Span::call_site());
+            let ty: Type = syn::parse_str(ty).expect("failed to parse previosuly parsed type");
             quote! {
                 Some(Retval {
                     ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,

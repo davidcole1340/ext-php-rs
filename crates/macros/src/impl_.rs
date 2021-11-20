@@ -143,7 +143,7 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                 }
                 syn::ImplItem::Method(method) => {
                     let parsed_method =
-                        method::parser(method, args.rename_methods.unwrap_or_default())?;
+                        method::parser(&self_ty, method, args.rename_methods.unwrap_or_default())?;
 
                     // TODO(david): How do we handle comments for getter/setter? Take the comments
                     // from the methods??
