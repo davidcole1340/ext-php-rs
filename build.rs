@@ -8,12 +8,13 @@ use std::{
 use regex::Regex;
 
 const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20200930;
+const MAX_PHP_API_VER: u32 = 20210902;
 
 fn main() {
     // rerun if wrapper header is changed
     println!("cargo:rerun-if-changed=src/wrapper.h");
     println!("cargo:rerun-if-changed=src/wrapper.c");
+    println!("cargo:rerun-if-changed=allowed_bindings.rs");
 
     let out_dir = env::var_os("OUT_DIR").expect("Failed to get OUT_DIR");
     let out_path = PathBuf::from(out_dir).join("bindings.rs");
@@ -63,8 +64,23 @@ fn main() {
         .and_then(|ver| ver.as_str().parse::<u32>().ok())
         .expect("Unable to retrieve PHP API version from `php -i`.");
 
-    if api_ver < MIN_PHP_API_VER || api_ver > MAX_PHP_API_VER {
+    if !(MIN_PHP_API_VER..=MAX_PHP_API_VER).contains(&api_ver) {
         panic!("The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}", api_ver, MIN_PHP_API_VER, MAX_PHP_API_VER);
+    }
+
+    // Infra cfg flags - use these for things that change in the Zend API that don't
+    // rely on a feature and the crate user won't care about (e.g. struct field
+    // changes). Use a feature flag for an actual feature (e.g. enums being
+    // introduced in PHP 8.1).
+    //
+    // PHP 8.0 is the baseline - no feature flags will be introduced here.
+    //
+    // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
+    // should get both the `php81` and `php82` flags.
+    const PHP_81_API_VER: u32 = 20210902;
+
+    if api_ver >= PHP_81_API_VER {
+        println!("cargo:rustc-cfg=php81");
     }
 
     let includes =

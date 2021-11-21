@@ -190,5 +190,6 @@ bind! {
     zend_class_serialize_deny,
     zend_class_unserialize_deny,
     zend_objects_store_del,
-    gc_possible_root
+    gc_possible_root,
+    ZEND_ACC_NOT_SERIALIZABLE
 }

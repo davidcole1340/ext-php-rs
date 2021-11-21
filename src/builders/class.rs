@@ -7,8 +7,8 @@ use crate::{
     error::{Error, Result},
     exception::PhpException,
     ffi::{
-        zend_class_serialize_deny, zend_class_unserialize_deny, zend_declare_class_constant,
-        zend_declare_property, zend_do_implement_interface, zend_register_internal_class_ex,
+        zend_declare_class_constant, zend_declare_property, zend_do_implement_interface,
+        zend_register_internal_class_ex,
     },
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     types::{ZendClassObject, ZendObject, ZendStr, Zval},
@@ -242,12 +242,15 @@ impl ClassBuilder {
         };
 
         // disable serialization if the class has an associated object
-        //
-        // TODO(david): change to support PHP 8.1 - uses a flag instead of the
-        // serializable/deserializable properties
         if self.object_override.is_some() {
-            class.serialize = Some(zend_class_serialize_deny);
-            class.unserialize = Some(zend_class_unserialize_deny);
+            cfg_if::cfg_if! {
+                if #[cfg(php81)] {
+                    class.ce_flags |= ClassFlags::NotSerializable.bits();
+                } else {
+                    class.serialize = Some(crate::ffi::zend_class_serialize_deny);
+                    class.unserialize = Some(crate::ffi::zend_class_unserialize_deny);
+                }
+            }
         }
 
         for iface in self.interfaces {
