@@ -4,10 +4,11 @@ use crate::flags::DataType;
 use std::{cmp::Ordering, collections::HashMap};
 
 use super::{
-    Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
+    abi::*, Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
     Visibility,
 };
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};
+use std::{option::Option as StdOption, vec::Vec as StdVec};
 
 /// Implemented on types which can be converted into PHP stubs.
 pub trait ToStub {
@@ -46,31 +47,31 @@ impl ToStub for Module {
 
         // To account for namespaces we need to group by them. [`None`] as the key
         // represents no namespace, while [`Some`] represents a namespace.
-        let mut entries: HashMap<Option<&str>, Vec<String>> = HashMap::new();
+        let mut entries: HashMap<StdOption<&str>, StdVec<String>> = HashMap::new();
 
         // Inserts a value into the entries hashmap. Takes a key and an entry, creating
         // the internal vector if it doesn't already exist.
         let mut insert = |ns, entry| {
-            let bucket = entries.entry(ns).or_insert_with(Vec::new);
+            let bucket = entries.entry(ns).or_insert_with(StdVec::new);
             bucket.push(entry);
         };
 
-        for c in &self.constants {
+        for c in &*self.constants {
             let (ns, _) = split_namespace(c.name.as_ref());
             insert(ns, c.to_stub()?);
         }
 
-        for func in &self.functions {
+        for func in &*self.functions {
             let (ns, _) = split_namespace(func.name.as_ref());
             insert(ns, func.to_stub()?);
         }
 
-        for class in &self.classes {
+        for class in &*self.classes {
             let (ns, _) = split_namespace(class.name.as_ref());
             insert(ns, class.to_stub()?);
         }
 
-        let mut entries: Vec<_> = entries.iter().collect();
+        let mut entries: StdVec<_> = entries.iter().collect();
         entries.sort_by(|(l, _), (r, _)| match (l, r) {
             (None, _) => Ordering::Greater,
             (_, None) => Ordering::Less,
@@ -92,14 +93,14 @@ impl ToStub for Module {
                         &entries
                             .iter()
                             .map(|entry| indent(entry, 4))
-                            .collect::<Vec<_>>()
+                            .collect::<StdVec<_>>()
                             .join(NEW_LINE_SEPARATOR),
                     );
 
                     writeln!(buf, "}}")?;
                     Ok(buf)
                 })
-                .collect::<Result<Vec<_>, FmtError>>()?
+                .collect::<Result<StdVec<_>, FmtError>>()?
                 .join(NEW_LINE_SEPARATOR),
         );
 
@@ -119,11 +120,11 @@ impl ToStub for Function {
             self.params
                 .iter()
                 .map(ToStub::to_stub)
-                .collect::<Result<Vec<_>, FmtError>>()?
+                .collect::<Result<StdVec<_>, FmtError>>()?
                 .join(", ")
         )?;
 
-        if let Some(retval) = &self.ret {
+        if let Option::Some(retval) = &self.ret {
             write!(buf, ": ")?;
             if retval.nullable {
                 write!(buf, "?")?;
@@ -137,7 +138,7 @@ impl ToStub for Function {
 
 impl ToStub for Parameter {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
-        if let Some(ty) = &self.ty {
+        if let Option::Some(ty) = &self.ty {
             if self.nullable {
                 write!(buf, "?")?;
             }
@@ -193,12 +194,20 @@ impl ToStub for Class {
         let (_, name) = split_namespace(self.name.as_ref());
         write!(buf, "class {} ", name)?;
 
-        if let Some(extends) = &self.extends {
+        if let Option::Some(extends) = &self.extends {
             write!(buf, "extends {} ", extends)?;
         }
 
         if !self.implements.is_empty() {
-            write!(buf, "implements {} ", self.implements.join(", "))?;
+            write!(
+                buf,
+                "implements {} ",
+                self.implements
+                    .iter()
+                    .map(|s| s.str())
+                    .collect::<StdVec<_>>()
+                    .join(", ")
+            )?;
         }
 
         writeln!(buf, "{{")?;
@@ -213,7 +222,7 @@ impl ToStub for Class {
             &stub(&self.constants)
                 .chain(stub(&self.properties))
                 .chain(stub(&self.methods))
-                .collect::<Result<Vec<_>, FmtError>>()?
+                .collect::<Result<StdVec<_>, FmtError>>()?
                 .join(NEW_LINE_SEPARATOR),
         );
 
@@ -231,11 +240,11 @@ impl ToStub for Property {
         if self.static_ {
             write!(buf, "static ")?;
         }
-        if let Some(ty) = &self.ty {
+        if let Option::Some(ty) = &self.ty {
             ty.fmt_stub(buf)?;
         }
         write!(buf, "${}", self.name)?;
-        if let Some(default) = &self.default {
+        if let Option::Some(default) = &self.default {
             write!(buf, " = {}", default)?;
         }
         writeln!(buf, ";")
@@ -274,12 +283,12 @@ impl ToStub for Method {
             self.params
                 .iter()
                 .map(ToStub::to_stub)
-                .collect::<Result<Vec<_>, FmtError>>()?
+                .collect::<Result<StdVec<_>, FmtError>>()?
                 .join(", ")
         )?;
 
         if !matches!(self.ty, MethodType::Constructor) {
-            if let Some(retval) = &self.retval {
+            if let Option::Some(retval) = &self.retval {
                 write!(buf, ": ")?;
                 if retval.nullable {
                     write!(buf, "?")?;
@@ -297,7 +306,7 @@ impl ToStub for Constant {
         self.docs.fmt_stub(buf)?;
 
         write!(buf, "const {} = ", self.name)?;
-        if let Some(value) = &self.value {
+        if let Option::Some(value) = &self.value {
             write!(buf, "{}", value)?;
         } else {
             write!(buf, "null")?;
@@ -317,7 +326,7 @@ const NEW_LINE_SEPARATOR: &str = "\n";
 ///
 /// A tuple, where the first item is the namespace (or [`None`] if not
 /// namespaced), and the second item is the class name.
-fn split_namespace(class: &str) -> (Option<&str>, &str) {
+fn split_namespace(class: &str) -> (StdOption<&str>, &str) {
     let idx = class.rfind('\\');
 
     if let Some(idx) = idx {
@@ -351,7 +360,7 @@ fn indent(s: &str, depth: usize) -> String {
             }
             result
         })
-        .collect::<Vec<_>>()
+        .collect::<StdVec<_>>()
         .join(NEW_LINE_SEPARATOR)
 }
 

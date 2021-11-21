@@ -1,15 +1,15 @@
 //! Types used to describe downstream extensions. Used by the `cargo-php`
 //! CLI application to generate PHP stub files used by IDEs.
 
+pub mod abi;
 mod stub;
 
 use crate::flags::DataType;
-use std::borrow::Cow;
+use abi::*;
 
 pub use stub::ToStub;
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct Description {
     /// Extension description.
     pub module: Module,
@@ -33,9 +33,8 @@ impl Description {
 
 /// Represents an extension containing a set of exports.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Module {
-    pub name: Cow<'static, str>,
+    pub name: Str,
     pub functions: Vec<Function>,
     pub classes: Vec<Class>,
     pub constants: Vec<Constant>,
@@ -43,14 +42,12 @@ pub struct Module {
 
 /// Represents a set of comments on an export.
 #[repr(C)]
-#[derive(Debug)]
-pub struct DocBlock(pub Vec<Cow<'static, str>>);
+pub struct DocBlock(pub Vec<Str>);
 
 /// Represents an exported function.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Function {
-    pub name: Cow<'static, str>,
+    pub name: Str,
     pub docs: DocBlock,
     pub ret: Option<Retval>,
     pub params: Vec<Parameter>,
@@ -58,22 +55,20 @@ pub struct Function {
 
 /// Represents a parameter attached to an exported function or method.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Parameter {
-    pub name: Cow<'static, str>,
+    pub name: Str,
     pub ty: Option<DataType>,
     pub nullable: bool,
-    pub default: Option<Cow<'static, str>>,
+    pub default: Option<Str>,
 }
 
 /// Represents an exported class.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Class {
-    pub name: Cow<'static, str>,
+    pub name: Str,
     pub docs: DocBlock,
-    pub extends: Option<Cow<'static, str>>,
-    pub implements: Vec<Cow<'static, str>>,
+    pub extends: Option<Str>,
+    pub implements: Vec<Str>,
     pub properties: Vec<Property>,
     pub methods: Vec<Method>,
     pub constants: Vec<Constant>,
@@ -81,22 +76,20 @@ pub struct Class {
 
 /// Represents a property attached to an exported class.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Property {
-    pub name: Cow<'static, str>,
+    pub name: Str,
     pub docs: DocBlock,
     pub ty: Option<DataType>,
     pub vis: Visibility,
     pub static_: bool,
     pub nullable: bool,
-    pub default: Option<Cow<'static, str>>,
+    pub default: Option<Str>,
 }
 
 /// Represents a method attached to an exported class.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Method {
-    pub name: Cow<'static, str>,
+    pub name: Str,
     pub docs: DocBlock,
     pub ty: MethodType,
     pub params: Vec<Parameter>,
@@ -107,7 +100,6 @@ pub struct Method {
 
 /// Represents a value returned from a function or method.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Retval {
     pub ty: DataType,
     pub nullable: bool,
@@ -115,7 +107,7 @@ pub struct Retval {
 
 /// Enumerator used to differentiate between methods.
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum MethodType {
     Member,
     Static,
@@ -125,7 +117,7 @@ pub enum MethodType {
 /// Enumerator used to differentiate between different method and property
 /// visibilties.
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum Visibility {
     Private,
     Protected,
@@ -134,9 +126,8 @@ pub enum Visibility {
 
 /// Represents an exported constant, stand alone or attached to a class.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Constant {
-    pub name: Cow<'static, str>,
+    pub name: Str,
     pub docs: DocBlock,
-    pub value: Option<Cow<'static, str>>,
+    pub value: Option<Str>,
 }
