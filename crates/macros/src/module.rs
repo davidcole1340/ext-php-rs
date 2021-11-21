@@ -354,7 +354,7 @@ impl Describe for crate::constant::Constant {
             Constant {
                 name: #name.into(),
                 docs: DocBlock(vec![#(#docs,)*].into()),
-                value: None
+                value: abi::Option::None,
             }
         }
     }
