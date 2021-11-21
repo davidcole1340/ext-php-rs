@@ -49,6 +49,9 @@ pub mod prelude {
     pub use crate::ZvalConvert;
 }
 
+/// `ext-php-rs` version.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// Attribute used to annotate constants to be exported to PHP.
 ///
 /// The declared constant is left intact (apart from the addition of the

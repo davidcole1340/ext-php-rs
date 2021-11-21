@@ -11,10 +11,11 @@ edition = "2018"
 categories = ["api-bindings", "command-line-interface"]
 
 [dependencies]
-ext-php-rs = { version = "0.7", path = "../../" }
+ext-php-rs = { version = ">=0.7.0", path = "../../" }
 
 clap = "3.0.0-beta.5"
 anyhow = "1"
 dialoguer = "0.9"
 libloading = "0.7"
 cargo_metadata = "0.14"
+semver = "1.0"
