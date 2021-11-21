@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 0.7.1
+
+- Ensure stable ABI between `cargo-php` and downstream extensions. [#108]
+  - `ext-php-rs` versions used when compiling CLI and extension are now
+    compared.
+
+[#108]: https://github.com/davidcole1340/ext-php-rs/pull/108
+
 ## Version 0.7.0
 
 - Disabled serialization and unserialization of Rust structs exported as PHP
