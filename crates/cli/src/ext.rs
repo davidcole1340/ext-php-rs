@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use ext_php_rs::describe::Module;
+use ext_php_rs::describe::Description;
 use libloading::os::unix::{Library, Symbol};
 
 pub struct Ext {
@@ -10,7 +10,7 @@ pub struct Ext {
     // Module>` where `ext_lib: 'a`.
     #[allow(dead_code)]
     ext_lib: Library,
-    describe_fn: Symbol<fn() -> Module>,
+    describe_fn: Symbol<extern "C" fn() -> Description>,
 }
 
 impl Ext {
@@ -32,7 +32,7 @@ impl Ext {
     }
 
     /// Describes the extension.
-    pub fn describe(&self) -> Module {
+    pub fn describe(&self) -> Description {
         (self.describe_fn)()
     }
 }

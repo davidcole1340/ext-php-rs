@@ -14,6 +14,7 @@ use std::{
     io::{BufRead, BufReader, Write},
     path::PathBuf,
     process::{Command, Stdio},
+    str::FromStr,
 };
 
 use self::ext::Ext;
@@ -309,7 +310,21 @@ impl Stubs {
 
         let ext = Ext::load(ext_path)?;
         let result = ext.describe();
+
+        // Ensure extension and CLI `ext-php-rs` versions are compatible.
+        let cli_version = semver::VersionReq::from_str(ext_php_rs::VERSION).with_context(|| {
+            "Failed to parse `ext-php-rs` version that `cargo php` was compiled with"
+        })?;
+        let ext_version = semver::Version::from_str(result.version).with_context(|| {
+            "Failed to parse `ext-php-rs` version that your extension was compiled with"
+        })?;
+
+        if !cli_version.matches(&ext_version) {
+            bail!("Extension was compiled with an incompatible version of `ext-php-rs` - Extension: {}, CLI: {}", ext_version, cli_version);
+        }
+
         let stubs = result
+            .module
             .to_stub()
             .with_context(|| "Failed to generate stubs.")?;
 
@@ -321,7 +336,7 @@ impl Stubs {
             } else {
                 let mut cwd = std::env::current_dir()
                     .with_context(|| "Failed to get current working directory")?;
-                cwd.push(format!("{}.stubs.php", result.name));
+                cwd.push(format!("{}.stubs.php", result.module.name));
                 Cow::Owned(cwd)
             };
 

@@ -157,10 +157,10 @@ fn generate_stubs(state: &MutexGuard<State>) -> TokenStream {
     quote! {
         #[cfg(debug_assertions)]
         #[no_mangle]
-        pub fn ext_php_rs_describe_module() -> ::ext_php_rs::describe::Module {
+        pub extern "C" fn ext_php_rs_describe_module() -> ::ext_php_rs::describe::Description {
             use ::ext_php_rs::describe::*;
 
-            #module
+            Description::new(#module)
         }
     }
 }
@@ -190,9 +190,9 @@ impl Describe for Function {
         quote! {
             Function {
                 name: #name.into(),
-                docs: DocBlock(vec![#(#docs,)*]),
-                ret: #ret,
-                params: vec![#(#params,)*],
+                docs: DocBlock(vec![#(#docs,)*].into()),
+                ret: abi::Option::#ret,
+                params: vec![#(#params,)*].into(),
             }
         }
     }
@@ -211,9 +211,9 @@ impl Describe for Arg {
         quote! {
             Parameter {
                 name: #name.into(),
-                ty: Some(<#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE),
+                ty: abi::Option::Some(<#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE),
                 nullable: #nullable,
-                default: #default,
+                default: abi::Option::#default,
             }
         }
     }
@@ -247,12 +247,12 @@ impl Describe for Class {
         quote! {
             Class {
                 name: #name.into(),
-                docs: DocBlock(vec![#(#docs,)*]),
-                extends: #extends,
-                implements: vec![#(#interfaces,)*],
-                properties: vec![#(#properties,)*],
-                methods: vec![#(#methods,)*],
-                constants: vec![#(#constants,)*]
+                docs: DocBlock(vec![#(#docs,)*].into()),
+                extends: abi::Option::#extends,
+                implements: vec![#(#interfaces,)*].into(),
+                properties: vec![#(#properties,)*].into(),
+                methods: vec![#(#methods,)*].into(),
+                constants: vec![#(#constants,)*].into(),
             }
         }
     }
@@ -271,12 +271,12 @@ impl Describe for (&String, &Property) {
         quote! {
             Property {
                 name: #name.into(),
-                docs: DocBlock(vec![#(#docs,)*]),
-                ty: None,
+                docs: DocBlock(vec![#(#docs,)*].into()),
+                ty: abi::Option::None,
                 vis: Visibility::Public,
                 static_: false,
                 nullable: false,
-                default: None,
+                default: abi::Option::None,
             }
         }
     }
@@ -320,10 +320,10 @@ impl Describe for crate::method::Method {
         quote! {
             Method {
                 name: #name.into(),
-                docs: DocBlock(vec![#(#docs,)*]),
+                docs: DocBlock(vec![#(#docs,)*].into()),
                 ty: #ty,
-                params: vec![#(#parameters,)*],
-                retval: #ret,
+                params: vec![#(#parameters,)*].into(),
+                retval: abi::Option::#ret,
                 _static: #_static,
                 visibility: #vis,
             }
@@ -353,8 +353,8 @@ impl Describe for crate::constant::Constant {
         quote! {
             Constant {
                 name: #name.into(),
-                docs: DocBlock(vec![#(#docs,)*]),
-                value: None
+                docs: DocBlock(vec![#(#docs,)*].into()),
+                value: abi::Option::None,
             }
         }
     }
@@ -369,9 +369,9 @@ impl Describe for State {
         quote! {
             Module {
                 name: env!("CARGO_PKG_NAME").into(),
-                functions: vec![#(#functs,)*],
-                classes: vec![#(#classes,)*],
-                constants: vec![#(#constants,)*]
+                functions: vec![#(#functs,)*].into(),
+                classes: vec![#(#classes,)*].into(),
+                constants: vec![#(#constants,)*].into(),
             }
         }
     }

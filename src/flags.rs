@@ -162,6 +162,7 @@ bitflags! {
 }
 
 /// Valid data types for PHP.
+#[repr(C, u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DataType {
     Undef,
