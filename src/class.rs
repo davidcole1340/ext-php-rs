@@ -85,7 +85,10 @@ pub struct ClassMetadata<T> {
     handlers: MaybeUninit<ZendObjectHandlers>,
     ce: AtomicPtr<ClassEntry>,
 
-    phantom: PhantomData<T>,
+    // `AtomicPtr` is used here because it is `Send + Sync`.
+    // fn() -> T could have been used but that is incompatible with const fns at
+    // the moment.
+    phantom: PhantomData<AtomicPtr<T>>,
 }
 
 impl<T> ClassMetadata<T> {
