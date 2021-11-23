@@ -15,6 +15,7 @@ exclude = ["/.github", "/.crates", "/guide"]
 bitflags = "1.2.1"
 parking_lot = "0.11.2"
 cfg-if = "1.0"
+anyhow = { version = "1", optional = true }
 ext-php-rs-derive = { version = "=0.7.1", path = "./crates/macros" }
 
 [build-dependencies]
