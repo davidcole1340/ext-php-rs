@@ -191,5 +191,6 @@ bind! {
     zend_class_unserialize_deny,
     zend_objects_store_del,
     gc_possible_root,
-    ZEND_ACC_NOT_SERIALIZABLE
+    ZEND_ACC_NOT_SERIALIZABLE,
+    executor_globals
 }
