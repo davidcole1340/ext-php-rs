@@ -139,7 +139,7 @@ fn build_constants(constants: &[Constant]) -> Vec<TokenStream> {
             let name = &constant.name;
             let val = constant.val_tokens();
             quote! {
-                #val.register_constant(#name, module_number).unwrap();
+                (#val).register_constant(#name, module_number).unwrap();
             }
         })
         .collect()

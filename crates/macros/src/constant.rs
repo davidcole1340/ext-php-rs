@@ -1,9 +1,9 @@
 use crate::helpers::get_docs;
 use anyhow::{bail, Result};
 use darling::ToTokens;
-use proc_macro2::{Ident, Literal, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::ItemConst;
+use syn::{Expr, ItemConst};
 
 use crate::STATE;
 
@@ -36,10 +36,9 @@ pub fn parser(input: ItemConst) -> Result<TokenStream> {
 
 impl Constant {
     pub fn val_tokens(&self) -> TokenStream {
-        syn::parse_str::<Literal>(&self.value)
-            .map(|lit| lit.to_token_stream())
-            .or_else(|_| syn::parse_str::<Ident>(&self.value).map(|ident| ident.to_token_stream()))
-            .unwrap_or(quote! { Default::default() })
+        let expr: Expr =
+            syn::parse_str(&self.value).expect("failed to parse previously parsed expr");
+        expr.to_token_stream()
     }
 
     // pub fn get_flags(&self) -> TokenStream {
