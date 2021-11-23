@@ -115,6 +115,15 @@ See the following links for the dependency crate requirements:
 - [`cc`](https://github.com/alexcrichton/cc-rs#compile-time-requirements)
 - [`bindgen`](https://rust-lang.github.io/rust-bindgen/requirements.html)
 
+## Cargo Features
+
+All features are disabled by default.
+
+- `closure` - Enables the ability to return Rust closures to PHP. Creates a new
+  class type, `RustClosure`.
+- `anyhow` - Implements `Into<PhpException>` for `anyhow::Error`, allowing you
+  to return anyhow results from PHP functions. Supports anyhow v1.x.
+
 ## Usage
 
 This project only works for PHP >= 8.0 (for now). Due to the fact that the PHP

@@ -78,6 +78,13 @@ impl From<&str> for PhpException {
     }
 }
 
+#[cfg(feature = "anyhow")]
+impl From<anyhow::Error> for PhpException {
+    fn from(err: anyhow::Error) -> Self {
+        Self::new(err.to_string(), 0, crate::zend::ce::exception())
+    }
+}
+
 /// Throws an exception with a given message. See [`ClassEntry`] for some
 /// built-in exception types.
 ///
