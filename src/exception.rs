@@ -81,7 +81,7 @@ impl From<&str> for PhpException {
 #[cfg(feature = "anyhow")]
 impl From<anyhow::Error> for PhpException {
     fn from(err: anyhow::Error) -> Self {
-        Self::new(err.to_string(), 0, crate::zend::ce::exception())
+        Self::new(format!("{:#}", err), 0, crate::zend::ce::exception())
     }
 }
 
