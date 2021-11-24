@@ -134,8 +134,8 @@ Check out one of the example projects:
 
 - [anonaddy-sequoia](https://gitlab.com/willbrowning/anonaddy-sequoia) - Sequoia
   encryption PHP extension.
-- [opus-php](https://github.com/davidcole1340/opus-php/tree/rewrite_rs) -
-  Work-in-progress extension to use the Opus library in PHP.
+- [opus-php](https://github.com/davidcole1340/opus-php) -
+  Audio encoder for the Opus codec in PHP.
 
 ## Contributions
 
