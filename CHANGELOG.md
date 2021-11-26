@@ -1,5 +1,20 @@
 # Changelog
 
+## Version 0.7.2
+
+- Add preliminary PHP 8.1 support. [#109]
+  - Extensions should now compile for PHP 8.1. This doesn't implement any of the
+    new PHP 8.1 features.
+- Add `anyhow` cargo feature to implement
+  `From<anyhow::Error> for PhpException`. [#110]
+- Made `ClassMetadata: Send + Sync`. [#111]
+- Fixed registering constants with expressions. [#112]
+
+[#109]: https://github.com/davidcole1340/ext-php-rs/pull/109
+[#110]: https://github.com/davidcole1340/ext-php-rs/pull/110
+[#111]: https://github.com/davidcole1340/ext-php-rs/pull/111
+[#112]: https://github.com/davidcole1340/ext-php-rs/pull/112
+
 ## Version 0.7.1
 
 - Ensure stable ABI between `cargo-php` and downstream extensions. [#108]
