@@ -7,6 +7,6 @@ macro_rules! bind {
 
 include!("../allowed_bindings.rs");
 
-fn main() -> cargo_php::Result {
+fn main() -> cargo_php::CrateResult {
     cargo_php::run()
 }

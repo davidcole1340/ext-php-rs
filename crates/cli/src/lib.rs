@@ -37,10 +37,10 @@ macro_rules! stub_symbols {
 }
 
 /// Result type returned from the [`run`] function.
-pub type Result = anyhow::Result<()>;
+pub type CrateResult = AResult<()>;
 
 /// Runs the CLI application. Returns nothing in a result on success.
-pub fn run() -> Result {
+pub fn run() -> CrateResult {
     let mut args: Vec<_> = std::env::args().collect();
 
     // When called as a cargo subcommand, the second argument given will be the
@@ -150,7 +150,7 @@ struct Stubs {
 }
 
 impl Args {
-    pub fn handle(self) -> Result {
+    pub fn handle(self) -> CrateResult {
         match self {
             Args::Install(install) => install.handle(),
             Args::Remove(remove) => remove.handle(),
@@ -160,7 +160,7 @@ impl Args {
 }
 
 impl Install {
-    pub fn handle(self) -> Result {
+    pub fn handle(self) -> CrateResult {
         let artifact = find_ext(&self.manifest)?;
         let ext_path = build_ext(&artifact, self.release)?;
 
@@ -230,7 +230,7 @@ impl Install {
 }
 
 impl Remove {
-    pub fn handle(self) -> Result {
+    pub fn handle(self) -> CrateResult {
         use std::env::consts;
 
         let artifact = find_ext(&self.manifest)?;
@@ -296,7 +296,7 @@ impl Remove {
 }
 
 impl Stubs {
-    pub fn handle(self) -> Result {
+    pub fn handle(self) -> CrateResult {
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
