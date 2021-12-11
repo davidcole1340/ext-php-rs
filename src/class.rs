@@ -3,9 +3,10 @@
 use std::{
     collections::HashMap,
     marker::PhantomData,
-    mem::MaybeUninit,
-    sync::atomic::{AtomicBool, AtomicPtr, Ordering},
+    sync::atomic::{AtomicPtr, Ordering},
 };
+
+use once_cell::sync::OnceCell;
 
 use crate::{
     builders::FunctionBuilder,
@@ -37,6 +38,10 @@ pub trait RegisteredClass: Sized + 'static {
     /// The key should be the name of the property and the value should be a
     /// reference to the property with reference to `self`. The value is a
     /// [`Property`].
+    ///
+    /// Instead of using this method directly, you should access the properties
+    /// through the [`ClassMetadata::get_properties`] function, which builds the
+    /// hashmap one and stores it in memory.
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
 }
 
@@ -81,8 +86,8 @@ impl<T> From<T> for ConstructorResult<T> {
 /// Stores the class entry and handlers for a Rust type which has been exported
 /// to PHP. Usually allocated statically.
 pub struct ClassMetadata<T> {
-    handlers_init: AtomicBool,
-    handlers: MaybeUninit<ZendObjectHandlers>,
+    handlers: OnceCell<ZendObjectHandlers>,
+    properties: OnceCell<HashMap<&'static str, Property<'static, T>>>,
     ce: AtomicPtr<ClassEntry>,
 
     // `AtomicPtr` is used here because it is `Send + Sync`.
@@ -95,8 +100,8 @@ impl<T> ClassMetadata<T> {
     /// Creates a new class metadata instance.
     pub const fn new() -> Self {
         Self {
-            handlers_init: AtomicBool::new(false),
-            handlers: MaybeUninit::uninit(),
+            handlers: OnceCell::new(),
+            properties: OnceCell::new(),
             ce: AtomicPtr::new(std::ptr::null_mut()),
             phantom: PhantomData,
         }
@@ -107,10 +112,7 @@ impl<T: RegisteredClass> ClassMetadata<T> {
     /// Returns an immutable reference to the object handlers contained inside
     /// the class metadata.
     pub fn handlers(&self) -> &ZendObjectHandlers {
-        self.check_handlers();
-
-        // SAFETY: `check_handlers` guarantees that `handlers` has been initialized.
-        unsafe { &*self.handlers.as_ptr() }
+        self.handlers.get_or_init(ZendObjectHandlers::new::<T>)
     }
 
     /// Checks if the class entry has been stored, returning a boolean.
@@ -142,20 +144,23 @@ impl<T: RegisteredClass> ClassMetadata<T> {
     /// Panics if the class entry has already been set in the class metadata.
     /// This function should only be called once.
     pub fn set_ce(&self, ce: &'static mut ClassEntry) {
-        if !self.ce.load(Ordering::SeqCst).is_null() {
-            panic!("Class entry has already been set.");
-        }
-
-        self.ce.store(ce, Ordering::SeqCst);
+        self.ce
+            .compare_exchange(
+                std::ptr::null_mut(),
+                ce,
+                Ordering::SeqCst,
+                Ordering::Relaxed,
+            )
+            .expect("Class entry has already been set");
     }
 
-    /// Checks if the handlers have been initialized, and initializes them if
-    /// they are not.
-    fn check_handlers(&self) {
-        if !self.handlers_init.load(Ordering::SeqCst) {
-            // SAFETY: `MaybeUninit` has the same size as the handlers.
-            unsafe { ZendObjectHandlers::init::<T>(self.handlers.as_ptr() as *mut _) };
-            self.handlers_init.store(true, Ordering::SeqCst);
-        }
+    /// Retrieves a reference to the hashmap storing the classes property
+    /// accessors.
+    ///
+    /// # Returns
+    ///
+    /// Immutable reference to the properties hashmap.
+    pub fn get_properties(&self) -> &HashMap<&'static str, Property<'static, T>> {
+        self.properties.get_or_init(T::get_properties)
     }
 }

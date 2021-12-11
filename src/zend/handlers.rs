@@ -1,4 +1,4 @@
-use std::{ffi::c_void, os::raw::c_int, ptr};
+use std::{ffi::c_void, mem::MaybeUninit, os::raw::c_int, ptr};
 
 use crate::{
     class::RegisteredClass,
@@ -16,6 +16,19 @@ use crate::{
 pub type ZendObjectHandlers = zend_object_handlers;
 
 impl ZendObjectHandlers {
+    /// Creates a new set of object handlers based on the standard object
+    /// handlers.
+    pub fn new<T: RegisteredClass>() -> ZendObjectHandlers {
+        let mut this = MaybeUninit::uninit();
+
+        // SAFETY: `this` is allocated on the stack and is a valid memory location.
+        unsafe { Self::init::<T>(&mut *this.as_mut_ptr()) };
+
+        // SAFETY: We just initialized the handlers in the previous statement, therefore
+        // we are returning a valid object.
+        unsafe { this.assume_init() }
+    }
+
     /// Initializes a given set of object handlers by copying the standard
     /// object handlers into the memory location, as well as setting up the
     /// `T` type destructor.
@@ -73,8 +86,12 @@ impl ZendObjectHandlers {
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
             let self_ = &mut **obj;
-            let mut props = T::get_properties();
-            let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
+            let props = T::get_metadata().get_properties();
+            let prop = props.get(
+                prop_name
+                    .as_str()
+                    .ok_or("Invalid property name was given")?,
+            );
 
             // retval needs to be treated as initialized, so we set the type to null
             let rv_mut = rv.as_mut().ok_or("Invalid return zval given")?;
@@ -120,8 +137,8 @@ impl ZendObjectHandlers {
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
             let self_ = &mut **obj;
-            let mut props = T::get_properties();
-            let prop = props.remove(prop_name.as_str().ok_or("Invalid property name given")?);
+            let props = T::get_metadata().get_properties();
+            let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
             let value_mut = value.as_mut().ok_or("Invalid return zval given")?;
 
             Ok(match prop {
@@ -155,9 +172,9 @@ impl ZendObjectHandlers {
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_mut(obj))
                 .ok_or("Invalid object pointer given")?;
             let self_ = &mut **obj;
-            let struct_props = T::get_properties();
+            let struct_props = T::get_metadata().get_properties();
 
-            for (name, val) in struct_props.into_iter() {
+            for (name, val) in struct_props {
                 let mut zv = Zval::new();
                 if val.get(self_, &mut zv).is_err() {
                     continue;
@@ -202,7 +219,7 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
-            let props = T::get_properties();
+            let props = T::get_metadata().get_properties();
             let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
             let self_ = &mut **obj;
 
