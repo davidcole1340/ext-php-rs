@@ -67,10 +67,10 @@ impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
 /// * Method properties, where getter and/or setter functions are provided,
 ///   which are used to get and set the value of the property.
 pub enum Property<'a, T> {
-    Field(Box<dyn Fn(&mut T) -> &mut dyn Prop>),
+    Field(Box<dyn (Fn(&mut T) -> &mut dyn Prop) + Send + Sync>),
     Method {
-        get: Option<Box<dyn Fn(&T, &mut Zval) -> PhpResult + 'a>>,
-        set: Option<Box<dyn Fn(&mut T, &Zval) -> PhpResult + 'a>>,
+        get: Option<Box<dyn Fn(&T, &mut Zval) -> PhpResult + Send + Sync + 'a>>,
+        set: Option<Box<dyn Fn(&mut T, &Zval) -> PhpResult + Send + Sync + 'a>>,
     },
 }
 
@@ -93,9 +93,9 @@ impl<'a, T: 'a> Property<'a, T> {
     /// ```
     pub fn field<F>(f: F) -> Self
     where
-        F: (Fn(&mut T) -> &mut dyn Prop) + 'static,
+        F: (Fn(&mut T) -> &mut dyn Prop) + Send + Sync + 'static,
     {
-        Self::Field(Box::new(f) as Box<dyn Fn(&mut T) -> &mut dyn Prop>)
+        Self::Field(Box::new(f) as Box<dyn (Fn(&mut T) -> &mut dyn Prop) + Send + Sync>)
     }
 
     /// Creates a method property with getters and setters.
@@ -139,7 +139,7 @@ impl<'a, T: 'a> Property<'a, T> {
                     .set_zval(retval, false)
                     .map_err(|e| format!("Failed to return property value to PHP: {:?}", e))?;
                 Ok(())
-            }) as Box<dyn Fn(&T, &mut Zval) -> PhpResult + 'a>
+            }) as Box<dyn Fn(&T, &mut Zval) -> PhpResult + Send + Sync + 'a>
         });
 
         let set = set.map(|set| {
@@ -148,7 +148,7 @@ impl<'a, T: 'a> Property<'a, T> {
                     .ok_or("Unable to convert property value into required type.")?;
                 set(self_, val);
                 Ok(())
-            }) as Box<dyn Fn(&mut T, &Zval) -> PhpResult + 'a>
+            }) as Box<dyn Fn(&mut T, &Zval) -> PhpResult + Send + Sync + 'a>
         });
 
         Self::Method { get, set }
