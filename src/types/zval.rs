@@ -7,7 +7,7 @@ use std::{convert::TryInto, ffi::c_void, fmt::Debug, ptr};
 use crate::{
     binary::Pack,
     boxed::ZBox,
-    convert::{FromZval, IntoZval, IntoZvalDyn},
+    convert::{FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
     ffi::{
         _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_is_callable, zend_resource,
@@ -556,5 +556,21 @@ impl IntoZval for Zval {
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         *zv = self;
         Ok(())
+    }
+}
+
+impl<'a> FromZval<'a> for &'a Zval {
+    const TYPE: DataType = DataType::Mixed;
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        Some(zval)
+    }
+}
+
+impl<'a> FromZvalMut<'a> for &'a mut Zval {
+    const TYPE: DataType = DataType::Mixed;
+
+    fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
+        Some(zval)
     }
 }
