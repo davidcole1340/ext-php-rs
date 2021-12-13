@@ -394,6 +394,60 @@ impl ZendHashTable {
         Ok(())
     }
 
+    /// Checks if the hashtable only contains numerical keys.
+    ///
+    /// # Returns
+    ///
+    /// True if all keys on the hashtable are numerical.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// ht.push(0);
+    /// ht.push(3);
+    /// ht.push(9);
+    /// assert!(ht.has_numerical_keys());
+    ///
+    /// ht.insert("obviously not numerical", 10);
+    /// assert!(!ht.has_numerical_keys());
+    /// ```
+    pub fn has_numerical_keys(&self) -> bool {
+        !self.iter().any(|(_, k, _)| k.is_some())
+    }
+
+    /// Checks if the hashtable has numerical, sequential keys.
+    ///
+    /// # Returns
+    ///
+    /// True if all keys on the hashtable are numerical and are in sequential
+    /// order (i.e. starting at 0 and not skipping any keys).
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// ht.push(0);
+    /// ht.push(3);
+    /// ht.push(9);
+    /// assert!(ht.has_sequential_keys());
+    ///
+    /// ht.insert_at_index(90, 10);
+    /// assert!(!ht.has_sequential_keys());
+    /// ```
+    pub fn has_sequential_keys(&self) -> bool {
+        !self
+            .iter()
+            .enumerate()
+            .any(|(i, (k, strk, _))| i as u64 != k || strk.is_some())
+    }
+
     /// Returns an iterator over the key(s) and value contained inside the
     /// hashtable.
     ///
