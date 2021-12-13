@@ -500,6 +500,38 @@ impl Zval {
     {
         FromZval::from_zval(self)
     }
+
+    /// Creates a shallow clone of the [`Zval`].
+    ///
+    /// This copies the contents of the [`Zval`], and increments the reference
+    /// counter of the underlying value (if it is reference counted).
+    ///
+    /// For example, if the zval contains a long, it will simply copy the value.
+    /// However, if the zval contains an object, the new zval will point to the
+    /// same object, and the objects reference counter will be incremented.
+    ///
+    /// # Returns
+    ///
+    /// The cloned zval.
+    pub fn shallow_clone(&self) -> Zval {
+        let mut new = Zval::new();
+        new.u1 = self.u1;
+        new.value = self.value;
+
+        // SAFETY: `u1` union is only used for easier bitmasking. It is valid to read
+        // from either of the variants.
+        //
+        // SAFETY: If the value if refcounted (`self.u1.type_info & Z_TYPE_FLAGS_MASK`)
+        // then it is valid to dereference `self.value.counted`.
+        unsafe {
+            let flags = ZvalTypeFlags::from_bits_unchecked(self.u1.type_info);
+            if flags.contains(ZvalTypeFlags::RefCounted) {
+                (*self.value.counted).gc.refcount += 1;
+            }
+        }
+
+        new
+    }
 }
 
 impl Debug for Zval {
