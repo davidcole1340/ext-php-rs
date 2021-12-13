@@ -1,5 +1,21 @@
 # Changelog
 
+## Version 0.7.3
+
+- Upgrade `clap` to `3.0.0-rc3`. [#113]
+- Build properties hashmap once and cache inside class metadata. [#114]
+- Add `impl FromZval for &Zval` and `impl FromZvalMut for &mut Zval`.
+- Add `has_numerical_keys` and `has_sequential_keys` to `ZendHashTable`. [#115]
+
+Thanks to the following contributors:
+
+- @davidcole1340
+- @vkill
+
+[#113]: https://github.com/davidcole1340/ext-php-rs/pull/113
+[#114]: https://github.com/davidcole1340/ext-php-rs/pull/114
+[#115]: https://github.com/davidcole1340/ext-php-rs/pull/115
+
 ## Version 0.7.2
 
 - Add preliminary PHP 8.1 support. [#109]
