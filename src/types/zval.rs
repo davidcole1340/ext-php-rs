@@ -259,7 +259,7 @@ impl Zval {
 
     /// Returns true if the zval is true, false otherwise.
     pub fn is_true(&self) -> bool {
-        self.get_type() == DataType::False
+        self.get_type() == DataType::True
     }
 
     /// Returns true if the zval is false, false otherwise.
