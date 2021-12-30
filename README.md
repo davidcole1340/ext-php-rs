@@ -67,7 +67,7 @@ var_dump(hello_world("David")); // string(13) "Hello, David!"
 ```
 
 For more examples read the library
-[guide](https://davidcole1340.github.io/ext-php-rs/guide).
+[guide](https://davidcole1340.github.io/ext-php-rs).
 
 [`cargo-php`]: https://crates.io/crates/cargo-php
 
