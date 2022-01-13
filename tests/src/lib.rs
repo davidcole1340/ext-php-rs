@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn number_unsigned_works() {
-        assert_eq!(run_php("number_unsigned.php"), "thrown 0 12");
+        assert_eq!(run_php("number_unsigned.php"), "0 12 invalid");
     }
 
     #[test]
