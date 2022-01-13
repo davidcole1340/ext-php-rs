@@ -56,13 +56,11 @@ pub fn test_object(a: &mut ZendObject) -> &mut ZendObject {
     a
 }
 
-// TODO: not returning a closure
 #[php_function]
 pub fn test_closure() -> Closure {
     Closure::wrap(Box::new(|a| a) as Box<dyn Fn(String) -> String>)
 }
 
-// TODO: not returning a closure
 #[php_function]
 pub fn test_closure_once(a: String) -> Closure {
     let example = a.clone();
