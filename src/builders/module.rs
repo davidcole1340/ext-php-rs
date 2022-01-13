@@ -111,7 +111,7 @@ impl ModuleBuilder {
     ///
     /// * `func` - The function to be called when startup is requested.
     pub fn request_startup_function(mut self, func: StartupShutdownFunc) -> Self {
-        self.module.module_startup_func = Some(func);
+        self.module.request_startup_func = Some(func);
         self
     }
 
@@ -121,7 +121,7 @@ impl ModuleBuilder {
     ///
     /// * `func` - The function to be called when shutdown is requested.
     pub fn request_shutdown_function(mut self, func: StartupShutdownFunc) -> Self {
-        self.module.module_shutdown_func = Some(func);
+        self.module.request_shutdown_func = Some(func);
         self
     }
 
