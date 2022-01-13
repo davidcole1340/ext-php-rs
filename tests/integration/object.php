@@ -5,8 +5,6 @@ $obj->first = 1;
 $obj->second = 2;
 $obj->third = 3;
 
-$output = '';
-
 foreach (test_object($obj) as $key => $value) {
     $output .= "{$key}={$value} ";
 }

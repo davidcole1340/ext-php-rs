@@ -1,7 +1,5 @@
 <?php
 
-$output = '';
-
 foreach (test_array_assoc([
     'first' => '1',
     'second' => '2',
