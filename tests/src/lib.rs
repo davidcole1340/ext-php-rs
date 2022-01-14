@@ -63,8 +63,7 @@ pub fn test_closure() -> Closure {
 
 #[php_function]
 pub fn test_closure_once(a: String) -> Closure {
-    let example = a.clone();
-    Closure::wrap_once(Box::new(move || example) as Box<dyn FnOnce() -> String>)
+    Closure::wrap_once(Box::new(move || a) as Box<dyn FnOnce() -> String>)
 }
 
 #[php_function]
