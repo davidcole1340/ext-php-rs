@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn binary_works() {
-        assert!(run_php("binary.php") = "1 2 3 4 5");
+        assert!(run_php("binary.php") == "1 2 3 4 5");
     }
 
     #[test]
