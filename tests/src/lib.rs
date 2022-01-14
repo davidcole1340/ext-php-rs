@@ -140,27 +140,27 @@ mod tests {
 
     #[test]
     fn str_works() {
-        assert_eq!(run_php("str.php"), "str works");
+        assert!(run_php("str.php") == "str works");
     }
 
     #[test]
     fn string_works() {
-        assert_eq!(run_php("string.php"), "string works");
+        assert!(run_php("string.php") == "string works");
     }
 
     #[test]
     fn bool_works() {
-        assert_eq!(run_php("bool.php"), "true false");
+        assert!(run_php("bool.php") == "true false");
     }
 
     #[test]
     fn number_signed_works() {
-        assert_eq!(run_php("number_signed.php"), "-12 0 12");
+        assert!(run_php("number_signed.php") == "-12 0 12");
     }
 
     #[test]
     fn number_unsigned_works() {
-        assert_eq!(run_php("number_unsigned.php"), "0 12 invalid");
+        assert!(run_php("number_unsigned.php") == "0 12 invalid");
     }
 
     #[test]
@@ -170,57 +170,57 @@ mod tests {
             .split_whitespace()
             .map(|a| a.parse::<f32>().unwrap())
             .collect();
-        assert_eq!(floats, vec![-1.2, 0.0, 1.2]);
+        assert!(floats == vec![-1.2, 0.0, 1.2]);
     }
 
     #[test]
     fn array_works() {
-        assert_eq!(run_php("array.php"), "a b c");
+        assert!(run_php("array.php") == "a b c");
     }
 
     #[test]
     fn array_assoc_works() {
         let output = run_php("array_assoc.php");
-        assert_eq!(output.contains("first=1"), true);
-        assert_eq!(output.contains("second=2"), true);
-        assert_eq!(output.contains("third=3"), true);
+        assert!(output.contains("first=1"));
+        assert!(output.contains("second=2"));
+        assert!(output.contains("third=3"));
     }
 
     #[test]
     fn binary_works() {
-        assert_eq!(run_php("binary.php"), "1 2 3 4 5");
+        assert!(run_php("binary.php") = "1 2 3 4 5");
     }
 
     #[test]
     fn nullable_works() {
-        assert_eq!(run_php("nullable.php"), "null not_null");
+        assert!(run_php("nullable.php") == "null not_null");
     }
 
     #[test]
     fn object_works() {
         let output = run_php("object.php");
-        assert_eq!(output.contains("first=1"), true);
-        assert_eq!(output.contains("second=2"), true);
-        assert_eq!(output.contains("third=3"), true);
+        assert!(output.contains("first=1"));
+        assert!(output.contains("second=2"));
+        assert!(output.contains("third=3"));
     }
 
     #[test]
     fn closure_works() {
-        assert_eq!(run_php("closure.php"), "closure works");
+        assert!(run_php("closure.php") == "closure works");
     }
 
     #[test]
     fn closure_once_works() {
-        assert_eq!(run_php("closure_once.php"), "closure works once");
+        assert!(run_php("closure_once.php") == "closure works once");
     }
 
     #[test]
     fn callable_works() {
-        assert_eq!(run_php("callable.php"), "callable works");
+        assert!(run_php("callable.php") == "callable works");
     }
 
     #[test]
     fn class_works() {
-        assert_eq!(run_php("class.php"), "class works");
+        assert!(run_php("class.php") == "class works");
     }
 }
