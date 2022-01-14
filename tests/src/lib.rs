@@ -111,12 +111,15 @@ mod tests {
 
     fn setup() {
         BUILD.call_once(|| {
-            Command::new("cargo")
-                .arg("build")
-                .output()
-                .expect("failed to build extension")
-                .status
-                .success();
+            assert_eq!(
+                Command::new("cargo")
+                    .arg("build")
+                    .output()
+                    .expect("failed to build extension")
+                    .status
+                    .success(),
+                true
+            );
         });
     }
 
