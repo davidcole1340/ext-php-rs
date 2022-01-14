@@ -114,7 +114,7 @@ mod tests {
             Command::new("cargo")
                 .arg("build")
                 .output()
-                .expect("failed to execute process")
+                .expect("failed to build extension")
                 .status
                 .success();
         });

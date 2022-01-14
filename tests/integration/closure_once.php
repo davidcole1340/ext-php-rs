@@ -1,7 +1,6 @@
 <?php
-$clo = test_closure_once('closure works');
 
-echo $clo();
+echo test_closure_once('closure works')();
 echo ' ';
 
 try {
