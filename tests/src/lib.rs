@@ -101,13 +101,6 @@ mod tests {
 
     static BUILD: Once = Once::new();
 
-    #[cfg(target_os = "linux")]
-    const EXTENSION: &str = "so";
-    #[cfg(target_os = "macos")]
-    const EXTENSION: &str = "dylib";
-    #[cfg(target_os = "windows")]
-    const EXTENSION: &str = "dll";
-
     fn setup() {
         BUILD.call_once(|| {
             assert_eq!(
@@ -128,7 +121,7 @@ mod tests {
             Command::new("php")
                 .arg(format!(
                     "-dextension=../target/debug/libtests.{}",
-                    EXTENSION
+                    std::env::consts::DLL_EXTENSION
                 ))
                 .arg(format!("integration/{}", file))
                 .output()
