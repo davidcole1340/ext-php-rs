@@ -73,20 +73,42 @@ pub fn test_callable(call: ZendCallable, a: String) -> Zval {
 
 #[php_class]
 pub struct TestClass {
-    foo: String,
-    bar: String,
+    string: String,
+    number: i32,
+    #[prop]
+    boolean: bool,
 }
 
 #[php_impl]
 impl TestClass {
-    pub fn test(&self) -> String {
-        format!("{} {}", self.foo, self.bar)
+    #[getter]
+    pub fn get_string(&self) -> String {
+        self.string.to_string()
+    }
+
+    #[setter]
+    pub fn set_string(&mut self, string: String) {
+        self.string = string;
+    }
+
+    #[getter]
+    pub fn get_number(&self) -> i32 {
+        self.number
+    }
+
+    #[setter]
+    pub fn set_number(&mut self, number: i32) {
+        self.number = number;
     }
 }
 
 #[php_function]
-pub fn test_class(foo: String, bar: String) -> TestClass {
-    TestClass { foo, bar }
+pub fn test_class(string: String, number: i32) -> TestClass {
+    TestClass {
+        string,
+        number,
+        boolean: true,
+    }
 }
 
 #[php_module]
@@ -95,7 +117,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 }
 
 #[cfg(test)]
-mod tests {
+mod integration {
     use std::process::Command;
     use std::sync::Once;
 
@@ -103,117 +125,36 @@ mod tests {
 
     fn setup() {
         BUILD.call_once(|| {
-            assert_eq!(
-                Command::new("cargo")
-                    .arg("build")
-                    .output()
-                    .expect("failed to build extension")
-                    .status
-                    .success(),
-                true
-            );
+            assert!(Command::new("cargo")
+                .arg("build")
+                .output()
+                .expect("failed to build extension")
+                .status
+                .success());
         });
     }
 
-    fn run_php(file: &str) -> String {
+    pub fn run_php(file: &str) -> bool {
         setup();
-        String::from_utf8(
-            Command::new("php")
-                .arg(format!(
-                    "-dextension=../target/debug/libtests.{}",
-                    std::env::consts::DLL_EXTENSION
-                ))
-                .arg(format!("integration/{}", file))
-                .output()
-                .expect("failed to run php file")
-                .stdout,
-        )
-        .unwrap()
+        Command::new("php")
+            .arg(format!(
+                "-dextension=../target/debug/libtests.{}",
+                std::env::consts::DLL_EXTENSION
+            ))
+            .arg(format!("src/integration/{}", file))
+            .status()
+            .expect("failed to run php file")
+            .success()
     }
 
-    #[test]
-    fn str_works() {
-        assert!(run_php("str.php") == "str works");
-    }
-
-    #[test]
-    fn string_works() {
-        assert!(run_php("string.php") == "string works");
-    }
-
-    #[test]
-    fn bool_works() {
-        assert!(run_php("bool.php") == "true false");
-    }
-
-    #[test]
-    fn number_signed_works() {
-        assert!(run_php("number_signed.php") == "-12 0 12");
-    }
-
-    #[test]
-    fn number_unsigned_works() {
-        assert!(run_php("number_unsigned.php") == "0 12 invalid");
-    }
-
-    #[test]
-    fn number_float_works() {
-        let output = run_php("number_float.php");
-        let floats: Vec<f32> = output
-            .split_whitespace()
-            .map(|a| a.parse::<f32>().unwrap())
-            .collect();
-        assert!(floats == vec![-1.2, 0.0, 1.2]);
-    }
-
-    #[test]
-    fn array_works() {
-        assert!(run_php("array.php") == "a b c");
-    }
-
-    #[test]
-    fn array_assoc_works() {
-        let output = run_php("array_assoc.php");
-        assert!(output.contains("first=1"));
-        assert!(output.contains("second=2"));
-        assert!(output.contains("third=3"));
-    }
-
-    #[test]
-    fn binary_works() {
-        assert!(run_php("binary.php") == "1 2 3 4 5");
-    }
-
-    #[test]
-    fn nullable_works() {
-        assert!(run_php("nullable.php") == "null not_null");
-    }
-
-    #[test]
-    fn object_works() {
-        let output = run_php("object.php");
-        assert!(output.contains("first=1"));
-        assert!(output.contains("second=2"));
-        assert!(output.contains("third=3"));
-    }
-
-    #[test]
-    fn closure_works() {
-        assert!(run_php("closure.php") == "closure works");
-    }
-
-    #[test]
-    fn closure_once_works() {
-        assert!(run_php("closure_once.php") == "closure works once");
-    }
-
-    #[test]
-    fn callable_works() {
-        assert!(run_php("callable.php") == "callable works");
-    }
-
-    #[test]
-    fn class_works() {
-        assert!(run_php("class.php") == "class works");
-    }
+    mod array;
+    mod binary;
+    mod bool;
+    mod callable;
+    mod class;
+    mod closure;
+    mod nullable;
+    mod number;
+    mod object;
+    mod string;
 }
