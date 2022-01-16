@@ -127,6 +127,7 @@ mod integration {
         BUILD.call_once(|| {
             assert!(Command::new("cargo")
                 .arg("build")
+                .arg("--release")
                 .output()
                 .expect("failed to build extension")
                 .status
@@ -136,15 +137,19 @@ mod integration {
 
     pub fn run_php(file: &str) -> bool {
         setup();
-        Command::new("php")
+        let output = Command::new("php")
             .arg(format!(
-                "-dextension=../target/debug/libtests.{}",
+                "-dextension=../target/release/libtests.{}",
                 std::env::consts::DLL_EXTENSION
             ))
             .arg(format!("src/integration/{}", file))
-            .status()
-            .expect("failed to run php file")
-            .success()
+            .output()
+            .expect("failed to run php file");
+        if output.status.success() {
+            true
+        } else {
+            panic!("{}", String::from_utf8(output.stdout).unwrap());
+        }
     }
 
     mod array;
