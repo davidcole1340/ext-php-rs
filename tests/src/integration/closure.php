@@ -6,7 +6,7 @@ require('_utils.php');
 assert(test_closure()('works') === 'works');
 
 // Closure once
-$closure = test_closure_once('test');
+// $closure = test_closure_once('test');
 
-assert(call_user_func($closure) === 'test');
-assert_exception_thrown($closure);
+// assert(call_user_func($closure) === 'test');
+// assert_exception_thrown($closure);
