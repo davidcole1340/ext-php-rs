@@ -148,7 +148,16 @@ mod integration {
         if output.status.success() {
             true
         } else {
-            panic!("{}", String::from_utf8(output.stdout).unwrap());
+            panic!(
+                "
+                status: {}
+                stdout: {}
+                stderr: {}
+                ",
+                output.status,
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            );
         }
     }
 
