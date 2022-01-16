@@ -3,11 +3,10 @@
 require('_utils.php');
 
 // Closure
-assert(test_closure()('once') === 'once');
-assert(test_closure()('twice') === 'twice');
+assert(test_closure()('works') === 'works');
 
 // Closure once
-$closure = test_closure_once('test');
+// $closure = test_closure_once('test');
 
-assert($closure() === 'test');
-assert_exception_thrown(fn () => $closure());
+// assert($closure() === 'test');
+// assert_exception_thrown(fn () => $closure());
