@@ -670,13 +670,13 @@ impl<'a> FromZval<'a> for &'a ZendHashTable {
 //// HashMap
 ///////////////////////////////////////////
 
-impl<V> TryFrom<&ZendHashTable> for HashMap<String, V>
+impl<'a, V> TryFrom<&'a ZendHashTable> for HashMap<String, V>
 where
-    for<'a> V: FromZval<'a>,
+    V: FromZval<'a>,
 {
     type Error = Error;
 
-    fn try_from(value: &ZendHashTable) -> Result<Self> {
+    fn try_from(value: &'a ZendHashTable) -> Result<Self> {
         let mut hm = HashMap::with_capacity(value.len());
 
         for (idx, key, val) in value.iter() {
@@ -724,13 +724,13 @@ where
     }
 }
 
-impl<T> FromZval<'_> for HashMap<String, T>
+impl<'a, T> FromZval<'a> for HashMap<String, T>
 where
-    for<'a> T: FromZval<'a>,
+    T: FromZval<'a>,
 {
     const TYPE: DataType = DataType::Array;
 
-    fn from_zval(zval: &Zval) -> Option<Self> {
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
         zval.array().and_then(|arr| arr.try_into().ok())
     }
 }
@@ -739,13 +739,13 @@ where
 //// Vec
 ///////////////////////////////////////////
 
-impl<T> TryFrom<&ZendHashTable> for Vec<T>
+impl<'a, T> TryFrom<&'a ZendHashTable> for Vec<T>
 where
-    for<'a> T: FromZval<'a>,
+    T: FromZval<'a>,
 {
     type Error = Error;
 
-    fn try_from(value: &ZendHashTable) -> Result<Self> {
+    fn try_from(value: &'a ZendHashTable) -> Result<Self> {
         let mut vec = Vec::with_capacity(value.len());
 
         for (_, _, val) in value.iter() {
@@ -788,13 +788,13 @@ where
     }
 }
 
-impl<T> FromZval<'_> for Vec<T>
+impl<'a, T> FromZval<'a> for Vec<T>
 where
-    for<'a> T: FromZval<'a>,
+    T: FromZval<'a>,
 {
     const TYPE: DataType = DataType::Array;
 
-    fn from_zval(zval: &Zval) -> Option<Self> {
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
         zval.array().and_then(|arr| arr.try_into().ok())
     }
 }
