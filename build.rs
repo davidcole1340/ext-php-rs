@@ -101,7 +101,7 @@ fn main() {
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .rustfmt_bindings(true)
-        .no_copy("_zend_value")
+        .no_copy("_zval_struct")
         .no_copy("_zend_string")
         .no_copy("_zend_array")
         .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
