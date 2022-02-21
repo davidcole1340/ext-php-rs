@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - macos-ci
   pull_request:
 
 jobs:
@@ -36,6 +37,7 @@ jobs:
           override: true
       - name: Setup LLVM & Clang
         uses: KyleMayes/install-llvm-action@v1
+        if: matrix.os != 'macos-latest'
         with:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
