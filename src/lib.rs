@@ -44,6 +44,8 @@ pub mod prelude {
     pub use crate::php_function;
     pub use crate::php_impl;
     pub use crate::php_module;
+    pub use crate::php_print;
+    pub use crate::php_println;
     pub use crate::php_startup;
     pub use crate::types::ZendCallable;
     pub use crate::ZvalConvert;

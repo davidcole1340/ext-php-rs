@@ -192,5 +192,6 @@ bind! {
     zend_objects_store_del,
     gc_possible_root,
     ZEND_ACC_NOT_SERIALIZABLE,
-    executor_globals
+    executor_globals,
+    php_printf
 }
