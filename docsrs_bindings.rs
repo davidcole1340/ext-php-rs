@@ -1282,6 +1282,9 @@ pub type _zend_expected_type = ::std::os::raw::c_uint;
 extern "C" {
     pub fn zend_wrong_parameters_count_error(min_num_args: u32, max_num_args: u32);
 }
+extern "C" {
+    pub fn php_printf(format: *const ::std::os::raw::c_char, ...) -> size_t;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_ini_entry {
