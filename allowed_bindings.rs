@@ -193,5 +193,6 @@ bind! {
     gc_possible_root,
     ZEND_ACC_NOT_SERIALIZABLE,
     executor_globals,
-    php_printf
+    php_printf,
+    __zend_malloc
 }
