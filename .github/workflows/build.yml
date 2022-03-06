@@ -42,7 +42,7 @@ jobs:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: non-macOS - Configure Clang
-        if: !contains(matrix.os, 'macos')
+        if: "!contains(matrix.os, 'macos')"
         run: |
           echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib" >> $GITHUB_ENV
       - name: Install mdbook
