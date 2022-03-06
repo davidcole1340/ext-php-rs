@@ -300,6 +300,9 @@ extern "C" {
         __zend_orig_lineno: u32,
     );
 }
+extern "C" {
+    pub fn __zend_malloc(len: size_t) -> *mut ::std::os::raw::c_void;
+}
 pub type zend_string_init_interned_func_t = ::std::option::Option<
     unsafe extern "C" fn(
         str_: *const ::std::os::raw::c_char,

@@ -249,7 +249,7 @@ impl Remove {
         let ext_file = format!(
             "{}{}{}",
             consts::DLL_PREFIX,
-            artifact.name.replace("-", "_"),
+            artifact.name.replace('-', "_"),
             consts::DLL_SUFFIX
         );
         ext_path.push(&ext_file);
