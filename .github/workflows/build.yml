@@ -48,13 +48,7 @@ jobs:
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
       - name: Configure Clang (macOS only)
         if: "contains(matrix.os, 'macos')"
-        run: |
-          echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
-          #echo "CPATH=$LLVM_PATH/lib/clang/$LLVM_VERSION/include" >> $GITHUB_ENV
-          #echo "LDFLAGS=-L$LLVM_PATH/lib" >> $GITHUB_ENV
-          #echo "CPPFLAGS=-I$LLVM_PATH/include" >> $GITHUB_ENV
-          #echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
-          #echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
+        run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
       - name: Install mdbook
         uses: peaceiris/actions-mdbook@v1
         with:
@@ -85,7 +79,7 @@ jobs:
           command: clippy
           args: --all -- -D warnings
       - name: Build with docs stub
-        if: "${{ matrix.php }} == '8.1'"
+        if: "contains(matrix.os, 'ubuntu') && ${{ matrix.php }} == '8.1'"
         env:
           DOCS_RS:
         run:
