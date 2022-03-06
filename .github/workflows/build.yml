@@ -43,7 +43,7 @@ jobs:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Configure Clang
-        run:
+        run: |
           echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib" >> $GITHUB_ENV
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
       - name: Configure Clang (macOS only)
