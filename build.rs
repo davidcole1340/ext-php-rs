@@ -23,6 +23,7 @@ fn main() {
     if env::var("DOCS_RS").is_ok() {
         println!("cargo:warning=docs.rs detected - using stub bindings");
         println!("cargo:rustc-cfg=php_debug");
+        println!("cargo:rustc-cfg=php81");
 
         std::fs::copy("docsrs_bindings.rs", out_path)
             .expect("Unable to copy docs.rs stub bindings to output directory.");
