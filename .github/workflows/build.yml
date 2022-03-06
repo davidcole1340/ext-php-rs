@@ -37,7 +37,6 @@ jobs:
           override: true
       - name: Setup LLVM & Clang
         uses: KyleMayes/install-llvm-action@v1
-        if: matrix.os != 'macos-latest'
         with:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
@@ -63,36 +62,6 @@ jobs:
         with:
           command: test
           args: --release --all
-  build-zts:
-    name: Build with ZTS
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Build
-        uses: ./.github/actions/zts
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        llvm:
-          - '11.0'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
-      - name: Setup LLVM & Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: ${{ matrix.llvm }}
-          directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         env:
@@ -112,3 +81,11 @@ jobs:
           DOCS_RS:
         run:
           cargo clean && cargo build
+  build-zts:
+    name: Build with ZTS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build
+        uses: ./.github/actions/zts
