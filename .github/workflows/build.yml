@@ -85,6 +85,7 @@ jobs:
           command: clippy
           args: --all -- -D warnings
       - name: Build with docs stub
+        if: "${{ matrix.php }} == '8.1'"
         env:
           DOCS_RS:
         run:
