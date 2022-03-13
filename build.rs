@@ -492,7 +492,7 @@ fn main() -> Result<()> {
 //     Ok(())
 // }
 
-#[cfg(not(windows))]
+#[cfg(never)]
 fn main() {
     // rerun if wrapper header is changed
     println!("cargo:rerun-if-changed=src/wrapper.h");
@@ -629,7 +629,7 @@ impl PHPInfo {
         Ok(Self(stdout.to_string()))
     }
 
-    #[cfg(windows)]
+    /// N.B. does not work on non-Windows.
     pub fn architecture(&self) -> Result<&str> {
         self.get_key("Architecture")
             .context("Could not find architecture of PHP")
