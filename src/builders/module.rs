@@ -1,7 +1,8 @@
 use crate::{
     error::Result,
-    ffi::{ext_php_rs_php_build_id, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO},
+    ffi::{ext_php_rs_php_build_id, ZEND_MODULE_API_NO},
     zend::{FunctionEntry, ModuleEntry},
+    PHP_DEBUG, PHP_ZTS,
 };
 
 use std::{ffi::CString, mem, ptr};
@@ -55,8 +56,8 @@ impl ModuleBuilder {
             module: ModuleEntry {
                 size: mem::size_of::<ModuleEntry>() as u16,
                 zend_api: ZEND_MODULE_API_NO,
-                zend_debug: ZEND_DEBUG as u8,
-                zts: USING_ZTS as u8,
+                zend_debug: if PHP_DEBUG { 1 } else { 0 },
+                zts: if PHP_ZTS { 1 } else { 0 },
                 ini_entry: ptr::null(),
                 deps: ptr::null(),
                 name: ptr::null(),

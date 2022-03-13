@@ -4,6 +4,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![cfg_attr(docs, feature(doc_cfg))]
+#![cfg_attr(windows, feature(abi_vectorcall))]
 
 pub mod alloc;
 pub mod args;
@@ -53,6 +54,12 @@ pub mod prelude {
 
 /// `ext-php-rs` version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Whether the extension is compiled for PHP debug mode.
+pub const PHP_DEBUG: bool = cfg!(php_debug);
+
+/// Whether the extension is compiled for PHP thread-safe mode.
+pub const PHP_ZTS: bool = cfg!(php_zts);
 
 /// Attribute used to annotate constants to be exported to PHP.
 ///
@@ -650,3 +657,35 @@ pub use ext_php_rs_derive::php_startup;
 /// [`Zval`]: crate::php::types::zval::Zval
 /// [`Zval::string`]: crate::php::types::zval::Zval::string
 pub use ext_php_rs_derive::ZvalConvert;
+
+/// Defines an `extern` function with the Zend fastcall convention based on
+/// operating system.
+///
+/// On Windows, Zend fastcall functions use the vector calling convention, while
+/// on all other operating systems no fastcall convention is used (just the
+/// regular C calling convention).
+///
+/// This macro wraps a function and applies the correct calling convention.
+///
+/// ## Examples
+///
+/// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
+/// use ext_php_rs::zend_fastcall;
+///
+/// zend_fastcall! {
+///     pub extern fn test_hello_world(a: i32, b: i32) -> i32 {
+///         a + b
+///     }
+/// }
+/// ```
+///
+/// On Windows, this function will have the signature `pub extern "vectorcall"
+/// fn(i32, i32) -> i32`, while on macOS/Linux the function will have the
+/// signature `pub extern "C" fn(i32, i32) -> i32`.
+///
+/// ## Support
+///
+/// The `vectorcall` ABI is currently only supported on Windows with nightly
+/// Rust and the `abi_vectorcall` feature enabled.
+pub use ext_php_rs_derive::zend_fastcall;

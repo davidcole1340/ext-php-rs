@@ -68,18 +68,20 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
     let func = quote! {
         #input
 
-        #[doc(hidden)]
-        pub extern "C" fn #internal_ident(ex: &mut ::ext_php_rs::zend::ExecuteData, retval: &mut ::ext_php_rs::types::Zval) {
-            use ::ext_php_rs::convert::IntoZval;
+        ::ext_php_rs::zend_fastcall! {
+            #[doc(hidden)]
+            pub extern fn #internal_ident(ex: &mut ::ext_php_rs::zend::ExecuteData, retval: &mut ::ext_php_rs::types::Zval) {
+                use ::ext_php_rs::convert::IntoZval;
 
-            #(#arg_definitions)*
-            #arg_parser
+                #(#arg_definitions)*
+                #arg_parser
 
-            let result = #ident(#(#arg_accessors, )*);
+                let result = #ident(#(#arg_accessors, )*);
 
-            if let Err(e) = result.set_zval(retval, false) {
-                let e: ::ext_php_rs::exception::PhpException = e.into();
-                e.throw().expect("Failed to throw exception");
+                if let Err(e) = result.set_zval(retval, false) {
+                    let e: ::ext_php_rs::exception::PhpException = e.into();
+                    e.throw().expect("Failed to throw exception");
+                }
             }
         }
     };

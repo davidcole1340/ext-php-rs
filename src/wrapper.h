@@ -1,3 +1,17 @@
+// PHP for Windows uses the `vectorcall` calling convention on some functions. This is guarded by
+// the `ZEND_FASTCALL` macro, which is set to `__vectorcall` on Windows and nothing on other systems.
+//
+// However, `ZEND_FASTCALL` is only set when compiling with MSVC and the PHP source code checks for
+// the __clang__ macro and will not define `__vectorcall` if it is set (even on Windows). This is a
+// problem as Bindgen uses libclang to generate bindings. To work around this, we include the header
+// file containing the `ZEND_FASTCALL` macro but not before undefining `__clang__` to pretend we are
+// compiling on MSVC.
+#if defined(_MSC_VER) && defined(__clang__)
+# undef __clang__
+# include "zend_portability.h"
+# define __clang__
+#endif
+
 #include "php.h"
 #include "ext/standard/info.h"
 #include "zend_exceptions.h"
