@@ -1,6 +1,4 @@
 use std::{
-    borrow::Cow,
-    convert::TryInto,
     env,
     fs::File,
     io::{BufRead, BufReader, BufWriter, Cursor, Write},
@@ -16,7 +14,6 @@ const MIN_PHP_API_VER: u32 = 20200930;
 const MAX_PHP_API_VER: u32 = 20210902;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
-const DEFINES: &[&str] = &["ZEND_WIN32", "WINDOWS", "PHP_WIN32", "WIN32"];
 
 trait PHPProvider<'a>: Sized {
     fn new(info: &'a PHPInfo) -> Result<Self>;
@@ -335,6 +332,64 @@ impl DevelPack {
     }
 }
 
+struct PHPInfo(String);
+
+impl PHPInfo {
+    pub fn get(php: &Path) -> Result<Self> {
+        let cmd = Command::new(php)
+            .arg("-i")
+            .output()
+            .context("Failed to call `php -i`")?;
+        if !cmd.status.success() {
+            bail!("Failed to call `php -i` status code {}", cmd.status);
+        }
+        let stdout = String::from_utf8_lossy(&cmd.stdout);
+        Ok(Self(stdout.to_string()))
+    }
+
+    /// N.B. does not work on non-Windows.
+    pub fn architecture(&self) -> Result<&str> {
+        self.get_key("Architecture")
+            .context("Could not find architecture of PHP")
+    }
+
+    pub fn thread_safety(&self) -> Result<bool> {
+        Ok(self
+            .get_key("Thread Safety")
+            .context("Could not find thread safety of PHP")?
+            == "enabled")
+    }
+
+    pub fn debug(&self) -> Result<bool> {
+        Ok(self
+            .get_key("Debug Build")
+            .context("Could not find debug build of PHP")?
+            == "yes")
+    }
+
+    pub fn version(&self) -> Result<&str> {
+        self.get_key("PHP Version")
+            .context("Failed to get PHP version")
+    }
+
+    pub fn zend_version(&self) -> Result<u32> {
+        self.get_key("PHP API")
+            .context("Failed to get Zend version")
+            .and_then(|s| u32::from_str(s).context("Failed to convert Zend version to integer"))
+    }
+
+    fn get_key(&self, key: &str) -> Option<&str> {
+        let split = format!("{} => ", key);
+        for line in self.0.lines() {
+            let components: Vec<_> = line.split(&split).collect();
+            if components.len() > 1 {
+                return Some(components[1]);
+            }
+        }
+        None
+    }
+}
+
 fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     let mut build = cc::Build::new();
     for (var, val) in defines {
@@ -452,224 +507,6 @@ fn main() -> Result<()> {
     provider.print_extra_link_args()?;
 
     Ok(())
-}
-
-// #[cfg(windows)]
-// fn main() -> Result<()> {
-//     return Ok(());
-
-//     let php = find_php()?;
-//     let info = PHPInfo::get(&php)?;
-//     let arch = info.architecture()?;
-//     let is_zts = info.thread_safety()?;
-//     let version = info.version()?;
-//     let debug = info.debug()?;
-//     let devkit = download_devel_pack(version, is_zts, arch)?;
-//     let includes = devkit.include_paths();
-//     let defines = get_defines(debug);
-//     let php_lib = devkit.php_lib();
-//     let php_lib_name = php_lib
-//         .file_stem()
-//         .context("Failed to get PHP library name")?
-//         .to_string_lossy();
-
-//     build_wrapper(&defines, &includes)?;
-//     generate_bindings(&defines, &includes, &*php_lib_name)?;
-
-//     println!("cargo:rustc-cfg=php81");
-//     if debug {
-//         println!("cargo:rustc-cfg=php_debug");
-//     }
-//     println!("cargo:rustc-link-lib=dylib={}", php_lib_name);
-//     println!(
-//         "cargo:rustc-link-search={}",
-//         php_lib
-//             .parent()
-//             .context("Failed to get PHP library parent directory")?
-//             .to_string_lossy()
-//     );
-
-//     Ok(())
-// }
-
-#[cfg(never)]
-fn main() {
-    // rerun if wrapper header is changed
-    println!("cargo:rerun-if-changed=src/wrapper.h");
-    println!("cargo:rerun-if-changed=src/wrapper.c");
-    println!("cargo:rerun-if-changed=allowed_bindings.rs");
-
-    let out_dir = env::var_os("OUT_DIR").expect("Failed to get OUT_DIR");
-    let out_path = PathBuf::from(out_dir).join("bindings.rs");
-
-    // check for docs.rs and use stub bindings if required
-    if env::var("DOCS_RS").is_ok() {
-        println!("cargo:warning=docs.rs detected - using stub bindings");
-        println!("cargo:rustc-cfg=php_debug");
-        println!("cargo:rustc-cfg=php81");
-
-        std::fs::copy("docsrs_bindings.rs", out_path)
-            .expect("Unable to copy docs.rs stub bindings to output directory.");
-        return;
-    }
-
-    // use php-config to fetch includes
-    let includes_cmd = Command::new("php-config")
-        .arg("--includes")
-        .output()
-        .expect("Unable to run `php-config`. Please ensure it is visible in your PATH.");
-
-    if !includes_cmd.status.success() {
-        let stderr = String::from_utf8(includes_cmd.stderr)
-            .unwrap_or_else(|_| String::from("Unable to read stderr"));
-        panic!("Error running `php-config`: {}", stderr);
-    }
-
-    // Ensure the PHP API version is supported.
-    // We could easily use grep and sed here but eventually we want to support
-    // Windows, so it's easier to just use regex.
-    let php_i_cmd = Command::new("php")
-        .arg("-i")
-        .output()
-        .expect("Unable to run `php -i`. Please ensure it is visible in your PATH.");
-
-    if !php_i_cmd.status.success() {
-        let stderr = str::from_utf8(&includes_cmd.stderr).unwrap_or("Unable to read stderr");
-        panic!("Error running `php -i`: {}", stderr);
-    }
-
-    let api_ver = Regex::new(r"PHP API => ([0-9]+)")
-        .unwrap()
-        .captures_iter(
-            str::from_utf8(&php_i_cmd.stdout).expect("Unable to parse `php -i` stdout as UTF-8"),
-        )
-        .next()
-        .and_then(|ver| ver.get(1))
-        .and_then(|ver| ver.as_str().parse::<u32>().ok())
-        .expect("Unable to retrieve PHP API version from `php -i`.");
-
-    if !(MIN_PHP_API_VER..=MAX_PHP_API_VER).contains(&api_ver) {
-        panic!("The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}", api_ver, MIN_PHP_API_VER, MAX_PHP_API_VER);
-    }
-
-    // Infra cfg flags - use these for things that change in the Zend API that don't
-    // rely on a feature and the crate user won't care about (e.g. struct field
-    // changes). Use a feature flag for an actual feature (e.g. enums being
-    // introduced in PHP 8.1).
-    //
-    // PHP 8.0 is the baseline - no feature flags will be introduced here.
-    //
-    // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
-    // should get both the `php81` and `php82` flags.
-    const PHP_81_API_VER: u32 = 20210902;
-
-    if api_ver >= PHP_81_API_VER {
-        println!("cargo:rustc-cfg=php81");
-    }
-
-    let includes =
-        String::from_utf8(includes_cmd.stdout).expect("unable to parse `php-config` stdout");
-
-    // Build `wrapper.c` and link to Rust.
-    cc::Build::new()
-        .file("src/wrapper.c")
-        .includes(
-            str::replace(includes.as_ref(), "-I", "")
-                .split(' ')
-                .map(Path::new),
-        )
-        .compile("wrapper");
-
-    let mut bindgen = bindgen::Builder::default()
-        .header("src/wrapper.h")
-        .clang_args(includes.split(' '))
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-        .rustfmt_bindings(true)
-        .no_copy("_zval_struct")
-        .no_copy("_zend_string")
-        .no_copy("_zend_array")
-        .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
-
-    for binding in ALLOWED_BINDINGS.iter() {
-        bindgen = bindgen
-            .allowlist_function(binding)
-            .allowlist_type(binding)
-            .allowlist_var(binding);
-    }
-
-    bindgen
-        .generate()
-        .expect("Unable to generate bindings for PHP")
-        .write_to_file(out_path)
-        .expect("Unable to write bindings file.");
-
-    let configure = PHPConfig::get();
-
-    if configure.has_zts() {
-        println!("cargo:rustc-cfg=php_zts");
-    }
-
-    if configure.debug() {
-        println!("cargo:rustc-cfg=php_debug");
-    }
-}
-
-struct PHPInfo(String);
-
-impl PHPInfo {
-    pub fn get(php: &Path) -> Result<Self> {
-        let cmd = Command::new(php)
-            .arg("-i")
-            .output()
-            .context("Failed to call `php -i`")?;
-        if !cmd.status.success() {
-            bail!("Failed to call `php -i` status code {}", cmd.status);
-        }
-        let stdout = String::from_utf8_lossy(&cmd.stdout);
-        Ok(Self(stdout.to_string()))
-    }
-
-    /// N.B. does not work on non-Windows.
-    pub fn architecture(&self) -> Result<&str> {
-        self.get_key("Architecture")
-            .context("Could not find architecture of PHP")
-    }
-
-    pub fn thread_safety(&self) -> Result<bool> {
-        Ok(self
-            .get_key("Thread Safety")
-            .context("Could not find thread safety of PHP")?
-            == "enabled")
-    }
-
-    pub fn debug(&self) -> Result<bool> {
-        Ok(self
-            .get_key("Debug Build")
-            .context("Could not find debug build of PHP")?
-            == "yes")
-    }
-
-    pub fn version(&self) -> Result<&str> {
-        self.get_key("PHP Version")
-            .context("Failed to get PHP version")
-    }
-
-    pub fn zend_version(&self) -> Result<u32> {
-        self.get_key("PHP API")
-            .context("Failed to get Zend version")
-            .and_then(|s| u32::from_str(s).context("Failed to convert Zend version to integer"))
-    }
-
-    fn get_key(&self, key: &str) -> Option<&str> {
-        let split = format!("{} => ", key);
-        for line in self.0.lines() {
-            let components: Vec<_> = line.split(&split).collect();
-            if components.len() > 1 {
-                return Some(components[1]);
-            }
-        }
-        None
-    }
 }
 
 // Mock macro for the `allowed_bindings.rs` script.

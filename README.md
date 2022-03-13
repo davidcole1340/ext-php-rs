@@ -106,7 +106,7 @@ best resource at the moment. This can be viewed at [docs.rs].
 
 - PHP 8.0 or later
   - No support is planned for lower versions.
-- Linux or Darwin-based OS
+- Linux, macOS or Windows-based operating system
 - Rust - no idea which version
 - Clang 3.9 or greater
 
@@ -114,6 +114,20 @@ See the following links for the dependency crate requirements:
 
 - [`cc`](https://github.com/alexcrichton/cc-rs#compile-time-requirements)
 - [`bindgen`](https://rust-lang.github.io/rust-bindgen/requirements.html)
+
+### Windows Support
+
+Windows has some extra requirements:
+
+- Extensions can only be compiled for PHP installations sourced from
+  [windows.php.net].
+- Only PHP installations compiled with MSVC are supported (no support for
+  `x86_64-pc-windows-gnu`).
+- Microsoft Visual C++ must be installed. The compiler version must match or be
+  older than the compiler that was used to compile your PHP installation (at the
+  time of writing Visual Studio 2019 is supported).
+- Extensions can only be compiled with nightly Rust, and the `abi_vectorcall`
+  feature must be enabled in your crates's Cargo Features
 
 ## Cargo Features
 
@@ -134,8 +148,8 @@ Check out one of the example projects:
 
 - [anonaddy-sequoia](https://gitlab.com/willbrowning/anonaddy-sequoia) - Sequoia
   encryption PHP extension.
-- [opus-php](https://github.com/davidcole1340/opus-php) -
-  Audio encoder for the Opus codec in PHP.
+- [opus-php](https://github.com/davidcole1340/opus-php) - Audio encoder for the
+  Opus codec in PHP.
 
 ## Contributions
 
