@@ -36,7 +36,7 @@ impl<'a> Provider<'a> {
     ///
     /// If not compatible, attempts to find a compatible linker and notifies the
     /// user if one is found.
-    fn check_linker_compatibility(&self) -> Result<()> {
+    pub fn check_linker_compatibility(&self) -> Result<()> {
         let rustc_linker = get_rustc_linker()?;
         let rustc_linker_version = LinkerVersion::from_linker_path(&rustc_linker)?;
         let php_linker_version = self.devel.linker_version()?;
@@ -265,7 +265,7 @@ struct Linker {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum Arch {
+pub enum Arch {
     X86,
     X64,
     AArch64,

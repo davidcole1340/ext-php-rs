@@ -82,7 +82,9 @@ impl PHPInfo {
 
     // Only present on Windows.
     #[cfg(windows)]
-    pub fn architecture(&self) -> Result<Arch> {
+    pub fn architecture(&self) -> Result<impl_::Arch> {
+        use std::convert::TryInto;
+
         self.get_key("Architecture")
             .context("Could not find architecture of PHP")?
             .try_into()
@@ -153,7 +155,6 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
                 .iter()
                 .map(|(var, val)| format!("-D{}={}", var, val)),
         )
-        // .clang_args(&["-DMSC_VER=1800", "-DZEND_FASTCALL=__vectorcall"])
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .rustfmt_bindings(true)
         .no_copy("_zval_struct")
