@@ -22,6 +22,7 @@ f32, f64).
 ## Rust Usage
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 use ext_php_rs::binary::Binary;

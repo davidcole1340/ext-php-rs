@@ -74,6 +74,7 @@ pub const PHP_ZTS: bool = cfg!(php_zts);
 /// # Example
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_const]
 /// const TEST_CONSTANT: i32 = 100;
@@ -118,6 +119,7 @@ pub use ext_php_rs_derive::php_const;
 /// as the return type is an integer-boolean union.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// # use ext_php_rs::types::Zval;
 /// #[php_extern]
@@ -183,6 +185,7 @@ pub use ext_php_rs_derive::php_extern;
 /// function which looks like so:
 ///
 /// ```no_run
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::{prelude::*, exception::PhpException, zend::ExecuteData, convert::{FromZvalMut, IntoZval}, types::Zval, args::{Arg, ArgParser}};
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
@@ -227,6 +230,7 @@ pub use ext_php_rs_derive::php_extern;
 /// must be declared in the PHP module to be able to call.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function]
 /// pub fn hello(name: String) -> String {
@@ -243,6 +247,7 @@ pub use ext_php_rs_derive::php_extern;
 /// two optional parameters (`description` and `age`).
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function(optional = "description")]
 /// pub fn hello(name: String, description: Option<String>, age: Option<i32>) -> String {
@@ -269,6 +274,7 @@ pub use ext_php_rs_derive::php_extern;
 /// the attribute to the following:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function(optional = "description", defaults(description = "David", age = 10))]
 /// pub fn hello(name: String, description: String, age: i32) -> String {
@@ -339,6 +345,7 @@ pub use ext_php_rs_derive::php_function;
 /// # Example
 ///
 /// ```no_run
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_class]
 /// #[derive(Debug)]
@@ -408,6 +415,7 @@ pub use ext_php_rs_derive::php_impl;
 /// automatically be registered when the module attribute is called.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function]
 /// pub fn hello(name: String) -> String {
@@ -455,6 +463,7 @@ pub use ext_php_rs_derive::php_module;
 /// Export a simple class called `Example`, with 3 Rust fields.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_class]
 /// pub struct Example {
@@ -473,6 +482,7 @@ pub use ext_php_rs_derive::php_module;
 /// `Redis\Exception`:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// use ext_php_rs::exception::PhpException;
 /// use ext_php_rs::zend::ce;
@@ -510,6 +520,7 @@ pub use ext_php_rs_derive::php_class;
 /// # Example
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_startup]
 /// pub fn startup_function() {
@@ -544,6 +555,7 @@ pub use ext_php_rs_derive::php_startup;
 /// Basic example with some primitive PHP type.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[derive(Debug, ZvalConvert)]
 /// pub struct ExampleStruct<'a> {
@@ -582,6 +594,7 @@ pub use ext_php_rs_derive::php_startup;
 /// Another example involving generics:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[derive(Debug, ZvalConvert)]
 /// pub struct CompareVals<T: PartialEq<i32>> {
@@ -620,6 +633,7 @@ pub use ext_php_rs_derive::php_startup;
 /// Basic example showing the importance of variant ordering and default field:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[derive(Debug, ZvalConvert)]
 /// pub enum UnionExample<'a> {

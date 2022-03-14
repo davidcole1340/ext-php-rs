@@ -43,6 +43,7 @@ fact that it can modify variables in its scope.
 ### Example
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
@@ -82,6 +83,7 @@ will be thrown.
 ### Example
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
@@ -108,6 +110,7 @@ function by its name, or as a parameter. They can be called through the
 ### Callable parameter
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 

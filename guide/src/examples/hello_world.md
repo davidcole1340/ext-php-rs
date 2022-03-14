@@ -50,6 +50,7 @@ we were given.
 ### `src/lib.rs`
 
 ```rust,ignore
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 use ext_php_rs::prelude::*;
 
 #[php_function]

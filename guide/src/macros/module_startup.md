@@ -17,6 +17,7 @@ Read more about what the module startup function is used for
 ## Example
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_startup]

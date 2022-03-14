@@ -96,6 +96,7 @@ constructor, as well as getters for the properties. We will also define a
 constant for the maximum age of a `Human`.
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::{prelude::*, types::ZendClassObject};
 # #[php_class]

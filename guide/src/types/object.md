@@ -18,6 +18,7 @@ object.
 ### Taking an object reference
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::{prelude::*, types::ZendObject};
 
@@ -36,6 +37,7 @@ pub fn take_obj(obj: &mut ZendObject) -> &mut ZendObject {
 ### Creating a new object
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::{prelude::*, types::ZendObject, boxed::ZBox};
 

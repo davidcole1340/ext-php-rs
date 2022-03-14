@@ -22,6 +22,7 @@ fallible.
 ## Rust example
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_function]

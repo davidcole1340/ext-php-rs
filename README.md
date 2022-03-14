@@ -10,6 +10,8 @@ Rust.
 Export a simple function `function hello_world(string $name): string` to PHP:
 
 ```rust
+#![cfg_attr(windows, feature(abi_vectorcall))]
+
 use ext_php_rs::prelude::*;
 
 /// Gives you a nice greeting!

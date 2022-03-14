@@ -17,6 +17,7 @@ be thrown if one is encountered while converting a `String` to a zval.
 ## Rust example
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_function]

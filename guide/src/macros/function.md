@@ -14,6 +14,7 @@ using the last consecutive arguments that are a variant of `Option<T>` or have a
 default value.
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_function]
@@ -33,6 +34,7 @@ through the `defaults` attribute option. When an optional parameter has a
 default, it does not need to be a variant of `Option`:
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_function(defaults(offset = 0))]
@@ -47,6 +49,7 @@ variant of `Option<T>`, the `Option<T>` argument will be deemed a nullable
 argument rather than an optional argument.
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 /// `age` will be deemed required and nullable rather than optional.
@@ -68,6 +71,7 @@ arguments before optional arguments. This is done through an attribute
 parameter:
 
 ```rust
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 /// `age` will be deemed required and nullable rather than optional,
