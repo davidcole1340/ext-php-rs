@@ -6,22 +6,14 @@ on:
   pull_request:
 
 jobs:
-  build:
-    name: Build and Test
-    runs-on: ${{ matrix.os }}
+  build-win32:
+    name: Build and Test (Windows)
+    runs-on: windows-latest
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-        rust-toolchain:
-          - stable
-          - nightly
         php:
-          - '8.0'
+          # - '8.0'
           - '8.1'
-        llvm:
-          - '11.0'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -32,7 +24,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust-toolchain }}
+          toolchain: nightly
           override: true
           components: rustfmt, clippy
       - name: Setup LLVM & Clang
@@ -41,17 +33,9 @@ jobs:
         with:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
-      - name: Configure Clang
-        run: |
-          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib" >> $GITHUB_ENV
-          echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
-      - name: Configure Clang (macOS only)
-        if: "contains(matrix.os, 'macos')"
-        run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
       - name: Install mdbook
-        uses: peaceiris/actions-mdbook@v1
-        with:
-          mdbook-version: latest
+        runs: |
+          cargo install mdbook
       - name: Build
         env:
           EXT_PHP_RS_TEST:
@@ -77,17 +61,88 @@ jobs:
         with:
           command: clippy
           args: --all -- -D warnings
-      - name: Build with docs stub
-        if: "contains(matrix.os, 'ubuntu') && ${{ matrix.php }} == '8.1'"
-        env:
-          DOCS_RS:
-        run:
-          cargo clean && cargo build
-  build-zts:
-    name: Build with ZTS
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Build
-        uses: ./.github/actions/zts
+  # build:
+  #   name: Build and Test
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os:
+  #         - ubuntu-latest
+  #         - macos-latest
+  #       rust-toolchain:
+  #         - stable
+  #         - nightly
+  #       php:
+  #         - '8.0'
+  #         - '8.1'
+  #       llvm:
+  #         - '11.0'
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: Setup PHP
+  #       uses: shivammathur/setup-php@v2
+  #       with:
+  #         php-version: ${{ matrix.php }}
+  #     - name: Setup Rust
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: ${{ matrix.rust-toolchain }}
+  #         override: true
+  #         components: rustfmt, clippy
+  #     - name: Setup LLVM & Clang
+  #       id: clang
+  #       uses: KyleMayes/install-llvm-action@v1
+  #       with:
+  #         version: ${{ matrix.llvm }}
+  #         directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
+  #     - name: Configure Clang
+  #       run: |
+  #         echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib" >> $GITHUB_ENV
+  #         echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
+  #     - name: Configure Clang (macOS only)
+  #       if: "contains(matrix.os, 'macos')"
+  #       run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
+  #     - name: Install mdbook
+  #       uses: peaceiris/actions-mdbook@v1
+  #       with:
+  #         mdbook-version: latest
+  #     - name: Build
+  #       env:
+  #         EXT_PHP_RS_TEST:
+  #       run: cargo build --release --all-features --all
+  #     - name: Test guide examples
+  #       env:
+  #         CARGO_PKG_NAME: mdbook-tests
+  #         CARGO_PKG_VERSION: 0.1.0
+  #       run: |
+  #         mdbook test guide -L target/release/deps
+  #     - name: Test inline examples
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: test
+  #         args: --release --all
+  #     - name: Run rustfmt
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: fmt
+  #         args: --all -- --check
+  #     - name: Run clippy
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: clippy
+  #         args: --all -- -D warnings
+  #     - name: Build with docs stub
+  #       if: "contains(matrix.os, 'ubuntu') && ${{ matrix.php }} == '8.1'"
+  #       env:
+  #         DOCS_RS:
+  #       run:
+  #         cargo clean && cargo build
+  # build-zts:
+  #   name: Build with ZTS
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: Build
+  #       uses: ./.github/actions/zts
