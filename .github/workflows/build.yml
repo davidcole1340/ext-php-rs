@@ -34,7 +34,7 @@ jobs:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Install mdbook
-        runs: |
+        run: |
           cargo install mdbook
       - name: Build
         env:
