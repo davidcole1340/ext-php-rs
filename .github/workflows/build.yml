@@ -27,12 +27,12 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt, clippy
-      - name: Setup LLVM & Clang
-        id: clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: ${{ matrix.llvm }}
-          directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
+      # - name: Setup LLVM & Clang
+      #   id: clang
+      #   uses: KyleMayes/install-llvm-action@v1
+      #   with:
+      #     version: ${{ matrix.llvm }}
+      #     directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Install mdbook
         run: |
           cargo install mdbook
