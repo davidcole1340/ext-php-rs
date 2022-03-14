@@ -152,17 +152,17 @@ impl LinkerVersion {
         let linker = stdout
             .split("\r\n")
             .next()
-            .context("Linker output was empty")?;
+            .with_context(|| format!("Linker output was empty: {:?}", cmd))?;
         let version = linker
             .split(' ')
             .last()
-            .context("Linker version string was empty")?;
+            .with_context(|| format!("Linker version string was empty: {:?}", cmd))?;
         let components = version
             .split('.')
             .take(2)
             .map(|v| v.parse())
             .collect::<Result<Vec<_>, _>>()
-            .context("Linker version component was empty")?;
+            .with_context(|| format!("Linker version component was empty: {:?}", cmd))?;
         Ok(Self {
             major: components[0],
             minor: components[1],

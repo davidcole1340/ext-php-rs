@@ -33,13 +33,13 @@ jobs:
       #   with:
       #     version: ${{ matrix.llvm }}
       #     directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
-      - name: Install mdbook
-        run: |
-          cargo install mdbook
       - name: Build
         env:
           EXT_PHP_RS_TEST:
         run: cargo build --release --all-features --all
+      - name: Install mdbook
+        run: |
+          cargo install mdbook
       - name: Test guide examples
         env:
           CARGO_PKG_NAME: mdbook-tests
