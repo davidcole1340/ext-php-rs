@@ -155,7 +155,6 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
                 .iter()
                 .map(|(var, val)| format!("-D{}={}", var, val)),
         )
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .rustfmt_bindings(true)
         .no_copy("_zval_struct")
         .no_copy("_zend_string")
@@ -212,17 +211,15 @@ fn main() -> Result<()> {
         manifest.join("src").join("wrapper.h"),
         manifest.join("src").join("wrapper.c"),
         manifest.join("allowed_bindings.rs"),
+        manifest.join("windows_build.rs"),
+        manifest.join("unix_build.rs"),
     ] {
         println!("cargo:rerun-if-changed={}", path.to_string_lossy());
     }
 
     let php = find_php()?;
     let info = PHPInfo::get(&php)?;
-
     let provider = Provider::new(&info)?;
-
-    #[cfg(windows)]
-    provider.check_linker_compatibility()?;
 
     let includes = provider.get_includes()?;
     let defines = provider.get_defines()?;
