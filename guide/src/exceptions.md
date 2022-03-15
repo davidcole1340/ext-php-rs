@@ -26,7 +26,7 @@ the `#[php_function]` attribute.
 
 ### Examples
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
@@ -44,6 +44,7 @@ pub fn something_fallible(n: u64) -> PhpResult<u32> {
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
     module
 }
+# fn main() {}
 ```
 
 [`PhpException`]: https://docs.rs/ext-php-rs/0.5.0/ext_php_rs/php/exceptions/struct.PhpException.html

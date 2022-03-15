@@ -21,7 +21,7 @@ f32, f64).
 
 ## Rust Usage
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
@@ -37,6 +37,7 @@ pub fn test_binary(input: Binary<u32>) -> Binary<u32> {
         .into_iter()
         .collect::<Binary<_>>()
 }
+# fn main() {}
 ```
 
 ## PHP Usage

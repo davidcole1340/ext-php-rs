@@ -21,7 +21,7 @@ fallible.
 
 ## Rust example
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
@@ -30,6 +30,7 @@ pub fn test_numbers(a: i32, b: u32, c: f32) -> u8 {
     println!("a {} b {} c {}", a, b, c);
     0
 }
+# fn main() {}
 ```
 
 ## PHP example

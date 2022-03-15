@@ -36,7 +36,7 @@ You can rename the property with options:
 
 This example creates a PHP class `Human`, adding a PHP property `address`.
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
@@ -51,12 +51,13 @@ pub struct Human {
 # pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 #     module
 # }
+# fn main() {}
 ```
 
 Create a custom exception `RedisException`, which extends `Exception`, and put
 it in the `Redis\Exception` namespace:
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
@@ -76,4 +77,5 @@ pub fn throw_exception() -> PhpResult<i32> {
 # pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 #     module
 # }
+# fn main() {}
 ```

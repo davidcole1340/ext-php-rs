@@ -12,7 +12,7 @@ object as a superset of an object, as a class object contains a Zend object.
 
 ### Returning a reference to `self`
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::{prelude::*, types::ZendClassObject};
@@ -36,11 +36,12 @@ impl Example {
 # pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 #     module
 # }
+# fn main() {}
 ```
 
 ### Creating a new class instance
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
@@ -61,4 +62,5 @@ impl Example {
 # pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 #     module
 # }
+# fn main() {}
 ```

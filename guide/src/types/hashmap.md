@@ -16,7 +16,7 @@ Converting from a `HashMap` to a zval is valid when the key implements
 
 ## Rust example
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
@@ -31,6 +31,7 @@ pub fn test_hashmap(hm: HashMap<String, String>) -> Vec<String> {
         .map(|(_, v)| v)
         .collect::<Vec<_>>()
 }
+# fn main() {}
 ```
 
 ## PHP example

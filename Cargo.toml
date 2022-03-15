@@ -19,11 +19,15 @@ once_cell = "1.8.0"
 anyhow = { version = "1", optional = true }
 ext-php-rs-derive = { version = "=0.7.3", path = "./crates/macros" }
 
+[dev-dependencies]
+skeptic = "0.13"
+
 [build-dependencies]
 anyhow = "1"
 # bindgen = { version = "0.59" }
 bindgen = { git = "https://github.com/rust-lang/rust-bindgen", branch = "master" }
 cc = "1.0"
+skeptic = "0.13"
 
 [target.'cfg(windows)'.build-dependencies]
 reqwest = { version = "*", features = ["blocking"] }

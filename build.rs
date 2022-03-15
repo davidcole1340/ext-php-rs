@@ -4,6 +4,7 @@ mod impl_;
 
 use std::{
     env,
+    ffi::OsStr,
     fs::File,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
@@ -242,6 +243,15 @@ fn main() -> Result<()> {
         println!("cargo:rustc-cfg=php_zts");
     }
     provider.print_extra_link_args()?;
+
+    // Generate guide tests
+    let test_md = skeptic::markdown_files_of_directory("guide");
+    #[cfg(not(feature = "closure"))]
+    let test_md: Vec<_> = test_md
+        .into_iter()
+        .filter(|p| p.file_stem() != Some(OsStr::new("closure")))
+        .collect();
+    skeptic::generate_doc_tests(&test_md);
 
     Ok(())
 }

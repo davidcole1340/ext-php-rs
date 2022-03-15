@@ -37,30 +37,21 @@ jobs:
         env:
           EXT_PHP_RS_TEST:
         run: cargo build --release --all-features
-      - name: Install mdbook
-        run: |
-          cargo install mdbook
-      - name: Test guide examples
-        env:
-          CARGO_PKG_NAME: mdbook-tests
-          CARGO_PKG_VERSION: 0.1.0
-        run: |
-          mdbook test guide -L target/release/deps
-      - name: Test inline examples
+      - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release --all
+          args: --release --all-features
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: -- --check
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all -- -D warnings
+          args: -- -D warnings
   # build:
   #   name: Build and Test
   #   runs-on: ${{ matrix.os }}

@@ -16,7 +16,7 @@ be thrown if one is encountered while converting a `String` to a zval.
 
 ## Rust example
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
@@ -24,6 +24,7 @@ be thrown if one is encountered while converting a `String` to a zval.
 pub fn str_example(input: String) -> String {
     format!("Hello {}", input)
 }
+# fn main() {}
 ```
 
 ## PHP example

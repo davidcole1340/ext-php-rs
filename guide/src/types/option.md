@@ -18,7 +18,7 @@ null to PHP.
 
 ## Rust example
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
@@ -26,6 +26,7 @@ null to PHP.
 pub fn test_option_null(input: Option<String>) -> Option<String> {
     input.map(|input| format!("Hello {}", input).into())
 }
+# fn main() {}
 ```
 
 ## PHP example

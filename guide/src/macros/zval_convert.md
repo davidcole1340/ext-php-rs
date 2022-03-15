@@ -13,7 +13,7 @@ all generics types.
 
 ### Examples
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
@@ -38,6 +38,8 @@ pub fn give_object() -> ExampleClass<'static> {
         c: "Borrowed",
     }
 }
+# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
+# fn main() {}
 ```
 
 Calling from PHP:
@@ -56,7 +58,7 @@ var_dump(give_object());
 
 Another example involving generics:
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
@@ -72,6 +74,8 @@ pub struct CompareVals<T: PartialEq<i32>> {
 pub fn take_object(obj: CompareVals<i32>) {
     dbg!(obj);
 }
+# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
+# fn main() {}
 ```
 
 ## Enums
@@ -94,7 +98,7 @@ to a string and passed as the string variant.
 
 Basic example showing the importance of variant ordering and default field:
 
-```rust
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
@@ -116,6 +120,8 @@ pub fn test_union(val: UnionExample) {
 pub fn give_union() -> UnionExample<'static> {
     UnionExample::Long(5)
 }
+# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
+# fn main() {}
 ```
 
 Use in PHP:
