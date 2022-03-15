@@ -22,7 +22,7 @@ ext-php-rs-derive = { version = "=0.7.3", path = "./crates/macros" }
 [build-dependencies]
 anyhow = "1"
 # bindgen = { version = "0.59" }
-bindgen = { git = "https://github.com/davidcole1340/rust-bindgen", branch = "abi_vectorcall" }
+bindgen = { git = "https://github.com/rust-lang/rust-bindgen", branch = "master" }
 cc = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
