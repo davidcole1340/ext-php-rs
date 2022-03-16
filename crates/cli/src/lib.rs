@@ -341,6 +341,9 @@ impl Remove {
 #[cfg(not(windows))]
 impl Stubs {
     pub fn handle(self) -> CrateResult {
+        use ext_php_rs::describe::ToStub;
+        use std::{borrow::Cow, str::FromStr};
+
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
