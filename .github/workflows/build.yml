@@ -6,17 +6,24 @@ on:
   pull_request:
 
 jobs:
-  build-win32:
-    name: Build and Test (Windows)
-    runs-on: windows-latest
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        php:
-          - '8.0'
-          - '8.1'
-        phpts:
-          - 'ts'
-          - 'nts'
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        php: ['8.0', '8.1']
+        rust: [stable, nightly]
+        phpts: [ts, nts]
+      exclude:
+        # ext-php-rs requires nightly Rust when on Windows.
+        - os: windows-latest
+          rust: stable
+        # setup-php doesn't support thread safe PHP on Linux and macOS.
+        - os: macos-latest
+          phpts: ts
+        - os: ubuntu-latest
+          phpts: ts
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -29,64 +36,18 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-      - name: Build
-        env:
-          EXT_PHP_RS_TEST:
-        run: cargo build --all --release --all-features
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all --release --all-features
-      - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-      - name: Run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all -- -D warnings
-  build:
-    name: Build and Test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-        rust-toolchain:
-          - stable
-          - nightly
-        php:
-          - '8.0'
-          - '8.1'
-        llvm:
-          - '11.0'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
           toolchain: ${{ matrix.rust-toolchain }}
           override: true
           components: rustfmt, clippy
       - name: Setup LLVM & Clang
+        if: "!contains(matrix.os, 'windows')"
         id: clang
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: ${{ matrix.llvm }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Configure Clang
+        if: "!contains(matrix.os, 'windows')"
         run: |
           echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib" >> $GITHUB_ENV
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV

@@ -219,7 +219,12 @@ impl DevelPack {
 
     /// Returns the path of the PHP library containing symbols for linking.
     pub fn php_lib(&self) -> PathBuf {
-        self.0.join("lib").join("php8.lib")
+        let php_nts = self.0.join("lib").join("php8.lib");
+        if php_nts.exists() {
+            php_nts
+        } else {
+            self.0.join("lib").join("php8ts.lib")
+        }
     }
 
     /// Returns a list of include paths to pass to the compiler.
