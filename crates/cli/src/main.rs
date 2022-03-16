@@ -1,4 +1,5 @@
 // Mock macro for the `allowed_bindings.rs` script.
+#[cfg(not(windows))]
 macro_rules! bind {
     ($($s: ident),*) => {
         cargo_php::stub_symbols!($($s),*);
