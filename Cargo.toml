@@ -30,7 +30,8 @@ cc = "1.0"
 skeptic = "0.13"
 
 [target.'cfg(windows)'.build-dependencies]
-reqwest = { version = "*", features = ["blocking"] }
+ureq = { version = "2.4", features = ["native-tls", "gzip"], default-features = false }
+native-tls = "0.2"
 zip = "0.5"
 
 [features]

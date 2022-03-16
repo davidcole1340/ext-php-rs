@@ -27,31 +27,25 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt, clippy
-      # - name: Setup LLVM & Clang
-      #   id: clang
-      #   uses: KyleMayes/install-llvm-action@v1
-      #   with:
-      #     version: ${{ matrix.llvm }}
-      #     directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
       - name: Build
         env:
           EXT_PHP_RS_TEST:
-        run: cargo build --release --all-features
+        run: cargo build --all --release --all-features
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release --all-features
+          args: --all --release --all-features
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: -- --check
+          args: --all -- --check
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: --all -- -D warnings
   # build:
   #   name: Build and Test
   #   runs-on: ${{ matrix.os }}

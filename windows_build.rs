@@ -1,9 +1,10 @@
 use std::{
     convert::TryFrom,
     fmt::Display,
-    io::{Cursor, Write},
+    io::{Cursor, Read, Write},
     path::{Path, PathBuf},
     process::Command,
+    sync::Arc,
 };
 
 use anyhow::{bail, Context, Result};
@@ -174,20 +175,33 @@ impl DevelPack {
                 if archive { "/archives" } else { "" },
                 zip_name
             );
-            let request = reqwest::blocking::ClientBuilder::new()
-                .user_agent(USER_AGENT)
+            // let request = reqwest::blocking::ClientBuilder::new()
+            //     .user_agent(USER_AGENT)
+            //     .build()
+            //     .context("Failed to create HTTP client")?
+            //     .get(url)
+            //     .send()
+            //     .context("Failed to download development pack")?;
+            // request
+            //     .error_for_status_ref()
+            //     .context("Failed to download development pack")?;
+            // let bytes = request
+            //     .bytes()
+            //     .context("Failed to read content from PHP website")?;
+            // let response = ureq::get(&url)
+            let response = ureq::AgentBuilder::new()
+                .tls_connector(Arc::new(native_tls::TlsConnector::new().unwrap()))
                 .build()
-                .context("Failed to create HTTP client")?
-                .get(url)
-                .send()
+                .get(&url)
+                .set("User-Agent", USER_AGENT)
+                .call()
                 .context("Failed to download development pack")?;
-            request
-                .error_for_status_ref()
-                .context("Failed to download development pack")?;
-            let bytes = request
-                .bytes()
-                .context("Failed to read content from PHP website")?;
-            let mut content = Cursor::new(bytes);
+            let mut content = vec![];
+            response
+                .into_reader()
+                .read_to_end(&mut content)
+                .context("Failed to read development pack")?;
+            let mut content = Cursor::new(&mut content);
             let mut zip_content = zip::read::ZipArchive::new(&mut content)
                 .context("Failed to unzip development pack")?;
             let inner_name = zip_content

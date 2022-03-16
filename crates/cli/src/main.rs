@@ -5,6 +5,7 @@ macro_rules! bind {
     }
 }
 
+#[cfg(not(windows))]
 include!("../allowed_bindings.rs");
 
 fn main() -> cargo_php::CrateResult {

@@ -70,10 +70,10 @@ impl ClassBuilder {
     ///
     /// Panics when the given class entry `interface` is not an interface.
     pub fn implements(mut self, interface: &'static ClassEntry) -> Self {
-        if !interface.is_interface() {
-            panic!("Given class entry was not an interface.");
-        }
-
+        assert!(
+            interface.is_interface(),
+            "Given class entry was not an interface."
+        );
         self.interfaces.push(interface);
         self
     }
