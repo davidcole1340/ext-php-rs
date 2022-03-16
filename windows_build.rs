@@ -51,13 +51,17 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
     }
 
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>> {
-        Ok(vec![
+        let mut defines = vec![
             ("ZEND_WIN32", "1"),
             ("PHP_WIN32", "1"),
             ("WINDOWS", "1"),
             ("WIN32", "1"),
             ("ZEND_DEBUG", if self.info.debug()? { "1" } else { "0" }),
-        ])
+        ];
+        if self.info.thread_safety()? {
+            defines.push(("ZTS", ""));
+        }
+        Ok(defines)
     }
 
     fn write_bindings(&self, bindings: String, writer: &mut impl Write) -> Result<()> {
