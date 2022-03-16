@@ -175,20 +175,6 @@ impl DevelPack {
                 if archive { "/archives" } else { "" },
                 zip_name
             );
-            // let request = reqwest::blocking::ClientBuilder::new()
-            //     .user_agent(USER_AGENT)
-            //     .build()
-            //     .context("Failed to create HTTP client")?
-            //     .get(url)
-            //     .send()
-            //     .context("Failed to download development pack")?;
-            // request
-            //     .error_for_status_ref()
-            //     .context("Failed to download development pack")?;
-            // let bytes = request
-            //     .bytes()
-            //     .context("Failed to read content from PHP website")?;
-            // let response = ureq::get(&url)
             let response = ureq::AgentBuilder::new()
                 .tls_connector(Arc::new(native_tls::TlsConnector::new().unwrap()))
                 .build()

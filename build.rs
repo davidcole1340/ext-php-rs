@@ -4,7 +4,6 @@ mod impl_;
 
 use std::{
     env,
-    ffi::OsStr,
     fs::File,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
@@ -249,7 +248,7 @@ fn main() -> Result<()> {
     #[cfg(not(feature = "closure"))]
     let test_md: Vec<_> = test_md
         .into_iter()
-        .filter(|p| p.file_stem() != Some(OsStr::new("closure")))
+        .filter(|p| p.file_stem() != Some(std::ffi::OsStr::new("closure")))
         .collect();
     skeptic::generate_doc_tests(&test_md);
 
