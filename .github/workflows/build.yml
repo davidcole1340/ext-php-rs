@@ -15,15 +15,15 @@ jobs:
         php: ['8.0', '8.1']
         rust: [stable, nightly]
         phpts: [ts, nts]
-      exclude:
-        # ext-php-rs requires nightly Rust when on Windows.
-        - os: windows-latest
-          rust: stable
-        # setup-php doesn't support thread safe PHP on Linux and macOS.
-        - os: macos-latest
-          phpts: ts
-        - os: ubuntu-latest
-          phpts: ts
+        exclude:
+          # ext-php-rs requires nightly Rust when on Windows.
+          - os: windows-latest
+            rust: stable
+          # setup-php doesn't support thread safe PHP on Linux and macOS.
+          - os: macos-latest
+            phpts: ts
+          - os: ubuntu-latest
+            phpts: ts
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
