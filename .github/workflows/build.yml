@@ -36,7 +36,7 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust-toolchain }}
+          toolchain: ${{ matrix.rust }}
           override: true
           components: rustfmt, clippy
       - name: Setup LLVM & Clang
