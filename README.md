@@ -1,15 +1,24 @@
 # ext-php-rs
 
-[<img align="right" src="https://discord.com/api/guilds/115233111977099271/widget.png?style=banner2">](https://discord.gg/dphp)
+[![Crates.io](https://img.shields.io/crates/v/ext-php-rs)](https://lib.rs/ext-php-rs)
+[![docs.rs](https://img.shields.io/docsrs/ext-php-rs/latest)](https://docs.rs/ext-php-rs)
+[![Guide Workflow Status](https://img.shields.io/github/workflow/status/davidcole1340/ext-php-rs/Deploy%20documentation?label=guide)](https://davidcole1340.github.io/ext-php-rs)
+![CI Workflow Status](https://img.shields.io/github/workflow/status/davidcole1340/ext-php-rs/Build%20and%20Lint)
+[![Discord](https://img.shields.io/discord/115233111977099271)](https://discord.gg/dphp)
 
 Bindings and abstractions for the Zend API to build PHP extensions natively in
 Rust.
+
+- Documentation: <https://docs.rs/ext-php-rs>
+- Guide: <https://davidcole1340.github.io/ext-php-rs>
 
 ## Example
 
 Export a simple function `function hello_world(string $name): string` to PHP:
 
 ```rust
+#![cfg_attr(windows, feature(abi_vectorcall))]
+
 use ext_php_rs::prelude::*;
 
 /// Gives you a nice greeting!
@@ -104,16 +113,37 @@ best resource at the moment. This can be viewed at [docs.rs].
 
 ## Requirements
 
-- PHP 8.0 or later
-  - No support is planned for lower versions.
-- Linux or Darwin-based OS
-- Rust - no idea which version
-- Clang 3.9 or greater
+- Linux, macOS or Windows-based operating system.
+- PHP 8.0 or later.
+  - No support is planned for earlier versions of PHP.
+- Rust.
+  - Currently, we maintain no guarantee of a MSRV, however lib.rs suggests Rust
+    1.57 at the time of writing.
+- Clang 5.0 or later.
 
-See the following links for the dependency crate requirements:
+### Windows Requirements
 
-- [`cc`](https://github.com/alexcrichton/cc-rs#compile-time-requirements)
-- [`bindgen`](https://rust-lang.github.io/rust-bindgen/requirements.html)
+- Extensions can only be compiled for PHP installations sourced from
+  <https://windows.php.net>. Support is planned for other installations
+  eventually.
+- Rust nightly is required for Windows. This is due to the [vectorcall] calling
+  convention being used by some PHP functions on Windows, which is only
+  available as a nightly unstable feature in Rust.
+- It is suggested to use the `rust-lld` linker to link your extension. The MSVC
+  linker (`link.exe`) is supported however you may run into issues if the linker
+  version is not supported by your PHP installation. You can use the `rust-lld`
+  linker by creating a `.cargo\config.toml` file with the following content:
+  ```toml
+  # Replace target triple if you have a different architecture than x86_64
+  [target.x86_64-pc-windows-msvc]
+  linker = "rust-lld"
+  ```
+- The `cc` crate requires `cl.exe` to be present on your system. This is usually
+  bundled with Microsoft Visual Studio.
+- `cargo-php`'s stub generation feature does not work on Windows. Rewriting this
+  functionality to be cross-platform is on the roadmap.
+
+[vectorcall]: https://docs.microsoft.com/en-us/cpp/cpp/vectorcall?view=msvc-170
 
 ## Cargo Features
 
@@ -126,16 +156,12 @@ All features are disabled by default.
 
 ## Usage
 
-This project only works for PHP >= 8.0 (for now). Due to the fact that the PHP
-extension system relies heavily on C macros (which cannot be exported to Rust
-easily), structs have to be hard coded in.
-
 Check out one of the example projects:
 
 - [anonaddy-sequoia](https://gitlab.com/willbrowning/anonaddy-sequoia) - Sequoia
   encryption PHP extension.
-- [opus-php](https://github.com/davidcole1340/opus-php) -
-  Audio encoder for the Opus codec in PHP.
+- [opus-php](https://github.com/davidcole1340/opus-php) - Audio encoder for the
+  Opus codec in PHP.
 
 ## Contributions
 

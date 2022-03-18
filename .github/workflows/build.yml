@@ -11,17 +11,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-        rust-toolchain:
-          - stable
-          - nightly
-        php:
-          - '8.0'
-          - '8.1'
-        llvm:
-          - '11.0'
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        php: ['8.0', '8.1']
+        rust: [stable, nightly]
+        phpts: [ts, nts]
+        exclude:
+          # ext-php-rs requires nightly Rust when on Windows.
+          - os: windows-latest
+            rust: stable
+          # setup-php doesn't support thread safe PHP on Linux and macOS.
+          - os: macos-latest
+            phpts: ts
+          - os: ubuntu-latest
+            phpts: ts
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -29,44 +31,38 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+        env:
+          phpts: ${{ matrix.phpts }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust-toolchain }}
+          toolchain: ${{ matrix.rust }}
           override: true
           components: rustfmt, clippy
       - name: Setup LLVM & Clang
+        if: "!contains(matrix.os, 'windows')"
         id: clang
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: ${{ matrix.llvm }}
-          directory: ${{ runner.temp }}/llvm-${{ matrix.llvm }}
+          version: '13.0'
+          directory: ${{ runner.temp }}/llvm
       - name: Configure Clang
+        if: "!contains(matrix.os, 'windows')"
         run: |
-          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.llvm }}/lib" >> $GITHUB_ENV
+          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm/lib" >> $GITHUB_ENV
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
       - name: Configure Clang (macOS only)
         if: "contains(matrix.os, 'macos')"
         run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
-      - name: Install mdbook
-        uses: peaceiris/actions-mdbook@v1
-        with:
-          mdbook-version: latest
       - name: Build
         env:
           EXT_PHP_RS_TEST:
         run: cargo build --release --all-features --all
-      - name: Test guide examples
-        env:
-          CARGO_PKG_NAME: mdbook-tests
-          CARGO_PKG_VERSION: 0.1.0
-        run: |
-          mdbook test guide -L target/release/deps
       - name: Test inline examples
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release --all
+          args: --release --all --all-features
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
@@ -78,7 +74,7 @@ jobs:
           command: clippy
           args: --all -- -D warnings
       - name: Build with docs stub
-        if: "contains(matrix.os, 'ubuntu') && ${{ matrix.php }} == '8.1'"
+        if: "contains(matrix.os, 'ubuntu') && matrix.php == '8.1'"
         env:
           DOCS_RS:
         run:

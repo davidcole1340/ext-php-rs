@@ -1,11 +1,22 @@
 //! Builder for creating functions and methods in PHP.
 
-use std::{os::raw::c_char, ptr};
+use std::{fmt::Debug, os::raw::c_char, ptr};
 
 use crate::ffi::zend_function_entry;
 
 /// A Zend function entry.
 pub type FunctionEntry = zend_function_entry;
+
+impl Debug for FunctionEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("_zend_function_entry")
+            .field("fname", &self.fname)
+            .field("arg_info", &self.arg_info)
+            .field("num_args", &self.num_args)
+            .field("flags", &self.flags)
+            .finish()
+    }
+}
 
 impl FunctionEntry {
     /// Returns an empty function entry, signifing the end of a function list.

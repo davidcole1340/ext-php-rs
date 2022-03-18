@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(not(windows))]
 mod ext;
 
 use anyhow::{bail, Context, Result as AResult};
@@ -8,17 +9,11 @@ use clap::Parser;
 use dialoguer::{Confirm, Select};
 
 use std::{
-    borrow::Cow,
-    ffi::OsString,
-    fs::{File, OpenOptions},
+    fs::OpenOptions,
     io::{BufRead, BufReader, Write},
     path::PathBuf,
     process::{Command, Stdio},
-    str::FromStr,
 };
-
-use self::ext::Ext;
-use ext_php_rs::describe::ToStub;
 
 /// Generates mock symbols required to generate stub files from a downstream
 /// crates CLI application.
@@ -86,6 +81,7 @@ enum Args {
     ///
     /// These stub files can be used in IDEs to provide typehinting for
     /// extension classes, functions and constants.
+    #[cfg(not(windows))]
     Stubs(Stubs),
 }
 
@@ -127,6 +123,7 @@ struct Remove {
     manifest: Option<PathBuf>,
 }
 
+#[cfg(not(windows))]
 #[derive(Parser)]
 struct Stubs {
     /// Path to extension to generate stubs for. Defaults for searching the
@@ -154,6 +151,7 @@ impl Args {
         match self {
             Args::Install(install) => install.handle(),
             Args::Remove(remove) => remove.handle(),
+            #[cfg(not(windows))]
             Args::Stubs(stubs) => stubs.handle(),
         }
     }
@@ -167,8 +165,7 @@ impl Install {
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
         } else {
-            let php_config = PhpConfig::new();
-            (php_config.get_ext_dir()?, Some(php_config.get_php_ini()?))
+            (get_ext_dir()?, Some(get_php_ini()?))
         };
 
         if let Some(ini_path) = self.ini_path {
@@ -200,8 +197,6 @@ impl Install {
             let mut file = OpenOptions::new()
                 .read(true)
                 .write(true)
-                .create(true)
-                .truncate(true)
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 
@@ -229,6 +224,55 @@ impl Install {
     }
 }
 
+/// Returns the path to the extension directory utilised by the PHP interpreter,
+/// creating it if one was returned but it does not exist.
+fn get_ext_dir() -> AResult<PathBuf> {
+    let cmd = Command::new("php")
+        .arg("-r")
+        .arg("echo ini_get('extension_dir');")
+        .output()
+        .context("Failed to call PHP")?;
+    if !cmd.status.success() {
+        bail!("Failed to call PHP: {:?}", cmd);
+    }
+    let stdout = String::from_utf8_lossy(&cmd.stdout);
+    let ext_dir = PathBuf::from(&*stdout);
+    if !ext_dir.is_dir() {
+        if ext_dir.exists() {
+            bail!(
+                "Extension directory returned from PHP is not a valid directory: {:?}",
+                ext_dir
+            );
+        } else {
+            std::fs::create_dir(&ext_dir).with_context(|| {
+                format!("Failed to create extension directory at {:?}", ext_dir)
+            })?;
+        }
+    }
+    Ok(ext_dir)
+}
+
+/// Returns the path to the `php.ini` loaded by the PHP interpreter.
+fn get_php_ini() -> AResult<PathBuf> {
+    let cmd = Command::new("php")
+        .arg("-r")
+        .arg("echo get_cfg_var('cfg_file_path');")
+        .output()
+        .context("Failed to call PHP")?;
+    if !cmd.status.success() {
+        bail!("Failed to call PHP: {:?}", cmd);
+    }
+    let stdout = String::from_utf8_lossy(&cmd.stdout);
+    let ini = PathBuf::from(&*stdout);
+    if !ini.is_file() {
+        bail!(
+            "php.ini does not exist or is not a file at the given path: {:?}",
+            ini
+        );
+    }
+    Ok(ini)
+}
+
 impl Remove {
     pub fn handle(self) -> CrateResult {
         use std::env::consts;
@@ -238,8 +282,7 @@ impl Remove {
         let (mut ext_path, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
         } else {
-            let php_config = PhpConfig::new();
-            (php_config.get_ext_dir()?, Some(php_config.get_php_ini()?))
+            (get_ext_dir()?, Some(get_php_ini()?))
         };
 
         if let Some(ini_path) = self.ini_path {
@@ -295,8 +338,12 @@ impl Remove {
     }
 }
 
+#[cfg(not(windows))]
 impl Stubs {
     pub fn handle(self) -> CrateResult {
+        use ext_php_rs::describe::ToStub;
+        use std::{borrow::Cow, str::FromStr};
+
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
@@ -308,7 +355,7 @@ impl Stubs {
             bail!("Invalid extension path given, not a file.");
         }
 
-        let ext = Ext::load(ext_path)?;
+        let ext = self::ext::Ext::load(ext_path)?;
         let result = ext.describe();
 
         // Ensure extension and CLI `ext-php-rs` versions are compatible.
@@ -345,65 +392,6 @@ impl Stubs {
         }
 
         Ok(())
-    }
-}
-
-struct PhpConfig {
-    path: OsString,
-}
-
-impl PhpConfig {
-    /// Creates a new `php-config` instance.
-    pub fn new() -> Self {
-        Self {
-            path: if let Some(php_config) = std::env::var_os("PHP_CONFIG") {
-                php_config
-            } else {
-                OsString::from("php-config")
-            },
-        }
-    }
-
-    /// Calls `php-config` and retrieves the extension directory.
-    pub fn get_ext_dir(&self) -> AResult<PathBuf> {
-        Ok(PathBuf::from(
-            self.exec(
-                |cmd| cmd.arg("--extension-dir"),
-                "retrieve extension directory",
-            )?
-            .trim(),
-        ))
-    }
-
-    /// Calls `php-config` and retrieves the `php.ini` file path.
-    pub fn get_php_ini(&self) -> AResult<PathBuf> {
-        let mut path = PathBuf::from(
-            self.exec(|cmd| cmd.arg("--ini-path"), "retrieve `php.ini` path")?
-                .trim(),
-        );
-        path.push("php.ini");
-
-        if !path.exists() {
-            File::create(&path).with_context(|| "Failed to create `php.ini`")?;
-        }
-
-        Ok(path)
-    }
-
-    /// Executes the `php-config` binary. The given function `f` is used to
-    /// modify the given mutable [`Command`]. If successful, a [`String`]
-    /// representing stdout is returned.
-    fn exec<F>(&self, f: F, ctx: &str) -> AResult<String>
-    where
-        F: FnOnce(&mut Command) -> &mut Command,
-    {
-        let mut cmd = Command::new(&self.path);
-        f(&mut cmd);
-        let out = cmd
-            .output()
-            .with_context(|| format!("Failed to {} from `php-config`", ctx))?;
-        String::from_utf8(out.stdout)
-            .with_context(|| "Failed to convert `php-config` output to string")
     }
 }
 

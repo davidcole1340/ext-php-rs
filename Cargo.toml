@@ -19,10 +19,20 @@ once_cell = "1.8.0"
 anyhow = { version = "1", optional = true }
 ext-php-rs-derive = { version = "=0.7.4", path = "./crates/macros" }
 
+[dev-dependencies]
+skeptic = "0.13"
+
 [build-dependencies]
-bindgen = { version = "0.59" }
-regex = "1"
+anyhow = "1"
+# bindgen = { version = "0.59" }
+bindgen = { git = "https://github.com/rust-lang/rust-bindgen", branch = "master" }
 cc = "1.0"
+skeptic = "0.13"
+
+[target.'cfg(windows)'.build-dependencies]
+ureq = { version = "2.4", features = ["native-tls", "gzip"], default-features = false }
+native-tls = "0.2"
+zip = "0.5"
 
 [features]
 closure = []

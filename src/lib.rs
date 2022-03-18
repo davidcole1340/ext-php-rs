@@ -4,6 +4,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![cfg_attr(docs, feature(doc_cfg))]
+#![cfg_attr(windows, feature(abi_vectorcall))]
 
 pub mod alloc;
 pub mod args;
@@ -54,6 +55,12 @@ pub mod prelude {
 /// `ext-php-rs` version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Whether the extension is compiled for PHP debug mode.
+pub const PHP_DEBUG: bool = cfg!(php_debug);
+
+/// Whether the extension is compiled for PHP thread-safe mode.
+pub const PHP_ZTS: bool = cfg!(php_zts);
+
 /// Attribute used to annotate constants to be exported to PHP.
 ///
 /// The declared constant is left intact (apart from the addition of the
@@ -67,6 +74,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// # Example
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_const]
 /// const TEST_CONSTANT: i32 = 100;
@@ -111,6 +119,7 @@ pub use ext_php_rs_derive::php_const;
 /// as the return type is an integer-boolean union.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// # use ext_php_rs::types::Zval;
 /// #[php_extern]
@@ -176,6 +185,7 @@ pub use ext_php_rs_derive::php_extern;
 /// function which looks like so:
 ///
 /// ```no_run
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::{prelude::*, exception::PhpException, zend::ExecuteData, convert::{FromZvalMut, IntoZval}, types::Zval, args::{Arg, ArgParser}};
 /// pub fn hello(name: String) -> String {
 ///     format!("Hello, {}!", name)
@@ -220,6 +230,7 @@ pub use ext_php_rs_derive::php_extern;
 /// must be declared in the PHP module to be able to call.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function]
 /// pub fn hello(name: String) -> String {
@@ -236,6 +247,7 @@ pub use ext_php_rs_derive::php_extern;
 /// two optional parameters (`description` and `age`).
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function(optional = "description")]
 /// pub fn hello(name: String, description: Option<String>, age: Option<i32>) -> String {
@@ -262,6 +274,7 @@ pub use ext_php_rs_derive::php_extern;
 /// the attribute to the following:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function(optional = "description", defaults(description = "David", age = 10))]
 /// pub fn hello(name: String, description: String, age: i32) -> String {
@@ -332,6 +345,7 @@ pub use ext_php_rs_derive::php_function;
 /// # Example
 ///
 /// ```no_run
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_class]
 /// #[derive(Debug)]
@@ -401,6 +415,7 @@ pub use ext_php_rs_derive::php_impl;
 /// automatically be registered when the module attribute is called.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_function]
 /// pub fn hello(name: String) -> String {
@@ -448,6 +463,7 @@ pub use ext_php_rs_derive::php_module;
 /// Export a simple class called `Example`, with 3 Rust fields.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_class]
 /// pub struct Example {
@@ -466,6 +482,7 @@ pub use ext_php_rs_derive::php_module;
 /// `Redis\Exception`:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// use ext_php_rs::exception::PhpException;
 /// use ext_php_rs::zend::ce;
@@ -503,6 +520,7 @@ pub use ext_php_rs_derive::php_class;
 /// # Example
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[php_startup]
 /// pub fn startup_function() {
@@ -537,6 +555,7 @@ pub use ext_php_rs_derive::php_startup;
 /// Basic example with some primitive PHP type.
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[derive(Debug, ZvalConvert)]
 /// pub struct ExampleStruct<'a> {
@@ -575,6 +594,7 @@ pub use ext_php_rs_derive::php_startup;
 /// Another example involving generics:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[derive(Debug, ZvalConvert)]
 /// pub struct CompareVals<T: PartialEq<i32>> {
@@ -613,6 +633,7 @@ pub use ext_php_rs_derive::php_startup;
 /// Basic example showing the importance of variant ordering and default field:
 ///
 /// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # use ext_php_rs::prelude::*;
 /// #[derive(Debug, ZvalConvert)]
 /// pub enum UnionExample<'a> {
@@ -650,3 +671,35 @@ pub use ext_php_rs_derive::php_startup;
 /// [`Zval`]: crate::php::types::zval::Zval
 /// [`Zval::string`]: crate::php::types::zval::Zval::string
 pub use ext_php_rs_derive::ZvalConvert;
+
+/// Defines an `extern` function with the Zend fastcall convention based on
+/// operating system.
+///
+/// On Windows, Zend fastcall functions use the vector calling convention, while
+/// on all other operating systems no fastcall convention is used (just the
+/// regular C calling convention).
+///
+/// This macro wraps a function and applies the correct calling convention.
+///
+/// ## Examples
+///
+/// ```
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
+/// use ext_php_rs::zend_fastcall;
+///
+/// zend_fastcall! {
+///     pub extern fn test_hello_world(a: i32, b: i32) -> i32 {
+///         a + b
+///     }
+/// }
+/// ```
+///
+/// On Windows, this function will have the signature `pub extern "vectorcall"
+/// fn(i32, i32) -> i32`, while on macOS/Linux the function will have the
+/// signature `pub extern "C" fn(i32, i32) -> i32`.
+///
+/// ## Support
+///
+/// The `vectorcall` ABI is currently only supported on Windows with nightly
+/// Rust and the `abi_vectorcall` feature enabled.
+pub use ext_php_rs_derive::zend_fastcall;

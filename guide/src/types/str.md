@@ -17,7 +17,8 @@ PHP strings.
 
 ## Rust example
 
-```rust
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 #[php_function]
@@ -29,6 +30,7 @@ pub fn str_example(input: &str) -> String {
 pub fn str_return_example() -> &'static str {
     "Hello from Rust"
 }
+# fn main() {}
 ```
 
 ## PHP example
