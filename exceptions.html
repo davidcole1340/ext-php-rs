@@ -154,9 +154,7 @@ returned.</p>
 is thrown. This allows you to return a result from a PHP function annotated with
 the <code>#[php_function]</code> attribute.</p>
 <h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 use std::convert::TryInto;
@@ -173,7 +171,7 @@ pub fn something_fallible(n: u64) -&gt; PhpResult&lt;u32&gt; {
 pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 
                     </main>

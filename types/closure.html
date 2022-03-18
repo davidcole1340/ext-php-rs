@@ -164,9 +164,7 @@ underlying Rust closure is called. There are three types of closures in Rust:</p
 <p>These closures can be called multiple times. <code>FnMut</code> differs from <code>Fn</code> in the
 fact that it can modify variables in its scope.</p>
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -189,7 +187,7 @@ pub fn closure_count() -&gt; Closure {
         count
     }) as Box&lt;dyn FnMut(i32) -&gt; i32&gt;)
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="fnonce"><a class="header" href="#fnonce"><code>FnOnce</code></a></h2>
 <p>Closures that implement <code>FnOnce</code> can only be called once. They consume some sort
@@ -201,9 +199,7 @@ owns the <code>FnOnce</code> closure until it is called. If the <code>FnMut</cod
 again, the <code>FnOnce</code> closure would have already been consumed, and an exception
 will be thrown.</p>
 <h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -216,7 +212,7 @@ pub fn closure_return_string() -&gt; Closure {
         example
     }) as Box&lt;dyn FnOnce() -&gt; String&gt;)
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Closures must be boxed as PHP classes cannot support generics, therefore trait
 objects must be used. These must be boxed to have a compile time size.</p>
@@ -225,9 +221,7 @@ objects must be used. These must be boxed to have a compile time size.</p>
 function by its name, or as a parameter. They can be called through the
 <code>try_call</code> method implemented on <code>Callable</code>, which returns a zval in a result.</p>
 <h3 id="callable-parameter"><a class="header" href="#callable-parameter">Callable parameter</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -236,7 +230,7 @@ pub fn callable_parameter(call: ZendCallable) {
     let val = call.try_call(vec![&amp;0, &amp;1, &amp;&quot;Hello&quot;]).expect(&quot;Failed to call function&quot;);
     dbg!(val);
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 
                     </main>

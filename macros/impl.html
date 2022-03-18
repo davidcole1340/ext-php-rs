@@ -207,9 +207,7 @@ conflict with field properties defined on the struct.</p>
 <p>Continuing on from our <code>Human</code> example in the structs section, we will define a
 constructor, as well as getters for the properties. We will also define a
 constant for the maximum age of a <code>Human</code>.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::{prelude::*, types::ZendClassObject};
 </span><span class="boring">#[php_class]
@@ -260,7 +258,7 @@ impl Human {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Using our newly created class in PHP:</p>
 <pre><code class="language-php">&lt;?php

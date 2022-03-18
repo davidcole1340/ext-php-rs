@@ -148,9 +148,7 @@ string pointer, with the length of the array being the length of the string.</p>
 on most primitive numbers (i8, i16, i32, i64, u8, u16, u32, u64, isize, usize,
 f32, f64).</p>
 <h2 id="rust-usage"><a class="header" href="#rust-usage">Rust Usage</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 use ext_php_rs::binary::Binary;
@@ -165,7 +163,7 @@ pub fn test_binary(input: Binary&lt;u32&gt;) -&gt; Binary&lt;u32&gt; {
         .into_iter()
         .collect::&lt;Binary&lt;_&gt;&gt;()
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-usage"><a class="header" href="#php-usage">PHP Usage</a></h2>
 <pre><code class="language-php">&lt;?php

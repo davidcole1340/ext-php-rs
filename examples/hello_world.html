@@ -140,28 +140,41 @@ crate:</p>
 <pre><code class="language-sh">$ cargo new hello_world --lib
 $ cd hello_world
 </code></pre>
+<h3 id="cargotoml"><a class="header" href="#cargotoml"><code>Cargo.toml</code></a></h3>
 <p>Let's set up our crate by adding <code>ext-php-rs</code> as a dependency and setting the
 crate type to <code>cdylib</code>. Update the <code>Cargo.toml</code> to look something like so:</p>
-<h3 id="cargotoml"><a class="header" href="#cargotoml"><code>Cargo.toml</code></a></h3>
 <pre><code class="language-toml">[package]
 name = &quot;hello_world&quot;
 version = &quot;0.1.0&quot;
 edition = &quot;2018&quot;
 
 [dependencies]
-ext-php-rs = &quot;0.2&quot;
+ext-php-rs = &quot;*&quot;
 
 [lib]
 crate-type = [&quot;cdylib&quot;]
 </code></pre>
-<p>As the linker will not be able to find the PHP installation that we are
-dynamically linking to, we need to enable dynamic linking with undefined
-symbols. We do this by creating a Cargo config file in <code>.cargo/config.toml</code> with
-the following contents:</p>
 <h3 id="cargoconfigtoml"><a class="header" href="#cargoconfigtoml"><code>.cargo/config.toml</code></a></h3>
-<pre><code class="language-toml">[build]
+<p>When compiling for Linux and macOS, we do not link directly to PHP, rather PHP
+will dynamically load the library. We need to tell the linker it's ok to have
+undefined symbols (as they will be resolved when loaded by PHP).</p>
+<p>On Windows, we also need to switch to using the <code>rust-lld</code> linker.</p>
+<blockquote>
+<p>Microsoft Visual C++'s <code>link.exe</code> is supported, however you may run into
+issues if your linker is not compatible with the linker used to compile PHP.</p>
+</blockquote>
+<p>We do this by creating a Cargo config file in <code>.cargo/config.toml</code> with the
+following contents:</p>
+<pre><code class="language-toml">[target.'cfg(not(target_os = &quot;windows&quot;))']
 rustflags = [&quot;-C&quot;, &quot;link-arg=-Wl,-undefined,dynamic_lookup&quot;]
+
+[target.x86_64-pc-windows-msvc]
+linker = &quot;rust-lld&quot;
+
+[target.i686-pc-windows-msvc]
+linker = &quot;rust-lld&quot;
 </code></pre>
+<h3 id="srclibrs"><a class="header" href="#srclibrs"><code>src/lib.rs</code></a></h3>
 <p>Let's actually write the extension code now. We start by importing the
 <code>ext-php-rs</code> prelude, which contains most of the imports required to make a
 basic extension. We will then write our basic <code>hello_world</code> function, which will
@@ -170,11 +183,14 @@ Finally, we write a <code>get_module</code> function which is used by PHP to fin
 your module. The <code>#[php_module]</code> attribute automatically registers your new
 function so we don't need to do anything except return the <code>ModuleBuilder</code> that
 we were given.</p>
-<h3 id="srclibrs"><a class="header" href="#srclibrs"><code>src/lib.rs</code></a></h3>
-<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
+<p>We also need to enable the <code>abi_vectorcall</code> feature when compiling for Windows.
+This is a nightly-only feature so it is recommended to use the <code>#[cfg_attr]</code>
+macro to not enable the feature on other operating systems.</p>
+<pre><code class="language-rust ignore">#![cfg_attr(windows, feature(abi_vectorcall))]
+use ext_php_rs::prelude::*;
 
 #[php_function]
-pub fn hello_world(name: String) -&gt; String {
+pub fn hello_world(name: &amp;str) -&gt; String {
     format!(&quot;Hello, {}!&quot;, name)
 }
 
@@ -183,8 +199,8 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
 }
 </code></pre>
-<p>Let's make a test script.</p>
 <h3 id="testphp"><a class="header" href="#testphp"><code>test.php</code></a></h3>
+<p>Let's make a test script.</p>
 <pre><code class="language-php">&lt;?php
 
 var_dump(hello_world(&quot;David&quot;));
@@ -195,8 +211,9 @@ executable is able to be found by the <code>ext-php-rs</code> build script.</p>
 <p>The extension is stored inside <code>target/debug</code> (if you did a debug build,
 <code>target/release</code> for release builds). The file name will be based on your crate
 name, so for us it will be <code>libhello_world</code>. The extension is based on your OS -
-on Linux it will be <code>libhello_world.so</code> and on macOS it will be
-<code>libhello_world.dylib</code>.</p>
+on Linux it will be <code>libhello_world.so</code>, on macOS it will be
+<code>libhello_world.dylib</code> and on Windows it will be <code>hello_world.dll</code> (no <code>lib</code>
+prefix).</p>
 <pre><code class="language-sh">$ cargo build
     Finished dev [unoptimized + debuginfo] target(s) in 0.01s
 $ php -dextension=./target/debug/libhello_world.dylib test.php

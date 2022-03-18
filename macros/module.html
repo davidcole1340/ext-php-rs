@@ -168,7 +168,8 @@ the following (if required):</p>
 <p>Classes and constants are not registered in the <code>get_module</code> function. These are
 registered inside the extension startup function.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-rust ignore"><span class="boring">extern crate ext_php_rs;
+<pre><code class="language-rust ignore"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span><span class="boring">use ext_php_rs::{info_table_start, info_table_row, info_table_end};
 </span><span class="boring">use ext_php_rs::php::module::ModuleEntry;

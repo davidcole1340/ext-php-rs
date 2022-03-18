@@ -144,9 +144,7 @@ struct must implement <code>FromZval</code> as well. Generics are allowed on str
 use the derive macro, however, the implementation will add a <code>FromZval</code> bound to
 all generics types.</p>
 <h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -170,7 +168,8 @@ pub fn give_object() -&gt; ExampleClass&lt;'static&gt; {
         c: &quot;Borrowed&quot;,
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Calling from PHP:</p>
 <pre><code class="language-php">&lt;?php
@@ -184,9 +183,7 @@ take_object($obj);
 var_dump(give_object());
 </code></pre>
 <p>Another example involving generics:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -201,7 +198,8 @@ pub struct CompareVals&lt;T: PartialEq&lt;i32&gt;&gt; {
 pub fn take_object(obj: CompareVals&lt;i32&gt;) {
     dbg!(obj);
 }
-<span class="boring">}
+<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="enums"><a class="header" href="#enums">Enums</a></h2>
 <p>When used on an enum, the <code>FromZval</code> implementation will treat the enum as a
@@ -217,9 +215,7 @@ put a <code>String</code> variant before an integer variant, the integer would b
 to a string and passed as the string variant.</p>
 <h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
 <p>Basic example showing the importance of variant ordering and default field:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -240,7 +236,8 @@ pub fn test_union(val: UnionExample) {
 pub fn give_union() -&gt; UnionExample&lt;'static&gt; {
     UnionExample::Long(5)
 }
-<span class="boring">}
+<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Use in PHP:</p>
 <pre><code class="language-php">test_union(5); // UnionExample::Long(5)

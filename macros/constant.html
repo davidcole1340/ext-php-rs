@@ -138,9 +138,7 @@
 <p>Exports a Rust constant as a global PHP constant. The constant can be any type
 that implements <code>IntoConst</code>.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_const]
@@ -148,7 +146,9 @@ const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
 const ANOTHER_STRING_CONST: &amp;'static str = &quot;Hello world!&quot;;
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-usage"><a class="header" href="#php-usage">PHP usage</a></h2>
 <pre><code class="language-php">&lt;?php

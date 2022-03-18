@@ -356,28 +356,41 @@ crate:</p>
 <pre><code class="language-sh">$ cargo new hello_world --lib
 $ cd hello_world
 </code></pre>
+<h3 id="cargotoml"><a class="header" href="#cargotoml"><code>Cargo.toml</code></a></h3>
 <p>Let's set up our crate by adding <code>ext-php-rs</code> as a dependency and setting the
 crate type to <code>cdylib</code>. Update the <code>Cargo.toml</code> to look something like so:</p>
-<h3 id="cargotoml"><a class="header" href="#cargotoml"><code>Cargo.toml</code></a></h3>
 <pre><code class="language-toml">[package]
 name = &quot;hello_world&quot;
 version = &quot;0.1.0&quot;
 edition = &quot;2018&quot;
 
 [dependencies]
-ext-php-rs = &quot;0.2&quot;
+ext-php-rs = &quot;*&quot;
 
 [lib]
 crate-type = [&quot;cdylib&quot;]
 </code></pre>
-<p>As the linker will not be able to find the PHP installation that we are
-dynamically linking to, we need to enable dynamic linking with undefined
-symbols. We do this by creating a Cargo config file in <code>.cargo/config.toml</code> with
-the following contents:</p>
 <h3 id="cargoconfigtoml"><a class="header" href="#cargoconfigtoml"><code>.cargo/config.toml</code></a></h3>
-<pre><code class="language-toml">[build]
+<p>When compiling for Linux and macOS, we do not link directly to PHP, rather PHP
+will dynamically load the library. We need to tell the linker it's ok to have
+undefined symbols (as they will be resolved when loaded by PHP).</p>
+<p>On Windows, we also need to switch to using the <code>rust-lld</code> linker.</p>
+<blockquote>
+<p>Microsoft Visual C++'s <code>link.exe</code> is supported, however you may run into
+issues if your linker is not compatible with the linker used to compile PHP.</p>
+</blockquote>
+<p>We do this by creating a Cargo config file in <code>.cargo/config.toml</code> with the
+following contents:</p>
+<pre><code class="language-toml">[target.'cfg(not(target_os = &quot;windows&quot;))']
 rustflags = [&quot;-C&quot;, &quot;link-arg=-Wl,-undefined,dynamic_lookup&quot;]
+
+[target.x86_64-pc-windows-msvc]
+linker = &quot;rust-lld&quot;
+
+[target.i686-pc-windows-msvc]
+linker = &quot;rust-lld&quot;
 </code></pre>
+<h3 id="srclibrs"><a class="header" href="#srclibrs"><code>src/lib.rs</code></a></h3>
 <p>Let's actually write the extension code now. We start by importing the
 <code>ext-php-rs</code> prelude, which contains most of the imports required to make a
 basic extension. We will then write our basic <code>hello_world</code> function, which will
@@ -386,11 +399,14 @@ Finally, we write a <code>get_module</code> function which is used by PHP to fin
 your module. The <code>#[php_module]</code> attribute automatically registers your new
 function so we don't need to do anything except return the <code>ModuleBuilder</code> that
 we were given.</p>
-<h3 id="srclibrs"><a class="header" href="#srclibrs"><code>src/lib.rs</code></a></h3>
-<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
+<p>We also need to enable the <code>abi_vectorcall</code> feature when compiling for Windows.
+This is a nightly-only feature so it is recommended to use the <code>#[cfg_attr]</code>
+macro to not enable the feature on other operating systems.</p>
+<pre><code class="language-rust ignore">#![cfg_attr(windows, feature(abi_vectorcall))]
+use ext_php_rs::prelude::*;
 
 #[php_function]
-pub fn hello_world(name: String) -&gt; String {
+pub fn hello_world(name: &amp;str) -&gt; String {
     format!(&quot;Hello, {}!&quot;, name)
 }
 
@@ -399,8 +415,8 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
 }
 </code></pre>
-<p>Let's make a test script.</p>
 <h3 id="testphp"><a class="header" href="#testphp"><code>test.php</code></a></h3>
+<p>Let's make a test script.</p>
 <pre><code class="language-php">&lt;?php
 
 var_dump(hello_world(&quot;David&quot;));
@@ -411,8 +427,9 @@ executable is able to be found by the <code>ext-php-rs</code> build script.</p>
 <p>The extension is stored inside <code>target/debug</code> (if you did a debug build,
 <code>target/release</code> for release builds). The file name will be based on your crate
 name, so for us it will be <code>libhello_world</code>. The extension is based on your OS -
-on Linux it will be <code>libhello_world.so</code> and on macOS it will be
-<code>libhello_world.dylib</code>.</p>
+on Linux it will be <code>libhello_world.so</code>, on macOS it will be
+<code>libhello_world.dylib</code> and on Windows it will be <code>hello_world.dll</code> (no <code>lib</code>
+prefix).</p>
 <pre><code class="language-sh">$ cargo build
     Finished dev [unoptimized + debuginfo] target(s) in 0.01s
 $ php -dextension=./target/debug/libhello_world.dylib test.php
@@ -467,9 +484,7 @@ of platform. Note that converting a zval into a <code>f32</code> will lose accur
 depending on the value and the platform, which is why all zval conversions are
 fallible.</p>
 <h2 id="rust-example"><a class="header" href="#rust-example">Rust example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
@@ -477,7 +492,7 @@ pub fn test_numbers(a: i32, b: u32, c: f32) -&gt; u8 {
     println!(&quot;a {} b {} c {}&quot;, a, b, c);
     0
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-example"><a class="header" href="#php-example">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -497,16 +512,14 @@ the end of the struct based on how long the string is. Since the string is
 NUL-terminated, you cannot have any NUL bytes in your string, and an error will
 be thrown if one is encountered while converting a <code>String</code> to a zval.</p>
 <h2 id="rust-example-1"><a class="header" href="#rust-example-1">Rust example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn str_example(input: String) -&gt; String {
     format!(&quot;Hello {}&quot;, input)
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-example-1"><a class="header" href="#php-example-1">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -527,9 +540,7 @@ library does not attempt to parse <code>double</code> types as strings.</p>
 <p>See the <a href="types/./string.html"><code>String</code></a> for a deeper dive into the internal structure of
 PHP strings.</p>
 <h2 id="rust-example-2"><a class="header" href="#rust-example-2">Rust example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
@@ -541,7 +552,7 @@ pub fn str_example(input: &amp;str) -&gt; String {
 pub fn str_return_example() -&gt; &amp;'static str {
     &quot;Hello from Rust&quot;
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-example-2"><a class="header" href="#php-example-2">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -568,9 +579,7 @@ equivalent structure in Rust would look like:</p>
 }
 </code></pre>
 <h2 id="rust-example-3"><a class="header" href="#rust-example-3">Rust example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
@@ -581,7 +590,7 @@ pub fn test_bool(input: bool) -&gt; String {
         &quot;No!&quot;.into()
     }
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-example-3"><a class="header" href="#php-example-3">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -603,16 +612,14 @@ contain only one type.</p>
 given generic type. If any of the conversions fail, the whole conversion will
 fail.</p>
 <h2 id="rust-example-4"><a class="header" href="#rust-example-4">Rust example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn test_vec(vec: Vec&lt;String&gt;) -&gt; String {
     vec.join(&quot; &quot;)
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-example-4"><a class="header" href="#php-example-4">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -631,9 +638,7 @@ numeric key, the key is represented as a string before being inserted.</p>
 <p>Converting from a <code>HashMap</code> to a zval is valid when the key implements
 <code>AsRef&lt;str&gt;</code>, and the value implements <code>IntoZval</code>.</p>
 <h2 id="rust-example-5"><a class="header" href="#rust-example-5">Rust example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span><span class="boring">use std::collections::HashMap;
@@ -647,7 +652,7 @@ pub fn test_hashmap(hm: HashMap&lt;String, String&gt;) -&gt; Vec&lt;String&gt; {
         .map(|(_, v)| v)
         .collect::&lt;Vec&lt;_&gt;&gt;()
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-example-5"><a class="header" href="#php-example-5">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -682,9 +687,7 @@ string pointer, with the length of the array being the length of the string.</p>
 on most primitive numbers (i8, i16, i32, i64, u8, u16, u32, u64, isize, usize,
 f32, f64).</p>
 <h2 id="rust-usage"><a class="header" href="#rust-usage">Rust Usage</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 use ext_php_rs::binary::Binary;
@@ -699,7 +702,7 @@ pub fn test_binary(input: Binary&lt;u32&gt;) -&gt; Binary&lt;u32&gt; {
         .into_iter()
         .collect::&lt;Binary&lt;_&gt;&gt;()
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-usage"><a class="header" href="#php-usage">PHP Usage</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -722,16 +725,14 @@ supplied.</p>
 <p>Returning <code>Option&lt;T&gt;</code> is a nullable return type. Returning <code>None</code> will return
 null to PHP.</p>
 <h2 id="rust-example-6"><a class="header" href="#rust-example-6">Rust example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn test_option_null(input: Option&lt;String&gt;) -&gt; Option&lt;String&gt; {
     input.map(|input| format!(&quot;Hello {}&quot;, input).into())
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-example-6"><a class="header" href="#php-example-6">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -752,9 +753,7 @@ object.</p>
 </tbody></table>
 <h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
 <h3 id="taking-an-object-reference"><a class="header" href="#taking-an-object-reference">Taking an object reference</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::{prelude::*, types::ZendObject};
 
@@ -768,12 +767,10 @@ pub fn take_obj(obj: &amp;mut ZendObject) -&gt; &amp;mut ZendObject {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <h3 id="creating-a-new-object"><a class="header" href="#creating-a-new-object">Creating a new object</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::{prelude::*, types::ZendObject, boxed::ZBox};
 
@@ -788,7 +785,7 @@ pub fn make_object() -&gt; ZBox&lt;ZendObject&gt; {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="class-object"><a class="header" href="#class-object">Class Object</a></h1>
 <p>A class object is an instance of a Rust struct (which has been registered as a
@@ -799,9 +796,7 @@ object as a superset of an object, as a class object contains a Zend object.</p>
 </tbody></table>
 <h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
 <h3 id="returning-a-reference-to-self"><a class="header" href="#returning-a-reference-to-self">Returning a reference to <code>self</code></a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::{prelude::*, types::ZendClassObject};
 
@@ -824,12 +819,10 @@ impl Example {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <h3 id="creating-a-new-class-instance"><a class="header" href="#creating-a-new-class-instance">Creating a new class instance</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -849,7 +842,7 @@ impl Example {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="closure"><a class="header" href="#closure">Closure</a></h1>
 <p>Rust closures can be passed to PHP through a wrapper class <code>PhpClosure</code>. The
@@ -881,9 +874,7 @@ underlying Rust closure is called. There are three types of closures in Rust:</p
 <p>These closures can be called multiple times. <code>FnMut</code> differs from <code>Fn</code> in the
 fact that it can modify variables in its scope.</p>
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -906,7 +897,7 @@ pub fn closure_count() -&gt; Closure {
         count
     }) as Box&lt;dyn FnMut(i32) -&gt; i32&gt;)
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="fnonce"><a class="header" href="#fnonce"><code>FnOnce</code></a></h2>
 <p>Closures that implement <code>FnOnce</code> can only be called once. They consume some sort
@@ -918,9 +909,7 @@ owns the <code>FnOnce</code> closure until it is called. If the <code>FnMut</cod
 again, the <code>FnOnce</code> closure would have already been consumed, and an exception
 will be thrown.</p>
 <h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -933,7 +922,7 @@ pub fn closure_return_string() -&gt; Closure {
         example
     }) as Box&lt;dyn FnOnce() -&gt; String&gt;)
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Closures must be boxed as PHP classes cannot support generics, therefore trait
 objects must be used. These must be boxed to have a compile time size.</p>
@@ -942,9 +931,7 @@ objects must be used. These must be boxed to have a compile time size.</p>
 function by its name, or as a parameter. They can be called through the
 <code>try_call</code> method implemented on <code>Callable</code>, which returns a zval in a result.</p>
 <h3 id="callable-parameter"><a class="header" href="#callable-parameter">Callable parameter</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -953,7 +940,7 @@ pub fn callable_parameter(call: ZendCallable) {
     let val = call.try_call(vec![&amp;0, &amp;1, &amp;&quot;Hello&quot;]).expect(&quot;Failed to call function&quot;);
     dbg!(val);
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="macros"><a class="header" href="#macros">Macros</a></h1>
 <p><code>ext-php-rs</code> comes with a set of macros that are used to annotate types which
@@ -1015,7 +1002,8 @@ the following (if required):</p>
 <p>Classes and constants are not registered in the <code>get_module</code> function. These are
 registered inside the extension startup function.</p>
 <h2 id="usage-3"><a class="header" href="#usage-3">Usage</a></h2>
-<pre><code class="language-rust ignore"><span class="boring">extern crate ext_php_rs;
+<pre><code class="language-rust ignore"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span><span class="boring">use ext_php_rs::{info_table_start, info_table_row, info_table_end};
 </span><span class="boring">use ext_php_rs::php::module::ModuleEntry;
@@ -1044,16 +1032,14 @@ be automatically generated when required (if not already defined).</p>
 <p>Read more about what the module startup function is used for
 <a href="https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html#module-initialization-minit">here.</a></p>
 <h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_startup]
 pub fn startup_function() {
 
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_function"><a class="header" href="#php_function"><code>#[php_function]</code></a></h1>
 <p>Used to annotate functions which should be exported to PHP. Note that this
@@ -1065,9 +1051,7 @@ return types.</p>
 of <code>Option&lt;T&gt;</code>. The macro will then figure out which parameters are optional by
 using the last consecutive arguments that are a variant of <code>Option&lt;T&gt;</code> or have a
 default value.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
@@ -1080,14 +1064,12 @@ pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
 
     greeting
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Default parameter values can also be set for optional parameters. This is done
 through the <code>defaults</code> attribute option. When an optional parameter has a
 default, it does not need to be a variant of <code>Option</code>:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function(defaults(offset = 0))]
@@ -1095,14 +1077,12 @@ pub fn rusty_strpos(haystack: &amp;str, needle: &amp;str, offset: i64) -&gt; Opt
     let haystack: String = haystack.chars().skip(offset as usize).collect();
     haystack.find(needle)
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Note that if there is a non-optional argument after an argument that is a
 variant of <code>Option&lt;T&gt;</code>, the <code>Option&lt;T&gt;</code> argument will be deemed a nullable
 argument rather than an optional argument.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>/// `age` will be deemed required and nullable rather than optional.
@@ -1117,14 +1097,12 @@ pub fn greet(name: String, age: Option&lt;i32&gt;, description: String) -&gt; St
     greeting += &amp;format!(&quot; {}.&quot;, description);
     greeting
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>You can also specify the optional arguments if you want to have nullable
 arguments before optional arguments. This is done through an attribute
 parameter:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>/// `age` will be deemed required and nullable rather than optional,
@@ -1143,7 +1121,7 @@ pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String
 
     greeting
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="returning-resultt-e"><a class="header" href="#returning-resultt-e">Returning <code>Result&lt;T, E&gt;</code></a></h2>
 <p>You can also return a <code>Result</code> from the function. The error variant will be
@@ -1181,9 +1159,7 @@ the same name as the field. Property types must implement <code>IntoZval</code> 
 </ul>
 <h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
 <p>This example creates a PHP class <code>Human</code>, adding a PHP property <code>address</code>.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_class]
@@ -1197,13 +1173,11 @@ pub struct Human {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Create a custom exception <code>RedisException</code>, which extends <code>Exception</code>, and put
 it in the <code>Redis\Exception</code> namespace:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 use ext_php_rs::{exception::PhpException, zend::ce};
@@ -1222,7 +1196,7 @@ pub fn throw_exception() -&gt; PhpResult&lt;i32&gt; {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_impl"><a class="header" href="#php_impl"><code>#[php_impl]</code></a></h1>
 <p>You can export an entire <code>impl</code> block to PHP. This exports all methods as well
@@ -1297,9 +1271,7 @@ conflict with field properties defined on the struct.</p>
 <p>Continuing on from our <code>Human</code> example in the structs section, we will define a
 constructor, as well as getters for the properties. We will also define a
 constant for the maximum age of a <code>Human</code>.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::{prelude::*, types::ZendClassObject};
 </span><span class="boring">#[php_class]
@@ -1350,7 +1322,7 @@ impl Human {
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">    module
 </span><span class="boring">}
-</span><span class="boring">}
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Using our newly created class in PHP:</p>
 <pre><code class="language-php">&lt;?php
@@ -1365,9 +1337,7 @@ var_dump(Human::MAX_AGE); // int(100)
 <p>Exports a Rust constant as a global PHP constant. The constant can be any type
 that implements <code>IntoConst</code>.</p>
 <h2 id="examples-3"><a class="header" href="#examples-3">Examples</a></h2>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_const]
@@ -1375,7 +1345,9 @@ const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
 const ANOTHER_STRING_CONST: &amp;'static str = &quot;Hello world!&quot;;
-<span class="boring">}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="php-usage-1"><a class="header" href="#php-usage-1">PHP usage</a></h2>
 <pre><code class="language-php">&lt;?php
@@ -1393,9 +1365,7 @@ struct must implement <code>FromZval</code> as well. Generics are allowed on str
 use the derive macro, however, the implementation will add a <code>FromZval</code> bound to
 all generics types.</p>
 <h3 id="examples-4"><a class="header" href="#examples-4">Examples</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -1419,7 +1389,8 @@ pub fn give_object() -&gt; ExampleClass&lt;'static&gt; {
         c: &quot;Borrowed&quot;,
     }
 }
-<span class="boring">}
+<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Calling from PHP:</p>
 <pre><code class="language-php">&lt;?php
@@ -1433,9 +1404,7 @@ take_object($obj);
 var_dump(give_object());
 </code></pre>
 <p>Another example involving generics:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -1450,7 +1419,8 @@ pub struct CompareVals&lt;T: PartialEq&lt;i32&gt;&gt; {
 pub fn take_object(obj: CompareVals&lt;i32&gt;) {
     dbg!(obj);
 }
-<span class="boring">}
+<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <h2 id="enums"><a class="header" href="#enums">Enums</a></h2>
 <p>When used on an enum, the <code>FromZval</code> implementation will treat the enum as a
@@ -1466,9 +1436,7 @@ put a <code>String</code> variant before an integer variant, the integer would b
 to a string and passed as the string variant.</p>
 <h3 id="examples-5"><a class="header" href="#examples-5">Examples</a></h3>
 <p>Basic example showing the importance of variant ordering and default field:</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
@@ -1489,7 +1457,8 @@ pub fn test_union(val: UnionExample) {
 pub fn give_union() -&gt; UnionExample&lt;'static&gt; {
     UnionExample::Long(5)
 }
-<span class="boring">}
+<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
+</span><span class="boring">fn main() {}
 </span></code></pre></pre>
 <p>Use in PHP:</p>
 <pre><code class="language-php">test_union(5); // UnionExample::Long(5)
@@ -1518,9 +1487,7 @@ returned.</p>
 is thrown. This allows you to return a result from a PHP function annotated with
 the <code>#[php_function]</code> attribute.</p>
 <h3 id="examples-6"><a class="header" href="#examples-6">Examples</a></h3>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 use std::convert::TryInto;
@@ -1537,7 +1504,7 @@ pub fn something_fallible(n: u64) -&gt; PhpResult&lt;u32&gt; {
 pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
 }
-<span class="boring">}
+<span class="boring">fn main() {}
 </span></code></pre></pre>
 
                     </main>
