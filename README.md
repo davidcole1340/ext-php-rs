@@ -162,6 +162,7 @@ Check out one of the example projects:
   encryption PHP extension.
 - [opus-php](https://github.com/davidcole1340/opus-php) - Audio encoder for the
   Opus codec in PHP.
+- [tomlrs-php](https://github.com/jphenow/tomlrs-php) - TOML data format parser.
 
 ## Contributions
 
