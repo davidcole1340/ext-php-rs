@@ -329,6 +329,7 @@ macro_rules! into_zval {
 
         impl $crate::convert::IntoZval for $type {
             const TYPE: $crate::flags::DataType = $crate::flags::DataType::$dt;
+            const NULLABLE: bool = false;
 
             fn set_zval(self, zv: &mut $crate::types::Zval, _: bool) -> $crate::error::Result<()> {
                 zv.$fn(self);

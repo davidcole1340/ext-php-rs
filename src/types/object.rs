@@ -344,6 +344,7 @@ impl<'a> FromZvalMut<'a> for &'a mut ZendObject {
 
 impl IntoZval for ZBox<ZendObject> {
     const TYPE: DataType = DataType::Object(None);
+    const NULLABLE: bool = false;
 
     #[inline]
     fn set_zval(mut self, zv: &mut Zval, _: bool) -> Result<()> {
@@ -358,6 +359,7 @@ impl IntoZval for ZBox<ZendObject> {
 
 impl<'a> IntoZval for &'a mut ZendObject {
     const TYPE: DataType = DataType::Object(None);
+    const NULLABLE: bool = false;
 
     #[inline]
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {

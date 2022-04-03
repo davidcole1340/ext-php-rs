@@ -752,6 +752,7 @@ impl Clone for ZBox<ZendHashTable> {
 
 impl IntoZval for ZBox<ZendHashTable> {
     const TYPE: DataType = DataType::Array;
+    const NULLABLE: bool = false;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         zv.set_hashtable(self);
@@ -817,6 +818,7 @@ where
     V: IntoZval,
 {
     const TYPE: DataType = DataType::Array;
+    const NULLABLE: bool = false;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         let arr = self.try_into()?;
@@ -881,6 +883,7 @@ where
     T: IntoZval,
 {
     const TYPE: DataType = DataType::Array;
+    const NULLABLE: bool = false;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         let arr = self.try_into()?;
