@@ -19,6 +19,9 @@ pub struct Class {
     pub constructor: Option<crate::method::Method>,
     pub constants: Vec<crate::constant::Constant>,
     pub properties: HashMap<String, Property>,
+    /// A function name called when creating the class entry. Given an instance
+    /// of `ClassBuilder` and must return it.
+    pub modifier: Option<String>,
 }
 
 #[derive(Debug)]
@@ -33,6 +36,7 @@ pub enum ParsedAttribute {
 #[darling(default)]
 pub struct AttrArgs {
     name: Option<String>,
+    modifier: Option<String>,
 }
 
 pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream> {
@@ -120,6 +124,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         interfaces,
         docs: comments,
         properties,
+        modifier: args.modifier,
         ..Default::default()
     };
 

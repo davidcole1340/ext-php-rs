@@ -95,7 +95,8 @@ Continuing on from our `Human` example in the structs section, we will define a
 constructor, as well as getters for the properties. We will also define a
 constant for the maximum age of a `Human`.
 
-```rust
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::{prelude::*, types::ZendClassObject};
 # #[php_class]
@@ -146,6 +147,7 @@ impl Human {
 # pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 #     module
 # }
+# fn main() {}
 ```
 
 Using our newly created class in PHP:

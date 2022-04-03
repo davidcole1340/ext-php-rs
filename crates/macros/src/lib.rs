@@ -1,6 +1,7 @@
 mod class;
 mod constant;
 mod extern_;
+mod fastcall;
 mod function;
 mod helpers;
 mod impl_;
@@ -135,6 +136,17 @@ pub fn zval_convert_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     match zval::parser(input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro]
+pub fn zend_fastcall(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemFn);
+
+    match fastcall::parser(input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }

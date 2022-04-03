@@ -8,10 +8,18 @@ use crate::{
 use std::{ffi::CString, mem, ptr};
 
 /// Function representation in Rust.
+#[cfg(not(windows))]
 pub type FunctionHandler = extern "C" fn(execute_data: &mut ExecuteData, retval: &mut Zval);
+#[cfg(windows)]
+pub type FunctionHandler =
+    extern "vectorcall" fn(execute_data: &mut ExecuteData, retval: &mut Zval);
 
 /// Function representation in Rust using pointers.
+#[cfg(not(windows))]
 type FunctionPointerHandler = extern "C" fn(execute_data: *mut ExecuteData, retval: *mut Zval);
+#[cfg(windows)]
+type FunctionPointerHandler =
+    extern "vectorcall" fn(execute_data: *mut ExecuteData, retval: *mut Zval);
 
 /// Builder for registering a function in PHP.
 #[derive(Debug)]

@@ -12,6 +12,7 @@ use crate::{
     props::Property,
     types::Zval,
     zend::ExecuteData,
+    zend_fastcall,
 };
 
 /// Class entry and handlers for Rust closures.
@@ -137,12 +138,14 @@ impl Closure {
         CLOSURE_META.set_ce(ce);
     }
 
-    /// External function used by the Zend interpreter to call the closure.
-    extern "C" fn invoke(ex: &mut ExecuteData, ret: &mut Zval) {
-        let (parser, this) = ex.parser_method::<Self>();
-        let this = this.expect("Internal closure function called on non-closure class");
+    zend_fastcall! {
+        /// External function used by the Zend interpreter to call the closure.
+        extern "C" fn invoke(ex: &mut ExecuteData, ret: &mut Zval) {
+            let (parser, this) = ex.parser_method::<Self>();
+            let this = this.expect("Internal closure function called on non-closure class");
 
-        this.0.invoke(parser, ret)
+            this.0.invoke(parser, ret)
+        }
     }
 }
 

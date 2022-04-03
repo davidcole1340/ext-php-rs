@@ -42,7 +42,8 @@ fact that it can modify variables in its scope.
 
 ### Example
 
-```rust
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
@@ -65,6 +66,7 @@ pub fn closure_count() -> Closure {
         count
     }) as Box<dyn FnMut(i32) -> i32>)
 }
+# fn main() {}
 ```
 
 ## `FnOnce`
@@ -81,7 +83,8 @@ will be thrown.
 
 ### Example
 
-```rust
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
@@ -94,6 +97,7 @@ pub fn closure_return_string() -> Closure {
         example
     }) as Box<dyn FnOnce() -> String>)
 }
+# fn main() {}
 ```
 
 Closures must be boxed as PHP classes cannot support generics, therefore trait
@@ -107,7 +111,8 @@ function by its name, or as a parameter. They can be called through the
 
 ### Callable parameter
 
-```rust
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
@@ -116,4 +121,5 @@ pub fn callable_parameter(call: ZendCallable) {
     let val = call.try_call(vec![&0, &1, &"Hello"]).expect("Failed to call function");
     dbg!(val);
 }
+# fn main() {}
 ```

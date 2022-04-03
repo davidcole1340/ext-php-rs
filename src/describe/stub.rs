@@ -366,7 +366,7 @@ fn indent(s: &str, depth: usize) -> String {
 
 #[cfg(test)]
 mod test {
-    use super::{indent, split_namespace};
+    use super::split_namespace;
 
     #[test]
     pub fn test_split_ns() {
@@ -376,8 +376,15 @@ mod test {
     }
 
     #[test]
+    #[cfg(not(windows))]
     pub fn test_indent() {
+        use super::indent;
+        use crate::describe::stub::NEW_LINE_SEPARATOR;
+
         assert_eq!(indent("hello", 4), "    hello");
-        assert_eq!(indent("hello\nworld\n", 4), "    hello\n    world\n");
+        assert_eq!(
+            indent(&format!("hello{nl}world{nl}", nl = NEW_LINE_SEPARATOR), 4),
+            format!("    hello{nl}    world{nl}", nl = NEW_LINE_SEPARATOR)
+        );
     }
 }

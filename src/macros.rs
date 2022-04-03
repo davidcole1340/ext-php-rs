@@ -362,5 +362,51 @@ macro_rules! try_from_zval {
     };
 }
 
+/// Prints to the PHP standard output, without a newline.
+///
+/// Acts exactly the same as the built-in [`print`] macro.
+///
+/// # Panics
+///
+/// Panics if the generated string could not be converted to a `CString` due to
+/// `NUL` characters.
+#[macro_export]
+macro_rules! php_print {
+    ($arg: tt) => {{
+        $crate::zend::printf($arg).expect("Failed to print to PHP stdout");
+    }};
+
+    ($($arg: tt) *) => {{
+        let args = format!($($arg)*);
+        $crate::zend::printf(args.as_str()).expect("Failed to print to PHP stdout");
+    }};
+}
+
+/// Prints to the PHP standard output, with a newline.
+///
+/// The newline is only a newline character regardless of platform (no carriage
+/// return).
+///
+/// Acts exactly the same as the built-in [`println`] macro.
+///
+/// # Panics
+///
+/// Panics if the generated string could not be converted to a `CString` due to
+/// `NUL` characters.
+#[macro_export]
+macro_rules! php_println {
+    () => {
+        $crate::php_print!("\n");
+    };
+
+    ($fmt: tt) => {
+        $crate::php_print!(concat!($fmt, "\n"));
+    };
+
+    ($fmt: tt, $($arg: tt) *) => {
+        $crate::php_print!(concat!($fmt, "\n"), $($arg)*);
+    };
+}
+
 pub(crate) use into_zval;
 pub(crate) use try_from_zval;

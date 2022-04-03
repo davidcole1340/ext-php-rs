@@ -114,16 +114,23 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
             //         Ok(quote! { .property(#name, #default_expr, #flags_expr) })
             //     })
             //     .collect::<Result<Vec<_>>>()?;
+            let class_modifier = class.modifier.as_ref().map(|modifier| {
+                let modifier = Ident::new(modifier, Span::call_site());
+                quote! {
+                    let builder = #modifier(builder).expect(concat!("Failed to build class ", #class_name));
+                }
+            });
 
             Ok(quote! {{
-                let class = ::ext_php_rs::builders::ClassBuilder::new(#class_name)
+                let builder = ::ext_php_rs::builders::ClassBuilder::new(#class_name)
                     #(#methods)*
                     #(#constants)*
                     #(#interfaces)*
                     // #(#properties)*
                     #parent
-                    .object_override::<#ident>()
-                    .build()
+                    .object_override::<#ident>();
+                #class_modifier
+                let class = builder.build()
                     .expect(concat!("Unable to build class `", #class_name, "`"));
 
                 #meta.set_ce(class);

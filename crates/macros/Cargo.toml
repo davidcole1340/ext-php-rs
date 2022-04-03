@@ -4,7 +4,7 @@ description = "Derive macros for ext-php-rs."
 repository = "https://github.com/davidcole1340/ext-php-rs"
 homepage = "https://github.com/davidcole1340/ext-php-rs"
 license = "MIT OR Apache-2.0"
-version = "0.7.3"
+version = "0.7.4"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
 
@@ -12,7 +12,7 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0.68", features = ["full", "extra-traits"] }
+syn = { version = "1.0.68", features = ["full", "extra-traits", "printing"] }
 darling = "0.12"
 ident_case = "1.0.1"
 quote = "1.0.9"

@@ -13,6 +13,7 @@ use crate::{
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     types::{ZendClassObject, ZendObject, ZendStr, Zval},
     zend::{ClassEntry, ExecuteData, FunctionEntry},
+    zend_fastcall,
 };
 
 /// Builder for registering a class in PHP.
@@ -69,10 +70,10 @@ impl ClassBuilder {
     ///
     /// Panics when the given class entry `interface` is not an interface.
     pub fn implements(mut self, interface: &'static ClassEntry) -> Self {
-        if !interface.is_interface() {
-            panic!("Given class entry was not an interface.");
-        }
-
+        assert!(
+            interface.is_interface(),
+            "Given class entry was not an interface."
+        );
         self.interfaces.push(interface);
         self
     }
@@ -167,36 +168,38 @@ impl ClassBuilder {
             obj.into_raw().get_mut_zend_obj()
         }
 
-        extern "C" fn constructor<T: RegisteredClass>(ex: &mut ExecuteData, _: &mut Zval) {
-            let ConstructorMeta { constructor, .. } = match T::CONSTRUCTOR {
-                Some(c) => c,
-                None => {
-                    PhpException::default("You cannot instantiate this class from PHP.".into())
-                        .throw()
-                        .expect("Failed to throw exception when constructing class");
-                    return;
-                }
-            };
+        zend_fastcall! {
+            extern fn constructor<T: RegisteredClass>(ex: &mut ExecuteData, _: &mut Zval) {
+                let ConstructorMeta { constructor, .. } = match T::CONSTRUCTOR {
+                    Some(c) => c,
+                    None => {
+                        PhpException::default("You cannot instantiate this class from PHP.".into())
+                            .throw()
+                            .expect("Failed to throw exception when constructing class");
+                        return;
+                    }
+                };
 
-            let this = match constructor(ex) {
-                ConstructorResult::Ok(this) => this,
-                ConstructorResult::Exception(e) => {
-                    e.throw()
-                        .expect("Failed to throw exception while constructing class");
-                    return;
-                }
-                ConstructorResult::ArgError => return,
-            };
-            let this_obj = match ex.get_object::<T>() {
-                Some(obj) => obj,
-                None => {
-                    PhpException::default("Failed to retrieve reference to `this` object.".into())
-                        .throw()
-                        .expect("Failed to throw exception while constructing class");
-                    return;
-                }
-            };
-            this_obj.initialize(this);
+                let this = match constructor(ex) {
+                    ConstructorResult::Ok(this) => this,
+                    ConstructorResult::Exception(e) => {
+                        e.throw()
+                            .expect("Failed to throw exception while constructing class");
+                        return;
+                    }
+                    ConstructorResult::ArgError => return,
+                };
+                let this_obj = match ex.get_object::<T>() {
+                    Some(obj) => obj,
+                    None => {
+                        PhpException::default("Failed to retrieve reference to `this` object.".into())
+                            .throw()
+                            .expect("Failed to throw exception while constructing class");
+                        return;
+                    }
+                };
+                this_obj.initialize(this);
+            }
         }
 
         debug_assert_eq!(
