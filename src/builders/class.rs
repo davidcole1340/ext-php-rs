@@ -170,7 +170,7 @@ impl ClassBuilder {
 
         zend_fastcall! {
             extern fn constructor<T: RegisteredClass>(ex: &mut ExecuteData, _: &mut Zval) {
-                let ConstructorMeta { constructor, .. } = match T::CONSTRUCTOR {
+                let ConstructorMeta { constructor, .. } = match T::constructor() {
                     Some(c) => c,
                     None => {
                         PhpException::default("You cannot instantiate this class from PHP.".into())
@@ -211,7 +211,7 @@ impl ClassBuilder {
         self.method(
             {
                 let mut func = FunctionBuilder::new("__construct", constructor::<T>);
-                if let Some(ConstructorMeta { build_fn, .. }) = T::CONSTRUCTOR {
+                if let Some(ConstructorMeta { build_fn, .. }) = T::constructor() {
                     func = build_fn(func);
                 }
                 func.build().expect("Failed to build constructor function")

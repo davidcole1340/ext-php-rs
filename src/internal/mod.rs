@@ -1,5 +1,8 @@
 //! Internal, public functions that are called from downstream extensions.
 
+pub mod class;
+pub mod function;
+
 /// Called by startup functions registered with the [`#[php_startup]`] macro.
 /// Initializes all classes that are defined by ext-php-rs (i.e. `Closure`).
 ///

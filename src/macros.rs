@@ -408,5 +408,12 @@ macro_rules! php_println {
     };
 }
 
+#[macro_export]
+macro_rules! wrap_constant {
+    ($name:ident) => {
+        (stringify!($name), $name)
+    };
+}
+
 pub(crate) use into_zval;
 pub(crate) use try_from_zval;

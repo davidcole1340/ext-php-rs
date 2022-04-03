@@ -9,7 +9,7 @@ use std::{
 use once_cell::sync::OnceCell;
 
 use crate::{
-    builders::FunctionBuilder,
+    builders::{ClassBuilder, FunctionBuilder},
     exception::PhpException,
     props::Property,
     zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
@@ -21,8 +21,9 @@ pub trait RegisteredClass: Sized + 'static {
     /// PHP class name of the registered class.
     const CLASS_NAME: &'static str;
 
-    /// Optional class constructor.
-    const CONSTRUCTOR: Option<ConstructorMeta<Self>> = None;
+    /// Function to be called when building the class. Allows user to modify the
+    /// class at runtime (add runtime constants etc).
+    const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder>;
 
     /// Returns a reference to the class metadata, which stores the class entry
     /// and handlers.
@@ -43,6 +44,12 @@ pub trait RegisteredClass: Sized + 'static {
     /// through the [`ClassMetadata::get_properties`] function, which builds the
     /// hashmap one and stores it in memory.
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
+
+    /// Returns the method builders required to build the class.
+    fn method_builders() -> Vec<FunctionBuilder<'static>>;
+
+    /// Returns the class constructor (if any).
+    fn constructor() -> Option<ConstructorMeta<Self>>;
 }
 
 /// Stores metadata about a classes Rust constructor, including the function
