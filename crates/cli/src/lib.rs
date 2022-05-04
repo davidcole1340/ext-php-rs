@@ -105,6 +105,9 @@ struct Install {
     /// the directory the command is called.
     #[arg(long)]
     manifest: Option<PathBuf>,
+    /// Whether to bypass the install prompt.
+    #[clap(long)]
+    yes: bool,
 }
 
 #[derive(Parser)]
@@ -121,6 +124,9 @@ struct Remove {
     /// the directory the command is called.
     #[arg(long)]
     manifest: Option<PathBuf>,
+    /// Whether to bypass the remove prompt.
+    #[clap(long)]
+    yes: bool,
 }
 
 #[cfg(not(windows))]
@@ -172,7 +178,7 @@ impl Install {
             php_ini = Some(ini_path);
         }
 
-        if !Confirm::new()
+        if !self.yes && !Confirm::new()
             .with_prompt(format!(
                 "Are you sure you want to install the extension `{}`?",
                 artifact.name
@@ -305,7 +311,7 @@ impl Remove {
             bail!("Unable to find extension installed.");
         }
 
-        if !Confirm::new()
+        if !self.yes && !Confirm::new()
             .with_prompt(format!(
                 "Are you sure you want to remove the extension `{}`?",
                 artifact.name
