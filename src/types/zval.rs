@@ -6,6 +6,7 @@ use std::{convert::TryInto, ffi::c_void, fmt::Debug, ptr};
 
 use crate::{
     binary::Pack,
+    binary_slice::PackSlice,
     boxed::ZBox,
     convert::{FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
@@ -129,6 +130,15 @@ impl Zval {
     ///
     /// [`pack`]: https://www.php.net/manual/en/function.pack.php
     pub fn binary<T: Pack>(&self) -> Option<Vec<T>> {
+        if self.is_string() {
+            // SAFETY: Type is string therefore we are able to take a reference.
+            Some(T::unpack_into(unsafe { self.value.str_.as_ref() }?))
+        } else {
+            None
+        }
+    }
+
+    pub fn binary_slice<'a, T: PackSlice>(&self) -> Option<&'a [T]> {
         if self.is_string() {
             // SAFETY: Type is string therefore we are able to take a reference.
             Some(T::unpack_into(unsafe { self.value.str_.as_ref() }?))

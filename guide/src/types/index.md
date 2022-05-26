@@ -15,6 +15,8 @@ have been implemented on most regular Rust types:
 - `HashMap<String, T>` where T implements `IntoZval` and/or `FromZval`.
 - `Binary<T>` where T implements `Pack`, used for transferring binary string
   data.
+- `BinarySlice<T>` where T implements `Pack`, used for exposing PHP binary
+  strings as read-only slices.
 - A PHP callable closure or function wrapped with `Callable`.
 - `Option<T>` where T implements `IntoZval` and/or `FromZval`, and where `None`
   is converted to a PHP `null`.

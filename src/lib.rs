@@ -9,6 +9,7 @@
 pub mod alloc;
 pub mod args;
 pub mod binary;
+pub mod binary_slice;
 pub mod builders;
 pub mod convert;
 pub mod error;

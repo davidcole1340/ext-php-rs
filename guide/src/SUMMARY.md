@@ -12,6 +12,7 @@
   - [`Vec`](./types/vec.md)
   - [`HashMap`](./types/hashmap.md)
   - [`Binary`](./types/binary.md)
+  - [`BinarySlice`](./types/binary_slice.md)
   - [`Option`](./types/option.md)
   - [Object](./types/object.md)
   - [Class Object](./types/class_object.md)
