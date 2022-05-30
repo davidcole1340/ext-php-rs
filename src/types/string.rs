@@ -333,7 +333,7 @@ impl<'a> TryFrom<&'a ZendStr> for &'a str {
     }
 }
 
-impl<'a> TryFrom<&ZendStr> for String {
+impl TryFrom<&ZendStr> for String {
     type Error = Error;
 
     fn try_from(value: &ZendStr) -> Result<Self> {
