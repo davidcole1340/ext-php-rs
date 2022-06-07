@@ -70,7 +70,7 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         // this so we need to add it manually.
         let php_lib_name = self.get_php_lib_name()?;
         for line in bindings.lines() {
-            match &*line {
+            match line {
                 "extern \"C\" {" | "extern \"fastcall\" {" => {
                     writeln!(writer, "#[link(name = \"{}\")]", php_lib_name)?;
                 }
