@@ -257,7 +257,13 @@ impl ClassBuilder {
         }
 
         for iface in self.interfaces {
-            unsafe { zend_do_implement_interface(class, std::mem::transmute(iface)) };
+            unsafe {
+                zend_do_implement_interface(
+                    class,
+                    iface as *const crate::ffi::_zend_class_entry
+                        as *mut crate::ffi::_zend_class_entry,
+                )
+            };
         }
 
         for (name, mut default, flags) in self.properties {

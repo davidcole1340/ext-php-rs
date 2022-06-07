@@ -115,7 +115,7 @@ impl<'a> ZendCallable<'a> {
         let result = unsafe {
             _call_user_function_impl(
                 std::ptr::null_mut(),
-                std::mem::transmute(self.0.as_ref()),
+                self.0.as_ref() as *const crate::ffi::_zval_struct as *mut crate::ffi::_zval_struct,
                 &mut retval,
                 len as _,
                 packed.as_ptr() as *mut _,
