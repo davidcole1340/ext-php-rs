@@ -10,7 +10,7 @@ use dialoguer::{Confirm, Select};
 
 use std::{
     fs::OpenOptions,
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Seek, SeekFrom, Write},
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -207,6 +207,8 @@ impl Install {
                 let line = line.with_context(|| "Failed to read line from `php.ini`")?;
                 if !line.contains(&ext_line) {
                     new_lines.push(line);
+                } else {
+                    bail!("Extension already enabled.");
                 }
             }
 
@@ -216,6 +218,8 @@ impl Install {
             }
 
             new_lines.push(ext_line);
+            file.seek(SeekFrom::Start(0))?;
+            file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
         }
@@ -318,7 +322,6 @@ impl Remove {
                 .read(true)
                 .write(true)
                 .create(true)
-                .truncate(true)
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 
@@ -330,6 +333,8 @@ impl Remove {
                 }
             }
 
+            file.seek(SeekFrom::Start(0))?;
+            file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
         }
