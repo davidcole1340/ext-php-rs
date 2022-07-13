@@ -128,6 +128,7 @@ impl PHPInfo {
 }
 
 /// Builds the wrapper library.
+#[allow(clippy::explicit_auto_deref)]
 fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     let mut build = cc::Build::new();
     for (var, val) in defines {
