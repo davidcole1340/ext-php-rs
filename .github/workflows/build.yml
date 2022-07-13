@@ -10,9 +10,10 @@ jobs:
     name: Build and Test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        php: ['8.0', '8.1']
+        php: ["8.0", "8.1"]
         rust: [stable, nightly]
         phpts: [ts, nts]
         exclude:
@@ -44,7 +45,7 @@ jobs:
         id: clang
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: '13.0'
+          version: "13.0"
           directory: ${{ runner.temp }}/llvm
       - name: Configure Clang
         if: "!contains(matrix.os, 'windows')"
@@ -77,8 +78,7 @@ jobs:
         if: "contains(matrix.os, 'ubuntu') && matrix.php == '8.1'"
         env:
           DOCS_RS:
-        run:
-          cargo clean && cargo build
+        run: cargo clean && cargo build
   build-zts:
     name: Build with ZTS
     runs-on: ubuntu-latest
