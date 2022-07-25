@@ -163,6 +163,8 @@ Check out one of the example projects:
 - [opus-php](https://github.com/davidcole1340/opus-php) - Audio encoder for the
   Opus codec in PHP.
 - [tomlrs-php](https://github.com/jphenow/tomlrs-php) - TOML data format parser.
+- [php-scrypt](https://github.com/appwrite/php-scrypt) - PHP wrapper for the
+  scrypt password hashing algorithm.
 
 ## Contributions
 
