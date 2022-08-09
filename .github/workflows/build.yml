@@ -70,7 +70,7 @@ jobs:
           command: fmt
           args: --all -- --check
       - name: Run clippy
-        uses: actions-rs/cargo@v1 == 'unassigned
+        uses: actions-rs/cargo@v1
         if: ${{ matrix.rust == "stable" }}
         with:
           command: clippy
