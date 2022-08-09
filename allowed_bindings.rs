@@ -10,6 +10,8 @@ bind! {
     _Bucket,
     _call_user_function_impl,
     _zend_executor_globals,
+    _emalloc,
+    _efree,
     _zend_expected_type,
     _zend_expected_type_Z_EXPECTED_ARRAY,
     _zend_expected_type_Z_EXPECTED_BOOL,
