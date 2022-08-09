@@ -23,6 +23,8 @@ extern "C" {
     pub fn ext_php_rs_zend_object_alloc(obj_size: usize, ce: *mut zend_class_entry) -> *mut c_void;
     pub fn ext_php_rs_zend_object_release(obj: *mut zend_object);
     pub fn ext_php_rs_executor_globals() -> *mut zend_executor_globals;
+    pub fn ext_php_rs_emalloc(size: size_t) -> *mut size_t;
+    pub fn ext_php_rs_efree(ptr: *mut c_void) -> *mut size_t;
 }
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

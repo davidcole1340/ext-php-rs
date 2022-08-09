@@ -1,7 +1,7 @@
 //! Functions relating to the Zend Memory Manager, used to allocate
 //! request-bound memory.
 
-use crate::ffi::{_efree, _emalloc};
+use crate::ffi::{ext_php_rs_efree as _efree, ext_php_rs_emalloc as _emalloc};
 use std::{alloc::Layout, ffi::c_void};
 
 /// Uses the PHP memory allocator to allocate request-bound memory.
@@ -17,16 +17,30 @@ pub fn emalloc(layout: Layout) -> *mut u8 {
     // TODO account for alignment
     let size = layout.size();
 
-    (unsafe {
+    unsafe {
         #[cfg(php_debug)]
         {
-            _emalloc(size as _, std::ptr::null_mut(), 0, std::ptr::null_mut(), 0)
+            _(emalloc(
+                size as _,
+                std::ptr::null_mut(),
+                0,
+                std::ptr::null_mut(),
+                0,
+            )) as *mut u8
         }
         #[cfg(not(php_debug))]
         {
-            _emalloc(size as _)
+            let ptr = _emalloc(size as _);
+
+            print!("{:?}", *ptr);
+
+            if *ptr == 0 {
+                panic!()
+            }
+
+            ptr as *mut u8
         }
-    }) as *mut u8
+    }
 }
 
 /// Frees a given memory pointer which was allocated through the PHP memory
@@ -53,6 +67,10 @@ pub unsafe fn efree(ptr: *mut u8) {
     }
     #[cfg(not(php_debug))]
     {
-        _efree(ptr as *mut c_void)
+        let ptr = _efree(ptr as *mut c_void);
+
+        if *ptr == 0 {
+            panic!();
+        }
     }
 }
