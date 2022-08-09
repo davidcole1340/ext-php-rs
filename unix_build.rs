@@ -9,7 +9,7 @@ pub struct Provider {}
 impl Provider {
     /// Runs `php-config` with one argument, returning the stdout.
     fn php_config(&self, arg: &str) -> Result<String> {
-        let cmd = Command::new("/home/ptondereau/Code/php-debug/bin/php-config")
+        let cmd = Command::new("php-config")
             .arg(arg)
             .output()
             .context("Failed to run `php-config`")?;
