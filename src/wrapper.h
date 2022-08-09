@@ -30,5 +30,11 @@ const char *ext_php_rs_php_build_id();
 void *ext_php_rs_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 void ext_php_rs_zend_object_release(zend_object *obj);
 zend_executor_globals *ext_php_rs_executor_globals();
+
+#if ZEND_DEBUG
+size_t *ext_php_rs_emalloc(size_t size, const char *__zend_filename, const uint32_t __zend_lineno, const char *__zend_orig_filename, const uint32_t __zend_orig_lineno);
+size_t *ext_php_rs_efree(void *ptr, const char *__zend_filename, const uint32_t __zend_lineno, const char *__zend_orig_filename, const uint32_t __zend_orig_lineno);
+#else
 size_t *ext_php_rs_emalloc(size_t size);
 size_t *ext_php_rs_efree(void *ptr);
+#endif

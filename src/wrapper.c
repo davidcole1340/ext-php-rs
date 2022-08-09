@@ -22,7 +22,35 @@ void ext_php_rs_zend_object_release(zend_object *obj)
 {
   zend_object_release(obj);
 }
+#if ZEND_DEBUG
+size_t *ext_php_rs_emalloc(size_t size, const char *__zend_filename, const uint32_t __zend_lineno, const char *__zend_orig_filename, const uint32_t __zend_orig_lineno)
+{
+  zend_try
+  {
+    return _emalloc(size, __zend_filename, __zend_lineno, __zend_orig_filename, __zend_orig_lineno);
+  }
+  zend_catch
+  {
+    return 0;
+  }
+  zend_end_try();
+}
 
+size_t *ext_php_rs_efree(void *ptr, const char *__zend_filename, const uint32_t __zend_lineno, const char *__zend_orig_filename, const uint32_t __zend_orig_lineno)
+{
+  zend_try
+  {
+    _efree(ptr, __zend_filename, __zend_lineno, __zend_orig_filename, __zend_orig_lineno);
+
+    return (size_t *)1;
+  }
+  zend_catch
+  {
+    return 0;
+  }
+  zend_end_try();
+}
+#else
 size_t *ext_php_rs_emalloc(size_t size)
 {
   zend_try
@@ -50,6 +78,7 @@ size_t *ext_php_rs_efree(void *ptr)
   }
   zend_end_try();
 }
+#endif
 
 zend_executor_globals *ext_php_rs_executor_globals()
 {

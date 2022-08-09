@@ -20,13 +20,7 @@ pub fn emalloc(layout: Layout) -> *mut u8 {
     unsafe {
         #[cfg(php_debug)]
         {
-            _(emalloc(
-                size as _,
-                std::ptr::null_mut(),
-                0,
-                std::ptr::null_mut(),
-                0,
-            )) as *mut u8
+            (_emalloc(size as _, std::ptr::null_mut(), 0, std::ptr::null_mut(), 0)) as *mut u8
         }
         #[cfg(not(php_debug))]
         {
