@@ -59,6 +59,9 @@ impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
     }
 }
 
+pub type PropertyGetter<'a, T> = Option<Box<dyn Fn(&T, &mut Zval) -> PhpResult + Send + Sync + 'a>>;
+pub type PropertySetter<'a, T> = Option<Box<dyn Fn(&mut T, &Zval) -> PhpResult + Send + Sync + 'a>>;
+
 /// Represents a property added to a PHP class.
 ///
 /// There are two types of properties:
@@ -69,8 +72,8 @@ impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
 pub enum Property<'a, T> {
     Field(Box<dyn (Fn(&mut T) -> &mut dyn Prop) + Send + Sync>),
     Method {
-        get: Option<Box<dyn Fn(&T, &mut Zval) -> PhpResult + Send + Sync + 'a>>,
-        set: Option<Box<dyn Fn(&mut T, &Zval) -> PhpResult + Send + Sync + 'a>>,
+        get: PropertyGetter<'a, T>,
+        set: PropertySetter<'a, T>,
     },
 }
 

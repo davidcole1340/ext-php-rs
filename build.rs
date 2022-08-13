@@ -131,7 +131,7 @@ impl PHPInfo {
 fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     let mut build = cc::Build::new();
     for (var, val) in defines {
-        build.define(*var, *val);
+        build.define(var, *val);
     }
     build
         .file("src/wrapper.c")
