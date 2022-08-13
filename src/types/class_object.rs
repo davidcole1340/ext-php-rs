@@ -260,7 +260,7 @@ impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
         // `ZendClassObject` pointer will contain a valid, initialized `obj`,
         // therefore we can dereference both safely.
         unsafe {
-            let mut new = ZendClassObject::new((&***self).clone());
+            let mut new = ZendClassObject::new((***self).clone());
             zend_objects_clone_members(&mut new.std, &self.std as *const _ as *mut _);
             new
         }

@@ -110,7 +110,7 @@ impl ZendObjectHandlers {
             Ok(rv) => rv,
             Err(e) => {
                 let _ = e.throw();
-                (&mut *rv).set_null();
+                (*rv).set_null();
                 rv
             }
         }

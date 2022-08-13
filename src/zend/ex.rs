@@ -42,7 +42,7 @@ impl ExecuteData {
     ///     dbg!(a);
     /// }
     /// ```
-    pub fn parser<'a>(&'a mut self) -> ArgParser<'a, '_> {
+    pub fn parser(&mut self) -> ArgParser<'_, '_> {
         self.parser_object().0
     }
 
@@ -73,7 +73,7 @@ impl ExecuteData {
     ///     dbg!(a, this);
     /// }
     /// ```
-    pub fn parser_object<'a>(&'a mut self) -> (ArgParser<'a, '_>, Option<&'a mut ZendObject>) {
+    pub fn parser_object(&mut self) -> (ArgParser<'_, '_>, Option<&mut ZendObject>) {
         // SAFETY: All fields of the `u2` union are the same type.
         let n_args = unsafe { self.This.u2.num_args };
         let mut args = vec![];
@@ -134,9 +134,9 @@ impl ExecuteData {
     /// ```
     ///
     /// [`parse_object`]: #method.parse_object
-    pub fn parser_method<'a, T: RegisteredClass>(
-        &'a mut self,
-    ) -> (ArgParser<'a, '_>, Option<&'a mut ZendClassObject<T>>) {
+    pub fn parser_method<T: RegisteredClass>(
+        &mut self,
+    ) -> (ArgParser<'_, '_>, Option<&mut ZendClassObject<T>>) {
         let (parser, obj) = self.parser_object();
         (
             parser,

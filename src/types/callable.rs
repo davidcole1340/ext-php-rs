@@ -160,7 +160,7 @@ enum OwnedZval<'a> {
 impl<'a> OwnedZval<'a> {
     fn as_ref(&self) -> &Zval {
         match self {
-            OwnedZval::Reference(zv) => *zv,
+            OwnedZval::Reference(zv) => zv,
             OwnedZval::Owned(zv) => zv,
         }
     }
