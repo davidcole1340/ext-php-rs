@@ -29,7 +29,7 @@ Our main goal is to **make extension development easier.**
 ## Versioning
 
 `ext-php-rs` follows semantic versioning, however, no backwards compatibility is
-guaranteed while we are at major version `0`, which is for the forseeable
+guaranteed while we are at major version `0`, which is for the foreseeable
 future. It's recommended to lock the version at the patch level.
 
 ## Documentation
