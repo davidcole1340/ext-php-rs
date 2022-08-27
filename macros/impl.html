@@ -139,7 +139,7 @@
 as constants to PHP on the class that it is implemented on. This requires the
 <code>#[php_class]</code> macro to already be used on the underlying struct. Trait
 implementations cannot be exported to PHP.</p>
-<p>If you do not want a function exported to PHP, you should place it in a seperate
+<p>If you do not want a function exported to PHP, you should place it in a separate
 <code>impl</code> block.</p>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
 <p>Methods basically follow the same rules as functions, so read about the
@@ -177,7 +177,7 @@ equivalent function attribute parameters.</p>
 <h3 id="constructors"><a class="header" href="#constructors">Constructors</a></h3>
 <p>By default, if a class does not have a constructor, it is not constructable from
 PHP. It can only be returned from a Rust function to PHP.</p>
-<p>Constructors are Rust methods whick can take any amount of parameters and
+<p>Constructors are Rust methods which can take any amount of parameters and
 returns either <code>Self</code> or <code>Result&lt;Self, E&gt;</code>, where <code>E: Into&lt;PhpException&gt;</code>. When
 the error variant of <code>Result</code> is encountered, it is thrown as an exception and
 the class is not constructed.</p>
@@ -197,7 +197,7 @@ name, and the remainder is used as the property name.</p>
 <p>If you want to use a different name for the property, you can pass a <code>rename</code>
 option to the attribute which will change the property name.</p>
 <p>Properties do not necessarily have to have both a getter and a setter, if the
-property is immutable the setter can be ommited, and vice versa for getters.</p>
+property is immutable the setter can be omitted, and vice versa for getters.</p>
 <p>The <code>#[getter]</code> and <code>#[setter]</code> attributes are mutually exclusive on methods.
 Properties cannot have multiple getters or setters, and the property name cannot
 conflict with field properties defined on the struct.</p>
