@@ -106,7 +106,7 @@ Our main goal is to **make extension development easier.**
 ## Documentation
 
 The library guide can be read
-[here](https://davidcole1340.github.io/ext-php-rs/guide).
+[here](https://davidcole1340.github.io/ext-php-rs).
 
 The project is documented in-line, so viewing the `cargo` documentation is the
 best resource at the moment. This can be viewed at [docs.rs].
