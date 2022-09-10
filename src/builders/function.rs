@@ -96,7 +96,7 @@ impl<'a> FunctionBuilder<'a> {
     /// # Parameters
     ///
     /// * `type_` - The return type of the function.
-    /// * `as_ref` - Whether the fucntion returns a reference.
+    /// * `as_ref` - Whether the function returns a reference.
     /// * `allow_null` - Whether the function return value is nullable.
     pub fn returns(mut self, type_: DataType, as_ref: bool, allow_null: bool) -> Self {
         self.retval = Some(type_);

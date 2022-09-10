@@ -170,7 +170,7 @@ impl Describe for Function {
         let name = &self.name;
         let ret = if let Some((ty, null)) = &self.output {
             let ty: Type = syn::parse_str(ty)
-                .expect("unreachable - failed to parse previosuly parsed function return type");
+                .expect("unreachable - failed to parse previously parsed function return type");
             quote! {
                 Some(Retval {
                     ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,
@@ -300,7 +300,7 @@ impl Describe for crate::method::Method {
             }
         });
         let ret = if let Some((ty, null)) = &self.output {
-            let ty: Type = syn::parse_str(ty).expect("failed to parse previosuly parsed type");
+            let ty: Type = syn::parse_str(ty).expect("failed to parse previously parsed type");
             quote! {
                 Some(Retval {
                     ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,

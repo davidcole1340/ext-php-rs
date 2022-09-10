@@ -1,5 +1,5 @@
 // This is a cheeky hack - since we need the list of allowed bindings in both
-// the build script and in the CLI crate (in differnet formats), we define the
+// the build script and in the CLI crate (in different formats), we define the
 // `allowed_bindings.rs` file, which calls a macro called `bind` that doesn't
 // exist in the bindings file. Which ever script include!s the bindings must
 // define the `bind` macro. This allows us to have the list in string format

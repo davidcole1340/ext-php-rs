@@ -199,7 +199,7 @@ impl ExecuteData {
     ///
     /// The resultant zval reference has a lifetime equal to the lifetime of
     /// `self`. This isn't specified because when you attempt to get a
-    /// reference to args and the `$this` object, Rust doesnt't let you.
+    /// reference to args and the `$this` object, Rust doesn't let you.
     /// Since this is a private method it's up to the caller to ensure the
     /// lifetime isn't exceeded.
     #[doc(hidden)]

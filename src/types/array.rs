@@ -360,7 +360,7 @@ impl ZendHashTable {
     }
 
     /// Pushes an item onto the end of the hash table. Returns a result
-    /// containing nothing if the element was sucessfully inserted.
+    /// containing nothing if the element was successfully inserted.
     ///
     /// # Parameters
     ///

@@ -172,7 +172,7 @@ pub use ext_php_rs_derive::php_extern;
 ///
 /// You are able to implement [`FromZval`] on your own custom types to have
 /// arguments passed in seamlessly. Similarly, you can implement [`IntoZval`] on
-/// values that you want to be able to be returned from PHP fucntions.
+/// values that you want to be able to be returned from PHP functions.
 ///
 /// Parameters may be deemed optional by passing the parameter name into the
 /// attribute options. Note that all parameters that are optional (which
@@ -317,7 +317,7 @@ pub use ext_php_rs_derive::php_function;
 /// contents of the `impl` block are to be exported to PHP.
 ///
 /// The only contrary to this is setting the visibility, optional argument and
-/// default arguments for methods. These are done through seperate macros:
+/// default arguments for methods. These are done through separate macros:
 ///
 /// - `#[defaults(key = value, ...)]` for setting defaults of method variables,
 ///   similar to the

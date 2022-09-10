@@ -88,7 +88,8 @@ impl From<anyhow::Error> for PhpException {
 /// Throws an exception with a given message. See [`ClassEntry`] for some
 /// built-in exception types.
 ///
-/// Returns a result containing nothing if the exception was successfully thown.
+/// Returns a result containing nothing if the exception was successfully
+/// thrown.
 ///
 /// # Parameters
 ///
@@ -109,7 +110,8 @@ pub fn throw(ex: &ClassEntry, message: &str) -> Result<()> {
 /// Throws an exception with a given message and status code. See [`ClassEntry`]
 /// for some built-in exception types.
 ///
-/// Returns a result containing nothing if the exception was successfully thown.
+/// Returns a result containing nothing if the exception was successfully
+/// thrown.
 ///
 /// # Parameters
 ///

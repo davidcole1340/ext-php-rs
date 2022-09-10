@@ -83,7 +83,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// Providing an initialized variant of [`MaybeUninit<T>`] is safe.
     ///
-    /// Providing an uninitalized variant of [`MaybeUninit<T>`] is unsafe. As
+    /// Providing an uninitialized variant of [`MaybeUninit<T>`] is unsafe. As
     /// the object is uninitialized, the caller must ensure the following
     /// until the internal object is initialized:
     ///
@@ -115,7 +115,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         object_properties_init(&mut obj.std, ce);
 
         // SAFETY: `obj` is non-null and well aligned as it is a reference.
-        // As the data in `obj.obj` is uninitalized, we don't want to drop
+        // As the data in `obj.obj` is uninitialized, we don't want to drop
         // the data, but directly override it.
         ptr::write(&mut obj.obj, val);
 
@@ -234,7 +234,7 @@ impl<T> Deref for ZendClassObject<T> {
     fn deref(&self) -> &Self::Target {
         self.obj
             .as_ref()
-            .expect("Attempted to access uninitalized class object")
+            .expect("Attempted to access uninitialized class object")
     }
 }
 
@@ -242,7 +242,7 @@ impl<T> DerefMut for ZendClassObject<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.obj
             .as_mut()
-            .expect("Attempted to access uninitalized class object")
+            .expect("Attempted to access uninitialized class object")
     }
 }
 

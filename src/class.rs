@@ -59,7 +59,7 @@ pub struct ConstructorMeta<T> {
 pub enum ConstructorResult<T> {
     /// Successfully constructed the class, contains the new class object.
     Ok(T),
-    /// An exception occured while constructing the class.
+    /// An exception occurred while constructing the class.
     Exception(PhpException),
     /// Invalid arguments were given to the constructor.
     ArgError,

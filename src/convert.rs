@@ -75,7 +75,7 @@ where
 /// let props: HashMap = obj.extract();
 /// ```
 ///
-/// Should be functionally equivalent to casting an object to another compatable
+/// Should be functionally equivalent to casting an object to another compatible
 /// type.
 pub trait FromZendObject<'a>: Sized {
     /// Extracts `Self` from the source `ZendObject`.

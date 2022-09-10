@@ -98,7 +98,7 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
 
 /// Returns the path to rustc's linker.
 fn get_rustc_linker() -> Result<PathBuf> {
-    // `RUSTC_LINKER` is set if the linker has been overriden anywhere.
+    // `RUSTC_LINKER` is set if the linker has been overridden anywhere.
     if let Ok(link) = std::env::var("RUSTC_LINKER") {
         return Ok(link.into());
     }
