@@ -170,7 +170,7 @@ Thanks to the contributors for this release:
       successfully with overwrite.
     - `push()` now returns a `Result`.
     - Converting from a `Vec` or `HashMap` to a `ZendHashTable` is fallible, so
-      it now implementes `TryFrom` as opposed to `From`.
+      it now implements `TryFrom` as opposed to `From`.
   - For `Zval`:
     - `set_string()` now returns a `Result`, and takes a second parameter
       (persistent).

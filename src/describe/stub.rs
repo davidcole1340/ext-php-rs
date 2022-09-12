@@ -340,7 +340,7 @@ fn split_namespace(class: &str) -> (StdOption<&str>, &str) {
 /// to be appended. Returns a new string with the new indentation. Will not
 /// indent whitespace lines.
 ///
-/// # Paramters
+/// # Parameters
 ///
 /// * `s` - The string to indent.
 /// * `depth` - The depth to indent the lines to, in spaces.

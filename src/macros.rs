@@ -102,7 +102,7 @@ macro_rules! call_user_func {
 /// ```
 ///
 /// This example is similar to the one above, apart from the fact that the `z`
-/// argument is not required. Note the semicolon seperating the first two
+/// argument is not required. Note the semicolon separating the first two
 /// arguments from the second.
 ///
 /// ```

@@ -42,7 +42,7 @@ impl<'a> ZendCallable<'a> {
     ///
     /// # Parameters
     ///
-    /// * `callable` - TThe underlying [`Zval`] that is callable.
+    /// * `callable` - The underlying [`Zval`] that is callable.
     pub fn new_owned(callable: Zval) -> Result<Self> {
         if callable.is_callable() {
             Ok(Self(OwnedZval::Owned(callable)))

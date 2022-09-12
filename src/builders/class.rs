@@ -38,7 +38,7 @@ impl ClassBuilder {
     pub fn new<T: Into<String>>(name: T) -> Self {
         Self {
             name: name.into(),
-            // SAFETY: A zeroed class entry is in an initalized state, as it is a raw C type
+            // SAFETY: A zeroed class entry is in an initialized state, as it is a raw C type
             // whose fields do not have a drop implementation.
             ce: unsafe { MaybeUninit::zeroed().assume_init() },
             extends: None,

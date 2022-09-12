@@ -14,7 +14,7 @@ ext-php-rs = { version = "...", features = ["closure"] }
 
 PHP callables (which includes closures) can be passed to Rust through the
 `Callable` type. When calling a callable, you must provide it with a `Vec` of
-arguemnts, all of which must implement `IntoZval` and `Clone`.
+arguments, all of which must implement `IntoZval` and `Clone`.
 
 | `T` parameter | `&T` parameter | `T` Return type                        | `&T` Return type | PHP representation                                                                         |
 | ------------- | -------------- | -------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
