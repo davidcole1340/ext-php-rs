@@ -905,7 +905,7 @@ Enable it in your <code>Cargo.toml</code>:</p>
 </code></pre>
 <p>PHP callables (which includes closures) can be passed to Rust through the
 <code>Callable</code> type. When calling a callable, you must provide it with a <code>Vec</code> of
-arguemnts, all of which must implement <code>IntoZval</code> and <code>Clone</code>.</p>
+arguments, all of which must implement <code>IntoZval</code> and <code>Clone</code>.</p>
 <div class="table-wrapper"><table><thead><tr><th><code>T</code> parameter</th><th><code>&amp;T</code> parameter</th><th><code>T</code> Return type</th><th><code>&amp;T</code> Return type</th><th>PHP representation</th></tr></thead><tbody>
 <tr><td><code>Callable</code></td><td>No</td><td><code>Closure</code>, <code>Callable</code>for PHP functions</td><td>No</td><td>Callables are implemented in PHP, closures are represented as an instance of <code>PhpClosure</code>.</td></tr>
 </tbody></table>
