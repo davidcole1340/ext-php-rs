@@ -17,6 +17,7 @@ pub struct AttrArgs {
     optional: Option<String>,
     ignore_module: bool,
     defaults: HashMap<String, Lit>,
+    name: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -93,7 +94,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
     }
 
     let function = Function {
-        name: ident.to_string(),
+        name: attr_args.name.unwrap_or_else(|| ident.to_string()),
         docs: get_docs(&input.attrs),
         ident: internal_ident.to_string(),
         args,
