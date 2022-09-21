@@ -153,6 +153,7 @@ impl ToStub for Parameter {
 
 impl ToStub for DataType {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        let mut fqdn = "\\".to_owned();
         write!(
             buf,
             "{}",
@@ -162,7 +163,10 @@ impl ToStub for DataType {
                 DataType::Double => "float",
                 DataType::String => "string",
                 DataType::Array => "array",
-                DataType::Object(Some(ty)) => ty,
+                DataType::Object(Some(ty)) => {
+                    fqdn.push_str(ty);
+                    fqdn.as_str()
+                },
                 DataType::Object(None) => "object",
                 DataType::Resource => "resource",
                 DataType::Reference => "reference",
