@@ -121,6 +121,31 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                 }
             });
 
+            let flags = {
+                if let Some(flags) = &class.flags {
+                    let mut name = "::ext_php_rs::flags::ClassFlags::".to_owned();
+                    name.push_str(flags);
+                    let expr: Expr = syn::parse_str(&name).map_err(|_| {
+                        anyhow!("Invalid expression given for `{}` flags", class_name)
+                    })?;
+                    Some(quote! { .flags(#expr) })
+                } else {
+                    None
+                }
+            };
+
+            let object_override = {
+                if let Some(flags) = &class.flags {
+                    if  flags == "Interface" {
+                        None
+                    } else {
+                        Some(quote! { .object_override::<#ident>() })
+                    }
+                } else {
+                    Some(quote! { .object_override::<#ident>() })
+                }
+            };
+
             Ok(quote! {{
                 let builder = ::ext_php_rs::builders::ClassBuilder::new(#class_name)
                     #(#methods)*
@@ -128,7 +153,9 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                     #(#interfaces)*
                     // #(#properties)*
                     #parent
-                    .object_override::<#ident>();
+                    #flags
+                    #object_override
+                    ;
                 #class_modifier
                 let class = builder.build()
                     .expect(concat!("Unable to build class `", #class_name, "`"));

@@ -22,6 +22,7 @@ pub struct Class {
     /// A function name called when creating the class entry. Given an instance
     /// of `ClassBuilder` and must return it.
     pub modifier: Option<String>,
+    pub flags: Option<String>
 }
 
 #[derive(Debug)]
@@ -37,6 +38,7 @@ pub enum ParsedAttribute {
 pub struct AttrArgs {
     name: Option<String>,
     modifier: Option<String>,
+    flags: Option<Expr>,
 }
 
 pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream> {
@@ -117,6 +119,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
     let ItemStruct { ident, .. } = &input;
     let class_name = args.name.unwrap_or_else(|| ident.to_string());
     let struct_path = ident.to_string();
+    let flags = args.flags.map(|flags|flags.to_token_stream().to_string());
     let class = Class {
         class_name,
         struct_path,
@@ -125,6 +128,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         docs: comments,
         properties,
         modifier: args.modifier,
+        flags,
         ..Default::default()
     };
 
