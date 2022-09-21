@@ -38,6 +38,7 @@ pub struct Method {
     pub optional: Option<String>,
     pub output: Option<(String, bool)>,
     pub _static: bool,
+    pub _abstract: bool,
     pub visibility: Visibility,
 }
 
@@ -81,6 +82,7 @@ pub fn parser(
     let mut visibility = Visibility::Public;
     let mut as_prop = None;
     let mut identifier = None;
+    let mut is_abstract = false;
     let mut is_constructor = false;
     let docs = get_docs(&input.attrs);
 
@@ -90,6 +92,7 @@ pub fn parser(
                 ParsedAttribute::Default(list) => defaults = list,
                 ParsedAttribute::Optional(name) => optional = Some(name),
                 ParsedAttribute::Visibility(vis) => visibility = vis,
+                ParsedAttribute::Abstract => is_abstract = true,
                 ParsedAttribute::Rename(ident) => identifier = Some(ident),
                 ParsedAttribute::Property { prop_name, ty } => {
                     if as_prop.is_some() {
@@ -211,6 +214,7 @@ pub fn parser(
         optional,
         output: get_return_type(struct_ty, &input.sig.output)?,
         _static: matches!(method_type, MethodType::Static),
+        _abstract: is_abstract,
         visibility,
     };
 
@@ -445,6 +449,10 @@ impl Method {
 
         if self._static {
             flags.push(quote! { Static });
+        }
+
+        if self._abstract {
+            flags.push(quote! { Abstract });
         }
 
         flags
