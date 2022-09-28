@@ -56,8 +56,8 @@ impl ModuleBuilder {
             module: ModuleEntry {
                 size: mem::size_of::<ModuleEntry>() as u16,
                 zend_api: ZEND_MODULE_API_NO,
-                zend_debug: if PHP_DEBUG { 1 } else { 0 },
-                zts: if PHP_ZTS { 1 } else { 0 },
+                zend_debug: u8::from(PHP_DEBUG),
+                zts: u8::from(PHP_ZTS),
                 ini_entry: ptr::null(),
                 deps: ptr::null(),
                 name: ptr::null(),
