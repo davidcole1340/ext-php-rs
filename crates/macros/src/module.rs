@@ -55,8 +55,8 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     });
     let registered_classes_impls = state
         .classes
-        .iter()
-        .map(|(_, class)| generate_registered_class_impl(class))
+        .values()
+        .map(generate_registered_class_impl)
         .collect::<Result<Vec<_>>>()?;
     let describe_fn = generate_stubs(&state);
 
@@ -363,7 +363,7 @@ impl Describe for crate::constant::Constant {
 impl Describe for State {
     fn describe(&self) -> TokenStream {
         let functs = self.functions.iter().map(Describe::describe);
-        let classes = self.classes.iter().map(|(_, class)| class.describe());
+        let classes = self.classes.values().map(|class| class.describe());
         let constants = self.constants.iter().map(Describe::describe);
 
         quote! {
