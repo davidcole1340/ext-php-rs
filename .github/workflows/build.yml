@@ -73,6 +73,7 @@ jobs:
         with:
           command: clippy
           args: --all -- -D warnings
+        if: matrix.rust == 'stable'
       - name: Build with docs stub
         if: "contains(matrix.os, 'ubuntu') && matrix.php == '8.1'"
         env:
