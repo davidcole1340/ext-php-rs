@@ -89,21 +89,21 @@ enum Args {
 struct Install {
     /// Changes the path that the extension is copied to. This will not
     /// activate the extension unless `ini_path` is also passed.
-    #[clap(long)]
+    #[arg(long)]
     install_dir: Option<PathBuf>,
     /// Path to the `php.ini` file to update with the new extension.
-    #[clap(long)]
+    #[arg(long)]
     ini_path: Option<PathBuf>,
     /// Installs the extension but doesn't enable the extension in the `php.ini`
     /// file.
-    #[clap(long)]
+    #[arg(long)]
     disable: bool,
     /// Whether to install the release version of the extension.
-    #[clap(long)]
+    #[arg(long)]
     release: bool,
     /// Path to the Cargo manifest of the extension. Defaults to the manifest in
     /// the directory the command is called.
-    #[clap(long)]
+    #[arg(long)]
     manifest: Option<PathBuf>,
 }
 
@@ -112,14 +112,14 @@ struct Remove {
     /// Changes the path that the extension will be removed from. This will not
     /// remove the extension from a configuration file unless `ini_path` is also
     /// passed.
-    #[clap(long)]
+    #[arg(long)]
     install_dir: Option<PathBuf>,
     /// Path to the `php.ini` file to remove the extension from.
-    #[clap(long)]
+    #[arg(long)]
     ini_path: Option<PathBuf>,
     /// Path to the Cargo manifest of the extension. Defaults to the manifest in
     /// the directory the command is called.
-    #[clap(long)]
+    #[arg(long)]
     manifest: Option<PathBuf>,
 }
 
@@ -131,18 +131,18 @@ struct Stubs {
     ext: Option<PathBuf>,
     /// Path used to store generated stub file. Defaults to writing to
     /// `<ext-name>.stubs.php` in the current directory.
-    #[clap(short, long)]
+    #[arg(short, long)]
     out: Option<PathBuf>,
     /// Print stubs to stdout rather than write to file. Cannot be used with
     /// `out`.
-    #[clap(long, conflicts_with = "out")]
+    #[arg(long, conflicts_with = "out")]
     stdout: bool,
     /// Path to the Cargo manifest of the extension. Defaults to the manifest in
     /// the directory the command is called.
     ///
     /// This cannot be provided alongside the `ext` option, as that option
     /// provides a direct path to the extension shared library.
-    #[clap(long, conflicts_with = "ext")]
+    #[arg(long, conflicts_with = "ext")]
     manifest: Option<PathBuf>,
 }
 
