@@ -202,7 +202,7 @@ by JetBrains PhpStorm and the PHP Intelephense language server (which I
 personally recommend for use in Visual Studio Code).</p>
 <h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
 <pre><code class="language-text">$ cargo php stubs --help
-cargo-php-stubs 
+cargo-php-stubs
 
 Generates stub PHP files for the extension.
 
@@ -224,7 +224,7 @@ OPTIONS:
         --manifest &lt;MANIFEST&gt;
             Path to the Cargo manifest of the extension. Defaults to the manifest in the directory
             the command is called.
-            
+
             This cannot be provided alongside the `ext` option, as that option provides a direct
             path to the extension shared library.
 
@@ -242,7 +242,7 @@ extension into PHP. This requires <code>php-config</code> to be installed alongs
 so you are able to restore if you run into any issues.</p>
 <h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
 <pre><code class="language-text">$ cargo php install --help
-cargo-php-install 
+cargo-php-install
 
 Installs the extension in the current PHP installation.
 
@@ -276,13 +276,16 @@ OPTIONS:
 
         --release
             Whether to install the release version of the extension
+
+        --yes
+            Bypasses the confirmation prompt
 </code></pre>
 <h2 id="extension-removal"><a class="header" href="#extension-removal">Extension Removal</a></h2>
 <p>Removes the extension from your PHPs extension directory, and removes the entry
 from your <code>php.ini</code> if present.</p>
 <h3 id="usage-2"><a class="header" href="#usage-2">Usage</a></h3>
 <pre><code class="language-text">$ cargo php remove --help
-cargo-php-remove 
+cargo-php-remove
 
 Removes the extension in the current PHP installation.
 
@@ -310,6 +313,9 @@ OPTIONS:
         --manifest &lt;MANIFEST&gt;
             Path to the Cargo manifest of the extension. Defaults to the manifest in the directory
             the command is called
+
+        --yes
+            Bypasses the confirmation prompt
 </code></pre>
 
                     </main>
