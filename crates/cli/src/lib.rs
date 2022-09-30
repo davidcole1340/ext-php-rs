@@ -178,12 +178,13 @@ impl Install {
             php_ini = Some(ini_path);
         }
 
-        if !self.yes && !Confirm::new()
-            .with_prompt(format!(
-                "Are you sure you want to install the extension `{}`?",
-                artifact.name
-            ))
-            .interact()?
+        if !self.yes
+            && !Confirm::new()
+                .with_prompt(format!(
+                    "Are you sure you want to install the extension `{}`?",
+                    artifact.name
+                ))
+                .interact()?
         {
             bail!("Installation cancelled.");
         }
@@ -311,12 +312,13 @@ impl Remove {
             bail!("Unable to find extension installed.");
         }
 
-        if !self.yes && !Confirm::new()
-            .with_prompt(format!(
-                "Are you sure you want to remove the extension `{}`?",
-                artifact.name
-            ))
-            .interact()?
+        if !self.yes
+            && !Confirm::new()
+                .with_prompt(format!(
+                    "Are you sure you want to remove the extension `{}`?",
+                    artifact.name
+                ))
+                .interact()?
         {
             bail!("Installation cancelled.");
         }
