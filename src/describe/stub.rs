@@ -166,7 +166,7 @@ impl ToStub for DataType {
                 DataType::Object(Some(ty)) => {
                     fqdn.push_str(ty);
                     fqdn.as_str()
-                },
+                }
                 DataType::Object(None) => "object",
                 DataType::Resource => "resource",
                 DataType::Reference => "reference",
