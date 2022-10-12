@@ -1,5 +1,67 @@
 # Changelog
 
+## Version 0.8.1
+
+- 404 /guide doesn't exists. by @denzyldick in [#149]
+- Fixed some typos by @denzyldick in [#148]
+- Fix a few typos by @striezel in [#150]
+- fix causes of some clippy warnings by @striezel in [#152]
+- fix more causes of clippy warnings by @striezel in [#157]
+- attempt to fix errors related to clap by @striezel in [#158]
+- ci: run clippy only on stable Rust channel by @striezel in [#159]
+- update actions/checkout in GitHub Actions workflows to v3 by @striezel in
+  [#151]
+- Add ability to set function name on php_function macro by @joehoyle in [#153]
+- Specify classes as fully-qualified names in stubs by @joehoyle in [#156]
+- Support marking classes as interfaces by @joehoyle in [#155]
+- Support marking methods as abstract by @joehoyle in [#154]
+- Add php-scrypt as a example project by @PineappleIOnic in [#146]
+- Fix ini file duplication and truncation when using cargo-php command by
+  @roborourke in [#136]
+- Allow passing --yes parameter to bypass prompts by @roborourke in [#135]
+
+[#135]: https://github.com/davidcole1340/ext-php-rs/pull/135
+[#136]: https://github.com/davidcole1340/ext-php-rs/pull/136
+[#146]: https://github.com/davidcole1340/ext-php-rs/pull/146
+[#148]: https://github.com/davidcole1340/ext-php-rs/pull/148
+[#149]: https://github.com/davidcole1340/ext-php-rs/pull/149
+[#150]: https://github.com/davidcole1340/ext-php-rs/pull/150
+[#151]: https://github.com/davidcole1340/ext-php-rs/pull/151
+[#152]: https://github.com/davidcole1340/ext-php-rs/pull/152
+[#153]: https://github.com/davidcole1340/ext-php-rs/pull/153
+[#154]: https://github.com/davidcole1340/ext-php-rs/pull/154
+[#155]: https://github.com/davidcole1340/ext-php-rs/pull/155
+[#156]: https://github.com/davidcole1340/ext-php-rs/pull/156
+[#157]: https://github.com/davidcole1340/ext-php-rs/pull/157
+[#158]: https://github.com/davidcole1340/ext-php-rs/pull/158
+[#159]: https://github.com/davidcole1340/ext-php-rs/pull/159
+
+## Version 0.8.0
+
+- Windows support by @davidcole1340 in [#128]
+- Support for binary slice to avoid extra allocation by @TobiasBengtsson in
+  [#139]
+- Bump dependencies by @ptondereau in [#144]
+
+[#128]: https://github.com/davidcole1340/ext-php-rs/pull/128
+[#139]: https://github.com/davidcole1340/ext-php-rs/pull/139
+[#144]: https://github.com/davidcole1340/ext-php-rs/pull/144
+
+## Version 0.7.4
+
+- Fix is_true() / is_false() in Zval by @joehoyle in [#116]
+- readme: fix link to guide by @TorstenDittmann in [#120]
+- Fix request_(startup|shutdown)_function in ModuleBuilder by @glyphpoch in
+  [#119]
+- Fix CI on macOS by @davidcole1340 in [#126]
+- Add ability to pass modifier function for classes by @davidcole1340 in [#127]
+
+[#116]: https://github.com/davidcole1340/ext-php-rs/pull/116
+[#119]: https://github.com/davidcole1340/ext-php-rs/pull/119
+[#120]: https://github.com/davidcole1340/ext-php-rs/pull/120
+[#126]: https://github.com/davidcole1340/ext-php-rs/pull/126
+[#127]: https://github.com/davidcole1340/ext-php-rs/pull/127
+
 ## Version 0.7.3
 
 - Upgrade `clap` to `3.0.0-rc3`. [#113]
