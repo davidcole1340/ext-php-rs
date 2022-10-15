@@ -206,6 +206,8 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    let out_dir = env::var_os("OUT_DIR").context("Failed to get OUT_DIR")?;
+    let out_path = PathBuf::from(out_dir).join("bindings.rs");
     let manifest: PathBuf = std::env::var("CARGO_MANIFEST_DIR").unwrap().into();
     for path in [
         manifest.join("src").join("wrapper.h"),
@@ -215,6 +217,16 @@ fn main() -> Result<()> {
         manifest.join("unix_build.rs"),
     ] {
         println!("cargo:rerun-if-changed={}", path.to_string_lossy());
+    }
+
+    // docs.rs runners only have PHP 7.4 - use pre-generated bindings
+    if env::var("DOCS_RS").is_ok() {
+        println!("cargo:warning=docs.rs detected - using stub bindings");
+        println!("cargo:rustc-cfg=php_debug");
+        println!("cargo:rustc-cfg=php81");
+        std::fs::copy("docsrs_bindings.rs", out_path)
+            .expect("failed to copy docs.rs stub bindings to out directory");
+        return Ok(());
     }
 
     let php = find_php()?;
@@ -228,8 +240,6 @@ fn main() -> Result<()> {
     build_wrapper(&defines, &includes)?;
     let bindings = generate_bindings(&defines, &includes)?;
 
-    let out_dir = env::var_os("OUT_DIR").context("Failed to get OUT_DIR")?;
-    let out_path = PathBuf::from(out_dir).join("bindings.rs");
     let out_file =
         File::create(&out_path).context("Failed to open output bindings file for writing")?;
     let mut out_writer = BufWriter::new(out_file);
