@@ -1405,3 +1405,24 @@ extern "C" {
 extern "C" {
     pub fn zend_do_implement_interface(ce: *mut zend_class_entry, iface: *mut zend_class_entry);
 }
+extern "C" {
+    pub static mut zend_ce_traversable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_aggregate: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_iterator: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_arrayaccess: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_serializable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_countable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_stringable: *mut zend_class_entry;
+}
