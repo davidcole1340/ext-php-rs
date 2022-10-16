@@ -4,6 +4,20 @@
 // exist in the bindings file. Which ever script include!s the bindings must
 // define the `bind` macro. This allows us to have the list in string format
 // inside the build script and in macro format inside the CLI crate.
+//
+// NOTE TO EDITORS:
+//   When updating this file, you must re-generate the `docsrs_bindings.rs`
+//   file used by docs.rs to build documentation. To perform this:
+//
+//     $ cargo clean
+//     $ cargo build
+//     $ cp target/debug/build/ext-php-rs-e2cb315d27898d01/out/bindings.rs
+//       docsrs_bindings.rs
+//     $ git add . && git commit -m "update docs.rs bindings"
+//
+//   The hash after `ext-php-rs-` in the bindings path may change. There should
+//   be two folders beginning with `ext-php-rs-` in `target/debug/build`, so
+//   check both for the presense of the bindings file.
 
 bind! {
     HashTable,
