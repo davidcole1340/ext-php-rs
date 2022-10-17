@@ -85,6 +85,11 @@ pub fn throw_exception() -> PhpResult<i32> {
 To implement an interface, use `#[implements(ce)]` where `ce` is an expression returning a `ClassEntry`.
 The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
 ```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
+# extern crate ext_php_rs;
+use ext_php_rs::prelude::*;
+use ext_php_rs::{exception::PhpException, zend::ce, types::Zval};
+
 #[php_class]
 #[implements(ce::arrayaccess())]
 pub struct EvenNumbersArray;
