@@ -244,7 +244,7 @@ pub use ext_php_rs_derive::php_extern;
 /// ```
 ///
 /// Parameters can also be deemed optional by passing the parameter name in the
-/// attribute options. This function takes one required parameter (`hello`) and
+/// attribute options. This function takes one required parameter (`name`) and
 /// two optional parameters (`description` and `age`).
 ///
 /// ```
