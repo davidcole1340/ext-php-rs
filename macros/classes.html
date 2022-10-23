@@ -205,6 +205,56 @@ pub fn throw_exception() -&gt; PhpResult&lt;i32&gt; {
 </span><span class="boring">}
 </span><span class="boring">fn main() {}
 </span></code></pre></pre>
+<h2 id="implementing-an-interface"><a class="header" href="#implementing-an-interface">Implementing an Interface</a></h2>
+<p>To implement an interface, use <code>#[implements(ce)]</code> where <code>ce</code> is an expression returning a <code>ClassEntry</code>.
+The following example implements <a href="https://www.php.net/manual/en/class.arrayaccess.php"><code>ArrayAccess</code></a>:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
+use ext_php_rs::{exception::PhpResult, types::Zval, zend::ce};
+
+#[php_class]
+#[implements(ce::arrayaccess())]
+#[derive(Default)]
+pub struct EvenNumbersArray;
+
+/// Returns `true` if the array offset is an even number.
+/// Usage:
+/// ```php
+/// $arr = new EvenNumbersArray();
+/// var_dump($arr[0]); // true
+/// var_dump($arr[1]); // false
+/// var_dump($arr[2]); // true
+/// var_dump($arr[3]); // false
+/// var_dump($arr[4]); // true
+/// var_dump($arr[5] = true); // Fatal error:  Uncaught Exception: Setting values is not supported
+/// ```
+#[php_impl]
+impl EvenNumbersArray {
+    pub fn __construct() -&gt; EvenNumbersArray {
+        EvenNumbersArray {}
+    }
+    // We need to use `Zval` because ArrayAccess needs $offset to be a `mixed`
+    pub fn offset_exists(&amp;self, offset: &amp;'_ Zval) -&gt; bool {
+        offset.is_long()
+    }
+    pub fn offset_get(&amp;self, offset: &amp;'_ Zval) -&gt; PhpResult&lt;bool&gt; {
+        let integer_offset = offset.long().ok_or(&quot;Expected integer offset&quot;)?;
+        Ok(integer_offset % 2 == 0)
+    }
+    pub fn offset_set(&amp;mut self, _offset: &amp;'_ Zval, _value: &amp;'_ Zval) -&gt; PhpResult {
+        Err(&quot;Setting values is not supported&quot;.into())
+    }
+    pub fn offset_unset(&amp;mut self, _offset: &amp;'_ Zval) -&gt; PhpResult {
+        Err(&quot;Setting values is not supported&quot;.into())
+    }
+}
+<span class="boring">#[php_module]
+</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+</span><span class="boring">    module
+</span><span class="boring">}
+</span><span class="boring">fn main() {}
+</span></code></pre></pre>
 
                     </main>
 
