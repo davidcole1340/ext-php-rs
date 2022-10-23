@@ -79,3 +79,56 @@ pub fn throw_exception() -> PhpResult<i32> {
 # }
 # fn main() {}
 ```
+
+## Implementing an Interface
+
+To implement an interface, use `#[implements(ce)]` where `ce` is an expression returning a `ClassEntry`.
+The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
+# extern crate ext_php_rs;
+use ext_php_rs::prelude::*;
+use ext_php_rs::{exception::PhpResult, types::Zval, zend::ce};
+
+#[php_class]
+#[implements(ce::arrayaccess())]
+#[derive(Default)]
+pub struct EvenNumbersArray;
+
+/// Returns `true` if the array offset is an even number.
+/// Usage:
+/// ```php
+/// $arr = new EvenNumbersArray();
+/// var_dump($arr[0]); // true
+/// var_dump($arr[1]); // false
+/// var_dump($arr[2]); // true
+/// var_dump($arr[3]); // false
+/// var_dump($arr[4]); // true
+/// var_dump($arr[5] = true); // Fatal error:  Uncaught Exception: Setting values is not supported
+/// ```
+#[php_impl]
+impl EvenNumbersArray {
+    pub fn __construct() -> EvenNumbersArray {
+        EvenNumbersArray {}
+    }
+    // We need to use `Zval` because ArrayAccess needs $offset to be a `mixed`
+    pub fn offset_exists(&self, offset: &'_ Zval) -> bool {
+        offset.is_long()
+    }
+    pub fn offset_get(&self, offset: &'_ Zval) -> PhpResult<bool> {
+        let integer_offset = offset.long().ok_or("Expected integer offset")?;
+        Ok(integer_offset % 2 == 0)
+    }
+    pub fn offset_set(&mut self, _offset: &'_ Zval, _value: &'_ Zval) -> PhpResult {
+        Err("Setting values is not supported".into())
+    }
+    pub fn offset_unset(&mut self, _offset: &'_ Zval) -> PhpResult {
+        Err("Setting values is not supported".into())
+    }
+}
+# #[php_module]
+# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+#     module
+# }
+# fn main() {}
+```
