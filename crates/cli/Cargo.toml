@@ -13,9 +13,9 @@ categories = ["api-bindings", "command-line-interface"]
 [dependencies]
 ext-php-rs = { version = ">=0.7.1", path = "../../" }
 
-clap = { version = ">=3.2.5", features = ["derive"] }
+clap = { version = "4.0", features = ["derive"] }
 anyhow = "1"
 dialoguer = "0.10"
 libloading = "0.7"
-cargo_metadata = "0.14"
+cargo_metadata = "0.15"
 semver = "1.0"
