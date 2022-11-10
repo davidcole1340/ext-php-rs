@@ -1,5 +1,29 @@
 # Changelog
 
+## Version 0.8.2
+
+- Update changelog for latest versions by @striezel in [#161]
+- fix building docs on docs.rs by @davidcole1340 in [#165]
+- Add some standard zend interfaces by @nikeee in [#164]
+- Correct parameter name. by @denzyldick in [#168]
+- fix describe when using `#[implements]` by @davidcole1340 in [#169]
+- Add example that shows how to implement an interface by @nikeee in [#167]
+- add `before` flag to `#[php_startup]` by @davidcole1340 in [#170]
+- add ability to define abstract methods by @davidcole1340 in [#171]
+- chore(cli): Bump Clap for CLI tool by @ptondereau in [#177]
+- fix type links in docs.rs by @davidcole1340 in [#179]
+
+[#161]: https://github.com/davidcole1340/ext-php-rs/pull/161
+[#165]: https://github.com/davidcole1340/ext-php-rs/pull/165
+[#164]: https://github.com/davidcole1340/ext-php-rs/pull/164
+[#168]: https://github.com/davidcole1340/ext-php-rs/pull/168
+[#169]: https://github.com/davidcole1340/ext-php-rs/pull/169
+[#167]: https://github.com/davidcole1340/ext-php-rs/pull/167
+[#170]: https://github.com/davidcole1340/ext-php-rs/pull/170
+[#171]: https://github.com/davidcole1340/ext-php-rs/pull/171
+[#177]: https://github.com/davidcole1340/ext-php-rs/pull/177
+[#179]: https://github.com/davidcole1340/ext-php-rs/pull/179
+
 ## Version 0.8.1
 
 - 404 /guide doesn't exists. by @denzyldick in [#149]
