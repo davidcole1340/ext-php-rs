@@ -34,7 +34,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
             fn php_module_startup() {}
         })
         .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
-        let startup = startup_function::parser(parsed)?;
+        let startup = startup_function::parser(None, parsed)?;
 
         state = STATE.lock();
         Some(startup)

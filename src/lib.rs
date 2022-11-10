@@ -518,6 +518,11 @@ pub use ext_php_rs_derive::php_class;
 /// this macro if you have registered any classes or constants when using the
 /// [`macro@php_module`] macro.
 ///
+/// The attribute accepts one optional flag -- `#[php_startup(before)]` --
+/// which forces the annotated function to be called _before_ the other classes
+/// and constants are registered. By default the annotated function is called
+/// after these classes and constants are registered.
+///
 /// # Example
 ///
 /// ```
