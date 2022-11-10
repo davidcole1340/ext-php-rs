@@ -66,9 +66,9 @@ impl<'a> FunctionBuilder<'a> {
 
     /// Create a new function builder for an abstract function that can be used
     /// on an abstract class or an interface.
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// * `name` - The name of the function.
     pub fn new_abstract<T: Into<String>>(name: T) -> Self {
         Self {
@@ -78,7 +78,7 @@ impl<'a> FunctionBuilder<'a> {
                 handler: None,
                 arg_info: ptr::null(),
                 num_args: 0,
-                flags: MethodFlags::Abstract.bits()
+                flags: MethodFlags::Abstract.bits(),
             },
             args: vec![],
             n_req: None,
