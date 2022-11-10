@@ -3,7 +3,7 @@ use std::{ffi::CString, mem::MaybeUninit};
 use crate::{
     builders::FunctionBuilder,
     class::{ConstructorMeta, ConstructorResult, RegisteredClass},
-    convert::IntoZval,
+    convert::{IntoZval, IntoZvalDyn},
     error::{Error, Result},
     exception::PhpException,
     ffi::{
@@ -131,6 +131,27 @@ impl ClassBuilder {
     /// * `value` - The value of the constant.
     pub fn constant<T: Into<String>>(mut self, name: T, value: impl IntoZval) -> Result<Self> {
         let value = value.into_zval(true)?;
+
+        self.constants.push((name.into(), value));
+        Ok(self)
+    }
+
+    /// Adds a constant to the class from a `dyn` object. The type of the
+    /// constant is defined by the type of the value.
+    ///
+    /// Returns a result containing the class builder if the constant was
+    /// successfully added.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the constant to add to the class.
+    /// * `value` - The value of the constant.
+    pub fn dyn_constant<T: Into<String>>(
+        mut self,
+        name: T,
+        value: &dyn IntoZvalDyn,
+    ) -> Result<Self> {
+        let value = value.as_zval(true)?;
 
         self.constants.push((name.into(), value));
         Ok(self)

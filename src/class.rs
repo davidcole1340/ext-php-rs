@@ -10,7 +10,9 @@ use once_cell::sync::OnceCell;
 
 use crate::{
     builders::{ClassBuilder, FunctionBuilder},
+    convert::IntoZvalDyn,
     exception::PhpException,
+    flags::{MethodFlags, ClassFlags},
     props::Property,
     zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
 };
@@ -24,6 +26,15 @@ pub trait RegisteredClass: Sized + 'static {
     /// Function to be called when building the class. Allows user to modify the
     /// class at runtime (add runtime constants etc).
     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder>;
+
+    /// Parent class entry. Optional.
+    const EXTENDS: Option<fn() -> &'static ClassEntry>;
+
+    /// Interfaces implemented by the class.
+    const IMPLEMENTS: &'static [fn() -> &'static ClassEntry];
+
+    /// PHP flags applied to the class.
+    const FLAGS: ClassFlags = ClassFlags::empty();
 
     /// Returns a reference to the class metadata, which stores the class entry
     /// and handlers.
@@ -46,10 +57,13 @@ pub trait RegisteredClass: Sized + 'static {
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
 
     /// Returns the method builders required to build the class.
-    fn method_builders() -> Vec<FunctionBuilder<'static>>;
+    fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)>;
 
     /// Returns the class constructor (if any).
     fn constructor() -> Option<ConstructorMeta<Self>>;
+
+    /// Returns the constants provided by the class.
+    fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn)];
 }
 
 /// Stores metadata about a classes Rust constructor, including the function

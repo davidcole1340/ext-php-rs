@@ -301,6 +301,7 @@ macro_rules! class_derives {
             const TYPE: $crate::flags::DataType = $crate::flags::DataType::Object(Some(
                 <$type as $crate::class::RegisteredClass>::CLASS_NAME,
             ));
+            const NULLABLE: bool = false;
 
             #[inline]
             fn set_zval(

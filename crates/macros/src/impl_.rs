@@ -1,31 +1,53 @@
-use anyhow::{anyhow, bail, Result};
-use darling::{FromMeta, ToTokens};
+use std::collections::HashMap;
+
+use crate::{
+    function::{Args, CallType, Function, MethodReceiver},
+    prelude::*,
+};
+use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
-use std::collections::HashMap;
-use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
+use syn::{AttributeArgs, Ident, Lit};
 
-use crate::helpers::get_docs;
-use crate::{
-    class::{Property, PropertyAttr},
-    constant::Constant,
-    method,
-};
+pub fn parser(args: AttributeArgs, mut input: syn::ItemImpl) -> Result<TokenStream> {
+    let args = match ImplArgs::from_list(&args) {
+        Ok(args) => args,
+        Err(e) => bail!("Failed to parse impl attribute arguments: {:?}", e),
+    };
+    let path = match &*input.self_ty {
+        syn::Type::Path(ty) => &ty.path,
+        _ => bail!(input.self_ty => "The `#[php_impl]` attribute is only valid on structs."),
+    };
 
-#[derive(Debug, Clone)]
-pub enum Visibility {
-    Public,
-    Protected,
-    Private,
+    let mut parsed = ParsedImpl::new(path, args.rename_methods);
+    parsed.parse(input.items.iter_mut())?;
+
+    let php_class_impl = parsed.generate_php_class_impl()?;
+    Ok(quote::quote! {
+        #input
+        #php_class_impl
+    })
 }
 
-#[derive(Debug, Copy, Clone, FromMeta, Default)]
+/// Attribute arguments for `impl` blocks.
+#[derive(Debug, Default, FromMeta)]
+#[darling(default)]
+pub struct ImplArgs {
+    /// How the methods are renamed.
+    rename_methods: RenameRule,
+}
+
+/// Different types of rename rules for methods.
+#[derive(Debug, Copy, Clone, FromMeta)]
 pub enum RenameRule {
+    /// Methods won't be renamed.
     #[darling(rename = "none")]
     None,
+    /// Methods will be conveted to camelCase.
     #[darling(rename = "camelCase")]
     #[default]
     Camel,
+    /// Methods will be converted to snake_case.
     #[darling(rename = "snake_case")]
     Snake,
 }
@@ -35,11 +57,10 @@ impl RenameRule {
     ///
     /// Magic methods are handled specially to make sure they're always cased
     /// correctly.
-    pub fn rename(&self, name: impl AsRef<str>) -> String {
-        let name = name.as_ref();
+    pub fn rename(&self, name: String) -> String {
         match self {
-            RenameRule::None => name.to_string(),
-            rule => match name {
+            RenameRule::None => name,
+            rule => match name.as_str() {
                 "__construct" => "__construct".to_string(),
                 "__destruct" => "__destruct".to_string(),
                 "__call" => "__call".to_string(),
@@ -67,231 +88,272 @@ impl RenameRule {
     }
 }
 
+/// Arguments applied to methods.
 #[derive(Debug)]
-pub enum ParsedAttribute {
-    Default(HashMap<String, Lit>),
-    Optional(String),
-    Visibility(Visibility),
-    Rename(String),
-    Property {
-        prop_name: Option<String>,
-        ty: PropAttrTy,
-    },
+struct MethodArgs {
+    /// Method name. Only applies to PHP (not the Rust method name).
+    name: String,
+    /// The first optional argument of the function signature.
+    optional: Option<Ident>,
+    /// Default values for optional arguments.
+    defaults: HashMap<Ident, Lit>,
+    /// Visibility of the method (public, protected, private).
+    vis: MethodVis,
+    /// Method type.
+    ty: MethodTy,
+}
+
+/// Method visibilities.
+#[derive(Debug)]
+enum MethodVis {
+    Public,
+    Private,
+    Protected,
+}
+
+/// Method types.
+#[derive(Debug)]
+enum MethodTy {
+    /// Regular PHP method.
+    Normal,
+    /// Constructor method.
     Constructor,
-    This,
+    /// Property getter method.
+    Getter,
+    /// Property setter method.
+    Setter,
+    /// Abstract method.
     Abstract,
 }
 
-#[derive(Default, Debug, FromMeta)]
-#[darling(default)]
-pub struct AttrArgs {
-    rename_methods: Option<RenameRule>,
+impl MethodArgs {
+    fn new(name: String) -> Self {
+        let ty = if name == "__construct" {
+            MethodTy::Constructor
+        } else {
+            MethodTy::Normal
+        };
+        Self {
+            name,
+            optional: Default::default(),
+            defaults: Default::default(),
+            vis: MethodVis::Public,
+            ty,
+        }
+    }
+}
+
+impl MethodArgs {
+    fn parse(&mut self, attrs: &mut Vec<syn::Attribute>) -> Result<()> {
+        let mut unparsed = vec![];
+        unparsed.append(attrs);
+        for attr in unparsed {
+            if attr.path.is_ident("optional") {
+                if self.optional.is_some() {
+                    bail!(attr => "Only one `#[optional]` attribute is valid per method.");
+                }
+                let optional = attr.parse_args().map_err(
+                    |e| err!(attr => "Invalid arguments passed to `#[optional]` attribute. {}", e),
+                )?;
+                self.optional = Some(optional);
+            } else if attr.path.is_ident("defaults") {
+                let meta = attr
+                    .parse_meta()
+                    .map_err(|e| err!(attr => "Failed to parse metadata from attribute. {}", e))?;
+                let defaults = HashMap::from_meta(&meta).map_err(
+                    |e| err!(attr => "Invalid arguments passed to `#[defaults]` attribute. {}", e),
+                )?;
+                self.defaults = defaults;
+            } else if attr.path.is_ident("public") {
+                self.vis = MethodVis::Public;
+            } else if attr.path.is_ident("protected") {
+                self.vis = MethodVis::Protected;
+            } else if attr.path.is_ident("private") {
+                self.vis = MethodVis::Private;
+            } else if attr.path.is_ident("rename") {
+                let lit: syn::Lit = attr.parse_args().map_err(|e| err!(attr => "Invalid arguments passed to the `#[rename]` attribute. {}", e))?;
+                match lit {
+                    Lit::Str(name) => self.name = name.value(),
+                    _ => bail!(attr => "Only strings are valid method names."),
+                };
+            } else if attr.path.is_ident("getter") {
+                self.ty = MethodTy::Getter;
+            } else if attr.path.is_ident("setter") {
+                self.ty = MethodTy::Setter;
+            } else if attr.path.is_ident("constructor") {
+                self.ty = MethodTy::Constructor;
+            } else if attr.path.is_ident("abstract_method") {
+                self.ty = MethodTy::Abstract;
+            } else {
+                attrs.push(attr);
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
-pub enum PropAttrTy {
-    Getter,
-    Setter,
+struct ParsedImpl<'a> {
+    path: &'a syn::Path,
+    rename: RenameRule,
+    functions: Vec<FnBuilder>,
+    constructor: Option<Function<'a>>,
+    constants: Vec<Constant<'a>>,
+}
+#[derive(Debug)]
+struct FnBuilder {
+    /// Tokens which represent the FunctionBuilder for this function.
+    pub builder: TokenStream,
+    /// The visibility of this method.
+    pub vis: MethodVis,
+    /// Whether this method is abstract.
+    pub r#abstract: bool,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
-    let args = AttrArgs::from_list(&args)
-        .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
+#[derive(Debug)]
+struct Constant<'a> {
+    /// Name of the constant in PHP land.
+    name: String,
+    /// Identifier of the constant in Rust land.
+    ident: &'a syn::Ident,
+}
 
-    let ItemImpl { self_ty, items, .. } = input;
-    let class_name = self_ty.to_token_stream().to_string();
-
-    if input.trait_.is_some() {
-        bail!("This macro cannot be used on trait implementations.");
+impl<'a> ParsedImpl<'a> {
+    /// Create a new, empty parsed impl block.
+    ///
+    /// # Parameters
+    ///
+    /// * `path` - Path of the type the `impl` block is for.
+    /// * `rename` - Rename rule for methods.
+    fn new(path: &'a syn::Path, rename: RenameRule) -> Self {
+        Self {
+            path,
+            rename,
+            functions: Default::default(),
+            constructor: Default::default(),
+            constants: Default::default(),
+        }
     }
 
-    let mut state = crate::STATE.lock();
-
-    if state.startup_function.is_some() {
-        bail!(
-            "Impls must be declared before you declare your startup function and module function."
-        );
-    }
-
-    let class = state.classes.get_mut(&class_name).ok_or_else(|| {
-        anyhow!(
-            "You must use `#[php_class]` on the struct before using this attribute on the impl."
-        )
-    })?;
-
-    let tokens = items
-        .into_iter()
-        .map(|item| {
-            Ok(match item {
-                syn::ImplItem::Const(constant) => {
-                    class.constants.push(Constant {
-                        name: constant.ident.to_string(),
-                        // visibility: Visibility::Public,
-                        docs: get_docs(&constant.attrs),
-                        value: constant.expr.to_token_stream().to_string(),
-                    });
-
-                    quote! {
-                        #[allow(dead_code)]
-                        #constant
+    /// Parses an impl block from `items`, populating `self`.
+    fn parse(&mut self, items: impl Iterator<Item = &'a mut syn::ImplItem>) -> Result<()> {
+        for items in items {
+            match items {
+                syn::ImplItem::Const(c) => {
+                    let mut name = None;
+                    let mut unparsed = vec![];
+                    unparsed.append(&mut c.attrs);
+                    for attr in unparsed {
+                        if attr.path.is_ident("rename") {
+                            let lit: syn::Lit = attr.parse_args().map_err(|e| err!(attr => "Invalid arguments passed to the `#[rename]` attribute. {}", e))?;
+                            match lit {
+                                Lit::Str(str) => name = Some(str.value()),
+                                _ => bail!(attr => "Only strings are valid constant names."),
+                            };
+                        } else {
+                            c.attrs.push(attr);
+                        }
                     }
+
+                    self.constants.push(Constant {
+                        name: name.unwrap_or_else(|| c.ident.to_string()),
+                        ident: &c.ident,
+                    });
                 }
                 syn::ImplItem::Method(method) => {
-                    let parsed_method =
-                        method::parser(&self_ty, method, args.rename_methods.unwrap_or_default())?;
+                    let name = self.rename.rename(method.sig.ident.to_string());
+                    let mut opts = MethodArgs::new(name);
+                    opts.parse(&mut method.attrs)?;
 
-                    // TODO(david): How do we handle comments for getter/setter? Take the comments
-                    // from the methods??
-                    if let Some((prop, ty)) = parsed_method.property {
-                        let prop = class
-                            .properties
-                            .entry(prop)
-                            .or_insert_with(|| Property::method(vec![], None));
-                        let ident = parsed_method.method.orig_ident.clone();
+                    let args = Args::parse_from_fnargs(method.sig.inputs.iter(), opts.defaults)?;
+                    let func = Function::parse(&method.sig, Some(opts.name), args, opts.optional)?;
 
-                        match ty {
-                            PropAttrTy::Getter => prop.add_getter(ident)?,
-                            PropAttrTy::Setter => prop.add_setter(ident)?,
+                    if matches!(opts.ty, MethodTy::Constructor) {
+                        if self.constructor.replace(func).is_some() {
+                            bail!(method => "Only one constructor can be provided per class.");
                         }
-                    }
-                    if parsed_method.constructor {
-                        if class.constructor.is_some() {
-                            bail!("You cannot have two constructors on the same class.");
-                        }
-                        class.constructor = Some(parsed_method.method);
                     } else {
-                        class.methods.push(parsed_method.method);
+                        let builder = func.function_builder(CallType::Method {
+                            class: self.path,
+                            receiver: if func.args.receiver.is_some() {
+                                MethodReceiver::Class
+                            } else {
+                                MethodReceiver::Static
+                            },
+                        })?;
+                        self.functions.push(FnBuilder {
+                            builder,
+                            vis: opts.vis,
+                            r#abstract: matches!(opts.ty, MethodTy::Abstract),
+                        });
                     }
-                    parsed_method.tokens
                 }
-                item => item.to_token_stream(),
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    let output = quote! {
-        impl #self_ty {
-            #(#tokens)*
-        }
-    };
-
-    Ok(output)
-}
-
-pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
-    let name = attr.path.to_token_stream().to_string();
-    let meta = attr
-        .parse_meta()
-        .map_err(|_| anyhow!("Unable to parse attribute."))?;
-
-    Ok(Some(match name.as_ref() {
-        "defaults" => {
-            let defaults = HashMap::from_meta(&meta)
-                .map_err(|_| anyhow!("Unable to parse `#[default]` macro."))?;
-            ParsedAttribute::Default(defaults)
-        }
-        "optional" => {
-            let name = if let Meta::List(list) = meta {
-                if let Some(NestedMeta::Meta(meta)) = list.nested.first() {
-                    Some(meta.to_token_stream().to_string())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-            .ok_or_else(|| anyhow!("Invalid argument given for `#[optional]` macro."))?;
-
-            ParsedAttribute::Optional(name)
-        }
-        "public" => ParsedAttribute::Visibility(Visibility::Public),
-        "protected" => ParsedAttribute::Visibility(Visibility::Protected),
-        "private" => ParsedAttribute::Visibility(Visibility::Private),
-        "abstract_method" => ParsedAttribute::Abstract,
-        "rename" => {
-            let ident = if let Meta::List(list) = meta {
-                if let Some(NestedMeta::Lit(lit)) = list.nested.first() {
-                    String::from_value(lit).ok()
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-            .ok_or_else(|| anyhow!("Invalid argument given for `#[rename] macro."))?;
-
-            ParsedAttribute::Rename(ident)
-        }
-        "getter" => {
-            let prop_name = if attr.tokens.is_empty() {
-                None
-            } else {
-                let parsed: PropertyAttr = attr
-                    .parse_args()
-                    .map_err(|e| anyhow!("Unable to parse `#[getter]` attribute: {}", e))?;
-                parsed.rename
-            };
-            ParsedAttribute::Property {
-                prop_name,
-                ty: PropAttrTy::Getter,
+                _ => {}
             }
         }
-        "setter" => {
-            let prop_name = if attr.tokens.is_empty() {
-                None
-            } else {
-                let parsed: PropertyAttr = attr
-                    .parse_args()
-                    .map_err(|e| anyhow!("Unable to parse `#[setter]` attribute: {}", e))?;
-                parsed.rename
-            };
-            ParsedAttribute::Property {
-                prop_name,
-                ty: PropAttrTy::Setter,
-            }
-        }
-        "constructor" => ParsedAttribute::Constructor,
-        "this" => ParsedAttribute::This,
-        _ => return Ok(None),
-    }))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::RenameRule;
-
-    #[test]
-    fn test_rename_magic() {
-        for &(magic, expected) in &[
-            ("__construct", "__construct"),
-            ("__destruct", "__destruct"),
-            ("__call", "__call"),
-            ("__call_static", "__callStatic"),
-            ("__get", "__get"),
-            ("__set", "__set"),
-            ("__isset", "__isset"),
-            ("__unset", "__unset"),
-            ("__sleep", "__sleep"),
-            ("__wakeup", "__wakeup"),
-            ("__serialize", "__serialize"),
-            ("__unserialize", "__unserialize"),
-            ("__to_string", "__toString"),
-            ("__invoke", "__invoke"),
-            ("__set_state", "__set_state"),
-            ("__clone", "__clone"),
-            ("__debug_info", "__debugInfo"),
-        ] {
-            assert_eq!(magic, RenameRule::None.rename(magic));
-            assert_eq!(expected, RenameRule::Camel.rename(magic));
-            assert_eq!(expected, RenameRule::Snake.rename(magic));
-        }
+        Ok(())
     }
 
-    #[test]
-    fn test_rename_php_methods() {
-        let &(original, camel, snake) = &("get_name", "getName", "get_name");
-        assert_eq!(original, RenameRule::None.rename(original));
-        assert_eq!(camel, RenameRule::Camel.rename(original));
-        assert_eq!(snake, RenameRule::Snake.rename(original));
+    /// Generates an `impl PhpClassImpl<Self> for PhpClassImplCollector<Self>`
+    /// block.
+    fn generate_php_class_impl(&self) -> Result<TokenStream> {
+        let path = &self.path;
+        let functions = &self.functions;
+        let constructor = match &self.constructor {
+            Some(func) => Some(func.constructor_meta(self.path)?),
+            None => None,
+        }
+        .option_tokens();
+        let constants = self.constants.iter().map(|c| {
+            let name = &c.name;
+            let ident = c.ident;
+            quote! {
+                (#name, &#path::#ident)
+            }
+        });
+
+        Ok(quote! {
+            impl ::ext_php_rs::internal::class::PhpClassImpl<#path>
+                for ::ext_php_rs::internal::class::PhpClassImplCollector<#path>
+            {
+                fn get_methods(self) -> ::std::vec::Vec<
+                    (::ext_php_rs::builders::FunctionBuilder<'static>, ::ext_php_rs::flags::MethodFlags)
+                > {
+                    vec![#(#functions),*]
+                }
+
+                fn get_method_props<'a>(self) -> ::std::collections::HashMap<&'static str, ::ext_php_rs::props::Property<'a, #path>> {
+                    todo!()
+                }
+
+                fn get_constructor(self) -> ::std::option::Option<::ext_php_rs::class::ConstructorMeta<#path>> {
+                    #constructor
+                }
+
+                fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn)] {
+                    &[#(#constants),*]
+                }
+            }
+        })
+    }
+}
+
+impl quote::ToTokens for FnBuilder {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let builder = &self.builder;
+        // TODO(cole_d): allow more flags via attributes
+        let mut flags = vec![];
+        flags.push(match self.vis {
+            MethodVis::Public => quote! { ::ext_php_rs::flags::MethodFlags::Public },
+            MethodVis::Protected => quote! { ::ext_php_rs::flags::MethodFlags::Protected },
+            MethodVis::Private => quote! { ::ext_php_rs::flags::MethodFlags::Private },
+        });
+        if self.r#abstract {
+            flags.push(quote! { ::ext_php_rs::flags::MethodFlags::Abstract });
+        }
+        quote! {
+            (#builder, #(#flags)*)
+        }
+        .to_tokens(tokens);
     }
 }

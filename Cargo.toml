@@ -45,3 +45,7 @@ members = ["crates/macros", "crates/cli"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docs"]
+
+[[example]]
+name = "hello_world"
+crate-type = ["cdylib"]

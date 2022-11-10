@@ -187,8 +187,19 @@ impl ModuleBuilder {
     pub fn class<T: RegisteredClass>(mut self) -> Self {
         self.classes.push(|| {
             let mut builder = ClassBuilder::new(T::CLASS_NAME);
-            for method in T::method_builders() {
-                builder = builder.method(method.build().expect(""), MethodFlags::Public);
+            for (method, flags) in T::method_builders() {
+                builder = builder.method(method.build().expect("Failed to build method"), flags);
+            }
+            if let Some(extends) = T::EXTENDS {
+                builder = builder.extends(extends());
+            }
+            for iface in T::IMPLEMENTS {
+                builder = builder.implements(iface());
+            }
+            for (name, value) in T::constants() {
+                builder = builder
+                    .dyn_constant(*name, *value)
+                    .expect("Failed to register constant");
             }
             if let Some(modifier) = T::BUILDER_MODIFIER {
                 builder = modifier(builder);

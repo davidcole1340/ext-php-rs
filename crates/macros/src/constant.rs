@@ -1,11 +1,8 @@
-use crate::helpers::get_docs;
-use anyhow::{bail, Result};
+use anyhow::{Result};
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Expr, ItemConst};
-
-use crate::STATE;
 
 #[derive(Debug)]
 pub struct Constant {
@@ -16,17 +13,17 @@ pub struct Constant {
 }
 
 pub fn parser(input: ItemConst) -> Result<TokenStream> {
-    let mut state = STATE.lock();
+    // let mut state = STATE.lock();
 
-    if state.startup_function.is_some() {
-        bail!("Constants must be declared before you declare your startup function and module function.");
-    }
+    // if state.startup_function.is_some() {
+    //     bail!("Constants must be declared before you declare your startup
+    // function and module function."); }
 
-    state.constants.push(Constant {
-        name: input.ident.to_string(),
-        docs: get_docs(&input.attrs),
-        value: input.expr.to_token_stream().to_string(),
-    });
+    // state.constants.push(Constant {
+    //     name: input.ident.to_string(),
+    //     docs: get_docs(&input.attrs),
+    //     value: input.expr.to_token_stream().to_string(),
+    // });
 
     Ok(quote! {
         #[allow(dead_code)]

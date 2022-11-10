@@ -1,329 +1,215 @@
-use std::collections::HashMap;
+use crate::prelude::*;
+use darling::FromMeta;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote, ToTokens};
+use syn::AttributeArgs;
 
-use crate::STATE;
-use anyhow::{anyhow, bail, Context, Result};
-use darling::{FromMeta, ToTokens};
-use proc_macro2::{Ident, Span, TokenStream};
-use quote::quote;
-use syn::parse::ParseStream;
-use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitStr, Token};
-
-#[derive(Debug, Default)]
-pub struct Class {
-    pub class_name: String,
-    pub struct_path: String,
-    pub parent: Option<String>,
-    pub interfaces: Vec<String>,
-    pub docs: Vec<String>,
-    pub methods: Vec<crate::method::Method>,
-    pub constructor: Option<crate::method::Method>,
-    pub constants: Vec<crate::constant::Constant>,
-    pub properties: HashMap<String, Property>,
-    /// A function name called when creating the class entry. Given an instance
-    /// of `ClassBuilder` and must return it.
-    pub modifier: Option<String>,
-    pub flags: Option<String>,
-}
-
-#[derive(Debug)]
-pub enum ParsedAttribute {
-    Extends(Expr),
-    Implements(Expr),
-    Property(PropertyAttr),
-    Comment(String),
-}
-
-#[derive(Default, Debug, FromMeta)]
+#[derive(Debug, Default, FromMeta)]
 #[darling(default)]
-pub struct AttrArgs {
+pub struct StructArgs {
+    /// The name of the PHP class. Defaults to the same name as the struct.
     name: Option<String>,
-    modifier: Option<String>,
-    flags: Option<Expr>,
+    /// A modifier function which should accept one argument, a `ClassBuilder`,
+    /// and return the same object. Allows the user to modify the class before
+    /// it is built.
+    modifier: Option<syn::Ident>,
+    /// An expression of `ClassFlags` to be applied to the class.
+    flags: Option<syn::Expr>,
 }
 
-pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream> {
-    let args = AttrArgs::from_list(&args)
-        .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
+/// Sub-attributes which are parsed by this macro. Must be placed underneath the
+/// main `#[php_class]` attribute.
+#[derive(Debug, Default)]
+struct ClassAttrs {
+    extends: Option<syn::Expr>,
+    implements: Vec<syn::Expr>,
+}
 
-    let mut parent = None;
-    let mut interfaces = vec![];
-    let mut properties = HashMap::new();
-    let mut comments = vec![];
-
-    input.attrs = {
-        let mut unused = vec![];
-        for attr in input.attrs.into_iter() {
-            match parse_attribute(&attr)? {
-                Some(parsed) => match parsed {
-                    ParsedAttribute::Extends(class) => {
-                        parent = Some(class.to_token_stream().to_string());
-                    }
-                    ParsedAttribute::Implements(class) => {
-                        interfaces.push(class.to_token_stream().to_string());
-                    }
-                    ParsedAttribute::Comment(comment) => {
-                        comments.push(comment);
-                    }
-                    attr => bail!("Attribute `{:?}` is not valid for structs.", attr),
-                },
-                None => unused.push(attr),
+impl ClassAttrs {
+    fn parse(&mut self, attrs: &mut Vec<syn::Attribute>) -> Result<()> {
+        let mut unparsed = vec![];
+        unparsed.append(attrs);
+        for attr in unparsed {
+            if attr.path.is_ident("extends") {
+                if self.extends.is_some() {
+                    bail!(attr => "Only one `#[extends]` attribute is valid per struct.");
+                }
+                let extends: syn::Expr = match attr.parse_args() {
+                    Ok(extends) => extends,
+                    Err(_) => bail!(attr => "Invalid arguments passed to extends attribute."),
+                };
+                self.extends = Some(extends);
+            } else if attr.path.is_ident("implements") {
+                let implements: syn::Expr = match attr.parse_args() {
+                    Ok(extends) => extends,
+                    Err(_) => bail!(attr => "Invalid arguments passed to implements attribute."),
+                };
+                self.implements.push(implements);
+            } else {
+                attrs.push(attr);
             }
         }
-        unused
+        Ok(())
+    }
+}
+
+pub fn parser(args: AttributeArgs, mut input: syn::ItemStruct) -> Result<TokenStream> {
+    let ident = &input.ident;
+    let args = match StructArgs::from_list(&args) {
+        Ok(args) => args,
+        Err(e) => bail!("Failed to parse struct arguments: {:?}", e),
     };
+    let mut class_attrs = ClassAttrs::default();
+    class_attrs.parse(&mut input.attrs)?;
 
-    if let Fields::Named(FieldsNamed {
-        brace_token: _,
-        named,
-    }) = &mut input.fields
-    {
-        for field in named.iter_mut() {
-            let mut docs = vec![];
-            let mut attrs = vec![];
-            attrs.append(&mut field.attrs);
-
-            for attr in attrs.into_iter() {
-                let mut result_prop = None;
-                match parse_attribute(&attr)? {
-                    Some(parsed) => match parsed {
-                        ParsedAttribute::Property(prop) => {
-                            let field_name = field
-                                .ident
-                                .as_ref()
-                                .ok_or_else(|| anyhow!("Only named fields can be properties."))?
-                                .to_string();
-                            let prop_name = prop.rename.unwrap_or_else(|| field_name.clone());
-                            result_prop = Some((
-                                prop_name,
-                                Property::field(
-                                    field_name,
-                                    vec![],
-                                    prop.flags.map(|flags| flags.to_token_stream().to_string()),
-                                ),
-                            ));
-                        }
-                        ParsedAttribute::Comment(doc) => docs.push(doc),
-                        _ => bail!("Attribute {:?} is not valid for struct fields.", attr),
-                    },
-                    None => field.attrs.push(attr),
-                }
-
-                if let Some(mut prop) = result_prop {
-                    prop.1.docs.append(&mut docs);
-                    properties.insert(prop.0, prop.1);
-                }
-            }
-        }
-    }
-
-    let ItemStruct { ident, .. } = &input;
-    let class_name = args.name.unwrap_or_else(|| ident.to_string());
-    let struct_path = ident.to_string();
-    let flags = args.flags.map(|flags| flags.to_token_stream().to_string());
-    let class = Class {
-        class_name,
-        struct_path,
-        parent,
-        interfaces,
-        docs: comments,
-        properties,
-        modifier: args.modifier,
-        flags,
-        ..Default::default()
+    let fields = match &mut input.fields {
+        syn::Fields::Named(fields) => parse_fields(fields.named.iter_mut())?,
+        _ => vec![],
     };
-
-    let mut state = STATE.lock();
-
-    if state.built_module {
-        bail!("The `#[php_module]` macro must be called last to ensure functions and classes are registered.");
-    }
-
-    if state.startup_function.is_some() {
-        bail!("The `#[php_startup]` macro must be called after all the classes have been defined.");
-    }
-
-    state.classes.insert(ident.to_string(), class);
+    let (metadata, metadata_ident) = class_metadata(ident);
+    let class_impl = generate_registered_class_impl(
+        ident,
+        &metadata_ident,
+        args.name.as_deref(),
+        args.modifier.as_ref(),
+        class_attrs.extends.as_ref(),
+        &class_attrs.implements,
+        &fields,
+        args.flags.as_ref(),
+    );
 
     Ok(quote! {
         #input
-
+        #metadata
+        #class_impl
         ::ext_php_rs::class_derives!(#ident);
     })
 }
 
-#[derive(Debug)]
-pub struct Property {
-    pub ty: PropertyType,
-    pub docs: Vec<String>,
-    #[allow(dead_code)]
-    pub flags: Option<String>,
-}
-
-#[derive(Debug)]
-pub enum PropertyType {
-    Field {
-        field_name: String,
-    },
-    Method {
-        getter: Option<String>,
-        setter: Option<String>,
-    },
-}
-
-impl Property {
-    pub fn add_getter(&mut self, new_getter: String) -> Result<()> {
-        match &mut self.ty {
-            PropertyType::Field { .. } => bail!("Cannot add getter to field property."),
-            PropertyType::Method { getter, setter: _ } => match getter {
-                Some(getter) => bail!(
-                    "Attempted to add getter `{}` to property that already has a getter `{}`.",
-                    new_getter,
-                    getter
-                ),
-                None => {
-                    getter.replace(new_getter);
-                    Ok(())
-                }
-            },
-        }
+fn parse_fields<'a>(
+    fields: impl Iterator<Item = &'a mut syn::Field>,
+) -> Result<Vec<(String, &'a syn::Ident)>> {
+    #[derive(Debug, Default, FromMeta)]
+    #[darling(default)]
+    struct FieldAttr {
+        rename: Option<String>,
     }
 
-    pub fn add_setter(&mut self, new_setter: String) -> Result<()> {
-        match &mut self.ty {
-            PropertyType::Field { .. } => bail!("Cannot add setter to field property."),
-            PropertyType::Method { getter: _, setter } => match setter {
-                Some(getter) => bail!(
-                    "Attempted to add setter `{}` to property that already has a setter `{}`.",
-                    new_setter,
-                    getter
-                ),
-                None => {
-                    setter.replace(new_setter);
-                    Ok(())
-                }
-            },
-        }
-    }
-
-    pub fn field(field_name: String, docs: Vec<String>, flags: Option<String>) -> Self {
-        Self {
-            ty: PropertyType::Field { field_name },
-            docs,
-            flags,
-        }
-    }
-
-    pub fn method(docs: Vec<String>, flags: Option<String>) -> Self {
-        Self {
-            ty: PropertyType::Method {
-                getter: None,
-                setter: None,
-            },
-            docs,
-            flags,
-        }
-    }
-
-    pub fn as_prop_tuple(&self, name: &str) -> TokenStream {
-        match &self.ty {
-            PropertyType::Field { field_name } => {
-                let field_name = Ident::new(field_name, Span::call_site());
-                quote! {
-                    (#name, ::ext_php_rs::props::Property::field(|obj: &mut Self| &mut obj.#field_name)),
-                }
-            }
-            PropertyType::Method { getter, setter } => {
-                let getter = if let Some(getter) = getter {
-                    let ident = Ident::new(getter, Span::call_site());
-                    quote! { Some(Self::#ident) }
-                } else {
-                    quote! { None }
+    let mut result = vec![];
+    for field in fields {
+        let mut unparsed = vec![];
+        unparsed.append(&mut field.attrs);
+        for attr in unparsed {
+            if attr.path.is_ident("prop") {
+                let meta = match attr.parse_meta() {
+                    Ok(meta) => meta,
+                    Err(_) => bail!(attr => "Failed to parse attribute arguments"),
                 };
-                let setter = if let Some(setter) = setter {
-                    let ident = Ident::new(setter, Span::call_site());
-                    quote! { Some(Self::#ident) }
-                } else {
-                    quote! { None }
-                };
-                quote! {
-                    (#name, ::ext_php_rs::props::Property::method(#getter, #setter)),
+                let ident = field
+                    .ident
+                    .as_ref()
+                    .expect("Named field struct should have ident.");
+                let field_name = match meta {
+                    syn::Meta::List(_) => FieldAttr::from_meta(&meta).unwrap(),
+                    _ => FieldAttr::default(),
                 }
-            }
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct PropertyAttr {
-    pub rename: Option<String>,
-    pub flags: Option<Expr>,
-}
-
-impl syn::parse::Parse for PropertyAttr {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut this = Self::default();
-        while !input.is_empty() {
-            let field = input.parse::<Ident>()?.to_string();
-            input.parse::<Token![=]>()?;
-
-            match field.as_str() {
-                "rename" => {
-                    this.rename.replace(input.parse::<LitStr>()?.value());
-                }
-                "flags" => {
-                    this.flags.replace(input.parse::<Expr>()?);
-                }
-                _ => return Err(input.error("invalid attribute field")),
-            }
-
-            let _ = input.parse::<Token![,]>();
-        }
-
-        Ok(this)
-    }
-}
-
-pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
-    let name = attr.path.to_token_stream().to_string();
-
-    Ok(match name.as_ref() {
-        "extends" => {
-            let meta: Expr = attr
-                .parse_args()
-                .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
-            Some(ParsedAttribute::Extends(meta))
-        }
-        "implements" => {
-            let meta: Expr = attr
-                .parse_args()
-                .map_err(|_| anyhow!("Unable to parse `#[{}]` attribute.", name))?;
-            Some(ParsedAttribute::Implements(meta))
-        }
-        "doc" => {
-            struct DocComment(pub String);
-
-            impl syn::parse::Parse for DocComment {
-                fn parse(input: ParseStream) -> syn::Result<Self> {
-                    input.parse::<Token![=]>()?;
-                    let comment: LitStr = input.parse()?;
-                    Ok(Self(comment.value()))
-                }
-            }
-
-            let comment: DocComment =
-                syn::parse2(attr.tokens.clone()).with_context(|| "Failed to parse doc comment")?;
-            Some(ParsedAttribute::Comment(comment.0))
-        }
-        "prop" | "property" => {
-            let attr = if attr.tokens.is_empty() {
-                PropertyAttr::default()
+                .rename
+                .unwrap_or_else(|| ident.to_string());
+                result.push((field_name, ident))
             } else {
-                attr.parse_args()
-                    .map_err(|e| anyhow!("Unable to parse `#[{}]` attribute: {}", name, e))?
-            };
-
-            Some(ParsedAttribute::Property(attr))
+                field.attrs.push(attr);
+            }
         }
-        _ => None,
-    })
+    }
+    Ok(result)
+}
+
+/// Returns a class metadata definition alongside the ident to access the
+/// metadata.
+fn class_metadata(ident: &syn::Ident) -> (TokenStream, syn::Ident) {
+    let meta_ident = format_ident!(
+        "__INTERNAL_{}_METADATA",
+        ident.to_string().to_ascii_uppercase()
+    );
+    (
+        quote! {
+            static #meta_ident: ::ext_php_rs::class::ClassMetadata<#ident> = ::ext_php_rs::class::ClassMetadata::new();
+        },
+        meta_ident,
+    )
+}
+
+/// Generates an implementation of `RegisteredClass` for struct `ident`.
+fn generate_registered_class_impl(
+    ident: &syn::Ident,
+    metadata_ident: &syn::Ident,
+    class_name: Option<&str>,
+    modifier: Option<&syn::Ident>,
+    extends: Option<&syn::Expr>,
+    implements: &[syn::Expr],
+    fields: &[(String, &syn::Ident)],
+    flags: Option<&syn::Expr>,
+) -> TokenStream {
+    let ident_str = ident.to_string();
+    let class_name = match class_name {
+        Some(class_name) => class_name,
+        None => &ident_str,
+    };
+    let modifier = modifier.option_tokens();
+    let extends = extends.option_tokens();
+    let fields = fields.iter().map(|(name, ident)| {
+        quote! {
+            (#name, ::ext_php_rs::props::Property::field(|this: &mut Self| &mut this.#ident))
+        }
+    });
+    let flags = match flags {
+        Some(flags) => flags.to_token_stream(),
+        None => quote! { ::ext_php_rs::flags::ClassFlags::empty() }.to_token_stream()
+    };
+    quote! {
+        impl ::ext_php_rs::class::RegisteredClass for #ident {
+            const CLASS_NAME: &'static str = #class_name;
+            const BUILDER_MODIFIER: ::std::option::Option<
+                fn(::ext_php_rs::builders::ClassBuilder) -> ::ext_php_rs::builders::ClassBuilder
+            > = #modifier;
+            const EXTENDS: ::std::option::Option<
+                fn() -> &'static ::ext_php_rs::zend::ClassEntry
+            > = #extends;
+            const IMPLEMENTS: &'static [fn() -> &'static ::ext_php_rs::zend::ClassEntry] = &[
+                #(#implements,)*
+            ];
+            const FLAGS: ::ext_php_rs::flags::ClassFlags = #flags;
+
+            #[inline]
+            fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
+                &#metadata_ident
+            }
+
+            fn get_properties<'a>() -> ::std::collections::HashMap<
+                &'static str, ::ext_php_rs::props::Property<'a, Self>
+            > {
+                use ::std::iter::FromIterator;
+                ::std::collections::HashMap::from_iter([
+                    #(#fields,)*
+                ])
+            }
+
+            #[inline]
+            fn method_builders() -> ::std::vec::Vec<
+                (::ext_php_rs::builders::FunctionBuilder<'static>, ::ext_php_rs::flags::MethodFlags)
+            > {
+                ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_methods()
+            }
+
+            #[inline]
+            fn constructor() -> ::std::option::Option<::ext_php_rs::class::ConstructorMeta<Self>> {
+                ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constructor()
+            }
+
+            #[inline]
+            fn constants() -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn)] {
+                ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
+            }
+        }
+    }
 }
