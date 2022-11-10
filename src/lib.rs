@@ -139,8 +139,8 @@ pub use ext_php_rs_derive::php_const;
 /// ```
 ///
 /// [`strpos`]: https://www.php.net/manual/en/function.strpos.php
-/// [`IntoZval`]: ext_php_rs::php::types::zval::IntoZval
-/// [`Zval`]: ext_php_rs::php::types::zval::Zval
+/// [`IntoZval`]: crate::convert::IntoZval
+/// [`Zval`]: crate::types::Zval
 pub use ext_php_rs_derive::php_extern;
 
 /// Attribute used to annotate a function as a PHP function.
@@ -289,12 +289,12 @@ pub use ext_php_rs_derive::php_extern;
 ///
 /// [`Result<T, E>`]: std::result::Result
 /// [`FunctionBuilder`]: crate::php::function::FunctionBuilder
-/// [`FromZval`]: crate::php::types::zval::FromZval
-/// [`IntoZval`]: crate::php::types::zval::IntoZval
-/// [`Zval`]: crate::php::types::zval::Zval
-/// [`Binary<T>`]: crate::php::types::binary::Binary
-/// [`ZendCallable`]: crate::php::types::callable::ZendCallable
-/// [`PhpException`]: crate::php::exceptions::PhpException
+/// [`FromZval`]: crate::convert::FromZval
+/// [`IntoZval`]: crate::convert::IntoZval
+/// [`Zval`]: crate::types::Zval.
+/// [`Binary<T>`]: crate::binary::Binary
+/// [`ZendCallable`]: crate::types::ZendCallable
+/// [`PhpException`]: crate::exception::PhpException
 pub use ext_php_rs_derive::php_function;
 
 /// Annotates a structs `impl` block, declaring that all methods and constants
@@ -670,12 +670,12 @@ pub use ext_php_rs_derive::php_startup;
 /// var_dump(give_union()); // int(5)
 /// ```
 ///
-/// [`FromZval`]: crate::php::types::zval::FromZval
-/// [`IntoZval`]: crate::php::types::zval::IntoZval
-/// [`FromZendObject`]: crate::php::types::object::FromZendObject
-/// [`IntoZendObject`]: crate::php::types::object::IntoZendObject
-/// [`Zval`]: crate::php::types::zval::Zval
-/// [`Zval::string`]: crate::php::types::zval::Zval::string
+/// [`FromZval`]: crate::convert::FromZval
+/// [`IntoZval`]: crate::convert::IntoZval
+/// [`FromZendObject`]: crate::convert::FromZendObject
+/// [`IntoZendObject`]: crate::convert::IntoZendObject
+/// [`Zval`]: crate::types::Zval.
+/// [`Zval::string`]: crate::types::Zval.::string
 pub use ext_php_rs_derive::ZvalConvert;
 
 /// Defines an `extern` function with the Zend fastcall convention based on
