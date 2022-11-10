@@ -85,7 +85,7 @@ impl ClassBuilder {
     /// * `func` - The function entry to add to the class.
     /// * `flags` - Flags relating to the function. See [`MethodFlags`].
     pub fn method(mut self, mut func: FunctionEntry, flags: MethodFlags) -> Self {
-        func.flags = flags.bits();
+        func.flags |= flags.bits();
         self.methods.push(func);
         self
     }

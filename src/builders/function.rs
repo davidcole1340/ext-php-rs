@@ -1,7 +1,7 @@
 use crate::{
     args::{Arg, ArgInfo},
     error::{Error, Result},
-    flags::DataType,
+    flags::{DataType, MethodFlags},
     types::Zval,
     zend::{ExecuteData, FunctionEntry, ZendType},
 };
@@ -55,6 +55,30 @@ impl<'a> FunctionBuilder<'a> {
                 arg_info: ptr::null(),
                 num_args: 0,
                 flags: 0, // TBD?
+            },
+            args: vec![],
+            n_req: None,
+            retval: None,
+            ret_as_ref: false,
+            ret_as_null: false,
+        }
+    }
+
+    /// Create a new function builder for an abstract function that can be used
+    /// on an abstract class or an interface.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `name` - The name of the function.
+    pub fn new_abstract<T: Into<String>>(name: T) -> Self {
+        Self {
+            name: name.into(),
+            function: FunctionEntry {
+                fname: ptr::null(),
+                handler: None,
+                arg_info: ptr::null(),
+                num_args: 0,
+                flags: MethodFlags::Abstract.bits()
             },
             args: vec![],
             n_req: None,
