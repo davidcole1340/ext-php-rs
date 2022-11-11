@@ -2,6 +2,7 @@ use ext_php_rs::{
     args::Arg,
     builders::{ClassBuilder, FunctionBuilder, ModuleStartup},
     class::{ClassMetadata, ConstructorMeta, ConstructorResult, RegisteredClass},
+    constant::IntoConst,
     convert::IntoZval,
     flags::DataType,
     internal::class::{PhpClassImpl, PhpClassImplCollector},
@@ -59,7 +60,12 @@ extern "C" {
     fn phpinfo() -> bool;
 }
 
-#[php_module]
+fn startup(ty: i32, mod_num: i32) -> i32 {
+    5.register_constant("SOME_CONST", mod_num);
+    0
+}
+
+#[php_module(startup = "startup")]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
     module
         .class::<TestClass>()

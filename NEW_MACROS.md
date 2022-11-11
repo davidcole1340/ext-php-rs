@@ -8,11 +8,6 @@ recommended.
 To solve this, the macro system has been re-written but this will require
 changes to user code. This document summarises the changes.
 
-## Startup Function
-
-TODO: allow users to pass in their own startup function (or maybe just let them
-give builders to ModuleBuilder
-
 ## Functions
 
 Mostly unchanged in terms of function definition, however you now need to
@@ -95,7 +90,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 }
 ```
 
-## Extern Block
+## Extern
 
 No changes.
 
@@ -110,5 +105,26 @@ extern "C" {
 fn some_rust_func() {
     let x = unsafe { phpinfo() };
     println!("phpinfo: {x}");
+}
+```
+
+## Startup Function
+
+The `#[php_startup]` macro has been deprecated. Instead, define a function with
+the signature `fn(ty: i32, mod_num: i32) -> i32` and provide the function name
+to the `#[php_module]` attribute:
+
+```rs
+use ext_php_rs::prelude::*;
+
+fn startup(ty: i32, mod_num: i32) -> i32 {
+    // register extra classes, constants etc
+    5.register_constant("SOME_CONST", mod_num);
+    0
+}
+
+#[php_module(startup = "startup")]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module
 }
 ```

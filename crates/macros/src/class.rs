@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{quote, ToTokens};
 use syn::AttributeArgs;
 
 #[derive(Debug, Default, FromMeta)]

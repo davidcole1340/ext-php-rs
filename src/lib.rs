@@ -50,7 +50,6 @@ pub mod prelude {
     pub use crate::php_module;
     pub use crate::php_print;
     pub use crate::php_println;
-    pub use crate::php_startup;
     pub use crate::types::ZendCallable;
     pub use crate::wrap_constant;
     pub use crate::wrap_function;
@@ -476,41 +475,6 @@ pub use ext_php_rs_derive::php_module;
 /// }
 /// ```
 pub use ext_php_rs_derive::php_class;
-
-/// Annotates a function that will be called by PHP when the module starts up.
-/// Generally used to register classes and constants.
-///
-/// As well as annotating the function, any classes and constants that had been
-/// declared using the [`macro@php_class`], [`macro@php_const`] and
-/// [`macro@php_impl`] attributes will be registered inside this function.
-///
-/// This function *must* be declared before the [`macro@php_module`] function,
-/// as this function needs to be declared when building the module.
-///
-/// This function will automatically be generated if not already declared with
-/// this macro if you have registered any classes or constants when using the
-/// [`macro@php_module`] macro.
-///
-/// The attribute accepts one optional flag -- `#[php_startup(before)]` --
-/// which forces the annotated function to be called _before_ the other classes
-/// and constants are registered. By default the annotated function is called
-/// after these classes and constants are registered.
-///
-/// # Example
-///
-/// ```
-/// # #![cfg_attr(windows, feature(abi_vectorcall))]
-/// # use ext_php_rs::prelude::*;
-/// #[php_startup]
-/// pub fn startup_function() {
-///     // do whatever you need to do...
-/// }
-/// # #[php_module]
-/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-/// #     module
-/// # }
-/// ```
-pub use ext_php_rs_derive::php_startup;
 
 /// Derives the traits required to convert a struct or enum to and from a
 /// [`Zval`]. Both [`FromZval`] and [`IntoZval`] are implemented on types which

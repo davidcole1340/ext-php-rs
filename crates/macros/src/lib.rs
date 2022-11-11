@@ -1,20 +1,16 @@
 mod class;
-mod constant;
 mod extern_;
 mod fastcall;
 mod function;
 mod impl_;
-mod method;
 mod module;
-mod startup_function;
 mod syn_ext;
 mod zval;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use syn::{
-    parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl,
-    ItemStruct,
+    parse_macro_input, AttributeArgs, DeriveInput, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
 };
 
 extern crate proc_macro;
@@ -44,19 +40,13 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn php_module(_: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
     let input = parse_macro_input!(input as ItemFn);
 
-    module::parser(input).into()
-}
-
-#[proc_macro_attribute]
-pub fn php_startup(_: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemFn);
-
-    match startup_function::parser(input) {
+    match module::parser(args, input) {
         Ok(parsed) => parsed,
-        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+        Err(e) => e.to_compile_error(),
     }
     .into()
 }
