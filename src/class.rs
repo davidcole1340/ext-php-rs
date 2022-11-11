@@ -12,7 +12,7 @@ use crate::{
     builders::{ClassBuilder, FunctionBuilder},
     convert::IntoZvalDyn,
     exception::PhpException,
-    flags::{MethodFlags, ClassFlags},
+    flags::{ClassFlags, MethodFlags},
     props::Property,
     zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
 };

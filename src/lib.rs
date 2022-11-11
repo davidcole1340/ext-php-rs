@@ -44,7 +44,6 @@ pub mod prelude {
     pub use crate::closure::Closure;
     pub use crate::exception::{PhpException, PhpResult};
     pub use crate::php_class;
-    pub use crate::php_const;
     pub use crate::php_extern;
     pub use crate::php_function;
     pub use crate::php_impl;
@@ -66,33 +65,6 @@ pub const PHP_DEBUG: bool = cfg!(php_debug);
 
 /// Whether the extension is compiled for PHP thread-safe mode.
 pub const PHP_ZTS: bool = cfg!(php_zts);
-
-/// Attribute used to annotate constants to be exported to PHP.
-///
-/// The declared constant is left intact (apart from the addition of the
-/// `#[allow(dead_code)]` attribute in the case that you do not use the Rust
-/// constant).
-///
-/// These declarations must happen before you declare your [`macro@php_startup`]
-/// function (or [`macro@php_module`] function if you do not have a startup
-/// function).
-///
-/// # Example
-///
-/// ```
-/// # #![cfg_attr(windows, feature(abi_vectorcall))]
-/// # use ext_php_rs::prelude::*;
-/// #[php_const]
-/// const TEST_CONSTANT: i32 = 100;
-///
-/// #[php_const]
-/// const ANOTHER_CONST: &str = "Hello, world!";
-/// # #[php_module]
-/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-/// #     module
-/// # }
-/// ```
-pub use ext_php_rs_derive::php_const;
 
 /// Attribute used to annotate `extern` blocks which are deemed as PHP
 /// functions.
@@ -312,10 +284,6 @@ pub use ext_php_rs_derive::php_function;
 /// The declared methods and functions are kept intact so they can continue to
 /// be called from Rust. Methods do generate an additional function, with an
 /// identifier in the format `_internal_php_#ident`.
-///
-/// Methods and constants are declared mostly the same as their global
-/// counterparts, so read the documentation on the [`macro@php_function`] and
-/// [`macro@php_const`] macros for more details.
 ///
 /// The main difference is that the contents of the `impl` block *do not* need
 /// to be tagged with additional attributes - this macro assumes that all

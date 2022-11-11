@@ -173,12 +173,12 @@ impl ModuleBuilder {
     ///
     /// # Arguments
     ///
-    /// * `const_` - Tuple containing the name and value of the constant. This
-    ///   is a tuple to support the [`wrap_constant`] macro.
+    /// * `const` - Tuple containing the name and value of the constant. This is
+    ///   a tuple to support the [`wrap_constant`] macro.
     ///
     /// [`wrap_constant`]: crate::wrap_constant
-    pub fn constant(mut self, const_: (&str, impl IntoConst + Send + 'static)) -> Self {
-        let (name, val) = const_;
+    pub fn constant(mut self, r#const: (&str, impl IntoConst + Send + 'static)) -> Self {
+        let (name, val) = r#const;
         self.constants
             .push((name.into(), Box::new(val) as Box<dyn IntoConst + Send>));
         self

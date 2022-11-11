@@ -123,7 +123,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
 
 //             Ok(quote! {{
 //                 let builder =
-// ::ext_php_rs::builders::ClassBuilder::new(#class_name)                     
+// ::ext_php_rs::builders::ClassBuilder::new(#class_name)
 // #(#methods)*                     #(#constants)*
 //                     #(#interfaces)*
 //                     // #(#properties)*

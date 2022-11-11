@@ -410,6 +410,33 @@ macro_rules! php_println {
     };
 }
 
+/// Wraps a constant into the form expected by [`ModuleBuilder`].
+///
+/// All this does is return a tuple containg two values:
+///
+/// * The name of the constant
+/// * The value of the constant
+///
+/// # Example
+///
+/// ```
+/// use ext_php_rs::wrap_constant;
+///
+/// const HELLO_WORLD: i32 = 150;
+///
+/// assert_eq!(wrap_constant!(HELLO_WORLD), ("HELLO_WORLD", HELLO_WORLD));
+/// ```
+///
+/// ```no_run
+/// use ext_php_rs::prelude::*;
+///
+/// const HELLO_WORLD: i32 = 150;
+///
+/// ModuleBuilder::new("ext-php-rs", "0.1.0")
+///     .constant(wrap_constant!(HELLO_WORLD));
+/// ```
+///
+/// [`ModuleBuilder`]: crate::builders::ModuleBuilder
 #[macro_export]
 macro_rules! wrap_constant {
     ($name:ident) => {

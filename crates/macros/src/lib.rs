@@ -74,17 +74,6 @@ pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn php_const(_: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemConst);
-
-    match constant::parser(input) {
-        Ok(parsed) => parsed,
-        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
-    }
-    .into()
-}
-
-#[proc_macro_attribute]
 pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemForeignMod);
 

@@ -145,7 +145,7 @@ fn generate_registered_class_impl(
     });
     let flags = match flags {
         Some(flags) => flags.to_token_stream(),
-        None => quote! { ::ext_php_rs::flags::ClassFlags::empty() }.to_token_stream()
+        None => quote! { ::ext_php_rs::flags::ClassFlags::empty() }.to_token_stream(),
     };
     quote! {
         impl ::ext_php_rs::class::RegisteredClass for #ident {
