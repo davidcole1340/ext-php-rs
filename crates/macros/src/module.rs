@@ -17,7 +17,6 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
         Ok(opts) => opts,
         Err(e) => bail!(input => "Failed to parse attribute options: {:?}", e),
     };
-    eprintln!("{:?}", opts);
     let ItemFn { sig, block, .. } = input;
     let Signature { output, inputs, .. } = sig;
     let stmts = &block.stmts;

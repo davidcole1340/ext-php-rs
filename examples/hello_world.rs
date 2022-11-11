@@ -60,8 +60,21 @@ extern "C" {
     fn phpinfo() -> bool;
 }
 
+#[derive(Debug, ZvalConvert)]
+pub struct TestZvalConvert<'a> {
+    a: i32,
+    b: i32,
+    c: &'a str,
+}
+
+#[php_function]
+pub fn get_zval_convert<'a>(z: TestZvalConvert<'a>) -> i32 {
+    dbg!(z);
+    5
+}
+
 fn startup(ty: i32, mod_num: i32) -> i32 {
-    5.register_constant("SOME_CONST", mod_num);
+    5.register_constant("SOME_CONST", mod_num).unwrap();
     0
 }
 
@@ -71,6 +84,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .class::<TestClass>()
         .function(wrap_function!(hello_world))
         .function(wrap_function!(new_class))
+        .function(wrap_function!(get_zval_convert))
         .constant(wrap_constant!(HELLO_WORLD))
         .constant(("CONST_NAME", HELLO_WORLD))
 }

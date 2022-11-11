@@ -136,6 +136,7 @@ impl DropLifetimes for syn::TypePath {
         if let Some(qself) = &mut self.qself {
             qself.ty.drop_lifetimes();
         }
+        self.path.segments.drop_lifetimes();
     }
 }
 
@@ -167,5 +168,13 @@ impl DropLifetimes for syn::TypeTraitObject {
 impl DropLifetimes for syn::TypeTuple {
     fn drop_lifetimes(&mut self) {
         self.elems.iter_mut().for_each(|i| i.drop_lifetimes());
+    }
+}
+
+impl<T: DropLifetimes, P> DropLifetimes for syn::punctuated::Punctuated<T, P> {
+    fn drop_lifetimes(&mut self) {
+        for item in self {
+            item.drop_lifetimes();
+        }
     }
 }

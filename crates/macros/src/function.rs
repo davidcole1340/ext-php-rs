@@ -132,7 +132,12 @@ impl<'a> Function<'a> {
             .map(TypedArg::arg_decleration)
             .collect::<Result<Vec<_>>>()?;
         let arg_accessors = self.args.typed.iter().map(|arg| {
-            arg.accessor(|e| quote! { #e.throw().expect("Failed to throw PHP exception.") })
+            arg.accessor(|e| {
+                quote! {
+                    #e.throw().expect("Failed to throw PHP exception.");
+                    return;
+                }
+            })
         });
 
         // `entry` impl

@@ -1,4 +1,3 @@
-use anyhow::Result;
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use syn::{ItemFn, LitStr};
@@ -13,9 +12,9 @@ const ABI: &str = "C";
 ///
 /// On Windows, this sets the extern ABI to vectorcall while on all other OS
 /// it it to C.
-pub fn parser(mut input: ItemFn) -> Result<TokenStream> {
+pub fn parser(mut input: ItemFn) -> TokenStream {
     if let Some(abi) = &mut input.sig.abi {
         abi.name = Some(LitStr::new(ABI, Span::call_site()));
     }
-    Ok(input.to_token_stream())
+    input.to_token_stream()
 }
