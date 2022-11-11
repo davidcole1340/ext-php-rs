@@ -9,7 +9,6 @@ use ext_php_rs::{
     types::Zval,
     zend::ExecuteData,
 };
-use parking_lot::{const_mutex, Mutex};
 
 // struct MyClass {
 //     a: i32,
@@ -125,9 +124,8 @@ impl TestClass {
     pub const SOME_CONSTANT: i32 = 5;
     pub const SOME_OTHER_STR: &'static str = "Hello, world!";
 
-    #[constructor]
-    pub fn some_other_func(a: i32, b: i32) -> Self {
-        Self { a, b }
+    pub fn __construct(a: i32, b: i32) -> Self {
+        Self { a: a + 10, b: b + 10 }
     }
 
     #[optional(test)]

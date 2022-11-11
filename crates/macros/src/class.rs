@@ -66,10 +66,8 @@ pub fn parser(args: AttributeArgs, mut input: syn::ItemStruct) -> Result<TokenSt
         syn::Fields::Named(fields) => parse_fields(fields.named.iter_mut())?,
         _ => vec![],
     };
-    let (metadata, metadata_ident) = class_metadata(ident);
     let class_impl = generate_registered_class_impl(
         ident,
-        &metadata_ident,
         args.name.as_deref(),
         args.modifier.as_ref(),
         class_attrs.extends.as_ref(),
@@ -80,7 +78,6 @@ pub fn parser(args: AttributeArgs, mut input: syn::ItemStruct) -> Result<TokenSt
 
     Ok(quote! {
         #input
-        #metadata
         #class_impl
         ::ext_php_rs::class_derives!(#ident);
     })
@@ -124,25 +121,9 @@ fn parse_fields<'a>(
     Ok(result)
 }
 
-/// Returns a class metadata definition alongside the ident to access the
-/// metadata.
-fn class_metadata(ident: &syn::Ident) -> (TokenStream, syn::Ident) {
-    let meta_ident = format_ident!(
-        "__INTERNAL_{}_METADATA",
-        ident.to_string().to_ascii_uppercase()
-    );
-    (
-        quote! {
-            static #meta_ident: ::ext_php_rs::class::ClassMetadata<#ident> = ::ext_php_rs::class::ClassMetadata::new();
-        },
-        meta_ident,
-    )
-}
-
 /// Generates an implementation of `RegisteredClass` for struct `ident`.
 fn generate_registered_class_impl(
     ident: &syn::Ident,
-    metadata_ident: &syn::Ident,
     class_name: Option<&str>,
     modifier: Option<&syn::Ident>,
     extends: Option<&syn::Expr>,
@@ -182,7 +163,9 @@ fn generate_registered_class_impl(
 
             #[inline]
             fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
-                &#metadata_ident
+                static METADATA: ::ext_php_rs::class::ClassMetadata<#ident> =
+                    ::ext_php_rs::class::ClassMetadata::new();
+                &METADATA
             }
 
             fn get_properties<'a>() -> ::std::collections::HashMap<

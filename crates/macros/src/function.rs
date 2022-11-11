@@ -20,11 +20,10 @@ pub struct FnArgs {
 }
 
 pub fn wrap(input: syn::Path) -> Result<TokenStream> {
-    let func_name = match input.get_ident() {
-        Some(ident) => ident,
-        None => bail!(input => "Pass a PHP function name into `wrap_function!()`."),
+    let Some(func_name) = input.get_ident() else {
+        bail!(input => "Pass a PHP function name into `wrap_function!()`.");
     };
-    let builder_func = Ident::new(&format!("_internal_{}", func_name), Span::call_site());
+    let builder_func = format_ident!("_internal_{func_name}");
     let err = format!("Failed to build function `{}`.", func_name);
 
     Ok(quote! {{
