@@ -461,7 +461,7 @@ pub use ext_php_rs_derive::php_module;
 /// use ext_php_rs::zend::ce;
 ///
 /// #[php_class(name = "Redis\\Exception\\RedisException")]
-/// #[extends(ce::exception())]
+/// #[extends(ce::exception)]
 /// pub struct Example;
 ///
 /// #[php_function]

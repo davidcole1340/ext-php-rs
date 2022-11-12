@@ -454,7 +454,7 @@ impl<'a> TypedArg<'a> {
             }
         });
         Ok(quote! {
-            ::ext_php_rs::args::Arg::new(#name, <#ty as ::ext_php_rs::convert::FromZval>::TYPE)
+            ::ext_php_rs::args::Arg::new(#name, <#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE)
                 #null
                 #default
         })
@@ -465,7 +465,7 @@ impl<'a> TypedArg<'a> {
         let name = self.name;
         if let Some(default) = &self.default {
             quote! {
-                #name.val().unwrap_or(#default)
+                #name.val().unwrap_or(#default.into())
             }
         } else if self.nullable {
             // Originally I thought we could just use the below case for `null` options, as

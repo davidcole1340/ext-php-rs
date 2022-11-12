@@ -235,6 +235,7 @@ fn parse_enum(
     Ok(quote! {
         impl #into_impl_generics ::ext_php_rs::convert::IntoZval for #ident #ty_generics #into_where_clause {
             const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Mixed;
+            const NULLABLE: bool = false;
 
             fn set_zval(
                 self,

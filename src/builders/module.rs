@@ -31,11 +31,11 @@ use std::{ffi::CString, fmt::Debug, mem, ptr};
 ///
 /// #[no_mangle]
 /// pub extern "C" fn get_module() -> *mut ModuleEntry {
-///     ModuleBuilder::new("ext-name", "ext-version")
+///     let (entry, _) = ModuleBuilder::new("ext-name", "ext-version")
 ///         .info_function(php_module_info)
 ///         .build()
-///         .unwrap()
-///         .into_raw()
+///         .unwrap();
+///     entry.into_raw()
 /// }
 /// ```
 #[derive(Debug)]

@@ -200,7 +200,7 @@ macro_rules! throw {
 /// # Examples
 ///
 /// ```
-/// # use ext_php_rs::{convert::{IntoZval, FromZval}, types::{Zval, ZendObject}, class::{RegisteredClass}};
+/// # use ext_php_rs::{convert::{IntoZval, FromZval, IntoZvalDyn}, types::{Zval, ZendObject}, class::{RegisteredClass, ConstructorMeta}, builders::{ClassBuilder, FunctionBuilder}, zend::ClassEntry, flags::MethodFlags};
 /// use ext_php_rs::class_derives;
 ///
 /// struct Test {
@@ -210,8 +210,9 @@ macro_rules! throw {
 ///
 /// impl RegisteredClass for Test {
 ///     const CLASS_NAME: &'static str = "Test";
-///
-///     const CONSTRUCTOR: Option<ext_php_rs::class::ConstructorMeta<Self>> = None;
+///     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
+///     const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
+///     const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] =  &[];
 ///
 ///     fn get_metadata() -> &'static ext_php_rs::class::ClassMetadata<Self> {
 ///         todo!()
@@ -220,6 +221,18 @@ macro_rules! throw {
 ///     fn get_properties<'a>(
 ///     ) -> std::collections::HashMap<&'static str, ext_php_rs::props::Property<'a, Self>>
 ///     {
+///         todo!()
+///     }
+///
+///     fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)> {
+///         todo!()
+///     }
+///
+///     fn constructor() -> Option<ConstructorMeta<Self>> {
+///         todo!()
+///     }
+///
+///     fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn)] {
 ///         todo!()
 ///     }
 /// }

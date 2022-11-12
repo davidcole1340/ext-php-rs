@@ -266,21 +266,36 @@ impl<'a> ParsedImpl<'a> {
                     opts.parse(&mut method.attrs)?;
 
                     let args = Args::parse_from_fnargs(method.sig.inputs.iter(), opts.defaults)?;
-                    let func = Function::parse(&method.sig, Some(opts.name), args, opts.optional)?;
+                    let mut func =
+                        Function::parse(&method.sig, Some(opts.name), args, opts.optional)?;
 
                     if matches!(opts.ty, MethodTy::Constructor) {
                         if self.constructor.replace(func).is_some() {
                             bail!(method => "Only one constructor can be provided per class.");
                         }
                     } else {
-                        let builder = func.function_builder(CallType::Method {
+                        let call_type = CallType::Method {
                             class: self.path,
                             receiver: if func.args.receiver.is_some() {
+                                // `&self` or `&mut self`
                                 MethodReceiver::Class
+                            } else if func
+                                .args
+                                .typed
+                                .first()
+                                .map(|arg| arg.name == "self_")
+                                .unwrap_or_default()
+                            {
+                                // `self_: &[mut] ZendClassObject<Self>`
+                                // Need to remove arg from argument list
+                                func.args.typed.pop();
+                                MethodReceiver::ZendClassObject
                             } else {
+                                // Static method
                                 MethodReceiver::Static
                             },
-                        })?;
+                        };
+                        let builder = func.function_builder(call_type)?;
                         self.functions.push(FnBuilder {
                             builder,
                             vis: opts.vis,

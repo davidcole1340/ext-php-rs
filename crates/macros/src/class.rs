@@ -181,16 +181,19 @@ fn generate_registered_class_impl(
             fn method_builders() -> ::std::vec::Vec<
                 (::ext_php_rs::builders::FunctionBuilder<'static>, ::ext_php_rs::flags::MethodFlags)
             > {
+                use ::ext_php_rs::internal::class::PhpClassImpl;
                 ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_methods()
             }
 
             #[inline]
             fn constructor() -> ::std::option::Option<::ext_php_rs::class::ConstructorMeta<Self>> {
+                use ::ext_php_rs::internal::class::PhpClassImpl;
                 ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constructor()
             }
 
             #[inline]
             fn constants() -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn)] {
+                use ::ext_php_rs::internal::class::PhpClassImpl;
                 ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
             }
         }

@@ -47,10 +47,11 @@ pub fn take_obj(obj: &mut ZendObject) -> &mut ZendObject {
     let _ = obj.set_property("hello", 5);
     dbg!(obj)
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(take_obj))
+}
 # fn main() {}
 ```
 
@@ -68,10 +69,11 @@ pub fn make_object() -> ZBox<ZendObject> {
     let _ = obj.set_property("hello", 5);
     obj
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(make_object))
+}
 # fn main() {}
 ```
 

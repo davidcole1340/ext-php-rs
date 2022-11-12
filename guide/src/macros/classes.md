@@ -16,11 +16,10 @@ There are also additional macros that modify the class. These macros **must** be
 placed underneath the `#[php_class]` attribute.
 
 - `#[extends(ce)]` - Sets the parent class of the class. Can only be used once.
-  `ce` must be a valid Rust expression when it is called inside the
-  `#[php_module]` function.
+  `ce` must be a function with the signature `fn() -> &'static ClassEntry`.
 - `#[implements(ce)]` - Implements the given interface on the class. Can be used
-  multiple times. `ce` must be a valid Rust expression when it is called inside
-  the `#[php_module]` function.
+  multiple times. `ce` must be a function with the signature
+  `fn() -> &'static ClassEntry`.
 
 You may also use the `#[prop]` attribute on a struct field to use the field as a
 PHP property. By default, the field will be accessible from PHP publicly with
@@ -67,7 +66,8 @@ This example creates a PHP class `Human`, adding a PHP property `address`.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
+use ext_php_rs::prelude::*;
+
 #[php_class]
 pub struct Human {
     name: String,
@@ -75,10 +75,11 @@ pub struct Human {
     #[prop]
     address: String,
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.class::<Human>()
+}
 # fn main() {}
 ```
 
@@ -88,11 +89,14 @@ it in the `Redis\Exception` namespace:
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-use ext_php_rs::prelude::*;
-use ext_php_rs::{exception::PhpException, zend::ce};
+use ext_php_rs::{
+    prelude::*,
+    exception::PhpException,
+    zend::ce,
+};
 
 #[php_class(name = "Redis\\Exception\\RedisException")]
-#[extends(ce::exception())]
+#[extends(ce::exception)]
 #[derive(Default)]
 pub struct RedisException;
 
@@ -101,25 +105,33 @@ pub struct RedisException;
 pub fn throw_exception() -> PhpResult<i32> {
     Err(PhpException::from_class::<RedisException>("Not good!".into()))
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module
+        .class::<RedisException>()
+        .function(wrap_function!(throw_exception))
+}
 # fn main() {}
 ```
 
 ## Implementing an Interface
 
-To implement an interface, use `#[implements(ce)]` where `ce` is an expression returning a `ClassEntry`.
+To implement an interface, use `#[implements(ce)]` where `ce` is a function returning a `ClassEntry`.
 The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
+
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-use ext_php_rs::prelude::*;
-use ext_php_rs::{exception::PhpResult, types::Zval, zend::ce};
+use ext_php_rs::{
+    prelude::*,
+    exception::PhpResult,
+    types::Zval,
+    zend::ce,
+};
 
 #[php_class]
-#[implements(ce::arrayaccess())]
+#[implements(ce::arrayaccess)]
 #[derive(Default)]
 pub struct EvenNumbersArray;
 
@@ -154,9 +166,10 @@ impl EvenNumbersArray {
         Err("Setting values is not supported".into())
     }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.class::<EvenNumbersArray>()
+}
 # fn main() {}
 ```

@@ -25,17 +25,20 @@ pub struct Example {
 
 #[php_impl]
 impl Example {
-    // Even though this function doesn't have a `self` type, it is still treated as an associated method
-    // and not a static method.
-    pub fn builder_pattern(#[this] this: &mut ZendClassObject<Example>) -> &mut ZendClassObject<Example> {
-        // do something with `this`
-        this
+    // ext-php-rs treats the method as associated due to the `self_` argument.
+    // The argument _must_ be called `self_`.
+    pub fn builder_pattern(
+        self_: &mut ZendClassObject<Example>,
+    ) -> &mut ZendClassObject<Example> {
+        // do something with `self_`
+        self_ 
     }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.class::<Example>()
+}
 # fn main() {}
 ```
 

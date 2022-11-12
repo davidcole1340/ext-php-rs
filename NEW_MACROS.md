@@ -37,6 +37,7 @@ need to register the classes with the module builder:
 use ext_php_rs::prelude::*;
 
 #[php_class]
+#[derive(Debug)]
 pub struct TestClass {
     #[prop]
     a: i32,
@@ -62,6 +63,12 @@ impl TestClass {
 
     fn x(&self) -> i32 {
         5
+    }
+
+    pub fn builder_pattern(
+        self_: &mut ZendClassObject<TestClass>,
+    ) -> &mut ZendClassObject<TestClass> {
+        dbg!(self_)
     }
 }
 

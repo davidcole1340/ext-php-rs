@@ -7,10 +7,11 @@ use ext_php_rs::{
     flags::DataType,
     internal::class::{PhpClassImpl, PhpClassImplCollector},
     prelude::*,
-    types::Zval,
+    types::{ZendClassObject, Zval},
     zend::ExecuteData,
 };
 
+#[derive(Debug)]
 #[php_class]
 pub struct TestClass {
     #[prop]
@@ -40,6 +41,12 @@ impl TestClass {
 
     fn x(&self) -> i32 {
         5
+    }
+
+    pub fn builder_pattern(
+        self_: &mut ZendClassObject<TestClass>,
+    ) -> &mut ZendClassObject<TestClass> {
+        dbg!(self_)
     }
 }
 

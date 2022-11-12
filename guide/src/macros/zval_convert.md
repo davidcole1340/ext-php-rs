@@ -38,7 +38,13 @@ pub fn give_object() -> ExampleClass<'static> {
         c: "Borrowed",
     }
 }
-# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module
+        .function(wrap_function!(take_object))
+        .function(wrap_function!(give_object))
+}
 # fn main() {}
 ```
 
@@ -74,7 +80,11 @@ pub struct CompareVals<T: PartialEq<i32>> {
 pub fn take_object(obj: CompareVals<i32>) {
     dbg!(obj);
 }
-# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(take_object))
+}
 # fn main() {}
 ```
 
@@ -120,7 +130,13 @@ pub fn test_union(val: UnionExample) {
 pub fn give_union() -> UnionExample<'static> {
     UnionExample::Long(5)
 }
-# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module
+        .function(wrap_function!(test_union))
+        .function(wrap_function!(give_union))
+}
 # fn main() {}
 ```
 
