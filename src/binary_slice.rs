@@ -6,16 +6,15 @@
 
 use crate::ffi::zend_string;
 
-use std::{convert::TryFrom, ops::Deref, slice::from_raw_parts};
+use std::{ops::Deref, slice::from_raw_parts};
 
 use crate::{
     convert::FromZval,
-    error::{Error, Result},
     flags::DataType,
     types::Zval,
 };
 
-/// Acts as a wrapper around [`&[T]`] where `T` implements [`PackSlice`].
+/// Acts as a wrapper around `&[T]` where `T` implements [`PackSlice`].
 /// Primarily used for passing read-only binary data into Rust functions.
 #[derive(Debug)]
 pub struct BinarySlice<'a, T>(&'a [T])
@@ -47,25 +46,14 @@ where
     }
 }
 
-impl<T> FromZval<'_> for BinarySlice<'_, T>
+impl<'a, T> FromZval<'a> for BinarySlice<'a, T>
 where
     T: PackSlice,
 {
     const TYPE: DataType = DataType::String;
 
-    fn from_zval(zval: &Zval) -> Option<Self> {
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
         zval.binary_slice().map(BinarySlice)
-    }
-}
-
-impl<T> TryFrom<Zval> for BinarySlice<'_, T>
-where
-    T: PackSlice,
-{
-    type Error = Error;
-
-    fn try_from(value: Zval) -> Result<Self> {
-        Self::from_zval(&value).ok_or_else(|| Error::ZvalConversion(value.get_type()))
     }
 }
 
@@ -117,7 +105,7 @@ pub unsafe trait PackSlice: Clone {
     /// * `s` - The Zend string containing the binary data.
     ///
     /// [`pack`]: https://www.php.net/manual/en/function.pack.php
-    fn unpack_into<'a>(s: &zend_string) -> &'a [Self];
+    fn unpack_into(s: &zend_string) -> &[Self];
 }
 
 /// Implements the [`PackSlice`] trait for a given type.
@@ -128,7 +116,7 @@ macro_rules! pack_slice_impl {
 
     ($t: ty, $d: expr) => {
         unsafe impl PackSlice for $t {
-            fn unpack_into<'a>(s: &zend_string) -> &'a [Self] {
+            fn unpack_into(s: &zend_string) -> &[Self] {
                 let bytes = ($d / 8) as usize;
                 let len = (s.len as usize) / bytes;
                 let ptr = s.val.as_ptr() as *const $t;
