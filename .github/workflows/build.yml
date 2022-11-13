@@ -68,18 +68,25 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
+        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all -- -D warnings
-        if: matrix.rust == 'stable'
+        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
+      - name: Run rustdoc
+        uses: actions-rs/cargo@v1
+        with:
+          command: rustdoc
+          args: -- -D warnings
+        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
       - name: Build with docs stub
-        if: "contains(matrix.os, 'ubuntu') && matrix.php == '8.1'"
         env:
           DOCS_RS:
         run:
           cargo clean && cargo build
+        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
   build-zts:
     name: Build with ZTS
     runs-on: ubuntu-latest
