@@ -8,11 +8,7 @@ use crate::ffi::zend_string;
 
 use std::{ops::Deref, slice::from_raw_parts};
 
-use crate::{
-    convert::FromZval,
-    flags::DataType,
-    types::Zval,
-};
+use crate::{convert::FromZval, flags::DataType, types::Zval};
 
 /// Acts as a wrapper around `&[T]` where `T` implements [`PackSlice`].
 /// Primarily used for passing read-only binary data into Rust functions.
