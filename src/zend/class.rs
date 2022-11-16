@@ -37,37 +37,19 @@ impl ClassEntry {
     ///
     /// # Parameters
     ///
-    /// * `ce` - The inherited class entry to check.
-    pub fn instance_of(&self, ce: &ClassEntry) -> bool {
-        if self == ce {
+    /// * `other` - The inherited class entry to check.
+    pub fn instance_of(&self, other: &ClassEntry) -> bool {
+        if self == other {
             return true;
         }
 
-        if ce.flags().contains(ClassFlags::Interface) {
-            let interfaces = match self.interfaces() {
-                Some(interfaces) => interfaces,
-                None => return false,
-            };
-
-            for i in interfaces {
-                if ce == i {
-                    return true;
-                }
-            }
-        } else {
-            loop {
-                let parent = match self.parent() {
-                    Some(parent) => parent,
-                    None => return false,
-                };
-
-                if parent == ce {
-                    return true;
-                }
-            }
+        if other.is_interface() {
+            return self
+                .interfaces()
+                .map_or(false, |mut it| it.any(|ce| ce == other));
         }
 
-        false
+        std::iter::successors(self.parent(), |p| p.parent()).any(|ce| ce == other)
     }
 
     /// Returns an iterator of all the interfaces that the class implements.
