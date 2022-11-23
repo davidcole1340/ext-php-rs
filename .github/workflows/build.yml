@@ -12,8 +12,9 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        php: ['8.0', '8.1']
+        php: ["8.0", "8.1"]
         rust: [stable, nightly]
+        clang: ["14"]
         phpts: [ts, nts]
         exclude:
           # ext-php-rs requires nightly Rust when on Windows.
@@ -24,6 +25,8 @@ jobs:
             phpts: ts
           - os: ubuntu-latest
             phpts: ts
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -34,59 +37,67 @@ jobs:
         env:
           phpts: ${{ matrix.phpts }}
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          override: true
           components: rustfmt, clippy
-      - name: Setup LLVM & Clang
+      - run: rustup show
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        # Uncomment the following if statement if caching nightly deps
+        # ends up causing too much cache invalidation.
+        # if: matrix.rust == 'stable'
+        with:
+          # increment this manually to force cache eviction
+          prefix-key: "v0-rust"
+      # LLVM & Clang
+      - name: Cache LLVM and Clang
+        id: cache-llvm
+        uses: actions/cache@v2
         if: "!contains(matrix.os, 'windows')"
+        with:
+          path: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
+      - name: Setup LLVM & Clang
         id: clang
         uses: KyleMayes/install-llvm-action@v1
+        if: "!contains(matrix.os, 'windows')"
         with:
-          version: '13.0'
-          directory: ${{ runner.temp }}/llvm
+          version: ${{ matrix.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Configure Clang
         if: "!contains(matrix.os, 'windows')"
         run: |
-          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm/lib" >> $GITHUB_ENV
+          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/lib" >> $GITHUB_ENV
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
+          echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/bin/llvm-config" >> $GITHUB_ENV
       - name: Configure Clang (macOS only)
         if: "contains(matrix.os, 'macos')"
         run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
+      # Build
       - name: Build
         env:
-          EXT_PHP_RS_TEST:
+          EXT_PHP_RS_TEST: ""
         run: cargo build --release --all-features --all
+      # Test & lint
       - name: Test inline examples
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --all --all-features
+        run: cargo test --release --all --all-features
       - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
         if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
+        run: cargo fmt --all -- --check
       - name: Run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all -- -D warnings
         if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
+        run: cargo clippy --all -- -D warnings
+      # Docs
       - name: Run rustdoc
-        uses: actions-rs/cargo@v1
-        with:
-          command: rustdoc
-          args: -- -D warnings
         if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
+        run: cargo rustdoc -- -D warnings
       - name: Build with docs stub
-        env:
-          DOCS_RS:
-        run:
-          cargo clean && cargo build
         if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.1'
+        env:
+          DOCS_RS: ""
+        run: cargo clean && cargo build
   build-zts:
     name: Build with ZTS
     runs-on: ubuntu-latest
