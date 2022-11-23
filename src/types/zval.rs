@@ -117,8 +117,8 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is a string and can be unpacked into
-    /// a vector of a given type. Similar to the [`unpack`](https://www.php.net/manual/en/function.unpack.php)
-    /// in PHP, except you can only unpack one type.
+    /// a vector of a given type. Similar to the [`unpack`] function in PHP,
+    /// except you can only unpack one type.
     ///
     /// # Safety
     ///
@@ -129,13 +129,14 @@ impl Zval {
     /// documentation for more details.
     ///
     /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
     pub fn binary<T: Pack>(&self) -> Option<Vec<T>> {
         self.zend_str().map(T::unpack_into)
     }
 
     /// Returns the value of the zval if it is a string and can be unpacked into
-    /// a slice of a given type. Similar to the [`unpack`](https://www.php.net/manual/en/function.unpack.php)
-    /// in PHP, except you can only unpack one type.
+    /// a slice of a given type. Similar to the [`unpack`] function in PHP,
+    /// except you can only unpack one type.
     ///
     /// This function is similar to [`Zval::binary`] except that a slice is
     /// returned instead of a vector, meaning the contents of the string is
@@ -148,6 +149,9 @@ impl Zval {
     /// platform-to-platform due to the different representation of some
     /// types on different platforms. Consult the [`pack`] function
     /// documentation for more details.
+    ///
+    /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
     pub fn binary_slice<T: PackSlice>(&self) -> Option<&[T]> {
         self.zend_str().map(T::unpack_into)
     }
