@@ -53,7 +53,7 @@ jobs:
       # LLVM & Clang
       - name: Cache LLVM and Clang
         id: cache-llvm
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: "!contains(matrix.os, 'windows')"
         with:
           path: ${{ runner.temp }}/llvm-${{ matrix.clang }}
