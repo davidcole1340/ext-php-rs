@@ -208,14 +208,14 @@ impl ZendObject {
         self.handle
     }
 
-    /// Returns an unique hash for the object.
+    /// Computes an unique hash for the object.
     ///
     /// The hash is guaranteed to be unique for the lifetime of the object.
     /// Once the object is destroyed, it may be reused for other objects.
     /// This is equivalent to calling the [`spl_object_hash`] PHP function.
     ///
     /// [`spl_object_hash`]: https://www.php.net/manual/function.spl-object-hash.php
-    pub fn get_hash(&self) -> String {
+    pub fn hash(&self) -> String {
         format!("{:016x}0000000000000000", self.handle)
     }
 
