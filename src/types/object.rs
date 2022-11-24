@@ -196,6 +196,29 @@ impl ZendObject {
         T::from_zend_object(self)
     }
 
+    /// Returns an unique identifier for the object.
+    ///
+    /// The id is guaranteed to be unique for the lifetime of the object.
+    /// Once the object is destroyed, it may be reused for other objects.
+    /// This is equivalent to calling the [`spl_object_id`] PHP function.
+    ///
+    /// [`spl_object_id`]: https://www.php.net/manual/function.spl-object-id
+    #[inline]
+    pub fn get_id(&self) -> u32 {
+        self.handle
+    }
+
+    /// Computes an unique hash for the object.
+    ///
+    /// The hash is guaranteed to be unique for the lifetime of the object.
+    /// Once the object is destroyed, it may be reused for other objects.
+    /// This is equivalent to calling the [`spl_object_hash`] PHP function.
+    ///
+    /// [`spl_object_hash`]: https://www.php.net/manual/function.spl-object-hash.php
+    pub fn hash(&self) -> String {
+        format!("{:016x}0000000000000000", self.handle)
+    }
+
     /// Attempts to retrieve a reference to the object handlers.
     #[inline]
     unsafe fn handlers(&self) -> Result<&ZendObjectHandlers> {
