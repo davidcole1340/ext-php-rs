@@ -80,6 +80,17 @@ impl ZendObject {
         unsafe { ZBox::from_raw(this.get_mut_zend_obj()) }
     }
 
+    /// Returns the [`ClassEntry`] associated with this object.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn get_class_entry(&self) -> &'static ClassEntry {
+        // SAFETY: it is OK to panic here since PHP would segfault anyway
+        // when encountering an object with no class entry.
+        unsafe { self.ce.as_ref() }.expect("Could not retrieve class entry.")
+    }
+
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
         unsafe {
@@ -91,8 +102,21 @@ impl ZendObject {
         }
     }
 
+    /// Returns whether this object is an instance of the given [`ClassEntry`].
+    ///
+    /// This method checks the class and interface inheritance chain.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn instance_of(&self, ce: &ClassEntry) -> bool {
+        self.get_class_entry().instance_of(ce)
+    }
+
     /// Checks if the given object is an instance of a registered class with
     /// Rust type `T`.
+    ///
+    /// This method doesn't check the class and interface inheritance chain.
     pub fn is_instance<T: RegisteredClass>(&self) -> bool {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
