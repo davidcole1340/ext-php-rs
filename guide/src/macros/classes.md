@@ -43,13 +43,13 @@ there is no way to access Rust lifetimes at runtime from a dynamic language like
 As soon as Rust data is exposed to PHP,
 there is no guarantee which the Rust compiler can make on how long the data will live.
 PHP is a reference-counted language and those references can be held
-for an arbitrarily long time which is untraceable by the Rust compiler.
+for an arbitrarily long time, which is untraceable by the Rust compiler.
 The only possible way to express this correctly is to require that any `#[php_class]`
 does not borrow data for any lifetime shorter than the `'static` lifetime,
 i.e. the `#[php_class]` cannot have any lifetime parameters.
 
 When you need to share ownership of data between PHP and Rust,
-instead of using borrowed references with lifetimes consider using
+instead of using borrowed references with lifetimes, consider using
 reference-counted smart pointers such as [Arc](https://doc.rust-lang.org/std/sync/struct.Arc.html).
 
 ### No generic parameters
