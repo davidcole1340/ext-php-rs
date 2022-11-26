@@ -7,7 +7,6 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use php_discovery::build::Architecture;
 use php_discovery::build::Build;
 
 use crate::PHPProvider;
