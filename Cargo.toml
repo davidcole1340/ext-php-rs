@@ -28,6 +28,7 @@ anyhow = "1"
 bindgen = "0.60"
 cc = "1.0"
 skeptic = "0.13"
+php-discovery = "0.1.2"
 
 [target.'cfg(windows)'.build-dependencies]
 ureq = { version = "2.4", features = ["native-tls", "gzip"], default-features = false }
