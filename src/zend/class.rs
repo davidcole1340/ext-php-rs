@@ -15,7 +15,7 @@ impl ClassEntry {
     /// could not be found or the class table has not been initialized.
     pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
-        let mut name = ZendStr::new(name, false).ok()?;
+        let mut name = ZendStr::new(name, false);
 
         unsafe {
             crate::ffi::zend_lookup_class_ex(name.deref_mut(), std::ptr::null_mut(), 0).as_ref()
@@ -77,7 +77,7 @@ impl ClassEntry {
             unsafe { self.__bindgen_anon_1.parent.as_ref() }
         } else {
             let name = unsafe { self.__bindgen_anon_1.parent_name.as_ref()? };
-            Self::try_find(name.as_str()?)
+            Self::try_find(name.as_str().ok()?)
         }
     }
 }

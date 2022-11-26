@@ -113,7 +113,7 @@ impl Zval {
     /// convert other types into a [`String`], as it could not pass back a
     /// [`&str`] in those cases.
     pub fn str(&self) -> Option<&str> {
-        self.zend_str().and_then(|zs| zs.as_str())
+        self.zend_str().and_then(|zs| zs.as_str().ok())
     }
 
     /// Returns the value of the zval if it is a string and can be unpacked into
@@ -340,7 +340,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendStr::new(val, persistent)?);
+        self.set_zend_string(ZendStr::new(val, persistent));
         Ok(())
     }
 
@@ -374,7 +374,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_interned_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendStr::new_interned(val, persistent)?);
+        self.set_zend_string(ZendStr::new_interned(val, persistent));
         Ok(())
     }
 

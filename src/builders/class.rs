@@ -226,7 +226,7 @@ impl ClassBuilder {
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
     pub fn build(mut self) -> Result<&'static mut ClassEntry> {
-        self.ce.name = ZendStr::new_interned(&self.name, true)?.into_raw();
+        self.ce.name = ZendStr::new_interned(&self.name, true).into_raw();
 
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
