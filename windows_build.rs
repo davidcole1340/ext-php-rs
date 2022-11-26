@@ -1,20 +1,21 @@
+use std::io::Write;
 use std::{
-    convert::TryFrom,
-    fmt::Display,
-    io::{Cursor, Read, Write},
+    io::{Cursor, Read},
     path::{Path, PathBuf},
     process::Command,
     sync::Arc,
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
+use php_discovery::build::Architecture;
+use php_discovery::build::Build;
 
-use crate::{PHPInfo, PHPProvider};
+use crate::PHPProvider;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 pub struct Provider<'a> {
-    info: &'a PHPInfo,
+    build: &'a Build,
     devel: DevelPack,
 }
 
@@ -32,18 +33,25 @@ impl<'a> Provider<'a> {
 }
 
 impl<'a> PHPProvider<'a> for Provider<'a> {
-    fn new(info: &'a PHPInfo) -> Result<Self> {
-        let version = info.version()?;
-        let is_zts = info.thread_safety()?;
-        let arch = info.architecture()?;
-        let devel = DevelPack::new(version, is_zts, arch)?;
+    fn new(build: &'a Build) -> Result<Self> {
+        // don't use `build.version.to_string()` as it includes extra part which is not
+        // needed.
+        let version = format!(
+            "{}.{}.{}",
+            build.version.major, build.version.minor, build.version.release
+        );
+        let devel = DevelPack::new(
+            &version,
+            build.is_thread_safety_enabled,
+            build.architecture.to_string(),
+        )?;
         if let Ok(linker) = get_rustc_linker() {
             if looks_like_msvc_linker(&linker) {
                 println!("cargo:warning=It looks like you are using a MSVC linker. You may encounter issues when attempting to load your compiled extension into PHP if your MSVC linker version is not compatible with the linker used to compile your PHP. It is recommended to use `rust-lld` as your linker.");
             }
         }
 
-        Ok(Self { info, devel })
+        Ok(Self { build, devel })
     }
 
     fn get_includes(&self) -> Result<Vec<PathBuf>> {
@@ -56,9 +64,9 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
             ("PHP_WIN32", "1"),
             ("WINDOWS", "1"),
             ("WIN32", "1"),
-            ("ZEND_DEBUG", if self.info.debug()? { "1" } else { "0" }),
+            ("ZEND_DEBUG", if self.build.is_debug { "1" } else { "0" }),
         ];
-        if self.info.thread_safety()? {
+        if self.build.is_thread_safety_enabled {
             defines.push(("ZTS", ""));
         }
         Ok(defines)
@@ -123,46 +131,12 @@ fn looks_like_msvc_linker(linker: &Path) -> bool {
     false
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Arch {
-    X86,
-    X64,
-    AArch64,
-}
-
-impl TryFrom<&str> for Arch {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &str) -> Result<Self> {
-        Ok(match value {
-            "x86" => Self::X86,
-            "x64" => Self::X64,
-            "arm64" => Self::AArch64,
-            a => bail!("Unknown architecture {}", a),
-        })
-    }
-}
-
-impl Display for Arch {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Arch::X86 => "x86",
-                Arch::X64 => "x64",
-                Arch::AArch64 => "arm64",
-            }
-        )
-    }
-}
-
 struct DevelPack(PathBuf);
 
 impl DevelPack {
     /// Downloads a new PHP development pack, unzips it in the build script
     /// temporary directory.
-    fn new(version: &str, is_zts: bool, arch: Arch) -> Result<DevelPack> {
+    fn new(version: &str, is_zts: bool, arch: String) -> Result<DevelPack> {
         let zip_name = format!(
             "php-devel-pack-{}{}-Win32-{}-{}.zip",
             version,
