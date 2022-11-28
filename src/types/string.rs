@@ -77,6 +77,8 @@ impl ZendStr {
     /// ```
     pub fn new(str: impl AsRef<[u8]>, persistent: bool) -> ZBox<Self> {
         let s = str.as_ref();
+        // TODO: we should handle the special cases when length is either 0 or 1
+        // see `zend_string_init_fast()` in `zend_string.h`
         unsafe {
             let ptr = ext_php_rs_zend_string_init(s.as_ptr().cast(), s.len(), persistent)
                 .as_mut()
@@ -286,6 +288,10 @@ impl ZendStr {
     /// assert!(s.as_str().is_ok());
     /// ```
     pub fn as_str(&self) -> Result<&str> {
+        // TODO: we should avoid revalidating the string repeatedly:
+        // check for `GC_FLAGS(self) & IS_STR_VALID_UTF8` and then:
+        // * true => return std::str::from_utf8_unchecked(...)
+        // * false => return std::str::from_utf8(...) and set the flag on success
         std::str::from_utf8(self.as_bytes()).map_err(|_| Error::InvalidUtf8)
     }
 
