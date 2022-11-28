@@ -1,25 +1,15 @@
 use std::{path::PathBuf, process::Command};
 
-use anyhow::{anyhow, bail, Context, Result};
-use php_discovery::build::Build;
+use anyhow::{bail, Context, Result};
 
-use crate::PHPProvider;
+use crate::{PHPInfo, PHPProvider};
 
-pub struct Provider<'a> {
-    build: &'a Build,
-}
+pub struct Provider {}
 
-impl<'a> Provider<'a> {
+impl Provider {
     /// Runs `php-config` with one argument, returning the stdout.
     fn php_config(&self, arg: &str) -> Result<String> {
-        let config = self.build.config().ok_or_else(|| {
-            anyhow!(
-                "unable to locate `php-config` binary for `{}`.",
-                self.build.binary.to_string_lossy()
-            )
-        })?;
-
-        let cmd = Command::new(config)
+        let cmd = Command::new("php-config")
             .arg(arg)
             .output()
             .context("Failed to run `php-config`")?;
@@ -32,9 +22,9 @@ impl<'a> Provider<'a> {
     }
 }
 
-impl<'a> PHPProvider<'a> for Provider<'a> {
-    fn new(build: &'a Build) -> Result<Self> {
-        Ok(Self { build })
+impl<'a> PHPProvider<'a> for Provider {
+    fn new(_: &'a PHPInfo) -> Result<Self> {
+        Ok(Self {})
     }
 
     fn get_includes(&self) -> Result<Vec<PathBuf>> {
