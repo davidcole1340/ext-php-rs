@@ -267,10 +267,15 @@ impl ZendStr {
         self.len() == 0
     }
 
-    /// Returns a reference to the underlying [`CStr`] inside the Zend string.
-    pub fn as_c_str(&self) -> &CStr {
-        // SAFETY: Zend strings store their readable length in a fat pointer.
-        unsafe { CStr::from_bytes_with_nul_unchecked(self.as_bytes()) }
+    /// Attempts to return a reference to the underlying bytes inside the Zend
+    /// string as a [`CStr`].
+    ///
+    /// Returns an [Error::InvalidCString] variant if the string contains null
+    /// bytes.
+    pub fn as_c_str(&self) -> Result<&CStr> {
+        let bytes_with_null =
+            unsafe { slice::from_raw_parts(self.val.as_ptr().cast(), self.len() + 1) };
+        CStr::from_bytes_with_nul(bytes_with_null).map_err(|_| Error::InvalidCString)
     }
 
     /// Attempts to return a reference to the underlying bytes inside the Zend
@@ -346,8 +351,10 @@ impl ToOwned for ZendStr {
     }
 }
 
-impl<'a> From<&'a ZendStr> for &'a CStr {
-    fn from(value: &'a ZendStr) -> Self {
+impl<'a> TryFrom<&'a ZendStr> for &'a CStr {
+    type Error = Error;
+
+    fn try_from(value: &'a ZendStr) -> Result<Self> {
         value.as_c_str()
     }
 }
