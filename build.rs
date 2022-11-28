@@ -6,20 +6,21 @@ use std::{
     env,
     fs::File,
     io::{BufWriter, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
+    process::Command,
+    str::FromStr,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
 use bindgen::RustTarget;
 use impl_::Provider;
-use php_discovery::build::Build as PhpBuild;
 
 const MIN_PHP_API_VER: u32 = 20200930;
 const MAX_PHP_API_VER: u32 = 20210902;
 
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
-    fn new(info: &'a PhpBuild) -> Result<Self>;
+    fn new(info: &'a PHPInfo) -> Result<Self>;
 
     /// Retrieve a list of absolute include paths.
     fn get_includes(&self) -> Result<Vec<PathBuf>>;
@@ -32,7 +33,6 @@ pub trait PHPProvider<'a>: Sized {
         for line in bindings.lines() {
             writeln!(writer, "{}", line)?;
         }
-
         Ok(())
     }
 
@@ -42,49 +42,89 @@ pub trait PHPProvider<'a>: Sized {
     }
 }
 
+/// Finds the location of an executable `name`.
+fn find_executable(name: &str) -> Option<PathBuf> {
+    const WHICH: &str = if cfg!(windows) { "where" } else { "which" };
+    let cmd = Command::new(WHICH).arg(name).output().ok()?;
+    if cmd.status.success() {
+        let stdout = String::from_utf8_lossy(&cmd.stdout);
+        Some(stdout.trim().into())
+    } else {
+        None
+    }
+}
+
 /// Finds the location of the PHP executable.
-fn find_php() -> Result<PhpBuild> {
-    php_discovery::discover()
-        .map_err(|e| anyhow!("failed to discover available PHP builds: {:?}", e))
-        .and_then(|builds| {
-            if builds.is_empty() {
-                bail!("Could not find any PHP builds in the system, please ensure that PHP is installed.")
+fn find_php() -> Result<PathBuf> {
+    // If PHP path is given via env, it takes priority.
+    let env = std::env::var("PHP");
+    if let Ok(env) = env {
+        return Ok(env.into());
+    }
+
+    find_executable("php").context("Could not find PHP path. Please ensure `php` is in your PATH or the `PHP` environment variable is set.")
+}
+
+pub struct PHPInfo(String);
+
+impl PHPInfo {
+    pub fn get(php: &Path) -> Result<Self> {
+        let cmd = Command::new(php)
+            .arg("-i")
+            .output()
+            .context("Failed to call `php -i`")?;
+        if !cmd.status.success() {
+            bail!("Failed to call `php -i` status code {}", cmd.status);
+        }
+        let stdout = String::from_utf8_lossy(&cmd.stdout);
+        Ok(Self(stdout.to_string()))
+    }
+
+    // Only present on Windows.
+    #[cfg(windows)]
+    pub fn architecture(&self) -> Result<impl_::Arch> {
+        use std::convert::TryInto;
+
+        self.get_key("Architecture")
+            .context("Could not find architecture of PHP")?
+            .try_into()
+    }
+
+    pub fn thread_safety(&self) -> Result<bool> {
+        Ok(self
+            .get_key("Thread Safety")
+            .context("Could not find thread safety of PHP")?
+            == "enabled")
+    }
+
+    pub fn debug(&self) -> Result<bool> {
+        Ok(self
+            .get_key("Debug Build")
+            .context("Could not find debug build of PHP")?
+            == "yes")
+    }
+
+    pub fn version(&self) -> Result<&str> {
+        self.get_key("PHP Version")
+            .context("Failed to get PHP version")
+    }
+
+    pub fn zend_version(&self) -> Result<u32> {
+        self.get_key("PHP API")
+            .context("Failed to get Zend version")
+            .and_then(|s| u32::from_str(s).context("Failed to convert Zend version to integer"))
+    }
+
+    fn get_key(&self, key: &str) -> Option<&str> {
+        let split = format!("{} => ", key);
+        for line in self.0.lines() {
+            let components: Vec<_> = line.split(&split).collect();
+            if components.len() > 1 {
+                return Some(components[1]);
             }
-
-            Ok(builds)
-        })
-        .and_then(|builds| {
-            let mut available = Vec::new();
-            let mut matching = Vec::new();
-
-            for build in builds {
-                available.push(build.php_api.to_string());
-                if build.php_api >= MIN_PHP_API_VER && build.php_api <= MAX_PHP_API_VER {
-                    matching.push(build);
-                }
-            }
-
-            if matching.is_empty() {
-                bail!(
-                    "Unable to find matching PHP binary, available PHP API version(s): '{}', requires a version between {} and {}", 
-                    available.join(", "),
-                    MIN_PHP_API_VER,
-                    MAX_PHP_API_VER,
-                )
-            }
-
-            let mut index = 0;
-            if let Ok(version) = env::var("RUST_PHP_VERSION") {
-                for (i, build) in matching.iter().enumerate() {
-                    if build.version.to_string() == version {
-                        index = i;
-                        break;
-                    }
-                }
-            }
-
-            Ok(matching.remove(index))
-        })
+        }
+        None
+    }
 }
 
 /// Builds the wrapper library.
@@ -138,6 +178,33 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
     Ok(bindings)
 }
 
+/// Checks the PHP Zend API version for compatibility with ext-php-rs, setting
+/// any configuration flags required.
+fn check_php_version(info: &PHPInfo) -> Result<()> {
+    let version = info.zend_version()?;
+
+    if !(MIN_PHP_API_VER..=MAX_PHP_API_VER).contains(&version) {
+        bail!("The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}", version, MIN_PHP_API_VER, MAX_PHP_API_VER);
+    }
+
+    // Infra cfg flags - use these for things that change in the Zend API that don't
+    // rely on a feature and the crate user won't care about (e.g. struct field
+    // changes). Use a feature flag for an actual feature (e.g. enums being
+    // introduced in PHP 8.1).
+    //
+    // PHP 8.0 is the baseline - no feature flags will be introduced here.
+    //
+    // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
+    // should get both the `php81` and `php82` flags.
+    const PHP_81_API_VER: u32 = 20210902;
+
+    if version >= PHP_81_API_VER {
+        println!("cargo:rustc-cfg=php81");
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let out_dir = env::var_os("OUT_DIR").context("Failed to get OUT_DIR")?;
     let out_path = PathBuf::from(out_dir).join("bindings.rs");
@@ -162,12 +229,14 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let php_build = find_php()?;
-    let provider = Provider::new(&php_build)?;
+    let php = find_php()?;
+    let info = PHPInfo::get(&php)?;
+    let provider = Provider::new(&info)?;
 
     let includes = provider.get_includes()?;
     let defines = provider.get_defines()?;
 
+    check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
     let bindings = generate_bindings(&defines, &includes)?;
 
@@ -176,13 +245,10 @@ fn main() -> Result<()> {
     let mut out_writer = BufWriter::new(out_file);
     provider.write_bindings(bindings, &mut out_writer)?;
 
-    if php_build.version.major == 8 && php_build.version.minor == 1 {
-        println!("cargo:rustc-cfg=php81");
-    }
-    if php_build.is_debug {
+    if info.debug()? {
         println!("cargo:rustc-cfg=php_debug");
     }
-    if php_build.is_thread_safety_enabled {
+    if info.thread_safety()? {
         println!("cargo:rustc-cfg=php_zts");
     }
     provider.print_extra_link_args()?;
