@@ -43,6 +43,8 @@ bind! {
     // ext_php_rs_zend_object_release,
     // ext_php_rs_zend_string_init,
     // ext_php_rs_zend_string_release,
+    // ext_php_rs_is_kown_valid_utf8,
+    // ext_php_rs_set_kown_valid_utf8,
     object_properties_init,
     php_info_print_table_end,
     php_info_print_table_header,

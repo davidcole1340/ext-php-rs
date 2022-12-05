@@ -16,6 +16,7 @@ use crate::{
     convert::{FromZval, IntoZval},
     error::{Error, Result},
     ffi::{
+        ext_php_rs_is_known_valid_utf8, ext_php_rs_set_known_valid_utf8,
         ext_php_rs_zend_string_init, ext_php_rs_zend_string_release, zend_string,
         zend_string_init_interned,
     },
@@ -293,11 +294,13 @@ impl ZendStr {
     /// assert!(s.as_str().is_ok());
     /// ```
     pub fn as_str(&self) -> Result<&str> {
-        // TODO: we should avoid revalidating the string repeatedly:
-        // check for `GC_FLAGS(self) & IS_STR_VALID_UTF8` and then:
-        // * true => return std::str::from_utf8_unchecked(...)
-        // * false => return std::str::from_utf8(...) and set the flag on success
-        std::str::from_utf8(self.as_bytes()).map_err(|_| Error::InvalidUtf8)
+        if unsafe { ext_php_rs_is_known_valid_utf8(self.as_ptr()) } {
+            let str = unsafe { std::str::from_utf8_unchecked(self.as_bytes()) };
+            return Ok(str);
+        }
+        let str = std::str::from_utf8(self.as_bytes()).map_err(|_| Error::InvalidUtf8)?;
+        unsafe { ext_php_rs_set_known_valid_utf8(self.as_ptr() as *mut _) };
+        Ok(str)
     }
 
     /// Returns a reference to the underlying bytes inside the Zend string.
