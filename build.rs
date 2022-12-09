@@ -232,6 +232,8 @@ fn main() -> Result<()> {
         println!("cargo:rerun-if-env-changed={}", env_var);
     }
 
+    println!("cargo:rerun-if-changed=build.rs");
+
     // docs.rs runners only have PHP 7.4 - use pre-generated bindings
     if env::var("DOCS_RS").is_ok() {
         println!("cargo:warning=docs.rs detected - using stub bindings");
@@ -244,6 +246,7 @@ fn main() -> Result<()> {
 
     let php = find_php()?;
     let info = PHPInfo::get(&php)?;
+    println!("Using PHP version: {}", info.version()?);
     let provider = Provider::new(&info)?;
 
     let includes = provider.get_includes()?;

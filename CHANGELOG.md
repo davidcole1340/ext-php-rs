@@ -1,5 +1,33 @@
 # Changelog
 
+## Version 0.9.0
+
+**BC changes**
+- feat: allows ZendStr to contain null bytes [by @julius [#202]
+
+**Migration**
+See: [#202]
+
+[#202]: https://github.com/davidcole1340/ext-php-rs/pull/202
+
+## Version 0.8.3
+
+- build: Check docs warnings in CI by @davidcole1340 in [#180]
+- fix: Fixes inifinte loop in ClassEntry::instance_of() by @ju1ius in [#188]
+- fix: Fix binary slice lifetimes by @davidcole1340 in [#181]
+- build: Fixes CI workflow configuration by @ju1ius in [#195]
+- feat: Add get_id() and hash() methods on ZendObject by @ju1ius in [#196]
+- docs: Describes restrictions on generic parameters for `php_class` by @ju1ius in [#194]
+- feat: Add instance_of() and get_class_entry() methods on ZendObject by @ju1ius in [#197]
+
+[#180]: https://github.com/davidcole1340/ext-php-rs/pull/180
+[#188]: https://github.com/davidcole1340/ext-php-rs/pull/188
+[#181]: https://github.com/davidcole1340/ext-php-rs/pull/181
+[#195]: https://github.com/davidcole1340/ext-php-rs/pull/195
+[#196]: https://github.com/davidcole1340/ext-php-rs/pull/196
+[#194]: https://github.com/davidcole1340/ext-php-rs/pull/194
+[#197]: https://github.com/davidcole1340/ext-php-rs/pull/197
+
 ## Version 0.8.2
 
 - Update changelog for latest versions by @striezel in [#161]
