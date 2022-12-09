@@ -16,6 +16,7 @@ use crate::{
     convert::{FromZval, IntoZval},
     error::{Error, Result},
     ffi::{
+        ext_php_rs_is_known_valid_utf8, ext_php_rs_set_known_valid_utf8,
         ext_php_rs_zend_string_init, ext_php_rs_zend_string_release, zend_string,
         zend_string_init_interned,
     },
@@ -30,7 +31,7 @@ use crate::{
 /// cannot represent unsized types, an array of size 1 is used at the end of the
 /// type to represent the contents of the string, therefore this type is
 /// actually unsized. All constructors return [`ZBox<ZendStr>`], the owned
-/// varaint.
+/// variant.
 ///
 /// Once the `ptr_metadata` feature lands in stable rust, this type can
 /// potentially be changed to a DST using slices and metadata. See the tracking issue here: <https://github.com/rust-lang/rust/issues/81513>
@@ -46,19 +47,13 @@ static INTERNED_LOCK: Mutex<()> = const_mutex(());
 // on the alias `ZendStr` :( <https://github.com/rust-lang/rust-clippy/issues/7702>
 #[allow(clippy::len_without_is_empty)]
 impl ZendStr {
-    /// Creates a new Zend string from a [`str`].
+    /// Creates a new Zend string from a slice of bytes.
     ///
     /// # Parameters
     ///
     /// * `str` - String content.
     /// * `persistent` - Whether the string should persist through the request
     ///   boundary.
-    ///
-    /// # Returns
-    ///
-    /// Returns a result containing the Zend string if successful. Returns an
-    /// error if the given string contains NUL bytes, which cannot be
-    /// contained inside a C string.
     ///
     /// # Panics
     ///
@@ -78,10 +73,19 @@ impl ZendStr {
     /// ```no_run
     /// use ext_php_rs::types::ZendStr;
     ///
-    /// let s = ZendStr::new("Hello, world!", false).unwrap();
+    /// let s = ZendStr::new("Hello, world!", false);
+    /// let php = ZendStr::new([80, 72, 80], false);
     /// ```
-    pub fn new(str: &str, persistent: bool) -> Result<ZBox<Self>> {
-        Ok(Self::from_c_str(&CString::new(str)?, persistent))
+    pub fn new(str: impl AsRef<[u8]>, persistent: bool) -> ZBox<Self> {
+        let s = str.as_ref();
+        // TODO: we should handle the special cases when length is either 0 or 1
+        // see `zend_string_init_fast()` in `zend_string.h`
+        unsafe {
+            let ptr = ext_php_rs_zend_string_init(s.as_ptr().cast(), s.len(), persistent)
+                .as_mut()
+                .expect("Failed to allocate memory for new Zend string");
+            ZBox::from_raw(ptr)
+        }
     }
 
     /// Creates a new Zend string from a [`CStr`].
@@ -126,7 +130,7 @@ impl ZendStr {
         }
     }
 
-    /// Creates a new interned Zend string from a [`str`].
+    /// Creates a new interned Zend string from a slice of bytes.
     ///
     /// An interned string is only ever stored once and is immutable. PHP stores
     /// the string in an internal hashtable which stores the interned
@@ -145,16 +149,12 @@ impl ZendStr {
     /// * `persistent` - Whether the string should persist through the request
     ///   boundary.
     ///
-    /// # Returns
-    ///
-    /// Returns a result containing the Zend string if successful. Returns an
-    /// error if the given string contains NUL bytes, which cannot be
-    /// contained inside a C string.
-    ///
     /// # Panics
     ///
-    /// Panics if the function was unable to allocate memory for the Zend
-    /// string.
+    /// Panics under the following circumstances:
+    ///
+    /// * The function used to create interned strings has not been set.
+    /// * The function could not allocate enough memory for the Zend string.
     ///
     /// # Safety
     ///
@@ -171,8 +171,16 @@ impl ZendStr {
     ///
     /// let s = ZendStr::new_interned("PHP", true);
     /// ```
-    pub fn new_interned(str: &str, persistent: bool) -> Result<ZBox<Self>> {
-        Ok(Self::interned_from_c_str(&CString::new(str)?, persistent))
+    pub fn new_interned(str: impl AsRef<[u8]>, persistent: bool) -> ZBox<Self> {
+        let _lock = INTERNED_LOCK.lock();
+        let s = str.as_ref();
+        unsafe {
+            let init = zend_string_init_interned.expect("`zend_string_init_interned` not ready");
+            let ptr = init(s.as_ptr().cast(), s.len() as _, persistent)
+                .as_mut()
+                .expect("Failed to allocate memory for new Zend string");
+            ZBox::from_raw(ptr)
+        }
     }
 
     /// Creates a new interned Zend string from a [`CStr`].
@@ -222,11 +230,8 @@ impl ZendStr {
         let _lock = INTERNED_LOCK.lock();
 
         unsafe {
-            let ptr = zend_string_init_interned.expect("`zend_string_init_interned` not ready")(
-                str.as_ptr(),
-                str.to_bytes().len() as _,
-                persistent,
-            );
+            let init = zend_string_init_interned.expect("`zend_string_init_interned` not ready");
+            let ptr = init(str.as_ptr(), str.to_bytes().len() as _, persistent);
 
             ZBox::from_raw(
                 ptr.as_mut()
@@ -242,7 +247,7 @@ impl ZendStr {
     /// ```no_run
     /// use ext_php_rs::types::ZendStr;
     ///
-    /// let s = ZendStr::new("hello, world!", false).unwrap();
+    /// let s = ZendStr::new("hello, world!", false);
     /// assert_eq!(s.len(), 13);
     /// ```
     pub fn len(&self) -> usize {
@@ -256,39 +261,61 @@ impl ZendStr {
     /// ```no_run
     /// use ext_php_rs::types::ZendStr;
     ///
-    /// let s = ZendStr::new("hello, world!", false).unwrap();
+    /// let s = ZendStr::new("hello, world!", false);
     /// assert_eq!(s.is_empty(), false);
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Returns a reference to the underlying [`CStr`] inside the Zend string.
-    pub fn as_c_str(&self) -> &CStr {
-        // SAFETY: Zend strings store their readable length in a fat pointer.
-        unsafe {
-            let slice = slice::from_raw_parts(self.val.as_ptr() as *const u8, self.len() + 1);
-            CStr::from_bytes_with_nul_unchecked(slice)
-        }
+    /// Attempts to return a reference to the underlying bytes inside the Zend
+    /// string as a [`CStr`].
+    ///
+    /// Returns an [Error::InvalidCString] variant if the string contains null
+    /// bytes.
+    pub fn as_c_str(&self) -> Result<&CStr> {
+        let bytes_with_null =
+            unsafe { slice::from_raw_parts(self.val.as_ptr().cast(), self.len() + 1) };
+        CStr::from_bytes_with_nul(bytes_with_null).map_err(|_| Error::InvalidCString)
     }
 
-    /// Attempts to return a reference to the underlying [`str`] inside the Zend
+    /// Attempts to return a reference to the underlying bytes inside the Zend
     /// string.
     ///
-    /// Returns the [`None`] variant if the [`CStr`] contains non-UTF-8
-    /// characters.
+    /// Returns an [Error::InvalidUtf8] variant if the [`str`] contains
+    /// non-UTF-8 characters.
     ///
     /// # Example
     ///
     /// ```no_run
     /// use ext_php_rs::types::ZendStr;
     ///
-    /// let s = ZendStr::new("hello, world!", false).unwrap();
-    /// let as_str = s.as_str();
-    /// assert_eq!(as_str, Some("hello, world!"));
+    /// let s = ZendStr::new("hello, world!", false);
+    /// assert!(s.as_str().is_ok());
     /// ```
-    pub fn as_str(&self) -> Option<&str> {
-        self.as_c_str().to_str().ok()
+    pub fn as_str(&self) -> Result<&str> {
+        if unsafe { ext_php_rs_is_known_valid_utf8(self.as_ptr()) } {
+            let str = unsafe { std::str::from_utf8_unchecked(self.as_bytes()) };
+            return Ok(str);
+        }
+        let str = std::str::from_utf8(self.as_bytes()).map_err(|_| Error::InvalidUtf8)?;
+        unsafe { ext_php_rs_set_known_valid_utf8(self.as_ptr() as *mut _) };
+        Ok(str)
+    }
+
+    /// Returns a reference to the underlying bytes inside the Zend string.
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.val.as_ptr().cast(), self.len()) }
+    }
+
+    /// Returns a raw pointer to this object
+    pub fn as_ptr(&self) -> *const ZendStr {
+        self as *const _
+    }
+
+    /// Returns a mutable pointer to this object
+    pub fn as_mut_ptr(&mut self) -> *mut ZendStr {
+        self as *mut _
     }
 }
 
@@ -300,7 +327,22 @@ unsafe impl ZBoxable for ZendStr {
 
 impl Debug for ZendStr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_c_str().fmt(f)
+        self.as_str().fmt(f)
+    }
+}
+
+impl AsRef<[u8]> for ZendStr {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl<T> PartialEq<T> for ZendStr
+where
+    T: AsRef<[u8]>,
+{
+    fn eq(&self, other: &T) -> bool {
+        self.as_ref() == other.as_ref()
     }
 }
 
@@ -308,19 +350,14 @@ impl ToOwned for ZendStr {
     type Owned = ZBox<ZendStr>;
 
     fn to_owned(&self) -> Self::Owned {
-        Self::from_c_str(self.as_c_str(), false)
+        Self::new(self.as_bytes(), false)
     }
 }
 
-impl PartialEq for ZendStr {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.as_c_str().eq(other.as_c_str())
-    }
-}
+impl<'a> TryFrom<&'a ZendStr> for &'a CStr {
+    type Error = Error;
 
-impl<'a> From<&'a ZendStr> for &'a CStr {
-    fn from(value: &'a ZendStr) -> Self {
+    fn try_from(value: &'a ZendStr) -> Result<Self> {
         value.as_c_str()
     }
 }
@@ -329,7 +366,7 @@ impl<'a> TryFrom<&'a ZendStr> for &'a str {
     type Error = Error;
 
     fn try_from(value: &'a ZendStr) -> Result<Self> {
-        value.as_str().ok_or(Error::InvalidCString)
+        value.as_str()
     }
 }
 
@@ -337,10 +374,7 @@ impl TryFrom<&ZendStr> for String {
     type Error = Error;
 
     fn try_from(value: &ZendStr) -> Result<Self> {
-        value
-            .as_str()
-            .map(|s| s.to_string())
-            .ok_or(Error::InvalidCString)
+        value.as_str().map(ToString::to_string)
     }
 }
 
@@ -362,18 +396,14 @@ impl From<CString> for ZBox<ZendStr> {
     }
 }
 
-impl TryFrom<&str> for ZBox<ZendStr> {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self> {
-        ZendStr::new(value, false)
+impl From<&str> for ZBox<ZendStr> {
+    fn from(value: &str) -> Self {
+        ZendStr::new(value.as_bytes(), false)
     }
 }
 
-impl TryFrom<String> for ZBox<ZendStr> {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self> {
+impl From<String> for ZBox<ZendStr> {
+    fn from(value: String) -> Self {
         ZendStr::new(value.as_str(), false)
     }
 }

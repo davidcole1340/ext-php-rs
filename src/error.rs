@@ -48,6 +48,8 @@ pub enum Error {
     /// The string could not be converted into a C-string due to the presence of
     /// a NUL character.
     InvalidCString,
+    /// The string could not be converted into a valid Utf8 string
+    InvalidUtf8,
     /// Could not call the given function.
     Callable,
     /// An invalid exception type was thrown.
@@ -82,6 +84,7 @@ impl Display for Error {
                 f,
                 "String given contains NUL-bytes which cannot be present in a C string."
             ),
+            Error::InvalidUtf8 => write!(f, "Invalid Utf8 byte sequence."),
             Error::Callable => write!(f, "Could not call given function."),
             Error::InvalidException(flags) => {
                 write!(f, "Invalid exception type was thrown: {:?}", flags)
