@@ -2,13 +2,19 @@
 
 ## Version 0.9.0
 
+- ci+docs: honour PHP_CONFIG & rebuild automatically when env vars change by @julius [#210]
+- chore: Update generated FFI bindings with bindgen 0.63 by @ptondereau [#211]
+
 **BC changes**
-- feat: allows ZendStr to contain null bytes [by @julius [#202]
+- feat: allows ZendStr to contain null bytes by @julius [#202]
 
 **Migration**
 See: [#202]
 
 [#202]: https://github.com/davidcole1340/ext-php-rs/pull/202
+[#210]: https://github.com/davidcole1340/ext-php-rs/pull/210
+[#211]: https://github.com/davidcole1340/ext-php-rs/pull/211
+
 
 ## Version 0.8.3
 
