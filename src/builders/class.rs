@@ -284,7 +284,7 @@ impl ClassBuilder {
                 zend_declare_class_constant(
                     class,
                     CString::new(name.as_str())?.as_ptr(),
-                    name.len() as u64,
+                    name.len(),
                     value,
                 )
             };

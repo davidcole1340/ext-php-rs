@@ -246,7 +246,6 @@ fn main() -> Result<()> {
 
     let php = find_php()?;
     let info = PHPInfo::get(&php)?;
-    println!("Using PHP version: {}", info.version()?);
     let provider = Provider::new(&info)?;
 
     let includes = provider.get_includes()?;
