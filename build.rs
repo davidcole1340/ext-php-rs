@@ -232,6 +232,8 @@ fn main() -> Result<()> {
         println!("cargo:rerun-if-env-changed={}", env_var);
     }
 
+    println!("cargo:rerun-if-changed=build.rs");
+
     // docs.rs runners only have PHP 7.4 - use pre-generated bindings
     if env::var("DOCS_RS").is_ok() {
         println!("cargo:warning=docs.rs detected - using stub bindings");

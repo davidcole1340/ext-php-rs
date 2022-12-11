@@ -312,14 +312,7 @@ impl ZendHashTable {
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        unsafe {
-            zend_hash_str_update(
-                self,
-                CString::new(key)?.as_ptr(),
-                key.len() as u64,
-                &mut val,
-            )
-        };
+        unsafe { zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &mut val) };
         val.release();
         Ok(())
     }
