@@ -173,7 +173,7 @@ cd php-src
 git checkout PHP-8.1
 ./buildconf
 PREFIX=&quot;${HOME}/build/php&quot;
-.configure --prefix=&quot;${PREFIX}&quot; \
+./configure --prefix=&quot;${PREFIX}&quot; \
     --enable-debug \
     --disable-all --disable-cgi
 make -j &quot;$(nproc)&quot;
