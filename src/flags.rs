@@ -81,7 +81,7 @@ bitflags! {
         const UnresolvedVariance = ZEND_ACC_UNRESOLVED_VARIANCE;
         const NearlyLinked = ZEND_ACC_NEARLY_LINKED;
 
-        #[cfg(php81)]
+        #[cfg(any(php81,php82))]
         const NotSerializable = crate::ffi::ZEND_ACC_NOT_SERIALIZABLE;
     }
 }

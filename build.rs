@@ -16,7 +16,7 @@ use bindgen::RustTarget;
 use impl_::Provider;
 
 const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20210902;
+const MAX_PHP_API_VER: u32 = 20220829;
 
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
@@ -208,8 +208,16 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     // should get both the `php81` and `php82` flags.
     const PHP_81_API_VER: u32 = 20210902;
 
-    if version >= PHP_81_API_VER {
+    const PHP_82_API_VER: u32 = 20220829;
+
+    println!("cargo:rustc-cfg=php80");
+
+    if version >= PHP_81_API_VER && version < PHP_82_API_VER {
         println!("cargo:rustc-cfg=php81");
+    }
+
+    if version >= PHP_82_API_VER {
+        println!("cargo:rustc-cfg=php82");
     }
 
     Ok(())
@@ -238,7 +246,7 @@ fn main() -> Result<()> {
     if env::var("DOCS_RS").is_ok() {
         println!("cargo:warning=docs.rs detected - using stub bindings");
         println!("cargo:rustc-cfg=php_debug");
-        println!("cargo:rustc-cfg=php81");
+        println!("cargo:rustc-cfg=php82");
         std::fs::copy("docsrs_bindings.rs", out_path)
             .expect("failed to copy docs.rs stub bindings to out directory");
         return Ok(());
