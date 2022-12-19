@@ -39,6 +39,7 @@ jobs:
           php-version: ${{ matrix.php }}
         env:
           phpts: ${{ matrix.phpts }}
+          debug: true
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
         with:
