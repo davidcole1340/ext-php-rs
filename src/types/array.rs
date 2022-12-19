@@ -531,11 +531,18 @@ impl<'a> Iter<'a> {
     ///
     /// * `ht` - The hashtable to iterate.
     pub fn new(ht: &'a ZendHashTable) -> Self {
-        Self {
+        #[cfg(not(php82))]
+        return Self {
             ht,
             pos: NonNull::new(ht.arData),
             end: NonNull::new(unsafe { ht.arData.offset(ht.nNumUsed as isize) }),
-        }
+        };
+        #[cfg(php82)]
+        return Self {
+            ht,
+            pos: NonNull::new(unsafe { ht.__bindgen_anon_1.arData }),
+            end: NonNull::new(unsafe { ht.__bindgen_anon_1.arData.offset(ht.nNumUsed as isize) }),
+        };
     }
 }
 

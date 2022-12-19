@@ -54,7 +54,6 @@ pub const ZEND_ACC_USE_GUARDS: u32 = 2048;
 pub const ZEND_ACC_CONSTANTS_UPDATED: u32 = 4096;
 pub const ZEND_ACC_NO_DYNAMIC_PROPERTIES: u32 = 8192;
 pub const ZEND_HAS_STATIC_IN_METHODS: u32 = 16384;
-pub const ZEND_ACC_REUSE_GET_ITERATOR: u32 = 65536;
 pub const ZEND_ACC_RESOLVED_PARENT: u32 = 131072;
 pub const ZEND_ACC_RESOLVED_INTERFACES: u32 = 262144;
 pub const ZEND_ACC_UNRESOLVED_VARIANCE: u32 = 524288;
@@ -80,7 +79,7 @@ pub const ZEND_ACC_STRICT_TYPES: u32 = 2147483648;
 pub const ZEND_ISEMPTY: u32 = 1;
 pub const _ZEND_SEND_MODE_SHIFT: u32 = 25;
 pub const _ZEND_IS_VARIADIC_BIT: u32 = 134217728;
-pub const ZEND_MODULE_API_NO: u32 = 20210902;
+pub const ZEND_MODULE_API_NO: u32 = 20220829;
 pub const USING_ZTS: u32 = 0;
 pub const MAY_BE_BOOL: u32 = 12;
 pub const MAY_BE_ANY: u32 = 1022;
@@ -219,7 +218,7 @@ pub struct _zend_array {
     pub gc: zend_refcounted_h,
     pub u: _zend_array__bindgen_ty_1,
     pub nTableMask: u32,
-    pub arData: *mut Bucket,
+    pub __bindgen_anon_1: _zend_array__bindgen_ty_2,
     pub nNumUsed: u32,
     pub nNumOfElements: u32,
     pub nTableSize: u32,
@@ -240,6 +239,13 @@ pub struct _zend_array__bindgen_ty_1__bindgen_ty_1 {
     pub _unused: zend_uchar,
     pub nIteratorsCount: zend_uchar,
     pub _unused2: zend_uchar,
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union _zend_array__bindgen_ty_2 {
+    pub arHash: *mut u32,
+    pub arData: *mut Bucket,
+    pub arPacked: *mut zval,
 }
 pub type HashPosition = u32;
 #[repr(C)]
@@ -420,6 +426,15 @@ pub struct _zend_class_iterator_funcs {
 pub type zend_class_iterator_funcs = _zend_class_iterator_funcs;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct _zend_class_arrayaccess_funcs {
+    pub zf_offsetget: *mut zend_function,
+    pub zf_offsetexists: *mut zend_function,
+    pub zf_offsetset: *mut zend_function,
+    pub zf_offsetunset: *mut zend_function,
+}
+pub type zend_class_arrayaccess_funcs = _zend_class_arrayaccess_funcs;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct _zend_serialize_data {
     _unused: [u8; 0],
 }
@@ -468,6 +483,7 @@ pub struct _zend_class_mutable_data {
     pub default_properties_table: *mut zval,
     pub constants_table: *mut HashTable,
     pub ce_flags: u32,
+    pub backed_enum_table: *mut HashTable,
 }
 pub type zend_class_mutable_data = _zend_class_mutable_data;
 #[repr(C)]
@@ -510,11 +526,11 @@ pub struct _zend_class_entry {
     pub default_static_members_count: ::std::os::raw::c_int,
     pub default_properties_table: *mut zval,
     pub default_static_members_table: *mut zval,
-    pub static_members_table__ptr: *mut *mut zval,
+    pub static_members_table__ptr: *mut zval,
     pub function_table: HashTable,
     pub properties_info: HashTable,
     pub constants_table: HashTable,
-    pub mutable_data__ptr: *mut *mut zend_class_mutable_data,
+    pub mutable_data__ptr: *mut zend_class_mutable_data,
     pub inheritance_cache: *mut zend_inheritance_cache_entry,
     pub properties_info_table: *mut *mut _zend_property_info,
     pub constructor: *mut zend_function,
@@ -531,6 +547,7 @@ pub struct _zend_class_entry {
     pub __serialize: *mut zend_function,
     pub __unserialize: *mut zend_function,
     pub iterator_funcs_ptr: *mut zend_class_iterator_funcs,
+    pub arrayaccess_funcs_ptr: *mut zend_class_arrayaccess_funcs,
     pub __bindgen_anon_2: _zend_class_entry__bindgen_ty_2,
     pub get_iterator: ::std::option::Option<
         unsafe extern "C" fn(
@@ -728,10 +745,10 @@ pub type zend_object_cast_t = ::std::option::Option<
         readobj: *mut zend_object,
         retval: *mut zval,
         type_: ::std::os::raw::c_int,
-    ) -> ::std::os::raw::c_int,
+    ) -> zend_result,
 >;
 pub type zend_object_count_elements_t = ::std::option::Option<
-    unsafe extern "C" fn(object: *mut zend_object, count: *mut zend_long) -> ::std::os::raw::c_int,
+    unsafe extern "C" fn(object: *mut zend_object, count: *mut zend_long) -> zend_result,
 >;
 pub type zend_object_get_closure_t = ::std::option::Option<
     unsafe extern "C" fn(
@@ -740,7 +757,7 @@ pub type zend_object_get_closure_t = ::std::option::Option<
         fptr_ptr: *mut *mut zend_function,
         obj_ptr: *mut *mut zend_object,
         check_only: bool,
-    ) -> ::std::os::raw::c_int,
+    ) -> zend_result,
 >;
 pub type zend_object_get_gc_t = ::std::option::Option<
     unsafe extern "C" fn(
@@ -755,7 +772,7 @@ pub type zend_object_do_operation_t = ::std::option::Option<
         result: *mut zval,
         op1: *mut zval,
         op2: *mut zval,
-    ) -> ::std::os::raw::c_int,
+    ) -> zend_result,
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -903,13 +920,13 @@ pub struct _zend_op_array {
     pub required_num_args: u32,
     pub arg_info: *mut zend_arg_info,
     pub attributes: *mut HashTable,
+    pub T: u32,
+    pub run_time_cache__ptr: *mut *mut ::std::os::raw::c_void,
     pub cache_size: ::std::os::raw::c_int,
     pub last_var: ::std::os::raw::c_int,
-    pub T: u32,
     pub last: u32,
     pub opcodes: *mut zend_op,
-    pub run_time_cache__ptr: *mut *mut *mut ::std::os::raw::c_void,
-    pub static_variables_ptr__ptr: *mut *mut HashTable,
+    pub static_variables_ptr__ptr: *mut HashTable,
     pub static_variables: *mut HashTable,
     pub vars: *mut *mut zend_string,
     pub refcount: *mut u32,
@@ -943,6 +960,8 @@ pub struct _zend_internal_function {
     pub required_num_args: u32,
     pub arg_info: *mut zend_internal_arg_info,
     pub attributes: *mut HashTable,
+    pub T: u32,
+    pub run_time_cache__ptr: *mut *mut ::std::os::raw::c_void,
     pub handler: zif_handler,
     pub module: *mut _zend_module_entry,
     pub reserved: [*mut ::std::os::raw::c_void; 6usize],
@@ -970,6 +989,8 @@ pub struct _zend_function__bindgen_ty_1 {
     pub required_num_args: u32,
     pub arg_info: *mut zend_arg_info,
     pub attributes: *mut HashTable,
+    pub T: u32,
+    pub run_time_cache__ptr: *mut *mut ::std::os::raw::c_void,
 }
 #[repr(C)]
 pub struct _zend_execute_data {
@@ -996,6 +1017,12 @@ pub type zend_executor_globals = _zend_executor_globals;
 extern "C" {
     pub static mut executor_globals: zend_executor_globals;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct zend_atomic_bool_s {
+    pub value: u8,
+}
+pub type zend_atomic_bool = zend_atomic_bool_s;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_stack {
@@ -1073,8 +1100,8 @@ pub struct _zend_executor_globals {
     pub in_autoload: *mut HashTable,
     pub full_tables_cleanup: bool,
     pub no_extensions: bool,
-    pub vm_interrupt: bool,
-    pub timed_out: bool,
+    pub vm_interrupt: zend_atomic_bool,
+    pub timed_out: zend_atomic_bool,
     pub hard_timeout: zend_long,
     pub regular_list: HashTable,
     pub persistent_list: HashTable,
@@ -1118,6 +1145,8 @@ pub struct _zend_executor_globals {
     pub record_errors: bool,
     pub num_errors: u32,
     pub errors: *mut *mut zend_error_info,
+    pub filename_override: *mut zend_string,
+    pub lineno_override: zend_long,
     pub reserved: [*mut ::std::os::raw::c_void; 6usize],
 }
 pub type zend_module_entry = _zend_module_entry;
