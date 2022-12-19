@@ -212,7 +212,7 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
 
     println!("cargo:rustc-cfg=php80");
 
-    if version >= PHP_81_API_VER && version < PHP_82_API_VER {
+    if (PHP_81_API_VER..PHP_82_API_VER).contains(&version) {
         println!("cargo:rustc-cfg=php81");
     }
 
