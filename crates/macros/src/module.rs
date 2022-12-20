@@ -34,7 +34,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
             fn php_module_startup() {}
         })
         .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
-        let startup = startup_function::parser(parsed)?;
+        let startup = startup_function::parser(None, parsed)?;
 
         state = STATE.lock();
         Some(startup)
@@ -227,10 +227,7 @@ impl Describe for Class {
         } else {
             quote! { None }
         };
-        let interfaces = self
-            .interfaces
-            .iter()
-            .map(|iface| quote! { #iface.into(), });
+        let interfaces = self.interfaces.iter().map(|iface| quote! { #iface.into() });
         let properties = self.properties.iter().map(|d| d.describe());
         let mut methods: Vec<_> = self.methods.iter().map(Describe::describe).collect();
         let docs = self.docs.iter().map(|c| {

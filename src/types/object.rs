@@ -80,6 +80,17 @@ impl ZendObject {
         unsafe { ZBox::from_raw(this.get_mut_zend_obj()) }
     }
 
+    /// Returns the [`ClassEntry`] associated with this object.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn get_class_entry(&self) -> &'static ClassEntry {
+        // SAFETY: it is OK to panic here since PHP would segfault anyway
+        // when encountering an object with no class entry.
+        unsafe { self.ce.as_ref() }.expect("Could not retrieve class entry.")
+    }
+
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
         unsafe {
@@ -91,8 +102,21 @@ impl ZendObject {
         }
     }
 
+    /// Returns whether this object is an instance of the given [`ClassEntry`].
+    ///
+    /// This method checks the class and interface inheritance chain.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn instance_of(&self, ce: &ClassEntry) -> bool {
+        self.get_class_entry().instance_of(ce)
+    }
+
     /// Checks if the given object is an instance of a registered class with
     /// Rust type `T`.
+    ///
+    /// This method doesn't check the class and interface inheritance chain.
     pub fn is_instance<T: RegisteredClass>(&self) -> bool {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
@@ -113,7 +137,7 @@ impl ZendObject {
             return Err(Error::InvalidProperty);
         }
 
-        let mut name = ZendStr::new(name, false)?;
+        let mut name = ZendStr::new(name, false);
         let mut rv = Zval::new();
 
         let zv = unsafe {
@@ -138,7 +162,7 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<()> {
-        let mut name = ZendStr::new(name, false)?;
+        let mut name = ZendStr::new(name, false);
         let mut value = value.into_zval(false)?;
 
         unsafe {
@@ -163,7 +187,7 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `query` - The 'query' to classify if a property exists.
     pub fn has_property(&self, name: &str, query: PropertyQuery) -> Result<bool> {
-        let mut name = ZendStr::new(name, false)?;
+        let mut name = ZendStr::new(name, false);
 
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
@@ -194,6 +218,29 @@ impl ZendObject {
         T: FromZendObject<'a>,
     {
         T::from_zend_object(self)
+    }
+
+    /// Returns an unique identifier for the object.
+    ///
+    /// The id is guaranteed to be unique for the lifetime of the object.
+    /// Once the object is destroyed, it may be reused for other objects.
+    /// This is equivalent to calling the [`spl_object_id`] PHP function.
+    ///
+    /// [`spl_object_id`]: https://www.php.net/manual/function.spl-object-id
+    #[inline]
+    pub fn get_id(&self) -> u32 {
+        self.handle
+    }
+
+    /// Computes an unique hash for the object.
+    ///
+    /// The hash is guaranteed to be unique for the lifetime of the object.
+    /// Once the object is destroyed, it may be reused for other objects.
+    /// This is equivalent to calling the [`spl_object_hash`] PHP function.
+    ///
+    /// [`spl_object_hash`]: https://www.php.net/manual/function.spl-object-hash.php
+    pub fn hash(&self) -> String {
+        format!("{:016x}0000000000000000", self.handle)
     }
 
     /// Attempts to retrieve a reference to the object handlers.

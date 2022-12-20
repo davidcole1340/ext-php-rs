@@ -113,12 +113,12 @@ impl Zval {
     /// convert other types into a [`String`], as it could not pass back a
     /// [`&str`] in those cases.
     pub fn str(&self) -> Option<&str> {
-        self.zend_str().and_then(|zs| zs.as_str())
+        self.zend_str().and_then(|zs| zs.as_str().ok())
     }
 
     /// Returns the value of the zval if it is a string and can be unpacked into
-    /// a vector of a given type. Similar to the [`unpack`](https://www.php.net/manual/en/function.unpack.php)
-    /// in PHP, except you can only unpack one type.
+    /// a vector of a given type. Similar to the [`unpack`] function in PHP,
+    /// except you can only unpack one type.
     ///
     /// # Safety
     ///
@@ -129,22 +129,31 @@ impl Zval {
     /// documentation for more details.
     ///
     /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
     pub fn binary<T: Pack>(&self) -> Option<Vec<T>> {
-        if self.is_string() {
-            // SAFETY: Type is string therefore we are able to take a reference.
-            Some(T::unpack_into(unsafe { self.value.str_.as_ref() }?))
-        } else {
-            None
-        }
+        self.zend_str().map(T::unpack_into)
     }
 
-    pub fn binary_slice<'a, T: PackSlice>(&self) -> Option<&'a [T]> {
-        if self.is_string() {
-            // SAFETY: Type is string therefore we are able to take a reference.
-            Some(T::unpack_into(unsafe { self.value.str_.as_ref() }?))
-        } else {
-            None
-        }
+    /// Returns the value of the zval if it is a string and can be unpacked into
+    /// a slice of a given type. Similar to the [`unpack`] function in PHP,
+    /// except you can only unpack one type.
+    ///
+    /// This function is similar to [`Zval::binary`] except that a slice is
+    /// returned instead of a vector, meaning the contents of the string is
+    /// not copied.
+    ///
+    /// # Safety
+    ///
+    /// There is no way to tell if the data stored in the string is actually of
+    /// the given type. The results of this function can also differ from
+    /// platform-to-platform due to the different representation of some
+    /// types on different platforms. Consult the [`pack`] function
+    /// documentation for more details.
+    ///
+    /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
+    pub fn binary_slice<T: PackSlice>(&self) -> Option<&[T]> {
+        self.zend_str().map(T::unpack_into)
     }
 
     /// Returns the value of the zval if it is a resource.
@@ -331,7 +340,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendStr::new(val, persistent)?);
+        self.set_zend_string(ZendStr::new(val, persistent));
         Ok(())
     }
 
@@ -365,7 +374,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_interned_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendStr::new_interned(val, persistent)?);
+        self.set_zend_string(ZendStr::new_interned(val, persistent));
         Ok(())
     }
 

@@ -10,7 +10,7 @@ use dialoguer::{Confirm, Select};
 
 use std::{
     fs::OpenOptions,
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Seek, SeekFrom, Write},
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -105,6 +105,9 @@ struct Install {
     /// the directory the command is called.
     #[arg(long)]
     manifest: Option<PathBuf>,
+    /// Whether to bypass the install prompt.
+    #[clap(long)]
+    yes: bool,
 }
 
 #[derive(Parser)]
@@ -121,6 +124,9 @@ struct Remove {
     /// the directory the command is called.
     #[arg(long)]
     manifest: Option<PathBuf>,
+    /// Whether to bypass the remove prompt.
+    #[clap(long)]
+    yes: bool,
 }
 
 #[cfg(not(windows))]
@@ -172,12 +178,13 @@ impl Install {
             php_ini = Some(ini_path);
         }
 
-        if !Confirm::new()
-            .with_prompt(format!(
-                "Are you sure you want to install the extension `{}`?",
-                artifact.name
-            ))
-            .interact()?
+        if !self.yes
+            && !Confirm::new()
+                .with_prompt(format!(
+                    "Are you sure you want to install the extension `{}`?",
+                    artifact.name
+                ))
+                .interact()?
         {
             bail!("Installation cancelled.");
         }
@@ -207,6 +214,8 @@ impl Install {
                 let line = line.with_context(|| "Failed to read line from `php.ini`")?;
                 if !line.contains(&ext_line) {
                     new_lines.push(line);
+                } else {
+                    bail!("Extension already enabled.");
                 }
             }
 
@@ -216,6 +225,8 @@ impl Install {
             }
 
             new_lines.push(ext_line);
+            file.seek(SeekFrom::Start(0))?;
+            file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
         }
@@ -301,12 +312,13 @@ impl Remove {
             bail!("Unable to find extension installed.");
         }
 
-        if !Confirm::new()
-            .with_prompt(format!(
-                "Are you sure you want to remove the extension `{}`?",
-                artifact.name
-            ))
-            .interact()?
+        if !self.yes
+            && !Confirm::new()
+                .with_prompt(format!(
+                    "Are you sure you want to remove the extension `{}`?",
+                    artifact.name
+                ))
+                .interact()?
         {
             bail!("Installation cancelled.");
         }
@@ -318,7 +330,6 @@ impl Remove {
                 .read(true)
                 .write(true)
                 .create(true)
-                .truncate(true)
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 
@@ -330,6 +341,8 @@ impl Remove {
                 }
             }
 
+            file.seek(SeekFrom::Start(0))?;
+            file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
         }

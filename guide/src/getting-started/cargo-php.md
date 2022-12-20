@@ -84,7 +84,7 @@ personally recommend for use in Visual Studio Code).
 
 ```text
 $ cargo php stubs --help
-cargo-php-stubs 
+cargo-php-stubs
 
 Generates stub PHP files for the extension.
 
@@ -106,7 +106,7 @@ OPTIONS:
         --manifest <MANIFEST>
             Path to the Cargo manifest of the extension. Defaults to the manifest in the directory
             the command is called.
-            
+
             This cannot be provided alongside the `ext` option, as that option provides a direct
             path to the extension shared library.
 
@@ -130,7 +130,7 @@ so you are able to restore if you run into any issues.
 
 ```text
 $ cargo php install --help
-cargo-php-install 
+cargo-php-install
 
 Installs the extension in the current PHP installation.
 
@@ -164,6 +164,9 @@ OPTIONS:
 
         --release
             Whether to install the release version of the extension
+
+        --yes
+            Bypasses the confirmation prompt
 ```
 
 ## Extension Removal
@@ -175,7 +178,7 @@ from your `php.ini` if present.
 
 ```text
 $ cargo php remove --help
-cargo-php-remove 
+cargo-php-remove
 
 Removes the extension in the current PHP installation.
 
@@ -203,6 +206,9 @@ OPTIONS:
         --manifest <MANIFEST>
             Path to the Cargo manifest of the extension. Defaults to the manifest in the directory
             the command is called
+
+        --yes
+            Bypasses the confirmation prompt
 ```
 
 [`cargo-php`]: https://crates.io/crates/cargo-php

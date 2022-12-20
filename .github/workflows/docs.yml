@@ -1,6 +1,9 @@
 name: Deploy documentation
 on:
   workflow_dispatch:
+  # runs every monday at midnight
+  schedule:
+    - cron: "0 0 * * 1"
   push:
     branches:
       - master
@@ -8,28 +11,38 @@ on:
 jobs:
   docs:
     name: Build and Deploy
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        php: ["8.0"]
+        clang: ["14"]
+        mdbook: ["latest"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.0
+          php-version: ${{ matrix.php }}
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@nightly
+      - name: Cache LLVM and Clang
+        id: cache-llvm
+        uses: actions/cache@v3
         with:
-          toolchain: nightly 
-          override: true
+          path: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
       - name: Setup LLVM & Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
-          version: 11.0
-          directory: ${{ runner.temp }}/llvm-11.0
+          version: ${{ matrix.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Install mdbook
         uses: peaceiris/actions-mdbook@v1
         with:
-          mdbook-version: latest
+          mdbook-version: ${{ matrix.mdbook }}
       - name: Build guide
         run: mdbook build guide
       - name: Publish docs

@@ -1,9 +1,15 @@
 # Summary
 
-- [Introduction](./introduction.md)
-- [`cargo php`](./cargo-php.md)
-- [Examples](./examples/index.md)
-  - [Hello World](./examples/hello_world.md)
+[Introduction](./introduction.md)
+
+# Getting Started
+
+- [Installation](./getting-started/installation.md)
+- [Hello World](./getting-started/hello_world.md)
+- [`cargo php`](./getting-started/cargo-php.md)
+
+# Reference Guide
+
 - [Types](./types/index.md)
   - [Primitive Numbers](./types/numbers.md)
   - [`String`](./types/string.md)

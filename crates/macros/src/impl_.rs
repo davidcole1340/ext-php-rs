@@ -85,6 +85,7 @@ pub enum ParsedAttribute {
     },
     Constructor,
     This,
+    Abstract,
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -212,6 +213,7 @@ pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
         "public" => ParsedAttribute::Visibility(Visibility::Public),
         "protected" => ParsedAttribute::Visibility(Visibility::Protected),
         "private" => ParsedAttribute::Visibility(Visibility::Private),
+        "abstract_method" => ParsedAttribute::Abstract,
         "rename" => {
             let ident = if let Meta::List(list) = meta {
                 if let Some(NestedMeta::Lit(lit)) = list.nested.first() {

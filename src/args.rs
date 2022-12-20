@@ -118,7 +118,7 @@ impl<'a> Arg<'a> {
     /// return value of the function, or an error.
     ///
     /// You should not call this function directly, rather through the
-    /// [`call_user_func`] macro.
+    /// [`call_user_func`](crate::call_user_func) macro.
     ///
     /// # Parameters
     ///

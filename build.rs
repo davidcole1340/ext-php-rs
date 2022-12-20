@@ -43,7 +43,7 @@ pub trait PHPProvider<'a>: Sized {
 }
 
 /// Finds the location of an executable `name`.
-fn find_executable(name: &str) -> Option<PathBuf> {
+pub fn find_executable(name: &str) -> Option<PathBuf> {
     const WHICH: &str = if cfg!(windows) { "where" } else { "which" };
     let cmd = Command::new(WHICH).arg(name).output().ok()?;
     if cmd.status.success() {
@@ -54,15 +54,25 @@ fn find_executable(name: &str) -> Option<PathBuf> {
     }
 }
 
+/// Returns an environment variable's value as a PathBuf
+pub fn path_from_env(key: &str) -> Option<PathBuf> {
+    std::env::var_os(key).map(PathBuf::from)
+}
+
 /// Finds the location of the PHP executable.
 fn find_php() -> Result<PathBuf> {
-    // If PHP path is given via env, it takes priority.
-    let env = std::env::var("PHP");
-    if let Ok(env) = env {
-        return Ok(env.into());
+    // If path is given via env, it takes priority.
+    if let Some(path) = path_from_env("PHP") {
+        if !path.try_exists()? {
+            // If path was explicitly given and it can't be found, this is a hard error
+            bail!("php executable not found at {:?}", path);
+        }
+        return Ok(path);
     }
-
-    find_executable("php").context("Could not find PHP path. Please ensure `php` is in your PATH or the `PHP` environment variable is set.")
+    find_executable("php").with_context(|| {
+        "Could not find PHP executable. \
+        Please ensure `php` is in your PATH or the `PHP` environment variable is set."
+    })
 }
 
 pub struct PHPInfo(String);
@@ -206,6 +216,8 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    let out_dir = env::var_os("OUT_DIR").context("Failed to get OUT_DIR")?;
+    let out_path = PathBuf::from(out_dir).join("bindings.rs");
     let manifest: PathBuf = std::env::var("CARGO_MANIFEST_DIR").unwrap().into();
     for path in [
         manifest.join("src").join("wrapper.h"),
@@ -215,6 +227,21 @@ fn main() -> Result<()> {
         manifest.join("unix_build.rs"),
     ] {
         println!("cargo:rerun-if-changed={}", path.to_string_lossy());
+    }
+    for env_var in ["PHP", "PHP_CONFIG", "PATH"] {
+        println!("cargo:rerun-if-env-changed={}", env_var);
+    }
+
+    println!("cargo:rerun-if-changed=build.rs");
+
+    // docs.rs runners only have PHP 7.4 - use pre-generated bindings
+    if env::var("DOCS_RS").is_ok() {
+        println!("cargo:warning=docs.rs detected - using stub bindings");
+        println!("cargo:rustc-cfg=php_debug");
+        println!("cargo:rustc-cfg=php81");
+        std::fs::copy("docsrs_bindings.rs", out_path)
+            .expect("failed to copy docs.rs stub bindings to out directory");
+        return Ok(());
     }
 
     let php = find_php()?;
@@ -228,8 +255,6 @@ fn main() -> Result<()> {
     build_wrapper(&defines, &includes)?;
     let bindings = generate_bindings(&defines, &includes)?;
 
-    let out_dir = env::var_os("OUT_DIR").context("Failed to get OUT_DIR")?;
-    let out_path = PathBuf::from(out_dir).join("bindings.rs");
     let out_file =
         File::create(&out_path).context("Failed to open output bindings file for writing")?;
     let mut out_writer = BufWriter::new(out_file);

@@ -4,6 +4,20 @@
 // exist in the bindings file. Which ever script include!s the bindings must
 // define the `bind` macro. This allows us to have the list in string format
 // inside the build script and in macro format inside the CLI crate.
+//
+// NOTE TO EDITORS:
+//   When updating this file, you must re-generate the `docsrs_bindings.rs`
+//   file used by docs.rs to build documentation. To perform this:
+//
+//     $ cargo clean
+//     $ cargo build
+//     $ cp target/debug/build/ext-php-rs-e2cb315d27898d01/out/bindings.rs
+//       docsrs_bindings.rs
+//     $ git add . && git commit -m "update docs.rs bindings"
+//
+//   The hash after `ext-php-rs-` in the bindings path may change. There should
+//   be two folders beginning with `ext-php-rs-` in `target/debug/build`, so
+//   check both for the presense of the bindings file.
 
 bind! {
     HashTable,
@@ -29,6 +43,8 @@ bind! {
     // ext_php_rs_zend_object_release,
     // ext_php_rs_zend_string_init,
     // ext_php_rs_zend_string_release,
+    // ext_php_rs_is_kown_valid_utf8,
+    // ext_php_rs_set_kown_valid_utf8,
     object_properties_init,
     php_info_print_table_end,
     php_info_print_table_header,
@@ -49,6 +65,13 @@ bind! {
     zend_ce_type_error,
     zend_ce_unhandled_match_error,
     zend_ce_value_error,
+    zend_ce_traversable,
+    zend_ce_aggregate,
+    zend_ce_iterator,
+    zend_ce_arrayaccess,
+    zend_ce_serializable,
+    zend_ce_countable,
+    zend_ce_stringable,
     zend_class_entry,
     zend_declare_class_constant,
     zend_declare_property,

@@ -1,13 +1,27 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
+use darling::FromMeta;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{Expr, ItemFn, Signature};
+use syn::{AttributeArgs, Expr, ItemFn, Signature};
 
 use crate::{class::Class, constant::Constant, STATE};
 
-pub fn parser(input: ItemFn) -> Result<TokenStream> {
+#[derive(Default, Debug, FromMeta)]
+#[darling(default)]
+struct StartupArgs {
+    before: bool,
+}
+
+pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream> {
+    let args = if let Some(args) = args {
+        StartupArgs::from_list(&args)
+            .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?
+    } else {
+        StartupArgs::default()
+    };
+
     let ItemFn { sig, block, .. } = input;
     let Signature { ident, .. } = sig;
     let stmts = &block.stmts;
@@ -17,6 +31,11 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
 
     let classes = build_classes(&state.classes)?;
     let constants = build_constants(&state.constants);
+    let (before, after) = if args.before {
+        (Some(quote! { internal(); }), None)
+    } else {
+        (None, Some(quote! { internal(); }))
+    };
 
     let func = quote! {
         #[doc(hidden)]
@@ -30,11 +49,10 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
 
             ::ext_php_rs::internal::ext_php_rs_startup();
 
+            #before
             #(#classes)*
             #(#constants)*
-
-            // TODO return result?
-            internal();
+            #after
 
             0
         }
@@ -121,6 +139,31 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                 }
             });
 
+            let flags = {
+                if let Some(flags) = &class.flags {
+                    let mut name = "::ext_php_rs::flags::ClassFlags::".to_owned();
+                    name.push_str(flags);
+                    let expr: Expr = syn::parse_str(&name).map_err(|_| {
+                        anyhow!("Invalid expression given for `{}` flags", class_name)
+                    })?;
+                    Some(quote! { .flags(#expr) })
+                } else {
+                    None
+                }
+            };
+
+            let object_override = {
+                if let Some(flags) = &class.flags {
+                    if  flags == "Interface" {
+                        None
+                    } else {
+                        Some(quote! { .object_override::<#ident>() })
+                    }
+                } else {
+                    Some(quote! { .object_override::<#ident>() })
+                }
+            };
+
             Ok(quote! {{
                 let builder = ::ext_php_rs::builders::ClassBuilder::new(#class_name)
                     #(#methods)*
@@ -128,7 +171,9 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                     #(#interfaces)*
                     // #(#properties)*
                     #parent
-                    .object_override::<#ident>();
+                    #flags
+                    #object_override
+                    ;
                 #class_modifier
                 let class = builder.build()
                     .expect(concat!("Unable to build class `", #class_name, "`"));
