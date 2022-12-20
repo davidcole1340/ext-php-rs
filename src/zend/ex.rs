@@ -213,7 +213,7 @@ impl ExecuteData {
     #[doc(hidden)]
     unsafe fn zend_call_var_num(&self, n: isize) -> *mut Zval {
         let ptr = self as *const Self as *mut Zval;
-        ptr.offset(Self::zend_call_frame_slot() + n as isize)
+        ptr.offset(Self::zend_call_frame_slot() + n)
     }
 
     /// Translation of macro `ZEND_CALL_FRAME_SLOT`

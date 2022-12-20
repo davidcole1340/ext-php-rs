@@ -251,7 +251,7 @@ impl ZendStr {
     /// assert_eq!(s.len(), 13);
     /// ```
     pub fn len(&self) -> usize {
-        self.len as usize
+        self.len
     }
 
     /// Returns true if the string is empty, false otherwise.

@@ -247,7 +247,7 @@ impl ClassBuilder {
         // disable serialization if the class has an associated object
         if self.object_override.is_some() {
             cfg_if::cfg_if! {
-                if #[cfg(php81)] {
+                if #[cfg(any(php81, php82))] {
                     class.ce_flags |= ClassFlags::NotSerializable.bits();
                 } else {
                     class.serialize = Some(crate::ffi::zend_class_serialize_deny);

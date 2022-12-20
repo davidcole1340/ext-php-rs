@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest"]
-        php: ["8.0"]
+        php: ["8.2"]
         clang: ["14"]
         mdbook: ["latest"]
     steps:
