@@ -1443,6 +1443,9 @@ extern "C" {
     ) -> *mut zend_object;
 }
 extern "C" {
+    pub fn zend_throw_exception_object(exception: *mut zval);
+}
+extern "C" {
     pub fn zend_do_implement_interface(ce: *mut zend_class_entry, iface: *mut zend_class_entry);
 }
 extern "C" {
