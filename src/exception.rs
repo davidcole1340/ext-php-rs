@@ -8,7 +8,8 @@ use crate::{
     ffi::zend_throw_exception_ex,
     ffi::zend_throw_exception_object,
     flags::ClassFlags,
-    zend::{ce, ClassEntry}, types::Zval,
+    types::Zval,
+    zend::{ce, ClassEntry},
 };
 
 /// Result type with the error variant as a [`PhpException`].
@@ -38,7 +39,12 @@ impl PhpException {
     /// * `code` - Integer code to go inside the exception.
     /// * `ex` - Exception type to throw.
     pub fn new(message: String, code: i32, ex: &'static ClassEntry) -> Self {
-        Self { message, code, ex, object: None, }
+        Self {
+            message,
+            code,
+            ex,
+            object: None,
+        }
     }
 
     /// Creates a new default exception instance, using the default PHP
@@ -77,9 +83,7 @@ impl PhpException {
     /// and an error otherwise.
     pub fn throw(self) -> Result<()> {
         match self.object {
-            Some(object) => {
-                throw_object(object)
-            },
+            Some(object) => throw_object(object),
             None => throw_with_code(self.ex, self.code, &self.message),
         }
     }
@@ -165,7 +169,6 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
     };
     Ok(())
 }
-
 
 /// Throws an exception object.
 ///
