@@ -179,7 +179,9 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 /// # Examples
 ///
 /// ```no_run
-/// use ext_php_rs::{zend::{ce, ClassEntry}, exception::throw_with_code};
+/// use ext_php_rs::prelude::*;
+/// use ext_php_rs::exception::throw_object;
+/// use crate::ext_php_rs::convert::IntoZval;
 ///
 /// #[php_class]
 /// #[extends(ext_php_rs::zend::ce::exception())]
@@ -191,8 +193,14 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 ///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
 ///     file: String,
 /// }
-/// let error = JsException { message: "A JS error occurred.", code: 100, file: "index.js" };
-/// throw_object( error.into_val(true) );
+///
+/// #[php_module]
+/// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+///     module
+/// }
+///
+/// let error = JsException { message: "A JS error occurred.".to_string(), code: 100, file: "index.js".to_string() };
+/// throw_object( error.into_zval(true).unwrap() );
 /// ```
 pub fn throw_object(zval: Zval) -> Result<()> {
     unsafe {
