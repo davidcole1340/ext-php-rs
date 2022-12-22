@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0
+- feat: Add PHP 8.2 support by @ptondereau [#212]
+
+[#212]: https://github.com/davidcole1340/ext-php-rs/pull/212
+
 ## Version 0.9.0
 
 - ci+docs: honour PHP_CONFIG & rebuild automatically when env vars change by @julius [#210]
