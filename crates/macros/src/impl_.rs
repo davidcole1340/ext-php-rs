@@ -295,10 +295,9 @@ mod tests {
 
     #[test]
     fn test_rename_php_methods() {
-        for &(original, camel, snake) in &[("get_name", "getName", "get_name")] {
-            assert_eq!(original, RenameRule::None.rename(original));
-            assert_eq!(camel, RenameRule::Camel.rename(original));
-            assert_eq!(snake, RenameRule::Snake.rename(original));
-        }
+        let &(original, camel, snake) = &("get_name", "getName", "get_name");
+        assert_eq!(original, RenameRule::None.rename(original));
+        assert_eq!(camel, RenameRule::Camel.rename(original));
+        assert_eq!(snake, RenameRule::Snake.rename(original));
     }
 }
