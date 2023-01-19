@@ -11,8 +11,8 @@ use crate::{
     convert::{FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
     ffi::{
-        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_is_callable, zend_resource,
-        zend_value, zval, zval_ptr_dtor,
+        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_is_callable,
+        zend_is_identical, zend_resource, zend_value, zval, zval_ptr_dtor,
     },
     flags::DataType,
     flags::ZvalTypeFlags,
@@ -325,6 +325,18 @@ impl Zval {
     pub fn is_callable(&self) -> bool {
         let ptr: *const Self = self;
         unsafe { zend_is_callable(ptr as *mut Self, 0, std::ptr::null_mut()) }
+    }
+
+    /// Checks if the zval is identical to another one.
+    /// This works like `===` in php.
+    ///
+    /// # Parameters
+    ///
+    /// * `other` - The the zval to check identity against.
+    pub fn is_identical(&self, other: &Self) -> bool {
+        let self_p: *const Self = self;
+        let other_p: *const Self = other;
+        unsafe { zend_is_identical(self_p as *mut Self, other_p as *mut Self) }
     }
 
     /// Returns true if the zval contains a pointer, false otherwise.

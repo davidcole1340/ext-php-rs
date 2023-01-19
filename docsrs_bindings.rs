@@ -835,6 +835,9 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn zend_is_identical(op1: *mut zval, op2: *mut zval) -> bool;
+}
+extern "C" {
     pub fn zend_is_true(op: *mut zval) -> ::std::os::raw::c_int;
 }
 pub type zend_op_array = _zend_op_array;
