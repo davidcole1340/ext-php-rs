@@ -143,6 +143,7 @@ bind! {
     IS_CONSTANT_AST_EX,
     IS_DOUBLE,
     IS_FALSE,
+    IS_INDIRECT,
     IS_INTERNED_STRING_EX,
     IS_LONG,
     IS_MIXED,

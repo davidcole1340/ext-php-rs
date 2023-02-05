@@ -99,6 +99,7 @@ pub const IS_CONSTANT_AST: u32 = 11;
 pub const IS_CALLABLE: u32 = 12;
 pub const IS_VOID: u32 = 14;
 pub const IS_MIXED: u32 = 16;
+pub const IS_INDIRECT: u32 = 12;
 pub const IS_PTR: u32 = 13;
 pub const _IS_BOOL: u32 = 18;
 pub const Z_TYPE_FLAGS_SHIFT: u32 = 8;
