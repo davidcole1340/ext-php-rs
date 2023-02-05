@@ -50,6 +50,11 @@ impl ExecutorGlobals {
         unsafe { self.class_table.as_ref() }
     }
 
+    /// Attempts to retrieve the global constants table.
+    pub fn constants(&self) -> Option<&ZendHashTable> {
+        unsafe { self.zend_constants.as_ref() }
+    }
+
     /// Attempts to extract the last PHP exception captured by the interpreter.
     /// Returned inside a [`ZBox`].
     ///
