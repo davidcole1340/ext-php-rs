@@ -83,6 +83,10 @@ pub const ZEND_MODULE_API_NO: u32 = 20220829;
 pub const USING_ZTS: u32 = 0;
 pub const MAY_BE_BOOL: u32 = 12;
 pub const MAY_BE_ANY: u32 = 1022;
+pub const PHP_INI_USER: u32 = 1;
+pub const PHP_INI_PERDIR: u32 = 2;
+pub const PHP_INI_SYSTEM: u32 = 4;
+pub const PHP_INI_ALL: u32 = 7;
 pub const CONST_CS: u32 = 0;
 pub const CONST_PERSISTENT: u32 = 1;
 pub const CONST_NO_FILE_CACHE: u32 = 2;
@@ -1343,6 +1347,32 @@ extern "C" {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct _zend_ini_entry_def {
+    pub name: *const ::std::os::raw::c_char,
+    pub on_modify: ::std::option::Option<
+        unsafe extern "C" fn(
+            entry: *mut zend_ini_entry,
+            new_value: *mut zend_string,
+            mh_arg1: *mut ::std::os::raw::c_void,
+            mh_arg2: *mut ::std::os::raw::c_void,
+            mh_arg3: *mut ::std::os::raw::c_void,
+            stage: ::std::os::raw::c_int,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub mh_arg1: *mut ::std::os::raw::c_void,
+    pub mh_arg2: *mut ::std::os::raw::c_void,
+    pub mh_arg3: *mut ::std::os::raw::c_void,
+    pub value: *const ::std::os::raw::c_char,
+    pub displayer: ::std::option::Option<
+        unsafe extern "C" fn(ini_entry: *mut zend_ini_entry, type_: ::std::os::raw::c_int),
+    >,
+    pub value_length: u32,
+    pub name_length: u16,
+    pub modifiable: u8,
+}
+pub type zend_ini_entry_def = _zend_ini_entry_def;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct _zend_ini_entry {
     pub name: *mut zend_string,
     pub on_modify: ::std::option::Option<
@@ -1367,6 +1397,12 @@ pub struct _zend_ini_entry {
     pub modifiable: u8,
     pub orig_modifiable: u8,
     pub modified: u8,
+}
+extern "C" {
+    pub fn zend_register_ini_entries(
+        ini_entry: *const zend_ini_entry_def,
+        module_number: ::std::os::raw::c_int,
+    ) -> zend_result;
 }
 extern "C" {
     pub fn zend_register_bool_constant(

@@ -7,6 +7,7 @@ mod ex;
 mod function;
 mod globals;
 mod handlers;
+mod ini_entry_def;
 mod module;
 
 use crate::{error::Result, ffi::php_printf};
@@ -18,6 +19,7 @@ pub use ex::ExecuteData;
 pub use function::FunctionEntry;
 pub use globals::ExecutorGlobals;
 pub use handlers::ZendObjectHandlers;
+pub use ini_entry_def::IniEntryDef;
 pub use module::ModuleEntry;
 
 // Used as the format string for `php_printf`.
