@@ -32,9 +32,9 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
     let classes = build_classes(&state.classes)?;
     let constants = build_constants(&state.constants);
     let (before, after) = if args.before {
-        (Some(quote! { internal(); }), None)
+        (Some(quote! { internal(ty, module_number); }), None)
     } else {
-        (None, Some(quote! { internal(); }))
+        (None, Some(quote! { internal(ty, module_number); }))
     };
 
     let func = quote! {
@@ -43,7 +43,7 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
             use ::ext_php_rs::constant::IntoConst;
             use ::ext_php_rs::flags::PropertyFlags;
 
-            fn internal() {
+            fn internal(ty: i32, module_number: i32) {
                 #(#stmts)*
             }
 
