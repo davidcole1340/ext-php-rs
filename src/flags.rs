@@ -275,6 +275,7 @@ impl From<u32> for DataType {
         }
 
         contains!(IS_VOID, Void);
+        contains!(IS_PTR, Ptr);
         contains!(IS_CALLABLE, Callable);
         contains!(IS_CONSTANT_AST, ConstantExpression);
         contains!(IS_REFERENCE, Reference);
@@ -286,7 +287,6 @@ impl From<u32> for DataType {
         contains!(IS_TRUE, True);
         contains!(IS_FALSE, False);
         contains!(IS_NULL, Null);
-        contains!(IS_PTR, Ptr);
 
         if (value & IS_OBJECT) == IS_OBJECT {
             return DataType::Object(None);
@@ -327,9 +327,9 @@ mod tests {
     use super::DataType;
     use crate::ffi::{
         IS_ARRAY, IS_ARRAY_EX, IS_CALLABLE, IS_CONSTANT_AST, IS_CONSTANT_AST_EX, IS_DOUBLE,
-        IS_FALSE, IS_INTERNED_STRING_EX, IS_LONG, IS_NULL, IS_OBJECT, IS_OBJECT_EX, IS_REFERENCE,
-        IS_REFERENCE_EX, IS_RESOURCE, IS_RESOURCE_EX, IS_STRING, IS_STRING_EX, IS_TRUE, IS_UNDEF,
-        IS_VOID,
+        IS_FALSE, IS_INTERNED_STRING_EX, IS_LONG, IS_NULL, IS_OBJECT, IS_OBJECT_EX, IS_PTR,
+        IS_REFERENCE, IS_REFERENCE_EX, IS_RESOURCE, IS_RESOURCE_EX, IS_STRING, IS_STRING_EX,
+        IS_TRUE, IS_UNDEF, IS_VOID,
     };
     use std::convert::TryFrom;
 
@@ -355,6 +355,7 @@ mod tests {
         test!(IS_CONSTANT_AST, ConstantExpression);
         test!(IS_CALLABLE, Callable);
         test!(IS_VOID, Void);
+        test!(IS_PTR, Ptr);
 
         test!(IS_INTERNED_STRING_EX, String);
         test!(IS_STRING_EX, String);
