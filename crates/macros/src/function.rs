@@ -52,7 +52,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         ..
     } = &sig;
 
-    let internal_ident = Ident::new(&format!("_internal_php_{}", ident), Span::call_site());
+    let internal_ident = Ident::new(&format!("_internal_php_{ident}"), Span::call_site());
     let args = build_args(inputs, &attr_args.defaults)?;
     let optional = find_optional_parameter(args.iter(), attr_args.optional);
     let arg_definitions = build_arg_definitions(&args);

@@ -176,7 +176,7 @@ impl ZendObjectHandlers {
                     continue;
                 }
                 props.insert(name, zv).map_err(|e| {
-                    format!("Failed to insert value into properties hashtable: {:?}", e)
+                    format!("Failed to insert value into properties hashtable: {e:?}")
                 })?;
             }
 

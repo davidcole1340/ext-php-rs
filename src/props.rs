@@ -140,7 +140,7 @@ impl<'a, T: 'a> Property<'a, T> {
                 let value = get(self_);
                 value
                     .set_zval(retval, false)
-                    .map_err(|e| format!("Failed to return property value to PHP: {:?}", e))?;
+                    .map_err(|e| format!("Failed to return property value to PHP: {e:?}"))?;
                 Ok(())
             }) as Box<dyn Fn(&T, &mut Zval) -> PhpResult + Send + Sync + 'a>
         });
@@ -196,7 +196,7 @@ impl<'a, T: 'a> Property<'a, T> {
         match self {
             Property::Field(field) => field(self_)
                 .get(retval)
-                .map_err(|e| format!("Failed to get property value: {:?}", e).into()),
+                .map_err(|e| format!("Failed to get property value: {e:?}").into()),
             Property::Method { get, set: _ } => match get {
                 Some(get) => get(self_, retval),
                 None => Err("No getter available for this property.".into()),
@@ -244,7 +244,7 @@ impl<'a, T: 'a> Property<'a, T> {
         match self {
             Property::Field(field) => field(self_)
                 .set(value)
-                .map_err(|e| format!("Failed to set property value: {:?}", e).into()),
+                .map_err(|e| format!("Failed to set property value: {e:?}").into()),
             Property::Method { get: _, set } => match set {
                 Some(set) => set(self_, value),
                 None => Err("No setter available for this property.".into()),

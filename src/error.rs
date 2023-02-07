@@ -65,17 +65,15 @@ impl Display for Error {
         match self {
             Error::IncorrectArguments(n, expected) => write!(
                 f,
-                "Expected at least {} arguments, got {} arguments.",
-                expected, n
+                "Expected at least {expected} arguments, got {n} arguments."
             ),
             Error::ZvalConversion(ty) => write!(
                 f,
-                "Could not convert Zval from type {} into primitive type.",
-                ty
+                "Could not convert Zval from type {ty} into primitive type."
             ),
-            Error::UnknownDatatype(dt) => write!(f, "Unknown datatype {}.", dt),
+            Error::UnknownDatatype(dt) => write!(f, "Unknown datatype {dt}."),
             Error::InvalidTypeToDatatype(dt) => {
-                write!(f, "Type flags did not contain a datatype: {:?}", dt)
+                write!(f, "Type flags did not contain a datatype: {dt:?}")
             }
             Error::InvalidScope => write!(f, "Invalid scope."),
             Error::InvalidPointer => write!(f, "Invalid pointer."),
@@ -87,12 +85,12 @@ impl Display for Error {
             Error::InvalidUtf8 => write!(f, "Invalid Utf8 byte sequence."),
             Error::Callable => write!(f, "Could not call given function."),
             Error::InvalidException(flags) => {
-                write!(f, "Invalid exception type was thrown: {:?}", flags)
+                write!(f, "Invalid exception type was thrown: {flags:?}")
             }
             Error::IntegerOverflow => {
                 write!(f, "Converting integer arguments resulted in an overflow.")
             }
-            Error::Exception(e) => write!(f, "Exception was thrown: {:?}", e),
+            Error::Exception(e) => write!(f, "Exception was thrown: {e:?}"),
         }
     }
 }
