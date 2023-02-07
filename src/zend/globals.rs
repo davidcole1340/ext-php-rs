@@ -36,7 +36,7 @@ impl ExecutorGlobals {
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
-    fn get_mut() -> GlobalWriteGuard<Self> {
+    pub fn get_mut() -> GlobalWriteGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
         let globals = unsafe { ext_php_rs_executor_globals().as_mut() }
