@@ -10,7 +10,7 @@ use dialoguer::{Confirm, Select};
 
 use std::{
     fs::OpenOptions,
-    io::{BufRead, BufReader, Seek, SeekFrom, Write},
+    io::{BufRead, BufReader, Seek, Write},
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -207,7 +207,7 @@ impl Install {
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 
-            let mut ext_line = format!("extension={}", ext_name);
+            let mut ext_line = format!("extension={ext_name}");
 
             let mut new_lines = vec![];
             for line in BufReader::new(&file).lines() {
@@ -225,7 +225,7 @@ impl Install {
             }
 
             new_lines.push(ext_line);
-            file.seek(SeekFrom::Start(0))?;
+            file.rewind()?;
             file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
@@ -255,9 +255,8 @@ fn get_ext_dir() -> AResult<PathBuf> {
                 ext_dir
             );
         } else {
-            std::fs::create_dir(&ext_dir).with_context(|| {
-                format!("Failed to create extension directory at {:?}", ext_dir)
-            })?;
+            std::fs::create_dir(&ext_dir)
+                .with_context(|| format!("Failed to create extension directory at {ext_dir:?}"))?;
         }
     }
     Ok(ext_dir)
@@ -341,7 +340,7 @@ impl Remove {
                 }
             }
 
-            file.seek(SeekFrom::Start(0))?;
+            file.rewind()?;
             file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
@@ -389,7 +388,7 @@ impl Stubs {
             .with_context(|| "Failed to generate stubs.")?;
 
         if self.stdout {
-            print!("{}", stubs);
+            print!("{stubs}");
         } else {
             let out_path = if let Some(out_path) = &self.out {
                 Cow::Borrowed(out_path)

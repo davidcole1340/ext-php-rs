@@ -136,7 +136,7 @@ pub fn parser(
     } else {
         quote! { return; }
     };
-    let internal_ident = Ident::new(&format!("_internal_php_{}", ident), Span::call_site());
+    let internal_ident = Ident::new(&format!("_internal_php_{ident}"), Span::call_site());
     let args = build_args(struct_ty, &mut input.sig.inputs, &defaults)?;
     let optional = function::find_optional_parameter(
         args.iter().filter_map(|arg| match arg {

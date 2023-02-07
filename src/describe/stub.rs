@@ -84,7 +84,7 @@ impl ToStub for Module {
                 .map(|(ns, entries)| {
                     let mut buf = String::new();
                     if let Some(ns) = ns {
-                        writeln!(buf, "namespace {} {{", ns)?;
+                        writeln!(buf, "namespace {ns} {{")?;
                     } else {
                         writeln!(buf, "namespace {{")?;
                     }
@@ -183,7 +183,7 @@ impl ToStub for DocBlock {
         if !self.0.is_empty() {
             writeln!(buf, "/**")?;
             for comment in self.0.iter() {
-                writeln!(buf, " *{}", comment)?;
+                writeln!(buf, " *{comment}")?;
             }
             writeln!(buf, " */")?;
         }
@@ -196,10 +196,10 @@ impl ToStub for Class {
         self.docs.fmt_stub(buf)?;
 
         let (_, name) = split_namespace(self.name.as_ref());
-        write!(buf, "class {} ", name)?;
+        write!(buf, "class {name} ")?;
 
         if let Option::Some(extends) = &self.extends {
-            write!(buf, "extends {} ", extends)?;
+            write!(buf, "extends {extends} ")?;
         }
 
         if !self.implements.is_empty() {
@@ -249,7 +249,7 @@ impl ToStub for Property {
         }
         write!(buf, "${}", self.name)?;
         if let Option::Some(default) = &self.default {
-            write!(buf, " = {}", default)?;
+            write!(buf, " = {default}")?;
         }
         writeln!(buf, ";")
     }
@@ -311,7 +311,7 @@ impl ToStub for Constant {
 
         write!(buf, "const {} = ", self.name)?;
         if let Option::Some(value) = &self.value {
-            write!(buf, "{}", value)?;
+            write!(buf, "{value}")?;
         } else {
             write!(buf, "null")?;
         }
@@ -381,6 +381,7 @@ mod test {
 
     #[test]
     #[cfg(not(windows))]
+    #[allow(clippy::uninlined_format_args)]
     pub fn test_indent() {
         use super::indent;
         use crate::describe::stub::NEW_LINE_SEPARATOR;

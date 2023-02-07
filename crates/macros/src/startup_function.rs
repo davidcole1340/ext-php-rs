@@ -68,7 +68,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
         .map(|(name, class)| {
             let Class { class_name, .. } = &class;
             let ident = Ident::new(name, Span::call_site());
-            let meta = Ident::new(&format!("_{}_META", name), Span::call_site());
+            let meta = Ident::new(&format!("_{name}_META"), Span::call_site());
             let methods = class.methods.iter().map(|method| {
                 let builder = method.get_builder(&ident);
                 let flags = method.get_flags();
