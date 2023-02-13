@@ -26,6 +26,7 @@ pub struct Arg {
     pub ty: String,
     pub nullable: bool,
     pub default: Option<String>,
+    pub as_ref: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -249,12 +250,19 @@ pub fn get_return_type(output_type: &ReturnType) -> Result<Option<(String, bool)
 }
 
 impl Arg {
-    pub fn new(name: String, ty: String, nullable: bool, default: Option<String>) -> Self {
+    pub fn new(
+        name: String,
+        ty: String,
+        nullable: bool,
+        default: Option<String>,
+        as_ref: bool,
+    ) -> Self {
         Self {
             name,
             ty,
             nullable,
             default,
+            as_ref,
         }
     }
 
@@ -268,6 +276,7 @@ impl Arg {
         match ty {
             Type::Path(TypePath { path, .. }) => {
                 let mut path = path.clone();
+                let mut pass_by_ref = false;
                 path.drop_lifetimes();
 
                 let seg = path.segments.last()?;
@@ -283,9 +292,45 @@ impl Arg {
                             None
                         }
                     });
+
+                // For for types that are `Option<&mut T>` to turn them into `Option<&T>`, marking the Arg as
+                // as "passed by reference".
+                let option = Some(seg)
+                    .filter(|seg| seg.ident == "Option")
+                    .and_then(|seg| {
+                        if let PathArguments::AngleBracketed(args) = &seg.arguments {
+                            args.args
+                                .iter()
+                                .find(|arg| matches!(arg, GenericArgument::Type(_)))
+                                .map(|ga| {
+                                    let new_ga = match ga {
+                                        GenericArgument::Type(ty) => {
+                                            let _rtype = match ty {
+                                                Type::Reference(r) => {
+                                                    let mut new_ref = r.clone();
+                                                    new_ref.mutability = None;
+                                                    pass_by_ref = true;
+                                                    Type::Reference(new_ref)
+                                                },
+                                                _ => ty.clone(),
+                                            };
+                                            GenericArgument::Type(_rtype)
+                                        },
+                                        _ => ga.clone(),
+                                    };
+                                    new_ga.to_token_stream().to_string()
+                                })
+                        } else {
+                            None
+                        }
+                    });
+
                 let stringified = match result {
                     Some(result) if is_return => result,
-                    _ => path.to_token_stream().to_string(),
+                    _ => match option  {
+                        Some(result) => result,
+                        None => path.to_token_stream().to_string(),
+                    },
                 };
 
                 Some(Arg::new(
@@ -293,15 +338,23 @@ impl Arg {
                     stringified,
                     seg.ident == "Option" || default.is_some(),
                     default,
+                    pass_by_ref,
                 ))
             }
             Type::Reference(ref_) => {
                 // Returning references is invalid, so let's just create our arg
+
+                // Change any `&mut T` into `&T` and set the `as_ref` attribute on the Arg
+                // to marked it as a "passed by ref" PHP argument.
+                let mut ref_ = ref_.clone();
+                let is_mutable_ref = ref_.mutability.is_some();
+                ref_.mutability = None;
                 Some(Arg::new(
                     name,
                     ref_.to_token_stream().to_string(),
                     false,
                     default,
+                    is_mutable_ref,
                 ))
             }
             _ => None,
@@ -361,6 +414,7 @@ impl Arg {
         let ty = self.get_type_ident();
 
         let null = self.nullable.then(|| quote! { .allow_null() });
+        let passed_by_ref = self.as_ref.then(|| quote! { .as_ref() });
         let default = self.default.as_ref().map(|val| {
             quote! {
                 .default(#val)
@@ -368,7 +422,7 @@ impl Arg {
         });
 
         quote! {
-            ::ext_php_rs::args::Arg::new(#name, #ty) #null #default
+            ::ext_php_rs::args::Arg::new(#name, #ty) #null #passed_by_ref #default
         }
     }
 }
