@@ -1,11 +1,16 @@
 //! Error and result types returned from the library functions.
 
-use std::{error::Error as ErrorTrait, ffi::NulError, fmt::Display};
+use std::{
+    error::Error as ErrorTrait,
+    ffi::{CString, NulError},
+    fmt::Display,
+};
 
 use crate::{
     boxed::ZBox,
     exception::PhpException,
-    flags::{ClassFlags, DataType, ZvalTypeFlags},
+    ffi::php_error_docref,
+    flags::{ClassFlags, DataType, ErrorType, ZvalTypeFlags},
     types::ZendObject,
 };
 
@@ -107,4 +112,19 @@ impl From<Error> for PhpException {
     fn from(err: Error) -> Self {
         Self::default(err.to_string())
     }
+}
+
+/// Trigger an error that is reported in PHP the same way `trigger_error()` is.
+///
+/// See specific error type descriptions at https://www.php.net/manual/en/errorfunc.constants.php.
+///
+pub fn php_error(type_: ErrorType, message: &str) {
+    let c_string = match CString::new(message) {
+        Ok(string) => string,
+        Err(_) => {
+            return ();
+        }
+    };
+
+    unsafe { php_error_docref(std::ptr::null(), type_.bits() as _, c_string.as_ptr()) }
 }
