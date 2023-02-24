@@ -237,7 +237,6 @@ fn main() -> Result<()> {
     }
 
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=Cargo.lock");
 
     // docs.rs runners only have PHP 7.4 - use pre-generated bindings
     if env::var("DOCS_RS").is_ok() {
