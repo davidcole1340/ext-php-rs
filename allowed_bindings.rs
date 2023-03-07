@@ -17,7 +17,7 @@
 //
 //   The hash after `ext-php-rs-` in the bindings path may change. There should
 //   be two folders beginning with `ext-php-rs-` in `target/debug/build`, so
-//   check both for the presense of the bindings file.
+//   check both for the presence of the bindings file.
 
 bind! {
     HashTable,
