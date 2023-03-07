@@ -2,8 +2,8 @@
 
 [![Crates.io](https://img.shields.io/crates/v/ext-php-rs)](https://lib.rs/ext-php-rs)
 [![docs.rs](https://img.shields.io/docsrs/ext-php-rs/latest)](https://docs.rs/ext-php-rs)
-[![Guide Workflow Status](https://img.shields.io/github/workflow/status/davidcole1340/ext-php-rs/Deploy%20documentation?label=guide)](https://davidcole1340.github.io/ext-php-rs)
-![CI Workflow Status](https://img.shields.io/github/workflow/status/davidcole1340/ext-php-rs/Build%20and%20Lint)
+[![Guide Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/docs.yml?branch=master&label=guide)](https://davidcole1340.github.io/ext-php-rs)
+![CI Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/build.yml?branch=master)
 [![Discord](https://img.shields.io/discord/115233111977099271)](https://discord.gg/dphp)
 
 Bindings and abstractions for the Zend API to build PHP extensions natively in
