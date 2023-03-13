@@ -61,7 +61,6 @@ impl ClassEntry {
             .contains(ClassFlags::ResolvedInterfaces)
             .then(|| unsafe {
                 (0..self.num_interfaces)
-                    .into_iter()
                     .map(move |i| *self.__bindgen_anon_3.interfaces.offset(i as _))
                     .filter_map(|ptr| ptr.as_ref())
             })

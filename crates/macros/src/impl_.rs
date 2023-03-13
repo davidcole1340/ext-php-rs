@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::collections::HashMap;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
 use crate::helpers::get_docs;
@@ -20,20 +19,15 @@ pub enum Visibility {
     Private,
 }
 
-#[derive(Debug, Copy, Clone, FromMeta)]
+#[derive(Debug, Copy, Clone, FromMeta, Default)]
 pub enum RenameRule {
     #[darling(rename = "none")]
     None,
     #[darling(rename = "camelCase")]
+    #[default]
     Camel,
     #[darling(rename = "snake_case")]
     Snake,
-}
-
-impl Default for RenameRule {
-    fn default() -> Self {
-        RenameRule::Camel
-    }
 }
 
 impl RenameRule {
