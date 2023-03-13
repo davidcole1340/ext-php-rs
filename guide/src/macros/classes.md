@@ -23,7 +23,7 @@ placed underneath the `#[php_class]` attribute.
   the `#[php_module]` function.
 
 You may also use the `#[prop]` attribute on a struct field to use the field as a
-PHP property. By default, the field will be accessible from PHP publically with
+PHP property. By default, the field will be accessible from PHP publicly with
 the same name as the field. Property types must implement `IntoZval` and
 `FromZval`.
 

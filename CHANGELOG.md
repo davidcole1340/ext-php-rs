@@ -24,7 +24,7 @@ See: [#202]
 ## Version 0.8.3
 
 - build: Check docs warnings in CI by @davidcole1340 in [#180]
-- fix: Fixes inifinte loop in ClassEntry::instance_of() by @ju1ius in [#188]
+- fix: Fixes infinite loop in ClassEntry::instance_of() by @ju1ius in [#188]
 - fix: Fix binary slice lifetimes by @davidcole1340 in [#181]
 - build: Fixes CI workflow configuration by @ju1ius in [#195]
 - feat: Add get_id() and hash() methods on ZendObject by @ju1ius in [#196]
