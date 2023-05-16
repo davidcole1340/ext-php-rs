@@ -161,7 +161,7 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
                 .map(|inc| format!("-I{}", inc.to_string_lossy())),
         )
         .clang_args(defines.iter().map(|(var, val)| format!("-D{var}={val}")))
-        .rustfmt_bindings(true)
+        .formatter(bindgen::Formatter::Rustfmt)
         .no_copy("_zval_struct")
         .no_copy("_zend_string")
         .no_copy("_zend_array")
