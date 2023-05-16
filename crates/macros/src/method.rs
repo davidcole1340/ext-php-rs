@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, Result};
 use quote::ToTokens;
 use std::collections::HashMap;
-use syn::ReturnType;
+use syn::{ReturnType, parse_quote};
 
 use crate::helpers::get_docs;
 use crate::{
@@ -175,6 +175,42 @@ pub fn parser(
             }
         }
     } else {
+        let mut input = input.clone();
+        if input.sig.asyncness.is_some() {
+            input.sig.asyncness = None;
+            let stmts = input.block;
+            input.block = parse_quote! {{
+                let future = async #stmts ;
+
+                let future = GLOBAL_CONNECTION.with_borrow_mut(|c| -> ::ext_php_rs::prelude::PhpResult<_> {
+                    let c = c.as_mut().unwrap();
+                    let f = ::ext_php_rs::get_current_suspension!();
+                    let idx = c.fibers.len() as u64;
+                    let mut callable = Zval::new();
+                    callable.set_array(vec![f, "resume".into_zval(false)?])?;
+                    c.fibers.insert_at_index(idx, callable).unwrap();
+
+                    let sender = c.sender.clone();
+                    let mut notifier = c.notify_sender.try_clone()
+                        .map_err(|err| format!("Could not clone fd: {}", err))?;
+
+                    Ok(::ext_php_rs::zend::RUNTIME.spawn(async move {
+                        let res = future.await;
+                        sender.send(idx).unwrap();
+                        notifier.write_all(&[0]).unwrap();
+                        res
+                    }))
+                })?;
+
+                let mut callable = Zval::new();
+                callable.set_array(vec![::ext_php_rs::get_current_suspension!(), "suspend".into_zval(false)?])?;
+                call_user_func!(callable)?;
+
+                return Ok(::ext_php_rs::zend::RUNTIME
+                    .block_on(future)
+                    .map_err(|err| format!("Error while joining: {}", err))?);
+            }};
+        }
         let this = match method_type {
             MethodType::Receiver { .. } => quote! { this. },
             MethodType::ReceiverClassObject | MethodType::Static => quote! { Self:: },

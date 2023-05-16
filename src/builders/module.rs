@@ -5,7 +5,7 @@ use crate::{
     PHP_DEBUG, PHP_ZTS,
 };
 
-use std::{ffi::CString, mem, ptr};
+use std::{ffi::{CString, c_void}, mem, ptr};
 
 /// Builds a Zend module extension to be registered with PHP. Must be called
 /// from within an external function called `get_module`, returning a mutable

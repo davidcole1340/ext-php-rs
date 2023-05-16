@@ -17,6 +17,7 @@ pub use class::ClassEntry;
 pub use ex::ExecuteData;
 pub use function::FunctionEntry;
 pub use globals::ExecutorGlobals;
+pub use globals::RUNTIME;
 pub use handlers::ZendObjectHandlers;
 pub use module::ModuleEntry;
 

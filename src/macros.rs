@@ -72,6 +72,31 @@ macro_rules! call_user_func {
     };
 }
 
+#[macro_export]
+macro_rules! call_static_method {
+    ($clazz: expr, $fn: expr) => {{
+        let mut callable = ext_php_rs::types::Zval::new();
+        callable
+            .set_array(vec![$clazz, $fn])
+            .unwrap();
+        call_user_func!(callable)
+    }};
+
+    ($clazz: expr, $fn: expr, $($param: expr),*) => {{
+        let mut callable = ext_php_rs::types::Zval::new();
+        callable
+            .set_array(vec![$clazz, $fn])
+            .unwrap();
+        call_user_func!(callable, $(&$param),*)
+    }};
+}
+
+#[macro_export]
+macro_rules! get_current_suspension {
+    () => { ext_php_rs::call_static_method!("\\Revolt\\EventLoop", "getSuspension").unwrap() }
+}
+
+
 /// Parses a given list of arguments using the [`ArgParser`] class.
 ///
 /// # Examples
@@ -410,3 +435,5 @@ macro_rules! php_println {
 
 pub(crate) use into_zval;
 pub(crate) use try_from_zval;
+
+use crate::types::Zval;

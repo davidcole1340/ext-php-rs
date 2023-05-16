@@ -1,8 +1,12 @@
 //! Types related to the PHP executor globals.
 
+use std::any::Any;
+use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
 
+use lazy_static::lazy_static;
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::runtime::Runtime;
 
 use crate::boxed::ZBox;
 use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
@@ -65,6 +69,10 @@ impl ExecutorGlobals {
         // SAFETY: `as_mut` checks for null.
         Some(unsafe { ZBox::from_raw(exception_ptr.as_mut()?) })
     }
+}
+
+lazy_static! {
+    pub static ref RUNTIME: Runtime = Runtime::new().expect("Could not allocate runtime");
 }
 
 /// Executor globals rwlock.
