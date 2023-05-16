@@ -7,7 +7,6 @@ use std::{
     ffi::CString,
     fmt::Debug,
     iter::FromIterator,
-    ptr::NonNull,
     u64,
 };
 
@@ -16,10 +15,12 @@ use crate::{
     convert::{FromZval, IntoZval},
     error::{Error, Result},
     ffi::{
-        _Bucket, _zend_new_array, zend_array_destroy, zend_array_dup, zend_hash_clean,
-        zend_hash_index_del, zend_hash_index_find, zend_hash_index_update,
+        _zend_new_array, zend_array_count, zend_array_destroy, zend_array_dup, zend_hash_clean,
+        zend_hash_get_current_data_ex, zend_hash_get_current_key_type_ex,
+        zend_hash_get_current_key_zval_ex, zend_hash_index_del, zend_hash_index_find,
+        zend_hash_index_update, zend_hash_move_backwards_ex, zend_hash_move_forward_ex,
         zend_hash_next_index_insert, zend_hash_str_del, zend_hash_str_find, zend_hash_str_update,
-        HT_MIN_SIZE,
+        HashPosition, HT_MIN_SIZE,
     },
     flags::DataType,
     types::Zval,
@@ -117,7 +118,7 @@ impl ZendHashTable {
     /// assert_eq!(ht.len(), 2);
     /// ```
     pub fn len(&self) -> usize {
-        self.nNumOfElements as usize
+        unsafe { zend_array_count(self as *const ZendHashTable as *mut ZendHashTable) as usize }
     }
 
     /// Returns whether the hash table is empty.
@@ -520,8 +521,8 @@ impl ToOwned for ZendHashTable {
 /// Immutable iterator upon a reference to a hashtable.
 pub struct Iter<'a> {
     ht: &'a ZendHashTable,
-    pos: Option<NonNull<_Bucket>>,
-    end: Option<NonNull<_Bucket>>,
+    current_num: u64,
+    pos: HashPosition,
 }
 
 impl<'a> Iter<'a> {
@@ -531,18 +532,11 @@ impl<'a> Iter<'a> {
     ///
     /// * `ht` - The hashtable to iterate.
     pub fn new(ht: &'a ZendHashTable) -> Self {
-        #[cfg(not(php82))]
-        return Self {
+        Self {
             ht,
-            pos: NonNull::new(ht.arData),
-            end: NonNull::new(unsafe { ht.arData.offset(ht.nNumUsed as isize) }),
-        };
-        #[cfg(php82)]
-        return Self {
-            ht,
-            pos: NonNull::new(unsafe { ht.__bindgen_anon_1.arData }),
-            end: NonNull::new(unsafe { ht.__bindgen_anon_1.arData.offset(ht.nNumUsed as isize) }),
-        };
+            current_num: 0,
+            pos: 0,
+        }
     }
 }
 
@@ -550,18 +544,45 @@ impl<'a> Iterator for Iter<'a> {
     type Item = (u64, Option<String>, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let pos = self.pos?;
+        let key_type = unsafe {
+            zend_hash_get_current_key_type_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
 
-        if pos == self.end? {
+        if key_type == -1 {
             return None;
         }
 
-        let bucket = unsafe { pos.as_ref() };
-        let key = unsafe { bucket.key.as_ref() }.and_then(|s| s.try_into().ok());
+        let key = Zval::new();
+        unsafe {
+            zend_hash_get_current_key_zval_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &key as *const Zval as *mut Zval,
+                &mut self.pos as *mut HashPosition,
+            );
+        }
+        let value = unsafe {
+            &*zend_hash_get_current_data_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+        let r: (u64, Option<String>, &Zval) = match key.is_long() {
+            true => (key.long().unwrap_or(0) as u64, None, value),
+            false => (self.current_num, key.try_into().ok(), value),
+        };
 
-        self.pos = NonNull::new(unsafe { pos.as_ptr().offset(1) });
+        unsafe {
+            zend_hash_move_forward_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+        self.current_num += 1;
 
-        Some((bucket.h, key, &bucket.val))
+        Some(r)
     }
 
     fn count(self) -> usize
@@ -580,18 +601,45 @@ impl<'a> ExactSizeIterator for Iter<'a> {
 
 impl<'a> DoubleEndedIterator for Iter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let end = self.end?;
+        let key_type = unsafe {
+            zend_hash_get_current_key_type_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
 
-        if end == self.pos? {
+        if key_type == -1 {
             return None;
         }
 
-        let new_end = NonNull::new(unsafe { end.as_ptr().offset(-1) })?;
-        let bucket = unsafe { new_end.as_ref() };
-        let key = unsafe { bucket.key.as_ref() }.and_then(|s| s.try_into().ok());
-        self.end = Some(new_end);
+        let key = Zval::new();
+        unsafe {
+            zend_hash_get_current_key_zval_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &key as *const Zval as *mut Zval,
+                &mut self.pos as *mut HashPosition,
+            );
+        }
+        let value = unsafe {
+            &*zend_hash_get_current_data_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+        let r: (u64, Option<String>, &Zval) = match key.is_long() {
+            true => (key.long().unwrap_or(0) as u64, None, value),
+            false => (self.current_num, key.try_into().ok(), value),
+        };
 
-        Some((bucket.h, key, &bucket.val))
+        unsafe {
+            zend_hash_move_backwards_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+        self.current_num -= 1;
+
+        Some(r)
     }
 }
 

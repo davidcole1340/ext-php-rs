@@ -359,7 +359,32 @@ extern "C" {
     pub fn zend_hash_index_find(ht: *const HashTable, h: zend_ulong) -> *mut zval;
 }
 extern "C" {
+    pub fn zend_hash_move_forward_ex(ht: *mut HashTable, pos: *mut HashPosition) -> zend_result;
+}
+extern "C" {
+    pub fn zend_hash_move_backwards_ex(ht: *mut HashTable, pos: *mut HashPosition) -> zend_result;
+}
+extern "C" {
+    pub fn zend_hash_get_current_key_zval_ex(
+        ht: *const HashTable,
+        key: *mut zval,
+        pos: *const HashPosition,
+    );
+}
+extern "C" {
+    pub fn zend_hash_get_current_key_type_ex(
+        ht: *mut HashTable,
+        pos: *mut HashPosition,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn zend_hash_get_current_data_ex(ht: *mut HashTable, pos: *mut HashPosition) -> *mut zval;
+}
+extern "C" {
     pub fn _zend_new_array(size: u32) -> *mut HashTable;
+}
+extern "C" {
+    pub fn zend_array_count(ht: *mut HashTable) -> u32;
 }
 extern "C" {
     pub fn zend_array_dup(source: *mut HashTable) -> *mut HashTable;
