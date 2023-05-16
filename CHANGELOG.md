@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.10.1
+- chore: Bitflags upgrade to v2 by @ptondereau [#221]
+- chore: Update to bindgen 0.65.1 @ptondereau [#220]
+- fix: Switch to use zend apis for array iteration by @joehoyle [#219]
+- docs: Fix some typos + badges by @striezel [#218]
+- fix: Stop watching Cargo.lock for changes by @rmccue [#217]
+- fix: Fix Zval IS_PTR type detection by @joehoyle [#216]
+- feat: Pass args to startup function by @joehoyle [#215]
+- chore: Mate GlobalExecutor::get_mut() public by @joehoyle [#214]
+- feat: Add is_identical for zvals by @Christian-Rades [#213]
+
+[#213]: https://github.com/davidcole1340/ext-php-rs/pull/217
+[#214]: https://github.com/davidcole1340/ext-php-rs/pull/227
+[#215]: https://github.com/davidcole1340/ext-php-rs/pull/226
+[#216]: https://github.com/davidcole1340/ext-php-rs/pull/223
+[#217]: https://github.com/davidcole1340/ext-php-rs/pull/232
+[#218]: https://github.com/davidcole1340/ext-php-rs/pull/234
+[#219]: https://github.com/davidcole1340/ext-php-rs/pull/240
+[#220]: https://github.com/davidcole1340/ext-php-rs/pull/241
+[#221]: https://github.com/davidcole1340/ext-php-rs/pull/242
+
 ## 0.10.0
 - feat: Add PHP 8.2 support by @ptondereau [#212]
 
