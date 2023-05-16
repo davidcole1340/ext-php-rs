@@ -555,7 +555,7 @@ impl Zval {
         // SAFETY: If the value if refcounted (`self.u1.type_info & Z_TYPE_FLAGS_MASK`)
         // then it is valid to dereference `self.value.counted`.
         unsafe {
-            let flags = ZvalTypeFlags::from_bits_unchecked(self.u1.type_info);
+            let flags = ZvalTypeFlags::from_bits_retain(self.u1.type_info);
             if flags.contains(ZvalTypeFlags::RefCounted) {
                 (*self.value.counted).gc.refcount += 1;
             }
