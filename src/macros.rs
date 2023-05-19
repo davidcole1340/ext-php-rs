@@ -435,5 +435,3 @@ macro_rules! php_println {
 
 pub(crate) use into_zval;
 pub(crate) use try_from_zval;
-
-use crate::types::Zval;

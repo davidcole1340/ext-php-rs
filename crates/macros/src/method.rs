@@ -180,35 +180,33 @@ pub fn parser(
             input.sig.asyncness = None;
             let stmts = input.block;
             input.block = parse_quote! {{
-                let future = async #stmts ;
+                let future = async #stmts;
 
-                let future = GLOBAL_CONNECTION.with_borrow_mut(|c| -> ::ext_php_rs::prelude::PhpResult<_> {
+                let future = GLOBAL_CONNECTION.with_borrow_mut(|c| {
                     let c = c.as_mut().unwrap();
                     let f = ::ext_php_rs::get_current_suspension!();
                     let idx = c.fibers.len() as u64;
                     let mut callable = Zval::new();
-                    callable.set_array(vec![f, "resume".into_zval(false)?])?;
+                    callable.set_array(vec![f, "resume".into_zval(false).unwrap()]).unwrap();
                     c.fibers.insert_at_index(idx, callable).unwrap();
 
                     let sender = c.sender.clone();
-                    let mut notifier = c.notify_sender.try_clone()
-                        .map_err(|err| format!("Could not clone fd: {}", err))?;
+                    let mut notifier = c.notify_sender.try_clone().unwrap();
 
-                    Ok(::ext_php_rs::zend::RUNTIME.spawn(async move {
+                    ::ext_php_rs::zend::RUNTIME.spawn(async move {
                         let res = future.await;
                         sender.send(idx).unwrap();
                         notifier.write_all(&[0]).unwrap();
                         res
-                    }))
-                })?;
+                    })
+                });
 
                 let mut callable = Zval::new();
-                callable.set_array(vec![::ext_php_rs::get_current_suspension!(), "suspend".into_zval(false)?])?;
-                call_user_func!(callable)?;
+                callable.set_array(vec![::ext_php_rs::get_current_suspension!(), "suspend".into_zval(false).unwrap()]).unwrap();
+                call_user_func!(callable).unwrap();
 
-                return Ok(::ext_php_rs::zend::RUNTIME
-                    .block_on(future)
-                    .map_err(|err| format!("Error while joining: {}", err))?);
+                return ::ext_php_rs::zend::RUNTIME
+                    .block_on(future).unwrap();
             }};
         }
         let this = match method_type {

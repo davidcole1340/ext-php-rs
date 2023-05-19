@@ -1,7 +1,5 @@
 //! Types related to the PHP executor globals.
 
-use std::any::Any;
-use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
 
 use lazy_static::lazy_static;

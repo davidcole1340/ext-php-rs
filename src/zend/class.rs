@@ -1,7 +1,7 @@
 //! Builder and objects for creating classes in the PHP world.
 
 use crate::{ffi::zend_class_entry, flags::ClassFlags, types::ZendStr, zend::ExecutorGlobals};
-use std::{convert::TryInto, fmt::Debug, ops::{DerefMut, Deref}};
+use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
 
 /// A PHP class entry.
 ///
