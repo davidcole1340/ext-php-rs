@@ -179,10 +179,15 @@ pub fn parser(
         if input.sig.asyncness.is_some() {
             input.sig.asyncness = None;
             let stmts = input.block;
+            let this = match method_type {
+                MethodType::Receiver { .. } => quote! { let this = unsafe { std::mem::transmute::<&Self, &'static Self>(self) }; },
+                MethodType::ReceiverClassObject | MethodType::Static => quote! { },
+            };
             input.block = parse_quote! {{
-                let future = async #stmts;
+                #this
+                let future = async move #stmts;
 
-                let future = GLOBAL_CONNECTION.with_borrow_mut(|c| {
+                let future = GLOBAL_CONNECTION.with_borrow_mut(move |c| {
                     let c = c.as_mut().unwrap();
                     let f = ::ext_php_rs::get_current_suspension!();
                     let idx = c.fibers.len() as u64;
