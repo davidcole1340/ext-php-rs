@@ -18,6 +18,8 @@ pub use ex::ExecuteData;
 pub use function::FunctionEntry;
 pub use globals::ExecutorGlobals;
 pub use globals::RUNTIME;
+pub use globals::borrow_unchecked;
+pub use globals::BorrowUnchecked;
 pub use handlers::ZendObjectHandlers;
 pub use module::ModuleEntry;
 
