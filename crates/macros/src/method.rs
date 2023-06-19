@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, Result};
 use quote::ToTokens;
 use std::collections::HashMap;
-use syn::{ReturnType, parse_quote};
+use syn::{ReturnType, parse_quote, PathArguments, GenericArgument};
 
 use crate::helpers::get_docs;
 use crate::{
@@ -380,22 +380,41 @@ fn build_args(
                         _ => bail!("Invalid parameter type."),
                     };
                     let name = param.to_string();
+                    
+                    let mut ty_inner = &*ty.ty;
+                    let mut is_option = false;
 
-                    if let Type::Reference(t) = &*ty.ty {
-                        if t.mutability.is_none() {
-                            if let Type::Path(t) = &*t.elem {
-                                if t.path.is_ident("str") {
-                                    hack_tokens.append_all(
-                                        quote! { let #param = unsafe { ::core::mem::transmute::<&str, &'static str>(#param) }; }
-                                    );
-                                } else {
-                                    hack_tokens.append_all(
-                                        quote! { let #param = unsafe { ::ext_php_rs::zend::borrow_unchecked(#param) }; }
-                                    );
+                    if let Type::Path(t) = ty_inner {
+                        if t.path.segments[0].ident.to_string() == "Option" {
+                            if let PathArguments::AngleBracketed(t) = &t.path.segments[0].arguments {
+                                if let GenericArgument::Type(t) = &t.args[0] {
+                                    ty_inner = t;
+                                    is_option = true;
                                 }
                             }
                         }
-                    };
+                    }
+                    let mut is_str = false;
+                    if let Type::Reference(t) = ty_inner {
+                        if t.mutability.is_none() {
+                            if let Type::Path(t) = &*t.elem {
+                                is_str = t.path.is_ident("str");
+                            }
+                        }
+                    }
+                    hack_tokens.append_all(if is_str {
+                        if is_option {
+                            quote! { let #param = #param.and_then(|__temp| Some(unsafe { ::core::mem::transmute::<&str, &'static str>(__temp) })); }
+                        } else {
+                            quote! { let #param = unsafe { ::core::mem::transmute::<&str, &'static str>(#param) }; }
+                        }
+                    } else {
+                        if is_option {
+                            quote! { let #param = #param.and_then(|__temp| Some(unsafe { ::ext_php_rs::zend::borrow_unchecked(__temp) })); }
+                        } else {
+                            quote! { let #param = unsafe { ::ext_php_rs::zend::borrow_unchecked(#param) }; }
+                        }
+                    });
 
                     let default = defaults.get(&name);
                     let mut ty = ty.ty.clone();

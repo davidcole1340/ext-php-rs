@@ -6,6 +6,7 @@ use lazy_static::lazy_static;
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tokio::runtime::Runtime;
 
+use crate::binary_slice::{BinarySlice, PackSlice};
 use crate::boxed::ZBox;
 use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
 
@@ -152,6 +153,17 @@ unsafe impl<'original, 'unbounded, T: 'unbounded> BorrowUnchecked<'original, 'un
     for &'original mut T
 {
     type Unbounded = &'unbounded mut T;
+
+    #[inline(always)]
+    unsafe fn borrow_unchecked(self) -> Self::Unbounded {
+        unsafe { ::core::mem::transmute(self) }
+    }
+}
+
+unsafe impl<'original, 'unbounded, T: 'unbounded + PackSlice> BorrowUnchecked<'original, 'unbounded>
+    for BinarySlice<'original, T>
+{
+    type Unbounded = BinarySlice<'unbounded, T>;
 
     #[inline(always)]
     unsafe fn borrow_unchecked(self) -> Self::Unbounded {
