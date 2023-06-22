@@ -2,9 +2,7 @@
 
 use std::ops::{Deref, DerefMut};
 
-use lazy_static::lazy_static;
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use tokio::runtime::Runtime;
 
 use crate::binary_slice::{BinarySlice, PackSlice};
 use crate::boxed::ZBox;
@@ -70,10 +68,6 @@ impl ExecutorGlobals {
     }
 }
 
-lazy_static! {
-    pub static ref RUNTIME: Runtime = Runtime::new().expect("Could not allocate runtime");
-}
-
 /// Executor globals rwlock.
 ///
 /// PHP provides no indication if the executor globals are being accessed so
@@ -115,58 +109,5 @@ impl<T> Deref for GlobalWriteGuard<T> {
 impl<T> DerefMut for GlobalWriteGuard<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.globals
-    }
-}
-
-
-
-#[inline(always)]
-pub unsafe fn borrow_unchecked<
-    'original,
-    'unbounded,
-    Ref: BorrowUnchecked<'original, 'unbounded>,
->(
-    reference: Ref,
-) -> Ref::Unbounded {
-    unsafe { BorrowUnchecked::borrow_unchecked(reference) }
-}
-
-#[doc(hidden)]
-pub unsafe trait BorrowUnchecked<'original, 'unbounded> {
-    type Unbounded;
-
-    unsafe fn borrow_unchecked(self) -> Self::Unbounded;
-}
-
-unsafe impl<'original, 'unbounded, T: 'unbounded> BorrowUnchecked<'original, 'unbounded>
-    for &'original T
-{
-    type Unbounded = &'unbounded T;
-
-    #[inline(always)]
-    unsafe fn borrow_unchecked(self) -> Self::Unbounded {
-        unsafe { ::core::mem::transmute(self) }
-    }
-}
-
-unsafe impl<'original, 'unbounded, T: 'unbounded> BorrowUnchecked<'original, 'unbounded>
-    for &'original mut T
-{
-    type Unbounded = &'unbounded mut T;
-
-    #[inline(always)]
-    unsafe fn borrow_unchecked(self) -> Self::Unbounded {
-        unsafe { ::core::mem::transmute(self) }
-    }
-}
-
-unsafe impl<'original, 'unbounded, T: 'unbounded + PackSlice> BorrowUnchecked<'original, 'unbounded>
-    for BinarySlice<'original, T>
-{
-    type Unbounded = BinarySlice<'unbounded, T>;
-
-    #[inline(always)]
-    unsafe fn borrow_unchecked(self) -> Self::Unbounded {
-        unsafe { ::core::mem::transmute(self) }
     }
 }

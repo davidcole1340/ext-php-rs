@@ -8,6 +8,8 @@ mod function;
 mod globals;
 mod handlers;
 mod module;
+mod fibers;
+mod borrow_unchecked;
 
 use crate::{error::Result, ffi::php_printf};
 use std::ffi::CString;
@@ -16,10 +18,14 @@ pub use _type::ZendType;
 pub use class::ClassEntry;
 pub use ex::ExecuteData;
 pub use function::FunctionEntry;
+pub use function::Function;
 pub use globals::ExecutorGlobals;
-pub use globals::RUNTIME;
-pub use globals::borrow_unchecked;
-pub use globals::BorrowUnchecked;
+pub use fibers::RUNTIME;
+pub use fibers::EVENTLOOP;
+pub use fibers::request_shutdown;
+pub use fibers::request_startup;
+pub use borrow_unchecked::borrow_unchecked;
+pub use borrow_unchecked::BorrowUnchecked;
 pub use handlers::ZendObjectHandlers;
 pub use module::ModuleEntry;
 

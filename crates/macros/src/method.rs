@@ -194,28 +194,22 @@ pub fn parser(
                 #hack_tokens
                 let future = async move #stmts;
 
-                let future = GLOBAL_CONNECTION.with_borrow_mut(move |c| {
+                let future = ::ext_php_rs::zend::EVENTLOOP.with_borrow_mut(move |c| {
                     let c = c.as_mut().unwrap();
-                    let f = ::ext_php_rs::get_current_suspension!();
-                    let idx = c.fibers.len() as u64;
-                    let mut callable = Zval::new();
-                    callable.set_array(vec![f, "resume".into_zval(false).unwrap()]).unwrap();
-                    c.fibers.insert_at_index(idx, callable).unwrap();
+                    let idx = c.prepare_resume();
 
                     let sender = c.sender.clone();
                     let mut notifier = c.notify_sender.try_clone().unwrap();
 
-                    ::ext_php_rs::zend::RUNTIME.spawn(async move {
+                    let res = ::ext_php_rs::zend::RUNTIME.spawn(async move {
                         let res = future.await;
                         sender.send(idx).unwrap();
-                        notifier.write_all(&[0]).unwrap();
+                        ::std::io::Write::write_all(&mut notifier, &[0]).unwrap();
                         res
                     })
                 });
 
-                let mut callable = Zval::new();
-                callable.set_array(vec![::ext_php_rs::get_current_suspension!(), "suspend".into_zval(false).unwrap()]).unwrap();
-                call_user_func!(callable).unwrap();
+                ::ext_php_rs::zend::EVENTLOOP.suspend();
 
                 return ::ext_php_rs::zend::RUNTIME
                     .block_on(future).unwrap();

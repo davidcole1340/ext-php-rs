@@ -1,8 +1,8 @@
 use crate::{
     error::Result,
     ffi::{ext_php_rs_php_build_id, ZEND_MODULE_API_NO},
-    zend::{FunctionEntry, ModuleEntry},
-    PHP_DEBUG, PHP_ZTS,
+    zend::{FunctionEntry, ModuleEntry, request_shutdown, request_startup},
+    PHP_DEBUG, PHP_ZTS, types::ZendClassObject,
 };
 
 use std::{ffi::CString, mem, ptr};
@@ -64,8 +64,8 @@ impl ModuleBuilder {
                 functions: ptr::null(),
                 module_startup_func: None,
                 module_shutdown_func: None,
-                request_startup_func: None,
-                request_shutdown_func: None,
+                request_startup_func: Some(request_startup),
+                request_shutdown_func: Some(request_shutdown),
                 info_func: None,
                 version: ptr::null(),
                 globals_size: 0,

@@ -5,6 +5,7 @@
 #![allow(non_snake_case)]
 #![cfg_attr(docs, feature(doc_cfg))]
 #![cfg_attr(windows, feature(abi_vectorcall))]
+#![feature(thread_local, local_key_cell_methods)]
 
 pub mod alloc;
 pub mod args;
@@ -35,6 +36,7 @@ pub mod zend;
 /// A module typically glob-imported containing the typically required macros
 /// and imports.
 pub mod prelude {
+    use crate::boxed::ZBox;
     pub use crate::builders::ModuleBuilder;
     #[cfg(any(docs, feature = "closure"))]
     #[cfg_attr(docs, doc(cfg(feature = "closure")))]
