@@ -86,10 +86,7 @@ impl EventLoop {
     }
 
     pub fn suspend() {
-        EVENTLOOP.with_borrow_mut(|c| {
-            let c = c.as_mut().unwrap();
-            call_user_func!(c.get_current_suspension).unwrap().try_call_method("suspend", vec![]).unwrap();
-        });
+        call_user_func!(Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").unwrap()).unwrap().try_call_method("suspend", vec![]).unwrap();
     }
 
     pub fn get_sender(&self) -> Sender<u64> {
