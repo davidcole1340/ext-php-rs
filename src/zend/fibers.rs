@@ -7,13 +7,15 @@ use crate::zend::Function;
 use std::cell::RefCell;
 use std::fs::File;
 use std::future::Future;
-use std::io;
+use std::io::{self, Write};
 use std::os::fd::{RawFd, FromRawFd};
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::io::Read;
 use lazy_static::lazy_static;
 use tokio::runtime::Runtime;
 use std::os::fd::AsRawFd;
+
+use super::borrow_unchecked;
 
 lazy_static! {
     pub static ref RUNTIME: Runtime = Runtime::new().expect("Could not allocate runtime");
@@ -60,7 +62,7 @@ impl EventLoop {
     }
     
     pub fn suspend_on<T: Send + 'static, F: Future<Output = T> + Send + 'static>(future: F) -> T {
-        let future = EVENTLOOP.with_borrow_mut(move |c| {
+        let (future, get_current_suspension) = EVENTLOOP.with_borrow_mut(move |c| {
             let c = c.as_mut().unwrap();
             let idx = c.fibers.len() as u64;
             c.fibers.insert_at_index(idx, call_user_func!(c.get_current_suspension).unwrap()).unwrap();
@@ -68,15 +70,17 @@ impl EventLoop {
             let sender = c.sender.clone();
             let mut notifier = c.notify_sender.try_clone().unwrap();
 
-            RUNTIME.spawn(async move {
+            (RUNTIME.spawn(async move {
                 let res = future.await;
                 sender.send(idx).unwrap();
-                ::std::io::Write::write_all(&mut notifier, &[0]).unwrap();
+                notifier.write_all(&[0]).unwrap();
                 res
+            }), unsafe {
+                borrow_unchecked(&c.get_current_suspension)
             })
         });
 
-        call_user_func!(Function::from_method("\\Revolt\\EventLoop", "getSuspension")).unwrap().try_call_method("suspend", vec![]).unwrap();
+        call_user_func!(get_current_suspension).unwrap().try_call_method("suspend", vec![]).unwrap();
 
         return RUNTIME.block_on(future).unwrap();
     }
