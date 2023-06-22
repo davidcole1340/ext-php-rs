@@ -198,10 +198,10 @@ pub fn parser(
                     let c = c.as_mut().unwrap();
                     let idx = c.prepare_resume();
 
-                    let sender = c._sender.clone();
-                    let mut notifier = c._notify_sender.try_clone().unwrap();
+                    let sender = c.get_sender();
+                    let mut notifier = c.get_notify_sender();
 
-                    let res = ::ext_php_rs::zend::RUNTIME.spawn(async move {
+                    ::ext_php_rs::zend::RUNTIME.spawn(async move {
                         let res = future.await;
                         sender.send(idx).unwrap();
                         ::std::io::Write::write_all(&mut notifier, &[0]).unwrap();
@@ -209,7 +209,7 @@ pub fn parser(
                     })
                 });
 
-                ::ext_php_rs::zend::EVENTLOOP.suspend();
+                ::ext_php_rs::zend::EventLoop::suspend();
 
                 return ::ext_php_rs::zend::RUNTIME
                     .block_on(future).unwrap();

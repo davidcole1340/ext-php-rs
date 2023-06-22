@@ -1,13 +1,10 @@
 
 use crate::boxed::ZBox;
-use crate::class::{ClassMetadata, RegisteredClass};
 use crate::prelude::PhpResult;
-use crate::props::Property;
-use crate::types::{ZendHashTable, ZendClassObject};
+use crate::types::ZendHashTable;
 use crate::zend::Function;
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::os::fd::{RawFd, FromRawFd};
@@ -31,13 +28,13 @@ fn sys_pipe() -> io::Result<(RawFd, RawFd)> {
     Ok((pipefd[0], pipefd[1]))
 }
 
-pub struct GlobalConnection {
+pub struct EventLoop {
     fibers: ZBox<ZendHashTable>,
 
-    _sender: Sender<u64>,
+    sender: Sender<u64>,
     receiver: Receiver<u64>,
 
-    _notify_sender: File,
+    notify_sender: File,
     notify_receiver: File,
 
     get_current_suspension: Function,
@@ -47,30 +44,20 @@ pub struct GlobalConnection {
     dummy: [u8; 1],
 }
 
-impl GlobalConnection {
-    pub fn getEventFd() -> u64 {
-        EVENTLOOP.with_borrow(|c| {
-            c.as_ref().unwrap().notify_receiver.as_raw_fd() as u64
-        })
-    }
-    pub fn wakeup() -> PhpResult<()> {
-        EVENTLOOP.with_borrow_mut(|c| {
-            c.as_mut().unwrap().wakeup_internal()
-        })
-    }
-}
-
-impl GlobalConnection {
-    fn new() -> PhpResult<Self> {
+impl EventLoop {
+    pub fn new() -> PhpResult<Self> {
         let (sender, receiver) = channel();
         let (notify_receiver, notify_sender) =
             sys_pipe().map_err(|err| format!("Could not create pipe: {}", err))?;
 
+        call_user_func!(Function::try_from_function("class_exists").unwrap(), "\\Revolt\\EventLoop").unwrap();
+        call_user_func!(Function::try_from_function("interface_exists").unwrap(), "\\Revolt\\EventLoop\\Suspension").unwrap();
+
         Ok(Self {
             fibers: ZendHashTable::new(),
-            _sender: sender,
+            sender: sender,
             receiver: receiver,
-            _notify_sender: unsafe { File::from_raw_fd(notify_sender) },
+            notify_sender: unsafe { File::from_raw_fd(notify_sender) },
             notify_receiver: unsafe { File::from_raw_fd(notify_receiver) },
             dummy: [0; 1],
             get_current_suspension: Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").unwrap(),
@@ -78,8 +65,12 @@ impl GlobalConnection {
             resume: Function::try_from_method("\\Revolt\\EventLoop\\Suspension", "resume").unwrap()
         })
     }
+
+    pub fn get_event_fd(&self)->u64 {
+        self.notify_receiver.as_raw_fd() as u64
+    }
     
-    fn wakeup_internal(&mut self) -> PhpResult<()> {
+    pub fn wakeup_internal(&mut self) -> PhpResult<()> {
         self.notify_receiver.read_exact(&mut self.dummy).unwrap();
 
         for fiber_id in self.receiver.try_iter() {
@@ -106,34 +97,15 @@ impl GlobalConnection {
         }).unwrap();
         ()
     }
-}
 
-class_derives!(GlobalConnection);
-
-static EVENTLOOP_META: ClassMetadata<GlobalConnection> = ClassMetadata::new();
-
-impl RegisteredClass for GlobalConnection {
-    const CLASS_NAME: &'static str = "GlobalConnection";
-
-    fn get_metadata() -> &'static ClassMetadata<Self> {
-        &EVENTLOOP_META
+    pub fn get_sender(&self) -> Sender<u64> {
+        self.sender.clone()
     }
-
-    fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>> {
-        HashMap::new()
+    pub fn get_notify_sender(&self) -> File {
+        self.notify_sender.try_clone().unwrap()
     }
 }
 
 thread_local! {
-    pub static EVENTLOOP: RefCell<Option<ZBox<ZendClassObject<GlobalConnection>>>> = RefCell::new(None);
-}
-
-pub extern "C" fn request_startup(_type: i32, _module_number: i32) -> i32 {
-    EVENTLOOP.set(Some(ZendClassObject::new(GlobalConnection::new().unwrap())));
-    0
-}
-
-pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -> i32 {
-    EVENTLOOP.set(None);
-    0
+    pub static EVENTLOOP: RefCell<Option<EventLoop>> = RefCell::new(None);
 }
