@@ -50,8 +50,8 @@ impl EventLoop {
         let (notify_receiver, notify_sender) =
             sys_pipe().map_err(|err| format!("Could not create pipe: {}", err))?;
 
-        call_user_func!(Function::try_from_function("class_exists").unwrap(), "\\Revolt\\EventLoop")?;
-        call_user_func!(Function::try_from_function("interface_exists").unwrap(), "\\Revolt\\EventLoop\\Suspension")?;
+        call_user_func!(Function::from_function("class_exists"), "\\Revolt\\EventLoop")?;
+        call_user_func!(Function::from_function("interface_exists"), "\\Revolt\\EventLoop\\Suspension")?;
 
         Ok(Self {
             fibers: ZendHashTable::new(),
@@ -95,7 +95,6 @@ impl EventLoop {
             let mut suspension = call_user_func!(c.get_current_suspension).unwrap();
             c.suspend.try_call_obj(&mut suspension, vec![])
         }).unwrap();
-        ()
     }
 
     pub fn get_sender(&self) -> Sender<u64> {

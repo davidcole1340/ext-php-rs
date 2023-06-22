@@ -68,6 +68,14 @@ impl Function {
         }
     }
 
+    pub fn from_function(name: &str) -> Self {
+        Self::try_from_function(name).unwrap()
+    }
+
+    pub fn from_method(class: &str, name: &str) -> Self {
+        Self::try_from_method(class, name).unwrap()
+    }
+
     /// Attempts to call the callable with a list of arguments to pass to the
     /// function.
     ///
