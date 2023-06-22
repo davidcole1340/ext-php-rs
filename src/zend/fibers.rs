@@ -6,6 +6,7 @@ use crate::zend::Function;
 
 use std::cell::RefCell;
 use std::fs::File;
+use std::future::Future;
 use std::io;
 use std::os::fd::{RawFd, FromRawFd};
 use std::sync::mpsc::{Sender, Receiver, channel};
@@ -16,6 +17,10 @@ use std::os::fd::AsRawFd;
 
 lazy_static! {
     pub static ref RUNTIME: Runtime = Runtime::new().expect("Could not allocate runtime");
+}
+
+thread_local! {
+    static EVENTLOOP: RefCell<Option<EventLoop>> = RefCell::new(None);
 }
 
 #[cfg(any(target_os = "linux", target_os = "solaris"))]
@@ -43,7 +48,50 @@ pub struct EventLoop {
 }
 
 impl EventLoop {
-    pub fn new() -> PhpResult<Self> {
+    pub fn init() -> PhpResult<u64> {
+        EVENTLOOP.with_borrow_mut(|e| {
+            Ok(
+                match e {
+                    None => e.insert(Self::new()?),
+                    Some(ev) => ev
+                }.notify_receiver.as_raw_fd() as u64
+            )
+        })
+    }
+    
+    pub fn suspend_on<T: Send + 'static, F: Future<Output = T> + Send + 'static>(future: F) -> T {
+        let future = EVENTLOOP.with_borrow_mut(move |c| {
+            let c = c.as_mut().unwrap();
+            let idx = c.fibers.len() as u64;
+            c.fibers.insert_at_index(idx, call_user_func!(c.get_current_suspension).unwrap()).unwrap();
+
+            let sender = c.sender.clone();
+            let mut notifier = c.notify_sender.try_clone().unwrap();
+
+            RUNTIME.spawn(async move {
+                let res = future.await;
+                sender.send(idx).unwrap();
+                ::std::io::Write::write_all(&mut notifier, &[0]).unwrap();
+                res
+            })
+        });
+
+        call_user_func!(Function::from_method("\\Revolt\\EventLoop", "getSuspension")).unwrap().try_call_method("suspend", vec![]).unwrap();
+
+        return RUNTIME.block_on(future).unwrap();
+    }
+    
+    pub fn wakeup() -> PhpResult<()> {
+        EVENTLOOP.with_borrow_mut(|c| {
+            c.as_mut().unwrap().wakeup_internal()
+        })
+    }
+
+    pub fn shutdown() {
+        EVENTLOOP.set(None)
+    }
+
+    fn new() -> PhpResult<Self> {
         let (sender, receiver) = channel();
         let (notify_receiver, notify_sender) =
             sys_pipe().map_err(|err| format!("Could not create pipe: {}", err))?;
@@ -62,11 +110,7 @@ impl EventLoop {
         })
     }
 
-    pub fn get_event_fd(&self)->u64 {
-        self.notify_receiver.as_raw_fd() as u64
-    }
-    
-    pub fn wakeup_internal(&mut self) -> PhpResult<()> {
+    fn wakeup_internal(&mut self) -> PhpResult<()> {
         self.notify_receiver.read_exact(&mut self.dummy).unwrap();
 
         for fiber_id in self.receiver.try_iter() {
@@ -77,26 +121,11 @@ impl EventLoop {
         }
         Ok(())
     }
-
-    pub fn prepare_resume(&mut self) -> u64 {
-        let idx = self.fibers.len() as u64;
-        self.fibers.insert_at_index(idx, call_user_func!(self.get_current_suspension).unwrap()).unwrap();
-        
-        idx
-    }
-
-    pub fn suspend() {
-        call_user_func!(Function::from_method("\\Revolt\\EventLoop", "getSuspension")).unwrap().try_call_method("suspend", vec![]).unwrap();
-    }
-
-    pub fn get_sender(&self) -> Sender<u64> {
-        self.sender.clone()
-    }
-    pub fn get_notify_sender(&self) -> File {
-        self.notify_sender.try_clone().unwrap()
-    }
 }
 
-thread_local! {
-    pub static EVENTLOOP: RefCell<Option<EventLoop>> = RefCell::new(None);
+impl Drop for EventLoop {
+    fn drop(&mut self) {
+        unsafe { libc::close(self.notify_receiver.as_raw_fd()) };
+        unsafe { libc::close(self.notify_sender.as_raw_fd()) };
+    }
 }

@@ -192,27 +192,8 @@ pub fn parser(
             input.block = parse_quote! {{
                 #this
                 #hack_tokens
-                let future = async move #stmts;
 
-                let future = ::ext_php_rs::zend::EVENTLOOP.with_borrow_mut(move |c| {
-                    let c = c.as_mut().unwrap();
-                    let idx = c.prepare_resume();
-
-                    let sender = c.get_sender();
-                    let mut notifier = c.get_notify_sender();
-
-                    ::ext_php_rs::zend::RUNTIME.spawn(async move {
-                        let res = future.await;
-                        sender.send(idx).unwrap();
-                        ::std::io::Write::write_all(&mut notifier, &[0]).unwrap();
-                        res
-                    })
-                });
-
-                ::ext_php_rs::zend::EventLoop::suspend();
-
-                return ::ext_php_rs::zend::RUNTIME
-                    .block_on(future).unwrap();
+                ::ext_php_rs::zend::EventLoop::suspend_on(async move #stmts)
             }};
         }
         let this = match method_type {

@@ -21,7 +21,6 @@ pub use function::FunctionEntry;
 pub use function::Function;
 pub use globals::ExecutorGlobals;
 pub use fibers::RUNTIME;
-pub use fibers::EVENTLOOP;
 pub use fibers::EventLoop;
 pub use borrow_unchecked::borrow_unchecked;
 pub use borrow_unchecked::BorrowUnchecked;
