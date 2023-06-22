@@ -198,8 +198,8 @@ pub fn parser(
                     let c = c.as_mut().unwrap();
                     let idx = c.prepare_resume();
 
-                    let sender = c.sender.clone();
-                    let mut notifier = c.notify_sender.try_clone().unwrap();
+                    let sender = c._sender.clone();
+                    let mut notifier = c._notify_sender.try_clone().unwrap();
 
                     let res = ::ext_php_rs::zend::RUNTIME.spawn(async move {
                         let res = future.await;

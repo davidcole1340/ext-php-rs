@@ -2,7 +2,7 @@ use crate::{
     error::Result,
     ffi::{ext_php_rs_php_build_id, ZEND_MODULE_API_NO},
     zend::{FunctionEntry, ModuleEntry, request_shutdown, request_startup},
-    PHP_DEBUG, PHP_ZTS, types::ZendClassObject,
+    PHP_DEBUG, PHP_ZTS,
 };
 
 use std::{ffi::CString, mem, ptr};

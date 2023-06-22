@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::binary_slice::{BinarySlice, PackSlice};
+
 use crate::boxed::ZBox;
 use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
 

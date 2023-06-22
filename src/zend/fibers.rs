@@ -3,7 +3,7 @@ use crate::boxed::ZBox;
 use crate::class::{ClassMetadata, RegisteredClass};
 use crate::prelude::PhpResult;
 use crate::props::Property;
-use crate::types::{ZendHashTable, ZendClassObject, Zval};
+use crate::types::{ZendHashTable, ZendClassObject};
 use crate::zend::Function;
 
 use std::cell::RefCell;
@@ -34,10 +34,10 @@ fn sys_pipe() -> io::Result<(RawFd, RawFd)> {
 pub struct GlobalConnection {
     fibers: ZBox<ZendHashTable>,
 
-    sender: Sender<u64>,
+    _sender: Sender<u64>,
     receiver: Receiver<u64>,
 
-    notify_sender: File,
+    _notify_sender: File,
     notify_receiver: File,
 
     get_current_suspension: Function,
@@ -68,9 +68,9 @@ impl GlobalConnection {
 
         Ok(Self {
             fibers: ZendHashTable::new(),
-            sender: sender,
+            _sender: sender,
             receiver: receiver,
-            notify_sender: unsafe { File::from_raw_fd(notify_sender) },
+            _notify_sender: unsafe { File::from_raw_fd(notify_sender) },
             notify_receiver: unsafe { File::from_raw_fd(notify_receiver) },
             dummy: [0; 1],
             get_current_suspension: Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").unwrap(),
