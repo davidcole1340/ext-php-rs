@@ -38,9 +38,7 @@ pub struct EventLoop {
     notify_receiver: File,
 
     get_current_suspension: Function,
-    suspend: Function,
-    resume: Function,
-    
+
     dummy: [u8; 1],
 }
 
@@ -61,8 +59,6 @@ impl EventLoop {
             notify_receiver: unsafe { File::from_raw_fd(notify_receiver) },
             dummy: [0; 1],
             get_current_suspension: Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").ok_or("\\Revolt\\EventLoop::getSuspension does not exist")?,
-            suspend: Function::try_from_method("\\Revolt\\EventLoop\\Suspension", "suspend").ok_or("\\Revolt\\Suspension::suspend does not exist")?,
-            resume: Function::try_from_method("\\Revolt\\EventLoop\\Suspension", "resume").ok_or("\\Revolt\\Suspension::resume does not exist")?
         })
     }
 
@@ -75,7 +71,7 @@ impl EventLoop {
 
         for fiber_id in self.receiver.try_iter() {
             if let Some(fiber) = self.fibers.get_index_mut(fiber_id) {
-                self.resume.try_call_obj(fiber, vec![])?;
+                fiber.object_mut().unwrap().try_call_method("resume", vec![])?;
                 self.fibers.remove_index(fiber_id);
             }
         }
@@ -92,9 +88,8 @@ impl EventLoop {
     pub fn suspend() {
         EVENTLOOP.with_borrow_mut(|c| {
             let c = c.as_mut().unwrap();
-            let mut suspension = call_user_func!(c.get_current_suspension).unwrap();
-            c.suspend.try_call_obj(&mut suspension, vec![])
-        }).unwrap();
+            call_user_func!(c.get_current_suspension).unwrap().try_call_method("suspend", vec![]).unwrap();
+        });
     }
 
     pub fn get_sender(&self) -> Sender<u64> {

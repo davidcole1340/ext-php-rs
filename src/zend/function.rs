@@ -2,7 +2,7 @@
 
 use std::{fmt::Debug, os::raw::c_char, ptr::self};
 
-use crate::{ffi::{zend_function_entry, zend_fetch_function_str, zend_function, zend_hash_str_find_ptr_lc, zend_call_known_function}, convert::IntoZvalDyn, types::Zval, error::{Result, Error}};
+use crate::{ffi::{zend_function_entry, zend_fetch_function_str, zend_function, zend_hash_str_find_ptr_lc, zend_call_known_function}, convert::IntoZvalDyn, types::Zval, error::Result};
 
 use super::ClassEntry;
 
@@ -101,7 +101,7 @@ impl Function {
     /// assert_eq!(result.long(), Some(1));
     /// ```
     #[inline(always)]
-    pub fn try_call(&mut self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
+    pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         let mut retval = Zval::new();
         let len = params.len();
         let params = params
@@ -112,35 +112,9 @@ impl Function {
 
         unsafe {
             zend_call_known_function(
-                self as *mut _,
+                self as *const _ as *mut _,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-                &mut retval,
-                len as _,
-                packed.as_ptr() as *mut _,
-                std::ptr::null_mut(),
-            )
-        };
-
-        Ok(retval)
-    }
-
-    #[inline(always)]
-    pub fn try_call_obj(&mut self, obj: &mut Zval, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
-        let obj = obj.object_mut().ok_or(Error::Object)?;
-        let mut retval = Zval::new();
-        let len = params.len();
-        let params = params
-            .into_iter()
-            .map(|val| val.as_zval(false))
-            .collect::<Result<Vec<_>>>()?;
-        let packed = params.into_boxed_slice();
-
-        unsafe {
-            zend_call_known_function(
-                self as *mut _,
-                obj as *mut _,
-                obj.ce,
                 &mut retval,
                 len as _,
                 packed.as_ptr() as *mut _,
