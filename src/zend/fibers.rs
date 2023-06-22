@@ -15,7 +15,7 @@ use lazy_static::lazy_static;
 use tokio::runtime::Runtime;
 use std::os::fd::AsRawFd;
 
-use super::borrow_unchecked;
+use super::{borrow_unchecked, printf};
 
 lazy_static! {
     pub static ref RUNTIME: Runtime = Runtime::new().expect("Could not allocate runtime");
@@ -87,7 +87,17 @@ impl EventLoop {
     
     pub fn wakeup() -> PhpResult<()> {
         EVENTLOOP.with_borrow_mut(|c| {
-            c.as_mut().unwrap().wakeup_internal()
+            let c = c.as_mut().unwrap();
+            
+            c.notify_receiver.read_exact(&mut c.dummy).unwrap();
+
+            for fiber_id in c.receiver.try_iter() {
+                if let Some(fiber) = c.fibers.get_index_mut(fiber_id) {
+                    fiber.object_mut().unwrap().try_call_method("resume", vec![])?;
+                    c.fibers.remove_index(fiber_id);
+                }
+            }
+            Ok(())
         })
     }
 
@@ -112,24 +122,5 @@ impl EventLoop {
             dummy: [0; 1],
             get_current_suspension: Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").ok_or("\\Revolt\\EventLoop::getSuspension does not exist")?,
         })
-    }
-
-    fn wakeup_internal(&mut self) -> PhpResult<()> {
-        self.notify_receiver.read_exact(&mut self.dummy).unwrap();
-
-        for fiber_id in self.receiver.try_iter() {
-            if let Some(fiber) = self.fibers.get_index_mut(fiber_id) {
-                fiber.object_mut().unwrap().try_call_method("resume", vec![])?;
-                self.fibers.remove_index(fiber_id);
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Drop for EventLoop {
-    fn drop(&mut self) {
-        unsafe { libc::close(self.notify_receiver.as_raw_fd()) };
-        unsafe { libc::close(self.notify_sender.as_raw_fd()) };
     }
 }
