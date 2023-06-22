@@ -50,8 +50,8 @@ impl EventLoop {
         let (notify_receiver, notify_sender) =
             sys_pipe().map_err(|err| format!("Could not create pipe: {}", err))?;
 
-        call_user_func!(Function::try_from_function("class_exists").unwrap(), "\\Revolt\\EventLoop").unwrap();
-        call_user_func!(Function::try_from_function("interface_exists").unwrap(), "\\Revolt\\EventLoop\\Suspension").unwrap();
+        call_user_func!(Function::try_from_function("class_exists").unwrap(), "\\Revolt\\EventLoop")?;
+        call_user_func!(Function::try_from_function("interface_exists").unwrap(), "\\Revolt\\EventLoop\\Suspension")?;
 
         Ok(Self {
             fibers: ZendHashTable::new(),
@@ -60,9 +60,9 @@ impl EventLoop {
             notify_sender: unsafe { File::from_raw_fd(notify_sender) },
             notify_receiver: unsafe { File::from_raw_fd(notify_receiver) },
             dummy: [0; 1],
-            get_current_suspension: Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").unwrap(),
-            suspend: Function::try_from_method("\\Revolt\\EventLoop\\Suspension", "suspend").unwrap(),
-            resume: Function::try_from_method("\\Revolt\\EventLoop\\Suspension", "resume").unwrap()
+            get_current_suspension: Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").ok_or("\\Revolt\\EventLoop::getSuspension does not exist")?,
+            suspend: Function::try_from_method("\\Revolt\\EventLoop\\Suspension", "suspend").ok_or("\\Revolt\\Suspension::suspend does not exist")?,
+            resume: Function::try_from_method("\\Revolt\\EventLoop\\Suspension", "resume").ok_or("\\Revolt\\Suspension::resume does not exist")?
         })
     }
 
