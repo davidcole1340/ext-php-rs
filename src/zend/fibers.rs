@@ -86,7 +86,7 @@ impl EventLoop {
     }
 
     pub fn suspend() {
-        call_user_func!(Function::try_from_method("\\Revolt\\EventLoop", "getSuspension").unwrap()).unwrap().try_call_method("suspend", vec![]).unwrap();
+        call_user_func!(Function::from_method("\\Revolt\\EventLoop", "getSuspension")).unwrap().try_call_method("suspend", vec![]).unwrap();
     }
 
     pub fn get_sender(&self) -> Sender<u64> {
