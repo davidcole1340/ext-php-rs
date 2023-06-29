@@ -41,8 +41,18 @@ impl ZendObject {
         // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to
         // `*mut` is valid as the function will not mutate `ce`.
         unsafe {
-            let ptr = zend_objects_new(ce as *const _ as *mut _);
-            object_properties_init(ptr, ce as *const _ as *mut _);
+            let ptr = match ce.__bindgen_anon_2.create_object {
+                None => {
+                    let ptr = zend_objects_new(ce as *const _ as *mut _);
+                    if ptr.is_null() {
+                        panic!("Failed to allocate memory for Zend object")
+                    }
+                    object_properties_init(ptr, ce as *const _ as *mut _);
+                    ptr
+                },
+                Some(v) => v(ce as *const _ as *mut _)
+            };
+
             ZBox::from_raw(
                 ptr.as_mut()
                     .expect("Failed to allocate memory for Zend object"),
