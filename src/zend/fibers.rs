@@ -15,7 +15,7 @@ use lazy_static::lazy_static;
 use tokio::runtime::Runtime;
 use std::os::fd::AsRawFd;
 
-use super::{borrow_unchecked, printf};
+use super::{borrow_unchecked};
 
 lazy_static! {
     pub static ref RUNTIME: Runtime = Runtime::new().expect("Could not allocate runtime");
