@@ -10,7 +10,7 @@ use crate::{
     error::{Error, Result},
     ffi::{
         ext_php_rs_zend_object_release, zend_call_known_function, zend_object, zend_objects_new,
-        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET, zend_hash_str_find_ptr_lc, zend_function,
+        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET, zend_hash_str_find_ptr_lc, zend_function, object_properties_init,
     },
     flags::DataType,
     rc::PhpRc,
@@ -42,6 +42,7 @@ impl ZendObject {
         // `*mut` is valid as the function will not mutate `ce`.
         unsafe {
             let ptr = zend_objects_new(ce as *const _ as *mut _);
+            object_properties_init(ptr, ce as *const _ as *mut _);
             ZBox::from_raw(
                 ptr.as_mut()
                     .expect("Failed to allocate memory for Zend object"),
