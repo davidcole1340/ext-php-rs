@@ -83,12 +83,20 @@ pub const ZEND_MODULE_API_NO: u32 = 20220829;
 pub const USING_ZTS: u32 = 0;
 pub const MAY_BE_BOOL: u32 = 12;
 pub const MAY_BE_ANY: u32 = 1022;
+pub const TRACK_VARS_POST: u32 = 0;
+pub const TRACK_VARS_GET: u32 = 1;
+pub const TRACK_VARS_COOKIE: u32 = 2;
+pub const TRACK_VARS_SERVER: u32 = 3;
+pub const TRACK_VARS_ENV: u32 = 4;
+pub const TRACK_VARS_FILES: u32 = 5;
+pub const TRACK_VARS_REQUEST: u32 = 6;
 pub const CONST_CS: u32 = 0;
 pub const CONST_PERSISTENT: u32 = 1;
 pub const CONST_NO_FILE_CACHE: u32 = 2;
 pub const CONST_DEPRECATED: u32 = 4;
 pub type zend_long = i64;
 pub type zend_ulong = u64;
+pub type zend_bool = bool;
 pub type zend_uchar = ::std::os::raw::c_uchar;
 pub const ZEND_RESULT_CODE_SUCCESS: ZEND_RESULT_CODE = 0;
 pub const ZEND_RESULT_CODE_FAILURE: ZEND_RESULT_CODE = -1;
@@ -305,6 +313,28 @@ extern "C" {
 extern "C" {
     pub fn __zend_malloc(len: usize) -> *mut ::std::os::raw::c_void;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_llist_element {
+    pub next: *mut _zend_llist_element,
+    pub prev: *mut _zend_llist_element,
+    pub data: [::std::os::raw::c_char; 1usize],
+}
+pub type zend_llist_element = _zend_llist_element;
+pub type llist_dtor_func_t =
+    ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_llist {
+    pub head: *mut zend_llist_element,
+    pub tail: *mut zend_llist_element,
+    pub count: usize,
+    pub size: usize,
+    pub dtor: llist_dtor_func_t,
+    pub persistent: ::std::os::raw::c_uchar,
+    pub traverse_ptr: *mut zend_llist_element,
+}
+pub type zend_llist = _zend_llist;
 pub type zend_string_init_interned_func_t = ::std::option::Option<
     unsafe extern "C" fn(
         str_: *const ::std::os::raw::c_char,
@@ -1423,6 +1453,13 @@ pub struct _php_core_globals {
 extern "C" {
     pub static mut core_globals: _php_core_globals;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _arg_separators {
+    pub output: *mut ::std::os::raw::c_char,
+    pub input: *mut ::std::os::raw::c_char,
+}
+pub type arg_separators = _arg_separators;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_ini_entry {
