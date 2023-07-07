@@ -224,8 +224,16 @@ bind! {
     gc_possible_root,
     ZEND_ACC_NOT_SERIALIZABLE,
     executor_globals,
+    php_core_globals,
+    core_globals,
     php_printf,
     __zend_malloc,
     tsrm_get_ls_cache,
-    executor_globals_offset
+    TRACK_VARS_POST,
+    TRACK_VARS_GET,
+    TRACK_VARS_COOKIE,
+    TRACK_VARS_SERVER,
+    TRACK_VARS_ENV,
+    TRACK_VARS_FILES,
+    TRACK_VARS_REQUEST
 }
