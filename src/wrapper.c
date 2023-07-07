@@ -39,3 +39,15 @@ zend_executor_globals *ext_php_rs_executor_globals() {
   return &executor_globals;
 #endif
 }
+
+php_core_globals *ext_php_rs_process_globals() {
+#ifdef ZTS
+#ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+  return TSRMG_FAST_BULK_STATIC(core_globals_offset, php_core_globals);
+#else
+  return TSRMG_FAST_BULK(core_globals_offset, php_core_globals *);
+#endif
+#else
+  return &core_globals;
+#endif
+}

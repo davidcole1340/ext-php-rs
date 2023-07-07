@@ -6,9 +6,9 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::ffi::{
-    _zend_executor_globals, core_globals, ext_php_rs_executor_globals, php_core_globals,
-    TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST,
-    TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
+    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals,
+    php_core_globals, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
+    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
 };
 
 use crate::types::{ZendHashTable, ZendObject};
@@ -85,7 +85,7 @@ impl ProcessGlobals {
     pub fn get() -> GlobalReadGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
-        let globals = unsafe { &core_globals };
+        let globals = unsafe { &*ext_php_rs_process_globals() };
         let guard = PROCESS_GLOBALS_LOCK.read();
         GlobalReadGuard { globals, guard }
     }
@@ -100,7 +100,7 @@ impl ProcessGlobals {
     pub fn get_mut() -> GlobalWriteGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
-        let globals = unsafe { &mut core_globals };
+        let globals = unsafe { &mut *ext_php_rs_process_globals() };
         let guard = PROCESS_GLOBALS_LOCK.write();
         GlobalWriteGuard { globals, guard }
     }

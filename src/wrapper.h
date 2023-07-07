@@ -30,3 +30,4 @@ const char *ext_php_rs_php_build_id();
 void *ext_php_rs_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 void ext_php_rs_zend_object_release(zend_object *obj);
 zend_executor_globals *ext_php_rs_executor_globals();
+php_core_globals *ext_php_rs_process_globals();
