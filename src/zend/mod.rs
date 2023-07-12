@@ -18,6 +18,7 @@ pub use ex::ExecuteData;
 pub use function::FunctionEntry;
 pub use globals::ExecutorGlobals;
 pub use globals::ProcessGlobals;
+pub use globals::SapiGlobals;
 pub use handlers::ZendObjectHandlers;
 pub use module::ModuleEntry;
 

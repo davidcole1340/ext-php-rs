@@ -27,6 +27,7 @@ extern "C" {
     pub fn ext_php_rs_zend_object_release(obj: *mut zend_object);
     pub fn ext_php_rs_executor_globals() -> *mut zend_executor_globals;
     pub fn ext_php_rs_process_globals() -> *mut php_core_globals;
+    pub fn ext_php_rs_sapi_globals() -> *mut sapi_globals_struct;
 }
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
