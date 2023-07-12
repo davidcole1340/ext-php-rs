@@ -6,9 +6,9 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::ffi::{
-    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals,
-    php_core_globals, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
-    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
+    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
+    php_core_globals, sapi_globals_struct, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
+    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER
 };
 
 use crate::types::{ZendHashTable, ZendObject};
@@ -157,12 +157,100 @@ impl ProcessGlobals {
     }
 }
 
+
+/// Stores global variables used in the SAPI.
+pub type SapiGlobals = sapi_globals_struct;
+
+impl SapiGlobals {
+    /// Returns a reference to the PHP process globals.
+    ///
+    /// The process globals are guarded by a RwLock. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    pub fn get() -> GlobalReadGuard<Self> {
+        // SAFETY: PHP executor globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { &*ext_php_rs_sapi_globals() };
+        let guard = SAPI_GLOBALS_LOCK.read();
+        GlobalReadGuard { globals, guard }
+    }
+
+    /// Returns a mutable reference to the PHP executor globals.
+    ///
+    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    pub fn get_mut() -> GlobalWriteGuard<Self> {
+        // SAFETY: PHP executor globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { &mut *ext_php_rs_sapi_globals() };
+        let guard = SAPI_GLOBALS_LOCK.write();
+        GlobalWriteGuard { globals, guard }
+    }
+
+    /// Get the HTTP Server variables. Equivalent of $_SERVER.
+    pub fn http_server_vars(&self) -> Option<&ZendHashTable> {
+        if self.http_globals[TRACK_VARS_SERVER as usize].is_array() {
+            self.http_globals[TRACK_VARS_SERVER as usize].array()
+        } else {
+            None
+        }
+    }
+
+    /// Get the HTTP POST variables. Equivalent of $_POST.
+    pub fn http_post_vars(&self) -> &ZendHashTable {
+        self.http_globals[TRACK_VARS_POST as usize]
+            .array()
+            .expect("Type is not a ZendArray")
+    }
+
+    /// Get the HTTP GET variables. Equivalent of $_GET.
+    pub fn http_get_vars(&self) -> &ZendHashTable {
+        self.http_globals[TRACK_VARS_GET as usize]
+            .array()
+            .expect("Type is not a ZendArray")
+    }
+
+    /// Get the HTTP Cookie variables. Equivalent of $_COOKIE.
+    pub fn http_cookie_vars(&self) -> &ZendHashTable {
+        self.http_globals[TRACK_VARS_COOKIE as usize]
+            .array()
+            .expect("Type is not a ZendArray")
+    }
+
+    /// Get the HTTP Request variables. Equivalent of $_REQUEST.
+    pub fn http_request_vars(&self) -> &ZendHashTable {
+        self.http_globals[TRACK_VARS_REQUEST as usize]
+            .array()
+            .expect("Type is not a ZendArray")
+    }
+
+    /// Get the HTTP Environment variables. Equivalent of $_ENV.
+    pub fn http_env_vars(&self) -> &ZendHashTable {
+        self.http_globals[TRACK_VARS_ENV as usize]
+            .array()
+            .expect("Type is not a ZendArray")
+    }
+
+    /// Get the HTTP Files variables. Equivalent of $_FILES.
+    pub fn http_files_vars(&self) -> &ZendHashTable {
+        self.http_globals[TRACK_VARS_FILES as usize]
+            .array()
+            .expect("Type is not a ZendArray")
+    }
+}
+
 /// Executor globals rwlock.
 ///
 /// PHP provides no indication if the executor globals are being accessed so
 /// this is only effective on the Rust side.
 static GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 static PROCESS_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
+static SAPI_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 
 /// Wrapper guard that contains a reference to a given type `T`. Dropping a
 /// guard releases the lock on the relevant rwlock.

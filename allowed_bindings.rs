@@ -226,6 +226,8 @@ bind! {
     executor_globals,
     php_core_globals,
     core_globals,
+    sapi_globals_struct,
+    sapi_globals,
     php_printf,
     __zend_malloc,
     tsrm_get_ls_cache,
