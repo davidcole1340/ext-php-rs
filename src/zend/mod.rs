@@ -8,6 +8,7 @@ mod function;
 mod globals;
 mod handlers;
 mod module;
+mod linked_list;
 
 use crate::{error::Result, ffi::php_printf};
 use std::ffi::CString;
@@ -21,6 +22,7 @@ pub use globals::ProcessGlobals;
 pub use globals::SapiGlobals;
 pub use handlers::ZendObjectHandlers;
 pub use module::ModuleEntry;
+pub use linked_list::ZendLinkedList;
 
 // Used as the format string for `php_printf`.
 const FORMAT_STR: &[u8] = b"%s\0";
