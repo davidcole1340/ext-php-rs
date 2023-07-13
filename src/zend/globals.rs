@@ -53,23 +53,20 @@ impl ExecutorGlobals {
 
     /// Retrieves the ini values for all ini directives in the current executor context..
     pub fn ini_values(&self) -> HashMap<String, Option<String>> {
-        let hash_table = unsafe { self.ini_directives.as_ref().unwrap() };
+        let hash_table = unsafe { &*self.ini_directives };
         let mut ini_hash_map: HashMap<String, Option<String>> = HashMap::new();
         for (_index, key, value) in hash_table.iter() {
-            match key {
-                Some(key) => {
-                    ini_hash_map.insert(key, unsafe {
-                        let ini_entry = &*value.ptr::<zend_ini_entry>().unwrap();
-                        if ini_entry.value.is_null() {
-                            None
-                        } else {
-                            Some((&*ini_entry.value).as_str().unwrap().to_owned())
-                        }
-                    });
-                    ()
-                }
-                None => (),
+            if let Some(key) = key {
+                ini_hash_map.insert(key, unsafe {
+                    let ini_entry = &*value.ptr::<zend_ini_entry>().expect("Invalid ini entry");
+                    if ini_entry.value.is_null() {
+                        None
+                    } else {
+                        Some((*ini_entry.value).as_str().expect("Ini value is not a string").to_owned())
+                    }
+                });
             }
+
         }
         ini_hash_map
     }

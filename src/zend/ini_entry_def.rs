@@ -15,8 +15,8 @@ impl IniEntryDef {
     /// Returns an empty ini entry, signifying the end of a ini list.
     pub fn new(name: String, default_value: String, permission: IniEntryPermission) -> Self {
         let mut template = Self::end();
-        let name = CString::new(name).unwrap();
-        let value = CString::new(default_value).unwrap();
+        let name = CString::new(name).expect("Unable to create CString from name");
+        let value = CString::new(default_value).expect("Unable to create CString from value");
         template.name_length = name.as_bytes().len() as _;
         template.name = name.into_raw();
         template.value_length = value.as_bytes().len() as _;
