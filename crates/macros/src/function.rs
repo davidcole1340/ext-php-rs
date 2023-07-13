@@ -343,18 +343,12 @@ impl Arg {
             }
             Type::Reference(ref_) => {
                 // Returning references is invalid, so let's just create our arg
-
-                // Change any `&mut T` into `&T` and set the `as_ref` attribute on the Arg
-                // to marked it as a "passed by ref" PHP argument.
-                let mut ref_ = ref_.clone();
-                let is_mutable_ref = ref_.mutability.is_some();
-                ref_.mutability = None;
                 Some(Arg::new(
                     name,
                     ref_.to_token_stream().to_string(),
                     false,
                     default,
-                    is_mutable_ref,
+                    ref_.mutability.is_some(),
                 ))
             }
             _ => None,
