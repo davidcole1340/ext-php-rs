@@ -4,14 +4,14 @@ use std::ops::{Deref, DerefMut};
 use std::slice;
 use std::str;
 
-
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::ffi::{
-    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
-    php_core_globals, sapi_globals_struct, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
-    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER, sapi_request_info, zend_is_auto_global, sapi_headers_struct, sapi_header_struct
+    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals,
+    ext_php_rs_sapi_globals, php_core_globals, sapi_globals_struct, sapi_header_struct,
+    sapi_headers_struct, sapi_request_info, zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV,
+    TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
@@ -112,10 +112,9 @@ impl ProcessGlobals {
 
     /// Get the HTTP Server variables. Equivalent of $_SERVER.
     pub fn http_server_vars(&self) -> Option<&ZendHashTable> {
-
         // $_SERVER is lazy-initted, we need to call zend_is_auto_global
         // if it's not already populated.
-        if ! self.http_globals[TRACK_VARS_SERVER as usize].is_array() {
+        if !self.http_globals[TRACK_VARS_SERVER as usize].is_array() {
             let name = ZendStr::new("_SERVER", false).as_mut_ptr();
             unsafe { zend_is_auto_global(name) };
         }
@@ -169,7 +168,6 @@ impl ProcessGlobals {
     }
 }
 
-
 /// Stores global variables used in the SAPI.
 pub type SapiGlobals = sapi_globals_struct;
 
@@ -208,7 +206,7 @@ impl SapiGlobals {
         &self.request_info
     }
 
-    pub fn sapi_headers(&self) -> &SapiHeaders{
+    pub fn sapi_headers(&self) -> &SapiHeaders {
         &self.sapi_headers
     }
 }
@@ -247,27 +245,21 @@ impl SapiRequestInfo {
         if self.request_method.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.request_method ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.request_method).to_str().ok() }
     }
 
     pub fn query_string(&self) -> Option<&str> {
         if self.query_string.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.query_string ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.query_string).to_str().ok() }
     }
 
     pub fn cookie_data(&self) -> Option<&str> {
         if self.cookie_data.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.cookie_data ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.cookie_data).to_str().ok() }
     }
 
     pub fn content_length(&self) -> i64 {
@@ -278,18 +270,14 @@ impl SapiRequestInfo {
         if self.path_translated.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.path_translated ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.path_translated).to_str().ok() }
     }
 
     pub fn request_uri(&self) -> Option<&str> {
         if self.request_uri.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.request_uri ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.request_uri).to_str().ok() }
     }
 
     // Todo: request_body _php_stream
@@ -298,9 +286,7 @@ impl SapiRequestInfo {
         if self.content_type.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.content_type ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.content_type).to_str().ok() }
     }
 
     pub fn headers_only(&self) -> bool {
@@ -321,45 +307,35 @@ impl SapiRequestInfo {
         if self.auth_user.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.auth_user ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.auth_user).to_str().ok() }
     }
 
     pub fn auth_password(&self) -> Option<&str> {
         if self.auth_password.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.auth_password ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.auth_password).to_str().ok() }
     }
 
     pub fn auth_digest(&self) -> Option<&str> {
         if self.auth_digest.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.auth_digest ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.auth_digest).to_str().ok() }
     }
 
     pub fn argv0(&self) -> Option<&str> {
         if self.argv0.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.argv0 ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.argv0).to_str().ok() }
     }
 
     pub fn current_user(&self) -> Option<&str> {
         if self.current_user.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( self.current_user ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(self.current_user).to_str().ok() }
     }
 
     pub fn current_user_length(&self) -> i32 {
@@ -374,15 +350,12 @@ impl SapiRequestInfo {
         if self.argv.is_null() {
             return None;
         }
-        unsafe {
-            CStr::from_ptr( *self.argv ).to_str().ok()
-        }
+        unsafe { CStr::from_ptr(*self.argv).to_str().ok() }
     }
 
     pub fn proto_num(&self) -> i32 {
         self.proto_num
     }
-
 }
 
 /// Executor globals rwlock.
