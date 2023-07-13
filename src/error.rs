@@ -116,8 +116,7 @@ impl From<Error> for PhpException {
 
 /// Trigger an error that is reported in PHP the same way `trigger_error()` is.
 ///
-/// See specific error type descriptions at https://www.php.net/manual/en/errorfunc.constants.php.
-///
+/// See specific error type descriptions at <https://www.php.net/manual/en/errorfunc.constants.php>.
 pub fn php_error(type_: ErrorType, message: &str) {
     let c_string = match CString::new(message) {
         Ok(string) => string,
