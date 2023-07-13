@@ -122,7 +122,7 @@ pub fn php_error(type_: ErrorType, message: &str) {
     let c_string = match CString::new(message) {
         Ok(string) => string,
         Err(_) => {
-            return ();
+            return;
         }
     };
 
