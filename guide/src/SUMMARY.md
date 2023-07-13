@@ -32,3 +32,4 @@
   - [Constants](./macros/constant.md)
   - [`ZvalConvert`](./macros/zval_convert.md)
 - [Exceptions](./exceptions.md)
+- [INI Settings](./ini-settings.md)
