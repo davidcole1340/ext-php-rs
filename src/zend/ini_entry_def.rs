@@ -1,5 +1,5 @@
 //! Builder for creating inis and methods in PHP.
-//! See https://www.phpinternalsbook.com/php7/extensions_design/ini_settings.html for details.
+//! See <https://www.phpinternalsbook.com/php7/extensions_design/ini_settings.html> for details.
 
 use std::{ffi::CString, os::raw::c_char, ptr};
 
