@@ -1,6 +1,9 @@
-//! Types related to the PHP executor globals.
-
+//! Types related to the PHP executor, sapi and process globals.
+use std::ffi::CStr;
 use std::ops::{Deref, DerefMut};
+use std::slice;
+use std::str;
+
 
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
@@ -8,10 +11,12 @@ use crate::boxed::ZBox;
 use crate::ffi::{
     _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
     php_core_globals, sapi_globals_struct, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
-    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER
+    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER, sapi_request_info, zend_is_auto_global, sapi_headers_struct, sapi_header_struct
 };
 
-use crate::types::{ZendHashTable, ZendObject};
+use crate::types::{ZendHashTable, ZendObject, ZendStr};
+
+use super::linked_list::ZendLinkedListIterator;
 
 /// Stores global variables used in the PHP executor.
 pub type ExecutorGlobals = _zend_executor_globals;
@@ -107,6 +112,13 @@ impl ProcessGlobals {
 
     /// Get the HTTP Server variables. Equivalent of $_SERVER.
     pub fn http_server_vars(&self) -> Option<&ZendHashTable> {
+
+        // $_SERVER is lazy-initted, we need to call zend_is_auto_global
+        // if it's not already populated.
+        if ! self.http_globals[TRACK_VARS_SERVER as usize].is_array() {
+            let name = ZendStr::new("_SERVER", false).as_mut_ptr();
+            unsafe { zend_is_auto_global(name) };
+        }
         if self.http_globals[TRACK_VARS_SERVER as usize].is_array() {
             self.http_globals[TRACK_VARS_SERVER as usize].array()
         } else {
@@ -191,57 +203,186 @@ impl SapiGlobals {
         let guard = SAPI_GLOBALS_LOCK.write();
         GlobalWriteGuard { globals, guard }
     }
+    // Get the request info for the Sapi.
+    pub fn request_info(&self) -> &SapiRequestInfo {
+        &self.request_info
+    }
 
-    /// Get the HTTP Server variables. Equivalent of $_SERVER.
-    pub fn http_server_vars(&self) -> Option<&ZendHashTable> {
-        if self.http_globals[TRACK_VARS_SERVER as usize].is_array() {
-            self.http_globals[TRACK_VARS_SERVER as usize].array()
-        } else {
-            None
+    pub fn sapi_headers(&self) -> &SapiHeaders{
+        &self.sapi_headers
+    }
+}
+
+pub type SapiHeaders = sapi_headers_struct;
+
+impl<'a> SapiHeaders {
+    pub fn headers(&'a mut self) -> ZendLinkedListIterator<'a, SapiHeader> {
+        self.headers.iter()
+    }
+}
+
+pub type SapiHeader = sapi_header_struct;
+
+impl<'a> SapiHeader {
+    pub fn as_str(&'a self) -> &'a str {
+        unsafe {
+            let slice = slice::from_raw_parts(self.header as *const u8, self.header_len);
+            str::from_utf8(slice).unwrap()
         }
     }
 
-    /// Get the HTTP POST variables. Equivalent of $_POST.
-    pub fn http_post_vars(&self) -> &ZendHashTable {
-        self.http_globals[TRACK_VARS_POST as usize]
-            .array()
-            .expect("Type is not a ZendArray")
+    pub fn name(&'a self) -> &'a str {
+        self.as_str().split(":").next().unwrap_or("")
     }
 
-    /// Get the HTTP GET variables. Equivalent of $_GET.
-    pub fn http_get_vars(&self) -> &ZendHashTable {
-        self.http_globals[TRACK_VARS_GET as usize]
-            .array()
-            .expect("Type is not a ZendArray")
+    pub fn value(&'a self) -> Option<&'a str> {
+        self.as_str().split(":").nth(1)
+    }
+}
+
+pub type SapiRequestInfo = sapi_request_info;
+
+impl SapiRequestInfo {
+    pub fn request_method(&self) -> Option<&str> {
+        if self.request_method.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.request_method ).to_str().ok()
+        }
     }
 
-    /// Get the HTTP Cookie variables. Equivalent of $_COOKIE.
-    pub fn http_cookie_vars(&self) -> &ZendHashTable {
-        self.http_globals[TRACK_VARS_COOKIE as usize]
-            .array()
-            .expect("Type is not a ZendArray")
+    pub fn query_string(&self) -> Option<&str> {
+        if self.query_string.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.query_string ).to_str().ok()
+        }
     }
 
-    /// Get the HTTP Request variables. Equivalent of $_REQUEST.
-    pub fn http_request_vars(&self) -> &ZendHashTable {
-        self.http_globals[TRACK_VARS_REQUEST as usize]
-            .array()
-            .expect("Type is not a ZendArray")
+    pub fn cookie_data(&self) -> Option<&str> {
+        if self.cookie_data.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.cookie_data ).to_str().ok()
+        }
     }
 
-    /// Get the HTTP Environment variables. Equivalent of $_ENV.
-    pub fn http_env_vars(&self) -> &ZendHashTable {
-        self.http_globals[TRACK_VARS_ENV as usize]
-            .array()
-            .expect("Type is not a ZendArray")
+    pub fn content_length(&self) -> i64 {
+        self.content_length
     }
 
-    /// Get the HTTP Files variables. Equivalent of $_FILES.
-    pub fn http_files_vars(&self) -> &ZendHashTable {
-        self.http_globals[TRACK_VARS_FILES as usize]
-            .array()
-            .expect("Type is not a ZendArray")
+    pub fn path_translated(&self) -> Option<&str> {
+        if self.path_translated.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.path_translated ).to_str().ok()
+        }
     }
+
+    pub fn request_uri(&self) -> Option<&str> {
+        if self.request_uri.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.request_uri ).to_str().ok()
+        }
+    }
+
+    // Todo: request_body _php_stream
+
+    pub fn content_type(&self) -> Option<&str> {
+        if self.content_type.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.content_type ).to_str().ok()
+        }
+    }
+
+    pub fn headers_only(&self) -> bool {
+        self.headers_only
+    }
+
+    pub fn no_headers(&self) -> bool {
+        self.no_headers
+    }
+
+    pub fn headers_read(&self) -> bool {
+        self.headers_read
+    }
+
+    // Todo: post_entry sapi_post_entry
+
+    pub fn auth_user(&self) -> Option<&str> {
+        if self.auth_user.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.auth_user ).to_str().ok()
+        }
+    }
+
+    pub fn auth_password(&self) -> Option<&str> {
+        if self.auth_password.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.auth_password ).to_str().ok()
+        }
+    }
+
+    pub fn auth_digest(&self) -> Option<&str> {
+        if self.auth_digest.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.auth_digest ).to_str().ok()
+        }
+    }
+
+    pub fn argv0(&self) -> Option<&str> {
+        if self.argv0.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.argv0 ).to_str().ok()
+        }
+    }
+
+    pub fn current_user(&self) -> Option<&str> {
+        if self.current_user.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( self.current_user ).to_str().ok()
+        }
+    }
+
+    pub fn current_user_length(&self) -> i32 {
+        self.current_user_length
+    }
+
+    pub fn argvc(&self) -> i32 {
+        self.argc
+    }
+
+    pub fn argv(&self) -> Option<&str> {
+        if self.argv.is_null() {
+            return None;
+        }
+        unsafe {
+            CStr::from_ptr( *self.argv ).to_str().ok()
+        }
+    }
+
+    pub fn proto_num(&self) -> i32 {
+        self.proto_num
+    }
+
 }
 
 /// Executor globals rwlock.
