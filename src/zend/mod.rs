@@ -7,6 +7,7 @@ mod ex;
 mod function;
 mod globals;
 mod handlers;
+mod linked_list;
 mod module;
 
 use crate::{error::Result, ffi::php_printf};
@@ -18,7 +19,9 @@ pub use ex::ExecuteData;
 pub use function::FunctionEntry;
 pub use globals::ExecutorGlobals;
 pub use globals::ProcessGlobals;
+pub use globals::SapiGlobals;
 pub use handlers::ZendObjectHandlers;
+pub use linked_list::ZendLinkedList;
 pub use module::ModuleEntry;
 
 // Used as the format string for `php_printf`.
