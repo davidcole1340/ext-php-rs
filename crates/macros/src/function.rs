@@ -293,8 +293,8 @@ impl Arg {
                         }
                     });
 
-                // For for types that are `Option<&mut T>` to turn them into `Option<&T>`, marking the Arg as
-                // as "passed by reference".
+                // For for types that are `Option<&mut T>` to turn them into `Option<&T>`,
+                // marking the Arg as as "passed by reference".
                 let option = Some(seg)
                     .filter(|seg| seg.ident == "Option")
                     .and_then(|seg| {
@@ -311,11 +311,11 @@ impl Arg {
                                                     new_ref.mutability = None;
                                                     pass_by_ref = true;
                                                     Type::Reference(new_ref)
-                                                },
+                                                }
                                                 _ => ty.clone(),
                                             };
                                             GenericArgument::Type(_rtype)
-                                        },
+                                        }
                                         _ => ga.clone(),
                                     };
                                     new_ga.to_token_stream().to_string()
@@ -327,7 +327,7 @@ impl Arg {
 
                 let stringified = match result {
                     Some(result) if is_return => result,
-                    _ => match option  {
+                    _ => match option {
                         Some(result) => result,
                         None => path.to_token_stream().to_string(),
                     },
