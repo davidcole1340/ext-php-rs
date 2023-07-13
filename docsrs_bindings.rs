@@ -80,7 +80,7 @@ where
         }
     }
 }
-pub const ZEND_DEBUG: u32 = 0;
+pub const ZEND_DEBUG: u32 = 1;
 pub const _ZEND_TYPE_NAME_BIT: u32 = 8388608;
 pub const _ZEND_TYPE_NULLABLE_BIT: u32 = 2;
 pub const HT_MIN_SIZE: u32 = 8;
@@ -455,10 +455,22 @@ pub struct _zend_ast_ref {
     pub gc: zend_refcounted_h,
 }
 extern "C" {
-    pub fn _emalloc(size: usize) -> *mut ::std::os::raw::c_void;
+    pub fn _emalloc(
+        size: usize,
+        __zend_filename: *const ::std::os::raw::c_char,
+        __zend_lineno: u32,
+        __zend_orig_filename: *const ::std::os::raw::c_char,
+        __zend_orig_lineno: u32,
+    ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    pub fn _efree(ptr: *mut ::std::os::raw::c_void);
+    pub fn _efree(
+        ptr: *mut ::std::os::raw::c_void,
+        __zend_filename: *const ::std::os::raw::c_char,
+        __zend_lineno: u32,
+        __zend_orig_filename: *const ::std::os::raw::c_char,
+        __zend_orig_lineno: u32,
+    );
 }
 extern "C" {
     pub fn __zend_malloc(len: usize) -> *mut ::std::os::raw::c_void;
@@ -1651,6 +1663,11 @@ pub struct _php_stream_wrapper_ops {
             options: ::std::os::raw::c_int,
             opened_path: *mut *mut zend_string,
             context: *mut php_stream_context,
+            __php_stream_call_depth: ::std::os::raw::c_int,
+            __zend_filename: *const ::std::os::raw::c_char,
+            __zend_lineno: u32,
+            __zend_orig_filename: *const ::std::os::raw::c_char,
+            __zend_orig_lineno: u32,
         ) -> *mut php_stream,
     >,
     pub stream_closer: ::std::option::Option<
@@ -1683,6 +1700,11 @@ pub struct _php_stream_wrapper_ops {
             options: ::std::os::raw::c_int,
             opened_path: *mut *mut zend_string,
             context: *mut php_stream_context,
+            __php_stream_call_depth: ::std::os::raw::c_int,
+            __zend_filename: *const ::std::os::raw::c_char,
+            __zend_lineno: u32,
+            __zend_orig_filename: *const ::std::os::raw::c_char,
+            __zend_orig_lineno: u32,
         ) -> *mut php_stream,
     >,
     pub label: *const ::std::os::raw::c_char,
@@ -1762,6 +1784,8 @@ pub struct _php_stream {
     pub readpos: zend_off_t,
     pub writepos: zend_off_t,
     pub chunk_size: usize,
+    pub open_filename: *const ::std::os::raw::c_char,
+    pub open_lineno: u32,
     pub enclosing_stream: *mut _php_stream,
 }
 impl _php_stream {
