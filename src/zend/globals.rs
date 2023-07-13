@@ -51,7 +51,8 @@ impl ExecutorGlobals {
         unsafe { self.class_table.as_ref() }
     }
 
-    /// Retrieves the ini values for all ini directives in the current executor context..
+    /// Retrieves the ini values for all ini directives in the current executor
+    /// context..
     pub fn ini_values(&self) -> HashMap<String, Option<String>> {
         let hash_table = unsafe { &*self.ini_directives };
         let mut ini_hash_map: HashMap<String, Option<String>> = HashMap::new();
@@ -62,11 +63,15 @@ impl ExecutorGlobals {
                     if ini_entry.value.is_null() {
                         None
                     } else {
-                        Some((*ini_entry.value).as_str().expect("Ini value is not a string").to_owned())
+                        Some(
+                            (*ini_entry.value)
+                                .as_str()
+                                .expect("Ini value is not a string")
+                                .to_owned(),
+                        )
                     }
                 });
             }
-
         }
         ini_hash_map
     }
