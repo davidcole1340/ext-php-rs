@@ -231,6 +231,8 @@ bind! {
     php_printf,
     __zend_malloc,
     tsrm_get_ls_cache,
+    executor_globals_offset,
+    core_globals_offset,
     TRACK_VARS_POST,
     TRACK_VARS_GET,
     TRACK_VARS_COOKIE,
