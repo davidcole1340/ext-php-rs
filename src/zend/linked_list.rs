@@ -33,7 +33,7 @@ impl<'a, T: 'a> Iterator for ZendLinkedListIterator<'a, T> {
         if self.position.is_null() {
             return None;
         }
-        let ptr = unsafe { (&mut *self.position).data.as_mut_ptr() };
+        let ptr = unsafe { (*self.position).data.as_mut_ptr() };
         let value = unsafe { &*(ptr as *const T as *mut T) };
         unsafe {
             zend_llist_get_next_ex(

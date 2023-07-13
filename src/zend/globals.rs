@@ -225,16 +225,16 @@ impl<'a> SapiHeader {
     pub fn as_str(&'a self) -> &'a str {
         unsafe {
             let slice = slice::from_raw_parts(self.header as *const u8, self.header_len);
-            str::from_utf8(slice).unwrap()
+            str::from_utf8(slice).expect("Invalid header string")
         }
     }
 
     pub fn name(&'a self) -> &'a str {
-        self.as_str().split(":").next().unwrap_or("")
+        self.as_str().split(':').next().unwrap_or("").trim()
     }
 
     pub fn value(&'a self) -> Option<&'a str> {
-        self.as_str().split(":").nth(1)
+        self.as_str().split(':').nth(1).map(|s| s.trim())
     }
 }
 
