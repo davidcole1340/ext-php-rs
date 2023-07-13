@@ -8,7 +8,7 @@ use crate::{ffi::zend_ini_entry_def, ffi::zend_register_ini_entries, flags::IniE
 /// A Zend ini entry definition.
 ///
 /// To register ini definitions for extensions, the IniEntryDef builder should be used. Ini
-/// entries should be registered in your module's startup_function via IniEntryDef::register(Vec<IniEntryDef>).
+/// entries should be registered in your module's startup_function via `IniEntryDef::register(Vec<IniEntryDef>)`.
 pub type IniEntryDef = zend_ini_entry_def;
 
 impl IniEntryDef {
