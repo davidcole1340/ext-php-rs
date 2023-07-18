@@ -31,6 +31,21 @@ pub const IS_OBJECT_EX: u32 = 776;
 pub const IS_RESOURCE_EX: u32 = 265;
 pub const IS_REFERENCE_EX: u32 = 266;
 pub const IS_CONSTANT_AST_EX: u32 = 267;
+pub const E_ERROR: u32 = 1;
+pub const E_WARNING: u32 = 2;
+pub const E_PARSE: u32 = 4;
+pub const E_NOTICE: u32 = 8;
+pub const E_CORE_ERROR: u32 = 16;
+pub const E_CORE_WARNING: u32 = 32;
+pub const E_COMPILE_ERROR: u32 = 64;
+pub const E_COMPILE_WARNING: u32 = 128;
+pub const E_USER_ERROR: u32 = 256;
+pub const E_USER_WARNING: u32 = 512;
+pub const E_USER_NOTICE: u32 = 1024;
+pub const E_STRICT: u32 = 2048;
+pub const E_RECOVERABLE_ERROR: u32 = 4096;
+pub const E_DEPRECATED: u32 = 8192;
+pub const E_USER_DEPRECATED: u32 = 16384;
 pub const ZEND_PROPERTY_ISSET: u32 = 0;
 pub const ZEND_PROPERTY_EXISTS: u32 = 2;
 pub const ZEND_ACC_PUBLIC: u32 = 1;
@@ -1340,6 +1355,14 @@ extern "C" {
 }
 extern "C" {
     pub fn php_printf(format: *const ::std::os::raw::c_char, ...) -> usize;
+}
+extern "C" {
+    pub fn php_error_docref(
+        docref: *const ::std::os::raw::c_char,
+        type_: ::std::os::raw::c_int,
+        format: *const ::std::os::raw::c_char,
+        ...
+    );
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
