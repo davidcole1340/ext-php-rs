@@ -8,11 +8,11 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::ffi::{
-    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals,
-    ext_php_rs_sapi_globals, file_globals, php_core_globals, php_file_globals, sapi_globals_struct,
-    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_is_auto_global,
-    TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST,
-    TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
+    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_file_globals,
+    ext_php_rs_process_globals, ext_php_rs_sapi_globals, php_core_globals, php_file_globals,
+    sapi_globals_struct, sapi_header_struct, sapi_headers_struct, sapi_request_info,
+    zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
+    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
@@ -378,7 +378,8 @@ impl FileGlobals {
     pub fn get() -> GlobalReadGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
-        let globals = unsafe { &file_globals };
+        let globals = unsafe { ext_php_rs_file_globals().as_ref() }
+            .expect("Static file globals were invalid");
         let guard = FILE_GLOBALS_LOCK.read();
         GlobalReadGuard { globals, guard }
     }
@@ -393,7 +394,7 @@ impl FileGlobals {
     pub fn get_mut() -> GlobalWriteGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
-        let globals = unsafe { &mut file_globals };
+        let globals = unsafe { &mut *ext_php_rs_file_globals() };
         let guard = SAPI_GLOBALS_LOCK.write();
         GlobalWriteGuard { globals, guard }
     }
