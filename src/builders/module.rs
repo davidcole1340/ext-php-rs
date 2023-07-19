@@ -131,7 +131,8 @@ impl ModuleBuilder {
     /// This function can be useful if you need to do any final cleanup at the
     /// very end of a request, after all other resources have been released. For
     /// example, if your extension creates any persistent resources that last
-    /// beyond a single request, you could use this function to clean those up. # Arguments
+    /// beyond a single request, you could use this function to clean those up.
+    /// # Arguments
     ///
     /// * `func` - The function to be called when shutdown is requested.
     pub fn post_deactivate_function(mut self, func: extern "C" fn() -> i32) -> Self {
