@@ -24,6 +24,7 @@
 #include "zend_interfaces.h"
 #include "SAPI.h"
 #include "php_variables.h"
+#include "file.h"
 
 zend_string *ext_php_rs_zend_string_init(const char *str, size_t len, bool persistent);
 void ext_php_rs_zend_string_release(zend_string *zs);
@@ -36,3 +37,4 @@ void ext_php_rs_zend_object_release(zend_object *obj);
 zend_executor_globals *ext_php_rs_executor_globals();
 php_core_globals *ext_php_rs_process_globals();
 sapi_globals_struct *ext_php_rs_sapi_globals();
+php_file_globals *ext_php_rs_file_globals();
