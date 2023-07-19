@@ -234,6 +234,8 @@ bind! {
     executor_globals_offset,
     core_globals_offset,
     sapi_globals_offset,
+    php_file_globals,
+    file_globals,
     TRACK_VARS_POST,
     TRACK_VARS_GET,
     TRACK_VARS_COOKIE,

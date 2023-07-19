@@ -12,6 +12,7 @@ use crate::ffi::{
     ext_php_rs_sapi_globals, php_core_globals, sapi_globals_struct, sapi_header_struct,
     sapi_headers_struct, sapi_request_info, zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV,
     TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
+    php_file_globals, file_globals
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
@@ -358,6 +359,45 @@ impl SapiRequestInfo {
     }
 }
 
+/// Stores global variables used in the SAPI.
+pub type FileGlobals = php_file_globals;
+
+impl FileGlobals {
+    /// Returns a reference to the PHP process globals.
+    ///
+    /// The process globals are guarded by a RwLock. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    pub fn get() -> GlobalReadGuard<Self> {
+        // SAFETY: PHP executor globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { &file_globals };
+        let guard = FILE_GLOBALS_LOCK.read();
+        GlobalReadGuard { globals, guard }
+    }
+
+    /// Returns a mutable reference to the PHP executor globals.
+    ///
+    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    pub fn get_mut() -> GlobalWriteGuard<Self> {
+        // SAFETY: PHP executor globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { &mut file_globals };
+        let guard = SAPI_GLOBALS_LOCK.write();
+        GlobalWriteGuard { globals, guard }
+    }
+
+    pub fn stream_wrappers(&self) -> Option<&'static ZendHashTable> {
+        unsafe { self.stream_wrappers.as_ref() }
+    }
+}
+
 /// Executor globals rwlock.
 ///
 /// PHP provides no indication if the executor globals are being accessed so
@@ -365,6 +405,7 @@ impl SapiRequestInfo {
 static GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 static PROCESS_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 static SAPI_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
+static FILE_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 
 /// Wrapper guard that contains a reference to a given type `T`. Dropping a
 /// guard releases the lock on the relevant rwlock.
