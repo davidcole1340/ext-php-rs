@@ -111,6 +111,21 @@ pub const IS_OBJECT_EX: u32 = 776;
 pub const IS_RESOURCE_EX: u32 = 265;
 pub const IS_REFERENCE_EX: u32 = 266;
 pub const IS_CONSTANT_AST_EX: u32 = 267;
+pub const E_ERROR: u32 = 1;
+pub const E_WARNING: u32 = 2;
+pub const E_PARSE: u32 = 4;
+pub const E_NOTICE: u32 = 8;
+pub const E_CORE_ERROR: u32 = 16;
+pub const E_CORE_WARNING: u32 = 32;
+pub const E_COMPILE_ERROR: u32 = 64;
+pub const E_COMPILE_WARNING: u32 = 128;
+pub const E_USER_ERROR: u32 = 256;
+pub const E_USER_WARNING: u32 = 512;
+pub const E_USER_NOTICE: u32 = 1024;
+pub const E_STRICT: u32 = 2048;
+pub const E_RECOVERABLE_ERROR: u32 = 4096;
+pub const E_DEPRECATED: u32 = 8192;
+pub const E_USER_DEPRECATED: u32 = 16384;
 pub const ZEND_PROPERTY_ISSET: u32 = 0;
 pub const ZEND_PROPERTY_EXISTS: u32 = 2;
 pub const ZEND_ACC_PUBLIC: u32 = 1;
@@ -1584,6 +1599,14 @@ extern "C" {
 extern "C" {
     pub fn php_printf(format: *const ::std::os::raw::c_char, ...) -> usize;
 }
+extern "C" {
+    pub fn php_error_docref(
+        docref: *const ::std::os::raw::c_char,
+        type_: ::std::os::raw::c_int,
+        format: *const ::std::os::raw::c_char,
+        ...
+    );
+}
 pub type php_stream = _php_stream;
 pub type php_stream_wrapper = _php_stream_wrapper;
 pub type php_stream_context = _php_stream_context;
@@ -2127,6 +2150,25 @@ extern "C" {
 }
 extern "C" {
     pub fn php_info_print_table_end();
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct php_file_globals {
+    pub pclose_ret: ::std::os::raw::c_int,
+    pub def_chunk_size: usize,
+    pub auto_detect_line_endings: bool,
+    pub default_socket_timeout: zend_long,
+    pub user_agent: *mut ::std::os::raw::c_char,
+    pub from_address: *mut ::std::os::raw::c_char,
+    pub user_stream_current_filename: *const ::std::os::raw::c_char,
+    pub default_context: *mut php_stream_context,
+    pub stream_wrappers: *mut HashTable,
+    pub stream_filters: *mut HashTable,
+    pub wrapper_errors: *mut HashTable,
+    pub pclose_wait: ::std::os::raw::c_int,
+}
+extern "C" {
+    pub static mut file_globals: php_file_globals;
 }
 extern "C" {
     pub static mut zend_ce_throwable: *mut zend_class_entry;
