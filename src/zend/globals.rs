@@ -86,6 +86,19 @@ impl ExecutorGlobals {
             }
         }
     }
+
+    /// Cancel a requested an interrupt of the PHP VM.
+    pub fn cancel_interrupt(&mut self) {
+        cfg_if::cfg_if! {
+            if #[cfg(php82)] {
+                unsafe {
+                    zend_atomic_bool_store(&mut self.vm_interrupt, false);
+                }
+            } else {
+                self.vm_interrupt = true;
+            }
+        }
+    }
 }
 
 /// Executor globals rwlock.
