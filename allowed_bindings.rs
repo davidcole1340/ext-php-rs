@@ -217,6 +217,9 @@ bind! {
     _ZEND_TYPE_NULLABLE_BIT,
     ts_rsrc_id,
     _ZEND_TYPE_NAME_BIT,
+    ZEND_INTERNAL_FUNCTION,
+    ZEND_USER_FUNCTION,
+    ZEND_EVAL_CODE,
     zval_ptr_dtor,
     zend_refcounted_h,
     zend_is_true,
@@ -264,5 +267,7 @@ bind! {
     sapi_header_struct,
     zend_is_auto_global,
     zend_llist_get_next_ex,
-    zend_llist_get_prev_ex
+    zend_llist_get_prev_ex,
+    zend_atomic_bool_store,
+    zend_interrupt_function
 }

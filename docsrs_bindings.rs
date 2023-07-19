@@ -171,6 +171,9 @@ pub const ZEND_ACC_GENERATOR: u32 = 16777216;
 pub const ZEND_ACC_DONE_PASS_TWO: u32 = 33554432;
 pub const ZEND_ACC_HEAP_RT_CACHE: u32 = 67108864;
 pub const ZEND_ACC_STRICT_TYPES: u32 = 2147483648;
+pub const ZEND_INTERNAL_FUNCTION: u32 = 1;
+pub const ZEND_USER_FUNCTION: u32 = 2;
+pub const ZEND_EVAL_CODE: u32 = 4;
 pub const ZEND_ISEMPTY: u32 = 1;
 pub const _ZEND_SEND_MODE_SHIFT: u32 = 25;
 pub const _ZEND_IS_VARIADIC_BIT: u32 = 134217728;
@@ -902,6 +905,10 @@ pub struct _zend_class_entry__bindgen_ty_4__bindgen_ty_2 {
     pub module: *mut _zend_module_entry,
 }
 extern "C" {
+    pub static mut zend_interrupt_function:
+        ::std::option::Option<unsafe extern "C" fn(execute_data: *mut zend_execute_data)>;
+}
+extern "C" {
     pub static mut zend_standard_class_def: *mut zend_class_entry;
 }
 pub const zend_error_handling_t_EH_NORMAL: zend_error_handling_t = 0;
@@ -1284,6 +1291,9 @@ pub struct zend_atomic_bool_s {
     pub value: u8,
 }
 pub type zend_atomic_bool = zend_atomic_bool_s;
+extern "C" {
+    pub fn zend_atomic_bool_store(obj: *mut zend_atomic_bool, desired: bool);
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_stack {
