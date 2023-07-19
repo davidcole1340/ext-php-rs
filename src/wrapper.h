@@ -17,6 +17,7 @@
 #include "php.h"
 
 #include "ext/standard/info.h"
+#include "ext/standard/php_var.h"
 #include "ext/standard/file.h"
 #include "zend_exceptions.h"
 #include "zend_inheritance.h"
