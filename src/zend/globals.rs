@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
-#[cfg(any(php82))]
+#[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
 use crate::types::{ZendHashTable, ZendObject};
@@ -77,7 +77,7 @@ impl ExecutorGlobals {
     /// set with [`crate::ffi::zend_interrupt_function`].
     pub fn request_interrupt(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(any(php82))] {
+            if #[cfg(php82)] {
                 unsafe {
                     zend_atomic_bool_store(&mut self.vm_interrupt, true);
                 }
