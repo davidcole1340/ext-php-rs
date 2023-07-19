@@ -671,6 +671,10 @@ pub struct _zend_class_entry__bindgen_ty_4__bindgen_ty_2 {
     pub module: *mut _zend_module_entry,
 }
 extern "C" {
+    pub static mut zend_interrupt_function:
+        ::std::option::Option<unsafe extern "C" fn(execute_data: *mut zend_execute_data)>;
+}
+extern "C" {
     pub static mut zend_standard_class_def: *mut zend_class_entry;
 }
 pub const zend_error_handling_t_EH_NORMAL: zend_error_handling_t = 0;
@@ -1053,6 +1057,9 @@ pub struct zend_atomic_bool_s {
     pub value: u8,
 }
 pub type zend_atomic_bool = zend_atomic_bool_s;
+extern "C" {
+    pub fn zend_atomic_bool_store(obj: *mut zend_atomic_bool, desired: bool);
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_stack {

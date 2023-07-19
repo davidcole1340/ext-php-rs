@@ -5,8 +5,9 @@ use std::ops::{Deref, DerefMut};
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
+#[cfg(php82)]
+use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
-
 use crate::types::{ZendHashTable, ZendObject};
 
 /// Stores global variables used in the PHP executor.
@@ -69,6 +70,21 @@ impl ExecutorGlobals {
 
         // SAFETY: `as_mut` checks for null.
         Some(unsafe { ZBox::from_raw(exception_ptr.as_mut()?) })
+    }
+
+    /// Request an interrupt of the PHP VM. This will call the registered
+    /// interrupt handler function.
+    /// set with [`crate::ffi::zend_interrupt_function`].
+    pub fn request_interrupt(&mut self) {
+        cfg_if::cfg_if! {
+            if #[cfg(php82)] {
+                unsafe {
+                    zend_atomic_bool_store(&mut self.vm_interrupt, true);
+                }
+            } else {
+                self.vm_interrupt = true;
+            }
+        }
     }
 }
 
