@@ -5,8 +5,9 @@ use std::ops::{Deref, DerefMut};
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
-use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals, zend_atomic_bool_store};
-
+use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
+#[cfg(any(php82))]
+use crate::ffi::zend_atomic_bool_store;
 use crate::types::{ZendHashTable, ZendObject};
 
 /// Stores global variables used in the PHP executor.
