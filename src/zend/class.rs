@@ -81,9 +81,7 @@ impl ClassEntry {
     }
 
     pub fn name(&self) -> Option<&str> {
-        unsafe {
-            self.name.as_ref().and_then(|s| s.as_str().ok())
-        }
+        unsafe { self.name.as_ref().and_then(|s| s.as_str().ok()) }
     }
 }
 
