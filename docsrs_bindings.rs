@@ -1057,6 +1057,9 @@ pub struct zend_atomic_bool_s {
     pub value: u8,
 }
 pub type zend_atomic_bool = zend_atomic_bool_s;
+extern "C" {
+    pub fn zend_atomic_bool_store(obj: *mut zend_atomic_bool, desired: bool);
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_stack {
