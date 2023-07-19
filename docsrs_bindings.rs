@@ -1986,6 +1986,36 @@ impl _php_stream {
         __bindgen_bitfield_unit
     }
 }
+extern "C" {
+    pub static mut php_stream_stdio_ops: php_stream_ops;
+}
+extern "C" {
+    pub fn php_register_url_stream_wrapper(
+        protocol: *const ::std::os::raw::c_char,
+        wrapper: *const php_stream_wrapper,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn php_unregister_url_stream_wrapper(
+        protocol: *const ::std::os::raw::c_char,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn php_register_url_stream_wrapper_volatile(
+        protocol: *mut zend_string,
+        wrapper: *mut php_stream_wrapper,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn php_unregister_url_stream_wrapper_volatile(protocol: *mut zend_string) -> zend_result;
+}
+extern "C" {
+    pub fn php_stream_locate_url_wrapper(
+        path: *const ::std::os::raw::c_char,
+        path_for_open: *mut *const ::std::os::raw::c_char,
+        options: ::std::os::raw::c_int,
+    ) -> *mut php_stream_wrapper;
+}
 pub type php_core_globals = _php_core_globals;
 #[repr(C)]
 pub struct _php_core_globals {

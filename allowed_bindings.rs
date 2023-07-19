@@ -263,5 +263,13 @@ bind! {
     sapi_header_struct,
     zend_is_auto_global,
     zend_llist_get_next_ex,
-    zend_llist_get_prev_ex
+    zend_llist_get_prev_ex,
+    php_register_url_stream_wrapper,
+    php_stream_locate_url_wrapper,
+    php_unregister_url_stream_wrapper,
+    php_unregister_url_stream_wrapper_volatile,
+    php_register_url_stream_wrapper_volatile,
+    php_stream_wrapper,
+    zend_llist_get_prev_ex,
+    php_stream_stdio_ops
 }

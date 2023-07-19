@@ -2,7 +2,7 @@
 
 use std::{fmt::Debug, os::raw::c_char, ptr};
 
-use crate::ffi::zend_function_entry;
+use crate::{ffi::{zend_function_entry, zend_function}, flags::FunctionType};
 
 /// A Zend function entry.
 pub type FunctionEntry = zend_function_entry;
@@ -34,5 +34,13 @@ impl FunctionEntry {
     /// C world.
     pub fn into_raw(self) -> *mut Self {
         Box::into_raw(Box::new(self))
+    }
+}
+
+pub type Function = zend_function;
+
+impl Function {
+    pub fn type_(&self) -> FunctionType {
+        FunctionType::from(unsafe { self.type_ })
     }
 }
