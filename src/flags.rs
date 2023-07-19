@@ -21,7 +21,7 @@ use crate::ffi::{
     ZEND_ACC_RESOLVED_PARENT, ZEND_ACC_RETURN_REFERENCE, ZEND_ACC_STATIC, ZEND_ACC_STRICT_TYPES,
     ZEND_ACC_TOP_LEVEL, ZEND_ACC_TRAIT, ZEND_ACC_TRAIT_CLONE, ZEND_ACC_UNRESOLVED_VARIANCE,
     ZEND_ACC_USES_THIS, ZEND_ACC_USE_GUARDS, ZEND_ACC_VARIADIC, ZEND_HAS_STATIC_IN_METHODS,
-    Z_TYPE_FLAGS_SHIFT, _IS_BOOL,
+    Z_TYPE_FLAGS_SHIFT, _IS_BOOL, ZEND_INTERNAL_FUNCTION, ZEND_USER_FUNCTION, ZEND_EVAL_CODE,
 };
 
 use std::{convert::TryFrom, fmt::Display};
@@ -191,6 +191,24 @@ bitflags! {
         const RecoverableError = E_RECOVERABLE_ERROR;
         const Deprecated = E_DEPRECATED;
         const UserDeprecated = E_USER_DEPRECATED;
+    }
+}
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+pub enum FunctionType {
+    Internal,
+    User,
+    Eval,
+}
+
+impl From<u8> for FunctionType {
+    #[allow(clippy::bad_bit_mask)]
+    fn from(value: u8) -> Self {
+        match value as _ {
+            ZEND_INTERNAL_FUNCTION => Self::Internal,
+            ZEND_USER_FUNCTION => Self::User,
+            ZEND_EVAL_CODE => Self::Eval,
+            _ => panic!("Unknown function type: {}", value),
+        }
     }
 }
 
