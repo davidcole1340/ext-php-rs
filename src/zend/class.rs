@@ -79,6 +79,12 @@ impl ClassEntry {
             Self::try_find(name.as_str().ok()?)
         }
     }
+
+    pub fn name(&self) -> Option<&str> {
+        unsafe {
+            self.name.as_ref().and_then(|s| s.as_str().ok())
+        }
+    }
 }
 
 impl PartialEq for ClassEntry {
