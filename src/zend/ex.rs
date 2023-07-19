@@ -231,14 +231,6 @@ impl ExecuteData {
         let size = std::mem::size_of::<T>();
         ((size as isize) + ZEND_MM_ALIGNMENT as isize - 1) & ZEND_MM_ALIGNMENT_MASK as isize
     }
-
-    pub fn previous(&self) -> Option<&Self> {
-        unsafe { self.prev_execute_data.as_ref() }
-    }
-
-    pub fn function(&self) -> Option<&_zend_function> {
-        unsafe { self.func.as_ref() }
-    }
 }
 
 #[cfg(test)]
