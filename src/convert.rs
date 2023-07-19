@@ -218,3 +218,14 @@ impl<T: IntoZval + Clone> IntoZvalDyn for T {
         Self::TYPE
     }
 }
+
+
+impl IntoZvalDyn for Zval {
+    fn as_zval(&self, _persistent: bool) -> Result<Zval> {
+        Ok(self.shallow_clone())
+    }
+
+    fn get_type(&self) -> DataType {
+        self.get_type()
+    }
+}
