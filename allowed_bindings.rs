@@ -217,6 +217,9 @@ bind! {
     _ZEND_TYPE_NULLABLE_BIT,
     ts_rsrc_id,
     _ZEND_TYPE_NAME_BIT,
+    ZEND_INTERNAL_FUNCTION,
+    ZEND_USER_FUNCTION,
+    ZEND_EVAL_CODE,
     zval_ptr_dtor,
     zend_refcounted_h,
     zend_is_true,
@@ -252,6 +255,7 @@ bind! {
     sapi_globals_offset,
     php_file_globals,
     file_globals,
+    file_globals_id,
     TRACK_VARS_POST,
     TRACK_VARS_GET,
     TRACK_VARS_COOKIE,
@@ -270,5 +274,7 @@ bind! {
     php_unregister_url_stream_wrapper_volatile,
     php_register_url_stream_wrapper_volatile,
     php_stream_wrapper,
-    php_stream_stdio_ops
+    php_stream_stdio_ops,
+    zend_atomic_bool_store,
+    zend_interrupt_function
 }
