@@ -248,5 +248,6 @@ bind! {
     tsrm_get_ls_cache,
     executor_globals_offset,
     zend_atomic_bool_store,
+    sapi_module,
     zend_interrupt_function
 }

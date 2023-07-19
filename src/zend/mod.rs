@@ -9,7 +9,10 @@ mod globals;
 mod handlers;
 mod module;
 
-use crate::{error::Result, ffi::php_printf};
+use crate::{
+    error::Result,
+    ffi::{php_printf, sapi_module},
+};
 use std::ffi::CString;
 
 pub use _type::ZendType;
@@ -41,4 +44,10 @@ pub fn printf(message: &str) -> Result<()> {
         php_printf(FORMAT_STR.as_ptr().cast(), message.as_ptr());
     };
     Ok(())
+}
+
+/// Get the name of the SAPI module.
+pub fn php_sapi_name() -> String {
+    let c_str = unsafe { std::ffi::CStr::from_ptr(sapi_module.name) };
+    c_str.to_str().expect("Unable to parse CStr").to_string()
 }
