@@ -9,10 +9,10 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use crate::boxed::ZBox;
 use crate::ffi::{
     _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals,
-    ext_php_rs_sapi_globals, php_core_globals, sapi_globals_struct, sapi_header_struct,
-    sapi_headers_struct, sapi_request_info, zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV,
-    TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
-    php_file_globals, file_globals
+    ext_php_rs_sapi_globals, file_globals, php_core_globals, php_file_globals, sapi_globals_struct,
+    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_is_auto_global,
+    TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST,
+    TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
