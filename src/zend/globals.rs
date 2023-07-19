@@ -7,12 +7,14 @@ use std::str;
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
+#[cfg(php82)]
+use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_process_globals,
-    ext_php_rs_sapi_globals, file_globals, php_core_globals, php_file_globals, sapi_globals_struct,
-    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_is_auto_global,
-    TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST,
-    TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
+    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_file_globals,
+    ext_php_rs_process_globals, ext_php_rs_sapi_globals, php_core_globals, php_file_globals,
+    sapi_globals_struct, sapi_header_struct, sapi_headers_struct, sapi_request_info,
+    zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
+    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
@@ -79,6 +81,21 @@ impl ExecutorGlobals {
 
         // SAFETY: `as_mut` checks for null.
         Some(unsafe { ZBox::from_raw(exception_ptr.as_mut()?) })
+    }
+
+    /// Request an interrupt of the PHP VM. This will call the registered
+    /// interrupt handler function.
+    /// set with [`crate::ffi::zend_interrupt_function`].
+    pub fn request_interrupt(&mut self) {
+        cfg_if::cfg_if! {
+            if #[cfg(php82)] {
+                unsafe {
+                    zend_atomic_bool_store(&mut self.vm_interrupt, true);
+                }
+            } else {
+                self.vm_interrupt = true;
+            }
+        }
     }
 }
 
@@ -378,7 +395,8 @@ impl FileGlobals {
     pub fn get() -> GlobalReadGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
-        let globals = unsafe { &file_globals };
+        let globals = unsafe { ext_php_rs_file_globals().as_ref() }
+            .expect("Static file globals were invalid");
         let guard = FILE_GLOBALS_LOCK.read();
         GlobalReadGuard { globals, guard }
     }
@@ -393,7 +411,7 @@ impl FileGlobals {
     pub fn get_mut() -> GlobalWriteGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
-        let globals = unsafe { &mut file_globals };
+        let globals = unsafe { &mut *ext_php_rs_file_globals() };
         let guard = SAPI_GLOBALS_LOCK.write();
         GlobalWriteGuard { globals, guard }
     }

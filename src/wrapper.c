@@ -64,3 +64,12 @@ sapi_globals_struct *ext_php_rs_sapi_globals() {
   return &sapi_globals;
 #endif
 }
+
+
+php_file_globals *ext_php_rs_file_globals() {
+#ifdef ZTS
+  return TSRMG_FAST_BULK(file_globals_id, php_file_globals *);
+#else
+  return &file_globals;
+#endif
+}
