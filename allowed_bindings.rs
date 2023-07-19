@@ -270,6 +270,5 @@ bind! {
     php_unregister_url_stream_wrapper_volatile,
     php_register_url_stream_wrapper_volatile,
     php_stream_wrapper,
-    zend_llist_get_prev_ex,
     php_stream_stdio_ops
 }

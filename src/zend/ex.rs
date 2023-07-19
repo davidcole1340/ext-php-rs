@@ -1,4 +1,4 @@
-use crate::ffi::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK, _zend_function};
+use crate::ffi::{_zend_function, zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
 
 use crate::{
     args::ArgParser,
@@ -233,15 +233,11 @@ impl ExecuteData {
     }
 
     pub fn previous(&self) -> Option<&Self> {
-        unsafe {
-            self.prev_execute_data.as_ref()
-        }
+        unsafe { self.prev_execute_data.as_ref() }
     }
 
     pub fn function(&self) -> Option<&_zend_function> {
-        unsafe {
-            self.func.as_ref()
-        }
+        unsafe { self.func.as_ref() }
     }
 }
 
