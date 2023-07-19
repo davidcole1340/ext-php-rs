@@ -219,7 +219,6 @@ impl<T: IntoZval + Clone> IntoZvalDyn for T {
     }
 }
 
-
 impl IntoZvalDyn for Zval {
     fn as_zval(&self, _persistent: bool) -> Result<Zval> {
         Ok(self.shallow_clone())
