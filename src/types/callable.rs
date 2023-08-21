@@ -99,6 +99,7 @@ impl<'a> ZendCallable<'a> {
     /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
     /// assert_eq!(result.long(), Some(1));
     /// ```
+    #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         if !self.0.is_callable() {
             return Err(Error::Callable);

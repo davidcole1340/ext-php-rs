@@ -376,6 +376,7 @@ fn build_args(
                                 is_str = t.path.is_ident("str");
                             }
                         }
+                    }
                         hack_tokens.append_all(if is_str {
                             if is_option {
                                 quote! { let #param = #param.and_then(|__temp| Some(unsafe { ::core::mem::transmute::<&str, &'static str>(__temp) })); }
@@ -389,7 +390,7 @@ fn build_args(
                                 quote! { let #param = unsafe { ::ext_php_rs::zend::borrow_unchecked(#param) }; }
                             }
                         });
-                    }
+                    
 
                     let default = defaults.get(&name);
                     let mut ty = ty.ty.clone();
