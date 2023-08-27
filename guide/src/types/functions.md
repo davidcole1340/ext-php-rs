@@ -16,14 +16,14 @@ use ext_php_rs::zend::Function;
 
 #[php_function]
 pub fn test_function() -> () {
-    let substr = Function::from_function("var_dump");
-    let _ = substr.try_call(vec!["abc"]);
+    let var_dump = Function::from_function("var_dump");
+    let _ = var_dump.try_call(vec![&"abc"]);
 }
 
 #[php_function]
 pub fn test_method() -> () {
     let f = Function::from_method("ClassName", "staticMethod");
-    let _ = f.try_call(vec!["abc"]);
+    let _ = f.try_call(vec![&"abc"]);
 }
 
 # fn main() {}
