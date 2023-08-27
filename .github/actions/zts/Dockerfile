@@ -1,4 +1,4 @@
-FROM php:8.2-zts
+FROM php:8.2-zts-bullseye
 
 WORKDIR /tmp
 
