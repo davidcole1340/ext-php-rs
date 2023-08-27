@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, Result};
 use quote::ToTokens;
 use std::collections::HashMap;
-use syn::{ReturnType, parse_quote, PathArguments, GenericArgument};
+use syn::ReturnType;
 
 use crate::helpers::get_docs;
 use crate::{
@@ -11,7 +11,6 @@ use crate::{
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{punctuated::Punctuated, FnArg, ImplItemMethod, Lit, Pat, Token, Type};
-use quote::TokenStreamExt;
 
 #[derive(Debug, Clone)]
 pub enum Arg {
@@ -137,9 +136,8 @@ pub fn parser(
     } else {
         quote! { return; }
     };
-    let mut hack_tokens = quote! {};
     let internal_ident = Ident::new(&format!("_internal_php_{ident}"), Span::call_site());
-    let args = build_args(struct_ty, &mut input.sig.inputs, &defaults, &mut hack_tokens)?;
+    let args = build_args(struct_ty, &mut input.sig.inputs, &defaults)?;
     let optional = function::find_optional_parameter(
         args.iter().filter_map(|arg| match arg {
             Arg::Typed(arg) => Some(arg),
@@ -177,25 +175,6 @@ pub fn parser(
             }
         }
     } else {
-        let mut input = input.clone();
-        if input.sig.asyncness.is_some() {
-            input.sig.asyncness = None;
-            let stmts = input.block;
-            let this = match method_type {
-                MethodType::Receiver { mutable } => if mutable {
-                    quote! { let this = unsafe { std::mem::transmute::<&mut Self, &'static mut Self>(self) }; }
-                } else {
-                    quote! { let this = unsafe { std::mem::transmute::<&Self, &'static Self>(self) }; }
-                },
-                MethodType::ReceiverClassObject | MethodType::Static => quote! { },
-            };
-            input.block = parse_quote! {{
-                #this
-                #hack_tokens
-
-                ::ext_php_rs::zend::EventLoop::suspend_on(async move #stmts)
-            }};
-        }
         let this = match method_type {
             MethodType::Receiver { .. } => quote! { this. },
             MethodType::ReceiverClassObject | MethodType::Static => quote! { Self:: },
@@ -322,7 +301,6 @@ fn build_args(
     struct_ty: &Type,
     inputs: &mut Punctuated<FnArg, Token![,]>,
     defaults: &HashMap<String, Lit>,
-    hack_tokens: &mut TokenStream
 ) -> Result<Vec<Arg>> {
     inputs
         .iter_mut()
@@ -350,48 +328,10 @@ fn build_args(
                 if this {
                     Ok(Arg::Receiver(MethodType::ReceiverClassObject))
                 } else {
-                    let param = match &*ty.pat {
-                        Pat::Ident(pat) => &pat.ident,
+                    let name = match &*ty.pat {
+                        Pat::Ident(pat) => pat.ident.to_string(),
                         _ => bail!("Invalid parameter type."),
                     };
-                    let name = param.to_string();
-                    
-                    let mut ty_inner = &*ty.ty;
-                    let mut is_option = false;
-
-                    if let Type::Path(t) = ty_inner {
-                        if t.path.segments[0].ident.to_string() == "Option" {
-                            if let PathArguments::AngleBracketed(t) = &t.path.segments[0].arguments {
-                                if let GenericArgument::Type(t) = &t.args[0] {
-                                    ty_inner = t;
-                                    is_option = true;
-                                }
-                            }
-                        }
-                    }
-                    let mut is_str = false;
-                    if let Type::Reference(t) = ty_inner {
-                        if t.mutability.is_none() {
-                            if let Type::Path(t) = &*t.elem {
-                                is_str = t.path.is_ident("str");
-                            }
-                        }
-                    }
-                        hack_tokens.append_all(if is_str {
-                            if is_option {
-                                quote! { let #param = #param.and_then(|__temp| Some(unsafe { ::core::mem::transmute::<&str, &'static str>(__temp) })); }
-                            } else {
-                                quote! { let #param = unsafe { ::core::mem::transmute::<&str, &'static str>(#param) }; }
-                            }
-                        } else {
-                            if is_option {
-                                quote! { let #param = #param.and_then(|__temp| Some(unsafe { ::ext_php_rs::zend::borrow_unchecked(__temp) })); }
-                            } else {
-                                quote! { let #param = unsafe { ::ext_php_rs::zend::borrow_unchecked(#param) }; }
-                            }
-                        });
-                    
-
                     let default = defaults.get(&name);
                     let mut ty = ty.ty.clone();
                     replace_self(struct_ty, &mut ty);
