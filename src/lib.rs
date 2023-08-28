@@ -5,7 +5,6 @@
 #![allow(non_snake_case)]
 #![cfg_attr(docs, feature(doc_cfg))]
 #![cfg_attr(windows, feature(abi_vectorcall))]
-#![feature(thread_local, local_key_cell_methods)]
 
 pub mod alloc;
 pub mod args;
