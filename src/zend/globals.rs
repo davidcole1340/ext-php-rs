@@ -4,7 +4,6 @@ use std::ops::{Deref, DerefMut};
 
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-
 use crate::boxed::ZBox;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;

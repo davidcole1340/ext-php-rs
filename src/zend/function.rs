@@ -1,8 +1,16 @@
 //! Builder for creating functions and methods in PHP.
 
-use std::{fmt::Debug, os::raw::c_char, ptr::self};
+use std::{fmt::Debug, os::raw::c_char, ptr};
 
-use crate::{ffi::{zend_function_entry, zend_fetch_function_str, zend_function, zend_hash_str_find_ptr_lc, zend_call_known_function}, convert::IntoZvalDyn, types::Zval, error::Result};
+use crate::{
+    convert::IntoZvalDyn,
+    error::Result,
+    ffi::{
+        zend_call_known_function, zend_fetch_function_str, zend_function, zend_function_entry,
+        zend_hash_str_find_ptr_lc,
+    },
+    types::Zval,
+};
 
 use super::ClassEntry;
 
@@ -58,14 +66,14 @@ impl Function {
                 let res = zend_hash_str_find_ptr_lc(
                     &ce.function_table,
                     name.as_ptr() as *const i8,
-                    name.len()
+                    name.len(),
                 ) as *mut zend_function;
                 if res.is_null() {
-                    return None
+                    return None;
                 }
-                return Some(*res)
-            }
-        }
+                return Some(*res);
+            },
+        };
     }
 
     pub fn from_function(name: &str) -> Self {

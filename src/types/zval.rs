@@ -208,7 +208,9 @@ impl Zval {
 
     #[inline(always)]
     pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
-        self.object().ok_or(Error::Object)?.try_call_method(name, params)
+        self.object()
+            .ok_or(Error::Object)?
+            .try_call_method(name, params)
     }
 
     /// Returns the value of the zval if it is a reference.

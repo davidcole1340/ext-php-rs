@@ -9,8 +9,9 @@ use crate::{
     convert::{FromZendObject, FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
     ffi::{
-        ext_php_rs_zend_object_release, zend_call_known_function, zend_object, zend_objects_new,
-        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET, zend_hash_str_find_ptr_lc, zend_function, object_properties_init,
+        ext_php_rs_zend_object_release, object_properties_init, zend_call_known_function,
+        zend_function, zend_hash_str_find_ptr_lc, zend_object, zend_objects_new, HashTable,
+        ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     flags::DataType,
     rc::PhpRc,
@@ -49,8 +50,8 @@ impl ZendObject {
                     }
                     object_properties_init(ptr, ce as *const _ as *mut _);
                     ptr
-                },
-                Some(v) => v(ce as *const _ as *mut _)
+                }
+                Some(v) => v(ce as *const _ as *mut _),
             };
 
             ZBox::from_raw(
@@ -132,7 +133,6 @@ impl ZendObject {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
 
-
     #[inline(always)]
     pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         let mut retval = Zval::new();
@@ -147,10 +147,10 @@ impl ZendObject {
             let res = zend_hash_str_find_ptr_lc(
                 &(*self.ce).function_table,
                 name.as_ptr() as *const i8,
-                name.len()
+                name.len(),
             ) as *mut zend_function;
             if res.is_null() {
-                return Err(Error::Callable)
+                return Err(Error::Callable);
             }
             zend_call_known_function(
                 res,

@@ -35,7 +35,7 @@ pub mod zend;
 /// A module typically glob-imported containing the typically required macros
 /// and imports.
 pub mod prelude {
-    
+
     pub use crate::builders::ModuleBuilder;
     #[cfg(any(docs, feature = "closure"))]
     #[cfg_attr(docs, doc(cfg(feature = "closure")))]
