@@ -6,11 +6,12 @@ use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
 use crate::{
     boxed::{ZBox, ZBoxable},
     class::RegisteredClass,
-    convert::{FromZendObject, FromZval, FromZvalMut, IntoZval},
+    convert::{FromZendObject, FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
     ffi::{
-        ext_php_rs_zend_object_release, zend_call_known_function, zend_object, zend_objects_new,
-        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
+        ext_php_rs_zend_object_release, object_properties_init, zend_call_known_function,
+        zend_function, zend_hash_str_find_ptr_lc, zend_object, zend_objects_new, HashTable,
+        ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     flags::DataType,
     rc::PhpRc,
@@ -41,7 +42,18 @@ impl ZendObject {
         // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to
         // `*mut` is valid as the function will not mutate `ce`.
         unsafe {
-            let ptr = zend_objects_new(ce as *const _ as *mut _);
+            let ptr = match ce.__bindgen_anon_2.create_object {
+                None => {
+                    let ptr = zend_objects_new(ce as *const _ as *mut _);
+                    if ptr.is_null() {
+                        panic!("Failed to allocate memory for Zend object")
+                    }
+                    object_properties_init(ptr, ce as *const _ as *mut _);
+                    ptr
+                }
+                Some(v) => v(ce as *const _ as *mut _),
+            };
+
             ZBox::from_raw(
                 ptr.as_mut()
                     .expect("Failed to allocate memory for Zend object"),
@@ -121,6 +133,38 @@ impl ZendObject {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
 
+    #[inline(always)]
+    pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
+        let mut retval = Zval::new();
+        let len = params.len();
+        let params = params
+            .into_iter()
+            .map(|val| val.as_zval(false))
+            .collect::<Result<Vec<_>>>()?;
+        let packed = params.into_boxed_slice();
+
+        unsafe {
+            let res = zend_hash_str_find_ptr_lc(
+                &(*self.ce).function_table,
+                name.as_ptr() as *const i8,
+                name.len(),
+            ) as *mut zend_function;
+            if res.is_null() {
+                return Err(Error::Callable);
+            }
+            zend_call_known_function(
+                res,
+                self as *const _ as *mut _,
+                self.ce,
+                &mut retval,
+                len as _,
+                packed.as_ptr() as *mut _,
+                std::ptr::null_mut(),
+            )
+        };
+
+        Ok(retval)
+    }
     /// Attempts to read a property from the Object. Returns a result containing
     /// the value of the property if it exists and can be read, and an
     /// [`Error`] otherwise.

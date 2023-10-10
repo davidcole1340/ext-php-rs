@@ -15,6 +15,7 @@ use std::ffi::CString;
 pub use _type::ZendType;
 pub use class::ClassEntry;
 pub use ex::ExecuteData;
+pub use function::Function;
 pub use function::FunctionEntry;
 pub use globals::ExecutorGlobals;
 pub use handlers::ZendObjectHandlers;

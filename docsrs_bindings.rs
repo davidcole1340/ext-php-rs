@@ -105,6 +105,11 @@ pub const CONST_CS: u32 = 0;
 pub const CONST_PERSISTENT: u32 = 1;
 pub const CONST_NO_FILE_CACHE: u32 = 2;
 pub const CONST_DEPRECATED: u32 = 4;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __sigset_t {
+    pub __val: [::std::os::raw::c_ulong; 16usize],
+}
 pub type zend_long = i64;
 pub type zend_ulong = u64;
 pub type zend_uchar = ::std::os::raw::c_uchar;
@@ -404,6 +409,13 @@ extern "C" {
 }
 extern "C" {
     pub fn zend_array_destroy(ht: *mut HashTable);
+}
+extern "C" {
+    pub fn zend_hash_str_find_ptr_lc(
+        ht: *const HashTable,
+        str_: *const ::std::os::raw::c_char,
+        len: usize,
+    ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
     pub fn gc_possible_root(ref_: *mut zend_refcounted);
@@ -1049,7 +1061,15 @@ pub struct _zend_execute_data {
     pub run_time_cache: *mut *mut ::std::os::raw::c_void,
     pub extra_named_params: *mut zend_array,
 }
-pub type sigjmp_buf = [::std::os::raw::c_int; 49usize];
+pub type __jmp_buf = [::std::os::raw::c_long; 8usize];
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __jmp_buf_tag {
+    pub __jmpbuf: __jmp_buf,
+    pub __mask_was_saved: ::std::os::raw::c_int,
+    pub __saved_mask: __sigset_t,
+}
+pub type jmp_buf = [__jmp_buf_tag; 1usize];
 pub type zend_executor_globals = _zend_executor_globals;
 extern "C" {
     pub static mut executor_globals: zend_executor_globals;
@@ -1119,7 +1139,7 @@ pub struct _zend_executor_globals {
     pub symtable_cache_ptr: *mut *mut zend_array,
     pub symbol_table: zend_array,
     pub included_files: HashTable,
-    pub bailout: *mut sigjmp_buf,
+    pub bailout: *mut jmp_buf,
     pub error_reporting: ::std::os::raw::c_int,
     pub exit_status: ::std::os::raw::c_int,
     pub function_table: *mut HashTable,
@@ -1261,6 +1281,12 @@ pub struct _zend_vm_stack {
     pub top: *mut zval,
     pub end: *mut zval,
     pub prev: zend_vm_stack,
+}
+extern "C" {
+    pub fn zend_fetch_function_str(
+        name: *const ::std::os::raw::c_char,
+        len: usize,
+    ) -> *mut zend_function;
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
