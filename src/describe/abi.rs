@@ -32,7 +32,9 @@ impl<T> Deref for Vec<T> {
 
 impl<T> Drop for Vec<T> {
     fn drop(&mut self) {
-        unsafe { let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(self.ptr, self.len)); };
+        unsafe {
+            let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(self.ptr, self.len));
+        };
     }
 }
 
