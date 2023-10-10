@@ -20,6 +20,7 @@
 #include "zend_exceptions.h"
 #include "zend_inheritance.h"
 #include "zend_interfaces.h"
+#include "zend_ini.h"
 
 zend_string *ext_php_rs_zend_string_init(const char *str, size_t len, bool persistent);
 void ext_php_rs_zend_string_release(zend_string *zs);

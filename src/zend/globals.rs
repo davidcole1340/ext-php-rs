@@ -1,5 +1,6 @@
 //! Types related to the PHP executor globals.
 
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -7,7 +8,7 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use crate::boxed::ZBox;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
-use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals};
+use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals, zend_ini_entry};
 use crate::types::{ZendHashTable, ZendObject};
 
 /// Stores global variables used in the PHP executor.
@@ -49,6 +50,31 @@ impl ExecutorGlobals {
     /// Attempts to retrieve the global class hash table.
     pub fn class_table(&self) -> Option<&ZendHashTable> {
         unsafe { self.class_table.as_ref() }
+    }
+
+    /// Retrieves the ini values for all ini directives in the current executor
+    /// context..
+    pub fn ini_values(&self) -> HashMap<String, Option<String>> {
+        let hash_table = unsafe { &*self.ini_directives };
+        let mut ini_hash_map: HashMap<String, Option<String>> = HashMap::new();
+        for (_index, key, value) in hash_table.iter() {
+            if let Some(key) = key {
+                ini_hash_map.insert(key, unsafe {
+                    let ini_entry = &*value.ptr::<zend_ini_entry>().expect("Invalid ini entry");
+                    if ini_entry.value.is_null() {
+                        None
+                    } else {
+                        Some(
+                            (*ini_entry.value)
+                                .as_str()
+                                .expect("Ini value is not a string")
+                                .to_owned(),
+                        )
+                    }
+                });
+            }
+        }
+        ini_hash_map
     }
 
     /// Attempts to retrieve the global constants table.
