@@ -56,11 +56,11 @@ impl Function {
             if res.is_null() {
                 return None;
             }
-            return Some(*res);
+            Some(*res)
         }
     }
     pub fn try_from_method(class: &str, name: &str) -> Option<Self> {
-        return match ClassEntry::try_find(class) {
+        match ClassEntry::try_find(class) {
             None => None,
             Some(ce) => unsafe {
                 let res = zend_hash_str_find_ptr_lc(
@@ -71,9 +71,9 @@ impl Function {
                 if res.is_null() {
                     return None;
                 }
-                return Some(*res);
+                Some(*res)
             },
-        };
+        }
     }
 
     pub fn from_function(name: &str) -> Self {

@@ -34,6 +34,7 @@ impl ClassEntry {
     /// # Panics
     ///
     /// Panics when allocating memory for the new object fails.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(&self) -> ZBox<ZendObject> {
         ZendObject::new(self)
     }
