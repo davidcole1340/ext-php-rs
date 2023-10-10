@@ -155,7 +155,8 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Parameters
     ///
     /// * `obj` - The zend object to get the [`ZendClassObject`] for.
-    #[allow(clippy::needless_pass_by_ref_mut)] pub fn from_zend_obj_mut(std: &mut zend_object) -> Option<&mut Self> {
+    #[allow(clippy::needless_pass_by_ref_mut)]
+    pub fn from_zend_obj_mut(std: &mut zend_object) -> Option<&mut Self> {
         Self::_from_zend_obj(std)
     }
 
