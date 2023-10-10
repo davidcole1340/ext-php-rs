@@ -76,20 +76,6 @@ impl Function {
         }
     }
 
-    pub fn from_function(name: &str) -> Self {
-        match Self::try_from_function(name) {
-            Some(v) => v,
-            None => panic!("Expected function `{}` to exist!", name),
-        }
-    }
-
-    pub fn from_method(class: &str, name: &str) -> Self {
-        match Self::try_from_method(class, name) {
-            Some(v) => v,
-            None => panic!("Expected method `{}::{}` to exist!", class, name),
-        }
-    }
-
     /// Attempts to call the callable with a list of arguments to pass to the
     /// function.
     ///
