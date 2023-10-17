@@ -3,8 +3,14 @@ use crate::ffi::zend_object_iterator;
 use crate::flags::DataType;
 use crate::types::{ZendLong, Zval};
 use std::convert::TryInto;
-use std::fmt::Display;
+use std::fmt::{Debug, Display, Formatter};
 
+/// A PHP Iterator.
+///
+/// In PHP, iterators are represented as zend_object_iterator. This allow user to iterate
+/// over object implementing Traversable interface using foreach.
+///
+/// ```
 pub type ZendIterator = zend_object_iterator;
 
 impl ZendIterator {
@@ -57,7 +63,13 @@ impl ZendIterator {
     }
 }
 
-#[derive(PartialEq)]
+impl Debug for ZendIterator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ZendIterator").finish()
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum IterKey {
     Long(u64),
     String(String),
@@ -110,7 +122,10 @@ impl<'a> Iterator for Iter<'a> {
                     Ok(key) => (IterKey::String(key), value),
                     Err(_) => (IterKey::Long(real_index), value),
                 },
-                true => (IterKey::Long(key.long().unwrap_or(real_index as ZendLong) as u64), value),
+                true => (
+                    IterKey::Long(key.long().unwrap_or(real_index as ZendLong) as u64),
+                    value,
+                ),
             },
             None => (IterKey::Long(real_index), value),
         })
@@ -121,10 +136,6 @@ impl<'a> FromZvalMut<'a> for &'a mut ZendIterator {
     const TYPE: DataType = DataType::Object(Some("Traversable"));
 
     fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
-        let zend_object = zval.object()?;
-        let ce = zend_object.get_class_entry_mut();
-        let iterator = unsafe { ce.get_iterator?(&mut *ce, &mut *zval, 0) };
-
-        unsafe { iterator.as_mut() }
+        zval.object()?.get_class_entry().get_iterator(zval, false)
     }
 }

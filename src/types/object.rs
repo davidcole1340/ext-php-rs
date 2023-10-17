@@ -103,17 +103,6 @@ impl ZendObject {
         unsafe { self.ce.as_ref() }.expect("Could not retrieve class entry.")
     }
 
-    /// Returns the [`ClassEntry`] associated with this object.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the class entry is invalid.
-    pub fn get_class_entry_mut(&self) -> &'static mut ClassEntry {
-        // SAFETY: it is OK to panic here since PHP would segfault anyway
-        // when encountering an object with no class entry.
-        unsafe { self.ce.as_mut() }.expect("Could not retrieve class entry.")
-    }
-
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
         unsafe {
@@ -142,6 +131,15 @@ impl ZendObject {
     /// This method doesn't check the class and interface inheritance chain.
     pub fn is_instance<T: RegisteredClass>(&self) -> bool {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
+    }
+
+    /// Returns whether this object is an instance of \Traversable
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn is_traversable(&self) -> bool {
+        self.instance_of(ce::traversable())
     }
 
     #[inline(always)]

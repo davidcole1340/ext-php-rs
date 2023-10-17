@@ -160,6 +160,7 @@ bind! {
     IS_UNDEF,
     IS_VOID,
     IS_PTR,
+    IS_ITERABLE,
     MAY_BE_ANY,
     MAY_BE_BOOL,
     PHP_INI_USER,

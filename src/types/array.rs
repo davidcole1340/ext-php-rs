@@ -10,6 +10,8 @@ use std::{
     u64,
 };
 
+use crate::types::iterator::IterKey;
+use crate::types::ZendLong;
 use crate::{
     boxed::{ZBox, ZBoxable},
     convert::{FromZval, IntoZval},
@@ -25,8 +27,6 @@ use crate::{
     flags::DataType,
     types::Zval,
 };
-use crate::types::iterator::IterKey;
-use crate::types::ZendLong;
 
 /// A PHP hashtable.
 ///
@@ -512,7 +512,7 @@ impl ZendHashTable {
     /// //        ^ Optional string key, if inserted like a hashtable.
     /// //             ^ Inserted value.
     ///
-    ///     dbg!(idx, key, val);
+    ///     dbg!(key, val);
     /// }
     #[inline]
     pub fn iter(&self) -> Iter {
@@ -548,10 +548,7 @@ unsafe impl ZBoxable for ZendHashTable {
 impl Debug for ZendHashTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
-            .entries(
-                self.iter()
-                    .map(|(k, v)| (k.to_string(), v)),
-            )
+            .entries(self.iter().map(|(k, v)| (k.to_string(), v)))
             .finish()
     }
 }
@@ -626,7 +623,10 @@ impl<'a> Iterator for Iter<'a> {
         };
 
         let r = match key.is_long() {
-            true => (IterKey::Long(key.long().unwrap_or(self.current_num as ZendLong) as u64), value),
+            true => (
+                IterKey::Long(key.long().unwrap_or(self.current_num as ZendLong) as u64),
+                value,
+            ),
             false => match key.try_into() {
                 Ok(key) => (IterKey::String(key), value),
                 Err(_) => (IterKey::Long(self.current_num), value),
@@ -687,7 +687,10 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
         };
 
         let r = match key.is_long() {
-            true => (IterKey::Long(key.long().unwrap_or(self.current_num as ZendLong) as u64), value),
+            true => (
+                IterKey::Long(key.long().unwrap_or(self.current_num as ZendLong) as u64),
+                value,
+            ),
             false => match key.try_into() {
                 Ok(key) => (IterKey::String(key), value),
                 Err(_) => (IterKey::Long(self.current_num), value),

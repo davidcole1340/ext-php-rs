@@ -172,6 +172,7 @@ impl ToStub for DataType {
                 DataType::Reference => "reference",
                 DataType::Callable => "callable",
                 DataType::Bool => "bool",
+                DataType::Iterable => "iterable",
                 _ => "mixed",
             }
         )
