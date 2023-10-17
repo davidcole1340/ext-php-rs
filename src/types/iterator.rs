@@ -1,8 +1,7 @@
-use crate::convert::FromZvalMut;
+use crate::convert::{FromZval, FromZvalMut};
 use crate::ffi::zend_object_iterator;
 use crate::flags::DataType;
-use crate::types::{ZendLong, Zval};
-use std::convert::TryInto;
+use crate::types::Zval;
 use std::fmt::{Debug, Display, Formatter};
 
 /// A PHP Iterator.
@@ -93,6 +92,17 @@ impl Display for IterKey {
     }
 }
 
+impl FromZval<'_> for IterKey {
+    const TYPE: DataType = DataType::String;
+
+    fn from_zval(zval: &Zval) -> Option<Self> {
+        match zval.long() {
+            Some(key) => Some(IterKey::Long(key as u64)),
+            None => zval.string().map(|key| IterKey::String(key)),
+        }
+    }
+}
+
 pub struct Iter<'a> {
     zi: &'a mut ZendIterator,
 }
@@ -117,15 +127,9 @@ impl<'a> Iterator for Iter<'a> {
         let real_index = self.zi.index - 1;
 
         Some(match key {
-            Some(key) => match key.is_long() {
-                false => match key.try_into() {
-                    Ok(key) => (IterKey::String(key), value),
-                    Err(_) => (IterKey::Long(real_index), value),
-                },
-                true => (
-                    IterKey::Long(key.long().unwrap_or(real_index as ZendLong) as u64),
-                    value,
-                ),
+            Some(key) => match IterKey::from_zval(&key) {
+                Some(key) => (key, value),
+                None => (IterKey::Long(real_index), value),
             },
             None => (IterKey::Long(real_index), value),
         })

@@ -11,7 +11,6 @@ use std::{
 };
 
 use crate::types::iterator::IterKey;
-use crate::types::ZendLong;
 use crate::{
     boxed::{ZBox, ZBoxable},
     convert::{FromZval, IntoZval},
@@ -622,15 +621,9 @@ impl<'a> Iterator for Iter<'a> {
             )
         };
 
-        let r = match key.is_long() {
-            true => (
-                IterKey::Long(key.long().unwrap_or(self.current_num as ZendLong) as u64),
-                value,
-            ),
-            false => match key.try_into() {
-                Ok(key) => (IterKey::String(key), value),
-                Err(_) => (IterKey::Long(self.current_num), value),
-            },
+        let r = match IterKey::from_zval(&key) {
+            Some(key) => (key, value),
+            None => (IterKey::Long(self.current_num), value),
         };
 
         unsafe {
@@ -686,15 +679,9 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
             )
         };
 
-        let r = match key.is_long() {
-            true => (
-                IterKey::Long(key.long().unwrap_or(self.current_num as ZendLong) as u64),
-                value,
-            ),
-            false => match key.try_into() {
-                Ok(key) => (IterKey::String(key), value),
-                Err(_) => (IterKey::Long(self.current_num), value),
-            },
+        let r = match IterKey::from_zval(&key) {
+            Some(key) => (key, value),
+            None => (IterKey::Long(self.current_num), value),
         };
 
         unsafe {
