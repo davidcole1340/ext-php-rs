@@ -6,6 +6,7 @@
 mod array;
 mod callable;
 mod class_object;
+mod iterator;
 mod long;
 mod object;
 mod string;
