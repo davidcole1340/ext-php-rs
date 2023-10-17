@@ -328,8 +328,8 @@ impl Debug for ZendObject {
         );
 
         if let Ok(props) = self.get_properties() {
-            for (id, key, val) in props.iter() {
-                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
+            for (key, val) in props.iter() {
+                dbg.field(key.to_string().as_str(), val);
             }
         }
 

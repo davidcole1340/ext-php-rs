@@ -57,22 +57,20 @@ impl ExecutorGlobals {
     pub fn ini_values(&self) -> HashMap<String, Option<String>> {
         let hash_table = unsafe { &*self.ini_directives };
         let mut ini_hash_map: HashMap<String, Option<String>> = HashMap::new();
-        for (_index, key, value) in hash_table.iter() {
-            if let Some(key) = key {
-                ini_hash_map.insert(key, unsafe {
-                    let ini_entry = &*value.ptr::<zend_ini_entry>().expect("Invalid ini entry");
-                    if ini_entry.value.is_null() {
-                        None
-                    } else {
-                        Some(
-                            (*ini_entry.value)
-                                .as_str()
-                                .expect("Ini value is not a string")
-                                .to_owned(),
-                        )
-                    }
-                });
-            }
+        for (key, value) in hash_table.iter() {
+            ini_hash_map.insert(key.to_string(), unsafe {
+                let ini_entry = &*value.ptr::<zend_ini_entry>().expect("Invalid ini entry");
+                if ini_entry.value.is_null() {
+                    None
+                } else {
+                    Some(
+                        (*ini_entry.value)
+                            .as_str()
+                            .expect("Ini value is not a string")
+                            .to_owned(),
+                    )
+                }
+            });
         }
         ini_hash_map
     }

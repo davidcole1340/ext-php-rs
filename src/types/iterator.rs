@@ -3,12 +3,9 @@ use crate::ffi::zend_object_iterator;
 use crate::flags::DataType;
 use crate::types::{ZendLong, Zval};
 use std::convert::TryInto;
+use std::fmt::Display;
 
 pub type ZendIterator = zend_object_iterator;
-
-pub struct Iter<'a> {
-    zi: &'a mut ZendIterator,
-}
 
 impl ZendIterator {
     pub fn iter(&mut self) -> Iter {
@@ -60,8 +57,36 @@ impl ZendIterator {
     }
 }
 
+#[derive(PartialEq)]
+pub enum IterKey {
+    Long(u64),
+    String(String),
+}
+
+impl IterKey {
+    pub fn is_numerical(&self) -> bool {
+        match self {
+            IterKey::Long(_) => true,
+            IterKey::String(_) => false,
+        }
+    }
+}
+
+impl Display for IterKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IterKey::Long(key) => write!(f, "{}", key),
+            IterKey::String(key) => write!(f, "{}", key),
+        }
+    }
+}
+
+pub struct Iter<'a> {
+    zi: &'a mut ZendIterator,
+}
+
 impl<'a> Iterator for Iter<'a> {
-    type Item = (u64, Option<String>, &'a Zval);
+    type Item = (IterKey, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         // Call next when index > 0, so next is really called at the start of each iteration, which allow to work better with generator iterator
@@ -81,14 +106,13 @@ impl<'a> Iterator for Iter<'a> {
 
         Some(match key {
             Some(key) => match key.is_long() {
-                false => (real_index, key.try_into().ok(), value),
-                true => (
-                    key.long().unwrap_or(real_index as ZendLong) as u64,
-                    None,
-                    value,
-                ),
+                false => match key.try_into() {
+                    Ok(key) => (IterKey::String(key), value),
+                    Err(_) => (IterKey::Long(real_index), value),
+                },
+                true => (IterKey::Long(key.long().unwrap_or(real_index as ZendLong) as u64), value),
             },
-            None => (real_index, None, value),
+            None => (IterKey::Long(real_index), value),
         })
     }
 }

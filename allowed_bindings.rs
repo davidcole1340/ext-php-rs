@@ -92,6 +92,7 @@ bind! {
     zend_internal_arg_info,
     zend_is_callable,
     zend_is_identical,
+    zend_is_iterable,
     zend_long,
     zend_lookup_class_ex,
     zend_module_entry,
