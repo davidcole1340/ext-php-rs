@@ -98,7 +98,7 @@ impl FromZval<'_> for IterKey {
     fn from_zval(zval: &Zval) -> Option<Self> {
         match zval.long() {
             Some(key) => Some(IterKey::Long(key as u64)),
-            None => zval.string().map(|key| IterKey::String(key)),
+            None => zval.string().map(IterKey::String),
         }
     }
 }
