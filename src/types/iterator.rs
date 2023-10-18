@@ -8,8 +8,6 @@ use std::fmt::{Debug, Display, Formatter};
 ///
 /// In PHP, iterators are represented as zend_object_iterator. This allow user to iterate
 /// over object implementing Traversable interface using foreach.
-///
-/// ```
 pub type ZendIterator = zend_object_iterator;
 
 impl ZendIterator {
@@ -28,7 +26,7 @@ impl ZendIterator {
     /// Check if the current position of the iterator is valid.
     ///
     /// As an example this will call the user defined valid method of the ['\Iterator'] interface.
-    /// see https://www.php.net/manual/en/iterator.valid.php
+    /// see <https://www.php.net/manual/en/iterator.valid.php>
     pub fn valid(&mut self) -> bool {
         if let Some(valid) = unsafe { (*self.funcs).valid } {
             unsafe { valid(&mut *self) != 0 }
@@ -40,7 +38,7 @@ impl ZendIterator {
     /// Rewind the iterator to the first element.
     ///
     /// As an example this will call the user defined rewind method of the ['\Iterator'] interface.
-    /// see https://www.php.net/manual/en/iterator.rewind.php
+    /// see <https://www.php.net/manual/en/iterator.rewind.php>
     pub fn rewind(&mut self) {
         if let Some(rewind) = unsafe { (*self.funcs).rewind } {
             unsafe {
@@ -52,7 +50,7 @@ impl ZendIterator {
     /// Move the iterator forward to the next element.
     ///
     /// As an example this will call the user defined next method of the ['\Iterator'] interface.
-    /// see https://www.php.net/manual/en/iterator.next.php
+    /// see <https://www.php.net/manual/en/iterator.next.php>
     pub fn move_forward(&mut self) {
         if let Some(move_forward) = unsafe { (*self.funcs).move_forward } {
             unsafe {
