@@ -13,6 +13,11 @@ use std::fmt::{Debug, Display, Formatter};
 pub type ZendIterator = zend_object_iterator;
 
 impl ZendIterator {
+    /// Creates a new rust iterator from a zend_object_iterator.
+    ///
+    /// # Returns
+    ///
+    /// Returns a iterator over the zend_object_iterator.
     pub fn iter(&mut self) -> Iter {
         self.index = 0;
         self.rewind();
@@ -20,6 +25,10 @@ impl ZendIterator {
         Iter { zi: self }
     }
 
+    /// Check if the current position of the iterator is valid.
+    ///
+    /// As an example this will call the user defined valid method of the ['\Iterator'] interface.
+    /// see https://www.php.net/manual/en/iterator.valid.php
     pub fn valid(&mut self) -> bool {
         if let Some(valid) = unsafe { (*self.funcs).valid } {
             unsafe { valid(&mut *self) != 0 }
@@ -28,6 +37,10 @@ impl ZendIterator {
         }
     }
 
+    /// Rewind the iterator to the first element.
+    ///
+    /// As an example this will call the user defined rewind method of the ['\Iterator'] interface.
+    /// see https://www.php.net/manual/en/iterator.rewind.php
     pub fn rewind(&mut self) {
         if let Some(rewind) = unsafe { (*self.funcs).rewind } {
             unsafe {
@@ -36,6 +49,10 @@ impl ZendIterator {
         }
     }
 
+    /// Move the iterator forward to the next element.
+    ///
+    /// As an example this will call the user defined next method of the ['\Iterator'] interface.
+    /// see https://www.php.net/manual/en/iterator.next.php
     pub fn move_forward(&mut self) {
         if let Some(move_forward) = unsafe { (*self.funcs).move_forward } {
             unsafe {
@@ -44,6 +61,12 @@ impl ZendIterator {
         }
     }
 
+    /// Get the current data of the iterator.
+    ///
+    /// # Returns
+    ///
+    /// Returns a reference to the current data of the iterator if available
+    /// , ['None'] otherwise.
     pub fn get_current_data<'a>(&mut self) -> Option<&'a Zval> {
         let get_current_data = unsafe { (*self.funcs).get_current_data }?;
         let value = unsafe { &*get_current_data(&mut *self) };
@@ -51,6 +74,12 @@ impl ZendIterator {
         Some(value)
     }
 
+    /// Get the current key of the iterator.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new ['Zval'] containing the current key of the iterator if available
+    /// , ['None'] otherwise.
     pub fn get_current_key(&mut self) -> Option<Zval> {
         let get_current_key = unsafe { (*self.funcs).get_current_key }?;
         let mut key = Zval::new();
@@ -74,7 +103,13 @@ pub enum IterKey {
     String(String),
 }
 
+/// Represent the key of a PHP iterator, which can be either a long or a string.
 impl IterKey {
+    /// Check if the key is numerical.
+    ///
+    /// # Returns
+    ///
+    /// Returns true if the key is numerical, false otherwise.
     pub fn is_numerical(&self) -> bool {
         match self {
             IterKey::Long(_) => true,
@@ -103,6 +138,7 @@ impl FromZval<'_> for IterKey {
     }
 }
 
+/// Immutable iterator upon a reference to a PHP iterator.
 pub struct Iter<'a> {
     zi: &'a mut ZendIterator,
 }

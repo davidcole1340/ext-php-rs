@@ -5,6 +5,8 @@ use crate::flags::DataType;
 use crate::types::iterator::IterKey;
 use crate::types::{ZendHashTable, ZendIterator, Zval};
 
+/// This type represents a PHP iterable, which can be either an array or an object implementing
+/// the Traversable interface.
 #[derive(Debug)]
 pub enum Iterable<'a> {
     Array(&'a ZendHashTable),
@@ -12,6 +14,7 @@ pub enum Iterable<'a> {
 }
 
 impl<'a> Iterable<'a> {
+    /// Creates a new rust iterator from a PHP iterable.
     pub fn iter(&mut self) -> Iter {
         match self {
             Iterable::Array(array) => Iter::Array(array.iter()),
@@ -36,6 +39,7 @@ impl<'a> FromZval<'a> for Iterable<'a> {
     }
 }
 
+/// Rust iterator over a PHP iterable.
 pub enum Iter<'a> {
     Array(ZendHashTableIter<'a>),
     Traversable(ZendIteratorIter<'a>),

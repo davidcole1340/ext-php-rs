@@ -16,6 +16,7 @@ mod zval;
 pub use array::ZendHashTable;
 pub use callable::ZendCallable;
 pub use class_object::ZendClassObject;
+pub use iterable::Iterable;
 pub use iterator::ZendIterator;
 pub use long::ZendLong;
 pub use object::{PropertyQuery, ZendObject};
