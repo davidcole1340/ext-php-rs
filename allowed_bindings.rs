@@ -257,7 +257,8 @@ bind! {
     executor_globals_offset,
     zend_atomic_bool_store,
     zend_interrupt_function,
-    php_embed_init,
-    php_embed_shutdown,
-    zend_eval_stringl
+    zend_eval_string,
+    zend_file_handle,
+    zend_stream_init_filename,
+    php_execute_script
 }

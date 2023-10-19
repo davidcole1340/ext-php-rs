@@ -151,9 +151,31 @@ fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "embed")]
+/// Builds the embed library.
+fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
+    let mut build = cc::Build::new();
+    for (var, val) in defines {
+        build.define(var, *val);
+    }
+    build
+        .file("src/embed/embed.c")
+        .includes(includes)
+        .try_compile("embed")
+        .context("Failed to compile ext-php-rs C embed interface")?;
+    Ok(())
+}
+
 /// Generates bindings to the Zend API.
 fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<String> {
-    let mut bindgen = bindgen::Builder::default()
+    let mut bindgen = bindgen::Builder::default();
+
+    #[cfg(feature = "embed")]
+    {
+        bindgen = bindgen.header("src/embed/embed.h");
+    }
+
+    bindgen = bindgen
         .header("src/wrapper.h")
         .clang_args(
             includes
@@ -257,6 +279,10 @@ fn main() -> Result<()> {
 
     check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
+
+    #[cfg(feature = "embed")]
+    build_embed(&defines, &includes)?;
+
     let bindings = generate_bindings(&defines, &includes)?;
 
     let out_file =

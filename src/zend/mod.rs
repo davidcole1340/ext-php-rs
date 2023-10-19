@@ -3,8 +3,6 @@
 mod _type;
 pub mod ce;
 mod class;
-#[cfg(feature = "embed")]
-pub mod embed;
 mod ex;
 mod function;
 mod globals;

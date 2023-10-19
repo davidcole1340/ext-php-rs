@@ -457,17 +457,19 @@ impl<'a> FromZval<'a> for &'a str {
 #[cfg(test)]
 #[cfg(feature = "embed")]
 mod tests {
-    use crate::zend::embed::Embed;
+    use crate::embed::Embed;
 
     #[test]
     fn test_string() {
-        let result = Embed::run("'foo';");
+        Embed::run(|| {
+            let result = Embed::eval("'foo';");
 
-        assert!(result.is_ok());
+            assert!(result.is_ok());
 
-        let zval = result.as_ref().unwrap();
+            let zval = result.as_ref().unwrap();
 
-        assert!(zval.is_string());
-        assert_eq!(zval.string().unwrap(), "foo");
+            assert!(zval.is_string());
+            assert_eq!(zval.string().unwrap(), "foo");
+        });
     }
 }
