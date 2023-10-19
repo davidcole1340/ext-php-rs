@@ -55,4 +55,11 @@ impl<'a> PHPProvider<'a> for Provider {
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>> {
         Ok(vec![])
     }
+
+    fn print_extra_link_args(&self) -> Result<()> {
+        #[cfg(feature = "embed")]
+        println!("cargo:rustc-link-lib=php");
+
+        Ok(())
+    }
 }
