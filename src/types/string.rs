@@ -457,28 +457,17 @@ impl<'a> FromZval<'a> for &'a str {
 #[cfg(test)]
 #[cfg(feature = "embed")]
 mod tests {
-    use crate::ffi::{php_embed_init, php_embed_shutdown};
-    use crate::types::Zval;
-    use crate::zend::Function;
-    use std::ptr::null_mut;
+    use crate::zend::embed::Embed;
 
     #[test]
     fn test_string() {
-        unsafe {
-            php_embed_init(0, null_mut());
-        }
+        let result = Embed::run("'foo';");
 
-        let func = Function::try_from_function("chr").expect("Failed to find chr function");
-        let mut input = Zval::new();
-        input.set_long(65);
-        let result = func
-            .try_call(vec![&input])
-            .expect("Failed to call chr function");
+        assert!(result.is_ok());
 
-        assert_eq!(result.string().unwrap(), "A");
+        let zval = result.as_ref().unwrap();
 
-        unsafe {
-            php_embed_shutdown();
-        }
+        assert!(zval.is_string());
+        assert_eq!(zval.string().unwrap(), "foo");
     }
 }

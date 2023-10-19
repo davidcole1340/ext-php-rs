@@ -258,5 +258,6 @@ bind! {
     zend_atomic_bool_store,
     zend_interrupt_function,
     php_embed_init,
-    php_embed_shutdown
+    php_embed_shutdown,
+    zend_eval_stringl
 }
