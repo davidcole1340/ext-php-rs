@@ -6,6 +6,7 @@ use std::ops::{Deref, DerefMut};
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
+use crate::exception::PhpResult;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{_zend_executor_globals, ext_php_rs_executor_globals, zend_ini_entry};
@@ -87,6 +88,13 @@ impl ExecutorGlobals {
     /// could lead to a deadlock if the globals are already borrowed immutably
     /// or mutably.
     pub fn take_exception() -> Option<ZBox<ZendObject>> {
+        {
+            // This avoid a write lock if there is no exception.
+            if Self::get().exception.is_null() {
+                return None;
+            }
+        }
+
         let mut globals = Self::get_mut();
 
         let mut exception_ptr = std::ptr::null_mut();
@@ -94,6 +102,20 @@ impl ExecutorGlobals {
 
         // SAFETY: `as_mut` checks for null.
         Some(unsafe { ZBox::from_raw(exception_ptr.as_mut()?) })
+    }
+
+    /// Attempts to extract the last PHP exception captured by the interpreter.
+    /// Returned inside a [`PhpResult`].
+    ///
+    /// This function requires the executor globals to be mutably held, which
+    /// could lead to a deadlock if the globals are already borrowed immutably
+    /// or mutably.
+    pub fn throw_if_exception() -> PhpResult<()> {
+        if let Some(e) = Self::take_exception() {
+            Err(crate::error::Error::Exception(e).into())
+        } else {
+            Ok(())
+        }
     }
 
     /// Request an interrupt of the PHP VM. This will call the registered

@@ -1,7 +1,9 @@
 use crate::convert::{FromZval, FromZvalMut};
-use crate::ffi::zend_object_iterator;
+use crate::ffi::{zend_object_iterator, ZEND_RESULT_CODE_SUCCESS};
 use crate::flags::DataType;
+use crate::prelude::PhpResult;
 use crate::types::Zval;
+use crate::zend::ExecutorGlobals;
 use std::fmt::{Debug, Display, Formatter};
 
 /// A PHP Iterator.
@@ -16,22 +18,26 @@ impl ZendIterator {
     /// # Returns
     ///
     /// Returns a iterator over the zend_object_iterator.
-    pub fn iter(&mut self) -> Iter {
+    pub fn iter(&mut self) -> PhpResult<Iter> {
         self.index = 0;
-        self.rewind();
+        self.rewind()?;
 
-        Iter { zi: self }
+        Ok(Iter { zi: self })
     }
 
     /// Check if the current position of the iterator is valid.
     ///
     /// As an example this will call the user defined valid method of the ['\Iterator'] interface.
     /// see <https://www.php.net/manual/en/iterator.valid.php>
-    pub fn valid(&mut self) -> bool {
+    pub fn valid(&mut self) -> PhpResult<bool> {
         if let Some(valid) = unsafe { (*self.funcs).valid } {
-            unsafe { valid(&mut *self) != 0 }
+            let valid = unsafe { valid(&mut *self) == ZEND_RESULT_CODE_SUCCESS };
+
+            ExecutorGlobals::throw_if_exception()?;
+
+            Ok(valid)
         } else {
-            true
+            Ok(true)
         }
     }
 
@@ -39,24 +45,28 @@ impl ZendIterator {
     ///
     /// As an example this will call the user defined rewind method of the ['\Iterator'] interface.
     /// see <https://www.php.net/manual/en/iterator.rewind.php>
-    pub fn rewind(&mut self) {
+    pub fn rewind(&mut self) -> PhpResult<()> {
         if let Some(rewind) = unsafe { (*self.funcs).rewind } {
             unsafe {
                 rewind(&mut *self);
             }
         }
+
+        ExecutorGlobals::throw_if_exception()
     }
 
     /// Move the iterator forward to the next element.
     ///
     /// As an example this will call the user defined next method of the ['\Iterator'] interface.
     /// see <https://www.php.net/manual/en/iterator.next.php>
-    pub fn move_forward(&mut self) {
+    pub fn move_forward(&mut self) -> PhpResult<()> {
         if let Some(move_forward) = unsafe { (*self.funcs).move_forward } {
             unsafe {
                 move_forward(&mut *self);
             }
         }
+
+        ExecutorGlobals::throw_if_exception()
     }
 
     /// Get the current data of the iterator.
@@ -65,11 +75,16 @@ impl ZendIterator {
     ///
     /// Returns a reference to the current data of the iterator if available
     /// , ['None'] otherwise.
-    pub fn get_current_data<'a>(&mut self) -> Option<&'a Zval> {
-        let get_current_data = unsafe { (*self.funcs).get_current_data }?;
+    pub fn get_current_data<'a>(&mut self) -> PhpResult<Option<&'a Zval>> {
+        let get_current_data = match unsafe { (*self.funcs).get_current_data } {
+            Some(get_current_data) => get_current_data,
+            None => return Ok(None),
+        };
         let value = unsafe { &*get_current_data(&mut *self) };
 
-        Some(value)
+        ExecutorGlobals::throw_if_exception()?;
+
+        Ok(Some(value))
     }
 
     /// Get the current key of the iterator.
@@ -78,14 +93,21 @@ impl ZendIterator {
     ///
     /// Returns a new ['Zval'] containing the current key of the iterator if available
     /// , ['None'] otherwise.
-    pub fn get_current_key(&mut self) -> Option<Zval> {
-        let get_current_key = unsafe { (*self.funcs).get_current_key }?;
+    pub fn get_current_key(&mut self) -> PhpResult<Option<Zval>> {
+        let get_current_key = match unsafe { (*self.funcs).get_current_key } {
+            Some(get_current_key) => get_current_key,
+            None => return Ok(None),
+        };
+
         let mut key = Zval::new();
+
         unsafe {
             get_current_key(&mut *self, &mut key);
         }
 
-        Some(key)
+        ExecutorGlobals::throw_if_exception()?;
+
+        Ok(Some(key))
     }
 }
 
@@ -142,31 +164,40 @@ pub struct Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (IterKey, &'a Zval);
+    type Item = PhpResult<(IterKey, &'a Zval)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Call next when index > 0, so next is really called at the start of each iteration, which allow to work better with generator iterator
         if self.zi.index > 0 {
-            self.zi.move_forward();
-
-            if !self.zi.valid() {
-                return None;
+            if let Err(err) = self.zi.move_forward() {
+                return Some(Err(err));
             }
+        }
+
+        match self.zi.valid() {
+            Err(err) => return Some(Err(err)),
+            Ok(false) => return None,
+            Ok(true) => (),
         }
 
         self.zi.index += 1;
 
-        let key = self.zi.get_current_key();
-        let value = self.zi.get_current_data()?;
         let real_index = self.zi.index - 1;
 
-        Some(match key {
-            Some(key) => match IterKey::from_zval(&key) {
-                Some(key) => (key, value),
-                None => (IterKey::Long(real_index), value),
+        let key = match self.zi.get_current_key() {
+            Err(err) => return Some(Err(err)),
+            Ok(None) => IterKey::Long(real_index),
+            Ok(Some(key)) => match IterKey::from_zval(&key) {
+                Some(key) => key,
+                None => IterKey::Long(real_index),
             },
-            None => (IterKey::Long(real_index), value),
-        })
+        };
+
+        match self.zi.get_current_data() {
+            Err(err) => Some(Err(err)),
+            Ok(None) => None,
+            Ok(Some(value)) => Some(Ok((key, value))),
+        }
     }
 }
 
