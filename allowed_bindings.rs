@@ -256,5 +256,9 @@ bind! {
     tsrm_get_ls_cache,
     executor_globals_offset,
     zend_atomic_bool_store,
-    zend_interrupt_function
+    zend_interrupt_function,
+    zend_eval_string,
+    zend_file_handle,
+    zend_stream_init_filename,
+    php_execute_script
 }
