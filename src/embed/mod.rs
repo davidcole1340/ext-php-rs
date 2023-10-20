@@ -16,6 +16,7 @@ use crate::types::{ZendObject, Zval};
 use crate::zend::ExecutorGlobals;
 use parking_lot::{const_rwlock, RwLock};
 use std::ffi::{c_char, c_void, CString, NulError};
+use std::panic::{catch_unwind, resume_unwind, RefUnwindSafe};
 use std::path::Path;
 use std::ptr::null_mut;
 
@@ -104,24 +105,41 @@ impl Embed {
     ///    assert_eq!(foo.unwrap().string().unwrap(), "foo");
     /// });
     /// ```
-    pub fn run<F: Fn()>(func: F) {
+    pub fn run<F: Fn() + RefUnwindSafe>(func: F) {
         // @TODO handle php thread safe
         //
         // This is to prevent multiple threads from running php at the same time
         // At some point we should detect if php is compiled with thread safety and avoid doing that in this case
         let _guard = RUN_FN_LOCK.write();
 
-        unsafe extern "C" fn wrapper<F: Fn()>(ctx: *const c_void) {
-            (*(ctx as *const F))();
+        unsafe extern "C" fn wrapper<F: Fn() + RefUnwindSafe>(ctx: *const c_void) -> *mut c_void {
+            // we try to catch panic here so we correctly shutdown php if it happens
+            // mandatory when we do assert on test as other test would not run correctly
+            let panic = catch_unwind(|| {
+                (*(ctx as *const F))();
+            });
+
+            let panic_ptr = Box::into_raw(Box::new(panic));
+
+            panic_ptr as *mut c_void
         }
 
-        unsafe {
+        let panic = unsafe {
             ext_php_rs_embed_callback(
                 0,
                 null_mut(),
                 wrapper::<F>,
                 &func as *const F as *const c_void,
-            );
+            )
+        };
+
+        if panic.is_null() {
+            return;
+        }
+
+        if let Err(err) = unsafe { *Box::from_raw(panic as *mut std::thread::Result<()>) } {
+            // we resume the panic here so it can be catched correctly by the test framework
+            resume_unwind(err);
         }
     }
 
@@ -216,6 +234,14 @@ mod tests {
             let result = Embed::run_script("src/embed/test-script-exception.php");
 
             assert!(!result.is_ok());
+        });
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_panic() {
+        Embed::run(|| {
+            panic!("test panic");
         });
     }
 }
