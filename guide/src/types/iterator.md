@@ -20,7 +20,7 @@ used but also a the result of a `query` call with `PDO`.
 # use ext_php_rs::types::ZendIterator;
 #[php_function]
 pub fn test_iterator(iterator: &mut ZendIterator) {
-    for (k, v) in iterator.iter() {
+    for (k, v) in iterator.iter().expect("cannot get iterator") {
         println!("k: {} v: {}", k, v.string().unwrap());
     }
 }

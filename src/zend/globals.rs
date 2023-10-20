@@ -104,6 +104,11 @@ impl ExecutorGlobals {
         Some(unsafe { ZBox::from_raw(exception_ptr.as_mut()?) })
     }
 
+    /// Checks if the executor globals contain an exception.
+    pub fn has_exception() -> bool {
+        !Self::get().exception.is_null()
+    }
+
     /// Attempts to extract the last PHP exception captured by the interpreter.
     /// Returned inside a [`PhpResult`].
     ///

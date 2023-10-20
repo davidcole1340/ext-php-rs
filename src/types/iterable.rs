@@ -1,7 +1,6 @@
 use super::array::Iter as ZendHashTableIter;
 use super::iterator::Iter as ZendIteratorIter;
 use crate::convert::FromZval;
-use crate::exception::PhpResult;
 use crate::flags::DataType;
 use crate::types::iterator::IterKey;
 use crate::types::{ZendHashTable, ZendIterator, Zval};
@@ -16,10 +15,10 @@ pub enum Iterable<'a> {
 
 impl<'a> Iterable<'a> {
     /// Creates a new rust iterator from a PHP iterable.
-    pub fn iter(&mut self) -> PhpResult<Iter> {
+    pub fn iter(&mut self) -> Option<Iter> {
         match self {
-            Iterable::Array(array) => Ok(Iter::Array(array.iter())),
-            Iterable::Traversable(traversable) => Ok(Iter::Traversable(traversable.iter()?)),
+            Iterable::Array(array) => Some(Iter::Array(array.iter())),
+            Iterable::Traversable(traversable) => Some(Iter::Traversable(traversable.iter()?)),
         }
     }
 }
@@ -47,11 +46,11 @@ pub enum Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = PhpResult<(IterKey, &'a Zval)>;
+    type Item = (IterKey, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Iter::Array(array) => array.next().map(Ok),
+            Iter::Array(array) => array.next(),
             Iter::Traversable(traversable) => traversable.next(),
         }
     }

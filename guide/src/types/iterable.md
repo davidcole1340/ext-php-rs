@@ -19,7 +19,7 @@ that implements the `Traversable` interface. This means that any value that can 
 # use ext_php_rs::types::Iterable;
 #[php_function]
 pub fn test_iterable(mut iterable: Iterable) {
-    for (k, v) in iterable.iter() {
+    for (k, v) in iterable.iter().expect("cannot get iterable") {
         println!("k: {} v: {}", k, v.string().unwrap());
     }
 }

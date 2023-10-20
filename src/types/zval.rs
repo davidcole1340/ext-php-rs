@@ -239,6 +239,7 @@ impl Zval {
         ZendCallable::new(self).ok()
     }
 
+    /// Returns an iterator over the zval if it is traversable.
     pub fn traversable(&self) -> Option<&mut ZendIterator> {
         if self.is_traversable() {
             self.object()?.get_class_entry().get_iterator(self, false)
@@ -247,6 +248,7 @@ impl Zval {
         }
     }
 
+    /// Returns an iterable over the zval if it is an array or traversable. (is iterable)
     pub fn iterable(&self) -> Option<Iterable> {
         if self.is_iterable() {
             Iterable::from_zval(self)
