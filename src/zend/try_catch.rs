@@ -62,6 +62,7 @@ pub fn bailout() {
     }
 }
 
+#[cfg(feature = "embed")]
 #[cfg(test)]
 mod tests {
     use crate::embed::Embed;

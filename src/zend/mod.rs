@@ -23,6 +23,7 @@ pub use globals::ExecutorGlobals;
 pub use handlers::ZendObjectHandlers;
 pub use ini_entry_def::IniEntryDef;
 pub use module::ModuleEntry;
+#[cfg(feature = "embed")]
 pub(crate) use try_catch::panic_wrapper;
 pub use try_catch::{bailout, try_catch};
 
