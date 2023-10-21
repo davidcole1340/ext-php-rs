@@ -217,7 +217,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 
 Here's the async PHP code we use to interact with the Rust class we just exposed.  
 
-The `Client::init` method needs to be called only once in order to initialize the Revolt event loop and link it to the Tokio event loop, as shwon by the following code.
+The `Client::init` method needs to be called only once in order to initialize the Revolt event loop and link it to the Tokio event loop, as shown by the following code.
 
 See [here &raquo;](https://amphp.org) for more info on async PHP using [amphp](https://amphp.org) + [revolt](https://revolt.run).  
 
