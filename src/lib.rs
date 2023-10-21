@@ -48,6 +48,7 @@ pub mod prelude {
     pub use crate::php_extern;
     pub use crate::php_function;
     pub use crate::php_impl;
+    pub use crate::php_async_impl;
     pub use crate::php_module;
     pub use crate::php_print;
     pub use crate::php_println;
@@ -389,6 +390,49 @@ pub use ext_php_rs_derive::php_function;
 /// }
 /// ```
 pub use ext_php_rs_derive::php_impl;
+
+/// Just like php_impl, annotates a structs `impl` block, declaring that
+/// all methods and constants declared inside the `impl` block will be declared
+/// as PHP methods and constants.
+///
+/// This variant of php_impl supports async Rust methods, using [php-tokio](https://github.com/danog/php-tokio)
+/// to integrate [tokio](https://tokio.rs) with PHP fibers and the [Revolt](https://revolt.run) event loop,
+/// compatible with [Amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl) and any other async PHP library based on Revolt.
+///
+/// # Example
+///
+/// ```no_run
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
+/// # use ext_php_rs::prelude::*;
+/// use php_tokio::EventLoop;
+///
+/// #[php_class]
+/// struct Client {}
+///
+/// #[php_async_impl]
+/// impl Client {
+///     pub fn init() -> PhpResult<u64> {
+///         EventLoop::init()
+///     }
+///     pub fn wakeup() -> PhpResult<()> {
+///         EventLoop::wakeup()
+///     }
+///     pub async fn get(url: &str) -> anyhow::Result<String> {
+///         Ok(reqwest::get(url).await?.text().await?)
+///     }
+/// }
+///
+/// pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -> i32 {
+///     EventLoop::shutdown();
+///     0
+/// }
+///
+/// #[php_module]
+/// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+///     module.request_shutdown_function(request_shutdown)
+/// }
+/// ```
+pub use php_tokio::php_async_impl;
 
 /// Annotates a function that will be used by PHP to retrieve information about
 /// the module.
