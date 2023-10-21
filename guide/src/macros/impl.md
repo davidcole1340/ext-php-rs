@@ -73,11 +73,11 @@ This allows full compatibility with [amphp](https://amphp.org), [PSL](https://gi
 
 Traits annotated with `#[php_impl]` can freely expose any async function, using `await` and any async Rust library.  
 
-Make sure to also expose the `php_tokio::EventLoop::init` and `php_tokio::EventLoop::wakeup` functions to PHP in order to initialize the event loop, as specified in the full example [here &rauquo;](#async-example).
+Make sure to also expose the `php_tokio::EventLoop::init` and `php_tokio::EventLoop::wakeup` functions to PHP in order to initialize the event loop, as specified in the full example [here &raquo;](#async-example).
 
 Also, make sure to invoke `EventLoop::shutdown` in the request shutdown handler to clean up the tokio event loop before finishing the request.
 
-See [here &rauquo;](#async-example) for the full example.
+See [here &raquo;](#async-example) for the full example.
 
 ## Constants
 
