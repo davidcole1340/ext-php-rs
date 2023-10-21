@@ -5,7 +5,7 @@ repository = "https://github.com/davidcole1340/ext-php-rs"
 homepage = "https://github.com/davidcole1340/ext-php-rs"
 license = "MIT OR Apache-2.0"
 keywords = ["php", "ffi", "zend"]
-version = "0.10.4"
+version = "0.10.3"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
 categories = ["api-bindings"]
@@ -19,12 +19,10 @@ once_cell = "1.17"
 anyhow = { version = "1", optional = true }
 ext-php-rs-derive = { version = "=0.10.1", path = "./crates/macros" }
 
-[target.'cfg(linux)'.dependencies]
-php-tokio = { version = "=0.1.4", optional = true }
-
 [dev-dependencies]
 skeptic = "0.13"
 reqwest = "0.11.22"
+php-tokio = "0.1.4"
 
 [build-dependencies]
 anyhow = "1"
@@ -43,7 +41,6 @@ zip = "0.6"
 [features]
 closure = []
 embed = []
-async = ["dep:php-tokio"]
 
 [workspace]
 members = ["crates/macros", "crates/cli"]

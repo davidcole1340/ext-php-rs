@@ -184,13 +184,9 @@ In this example, we're exposing an async Rust HTTP client library called [reqwes
 
 This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).  
 
-Currently, only Linux is supported by php-tokio.
-
-```rust,no_run
-# #![cfg(linux)]
-# extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
-use php_tokio::EventLoop;
+```rust,ignore
+use ext_php_rs::prelude::*;
+use php_tokio::{php_async_impl, EventLoop};
 
 #[php_class]
 struct Client {}
@@ -217,8 +213,6 @@ pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -> i32 {
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
     module.request_shutdown_function(request_shutdown)
 }
-
-# fn main() {}
 ```
 
 Here's the async PHP code we use to interact with the Rust class we just exposed.  
