@@ -184,6 +184,8 @@ In this example, we're exposing an async Rust HTTP client library called [reqwes
 
 This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).  
 
+Make sure to require [php-tokio](https://github.com/danog/php-tokio) as a dependency before proceeding.
+
 ```rust,ignore
 use ext_php_rs::prelude::*;
 use php_tokio::{php_async_impl, EventLoop};
