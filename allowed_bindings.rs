@@ -261,5 +261,6 @@ bind! {
     zend_file_handle,
     zend_stream_init_filename,
     php_execute_script,
-    zend_register_module_ex
+    zend_register_module_ex,
+    _zend_bailout
 }

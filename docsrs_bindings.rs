@@ -790,6 +790,9 @@ pub struct _zend_class_entry__bindgen_ty_4__bindgen_ty_2 {
     pub module: *mut _zend_module_entry,
 }
 extern "C" {
+    pub fn _zend_bailout(filename: *const ::std::os::raw::c_char, lineno: u32) -> !;
+}
+extern "C" {
     pub static mut zend_interrupt_function:
         ::std::option::Option<unsafe extern "C" fn(execute_data: *mut zend_execute_data)>;
 }
