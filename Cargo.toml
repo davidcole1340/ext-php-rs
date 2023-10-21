@@ -21,8 +21,6 @@ ext-php-rs-derive = { version = "=0.10.1", path = "./crates/macros" }
 
 [dev-dependencies]
 skeptic = "0.13"
-reqwest = "0.11.22"
-php-tokio = "0.1.4"
 
 [build-dependencies]
 anyhow = "1"
