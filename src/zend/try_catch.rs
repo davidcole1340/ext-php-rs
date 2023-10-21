@@ -56,10 +56,16 @@ pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, Catch
 ///
 /// This function will stop the execution of the current script
 /// and jump to the last try catch block
-pub fn bailout() {
-    unsafe {
-        ext_php_rs_zend_bailout();
-    }
+///
+/// # Safety
+///
+/// This function is unsafe because it can cause memory leaks
+/// Since it will jump to the last try catch block, it will not call the destructor of the current scope
+///
+/// When using this function you should ensure that all the memory allocated in the current scope is released
+///
+pub unsafe fn bailout() {
+    ext_php_rs_zend_bailout();
 }
 
 #[cfg(feature = "embed")]
@@ -73,7 +79,10 @@ mod tests {
     fn test_catch() {
         Embed::run(|| {
             let catch = try_catch(|| {
-                bailout();
+                unsafe {
+                    bailout();
+                }
+
                 assert!(false);
             });
 
@@ -95,7 +104,9 @@ mod tests {
     #[test]
     fn test_bailout() {
         Embed::run(|| {
-            bailout();
+            unsafe {
+                bailout();
+            }
 
             assert!(false);
         });
@@ -134,7 +145,9 @@ mod tests {
             let mut result = "foo".to_string();
             ptr = &mut result;
 
-            bailout();
+            unsafe {
+                bailout();
+            }
         });
 
         // Check that the string is never released
