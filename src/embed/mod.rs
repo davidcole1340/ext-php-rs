@@ -13,7 +13,7 @@ use crate::ffi::{
     zend_stream_init_filename, ZEND_RESULT_CODE_SUCCESS,
 };
 use crate::types::{ZendObject, Zval};
-use crate::zend::{panic_wrapper, ExecutorGlobals};
+use crate::zend::{panic_wrapper, try_catch, ExecutorGlobals};
 use parking_lot::{const_rwlock, RwLock};
 use std::ffi::{c_char, c_void, CString, NulError};
 use std::panic::{resume_unwind, RefUnwindSafe};
@@ -29,6 +29,13 @@ pub enum EmbedError {
     ExecuteScriptError,
     InvalidEvalString(NulError),
     InvalidPath,
+    CatchError,
+}
+
+impl EmbedError {
+    pub fn is_bailout(&self) -> bool {
+        matches!(self, EmbedError::CatchError)
+    }
 }
 
 static RUN_FN_LOCK: RwLock<()> = const_rwlock(());
@@ -79,10 +86,12 @@ impl Embed {
             zend_stream_init_filename(&mut file_handle, path.as_ptr());
         }
 
-        if unsafe { php_execute_script(&mut file_handle) } {
-            Ok(())
-        } else {
-            Err(EmbedError::ExecuteScriptError)
+        let exec_result = try_catch(|| unsafe { php_execute_script(&mut file_handle) });
+
+        match exec_result {
+            Err(_) => Err(EmbedError::CatchError),
+            Ok(true) => Ok(()),
+            Ok(false) => Err(EmbedError::ExecuteScriptError),
         }
     }
 
@@ -171,21 +180,18 @@ impl Embed {
 
         let mut result = Zval::new();
 
-        // this eval is very limited as it only allow simple code, it's the same eval used by php -r
-        let exec_result = unsafe {
+        let exec_result = try_catch(|| unsafe {
             zend_eval_string(
                 cstr.as_ptr() as *const c_char,
                 &mut result,
                 b"run\0".as_ptr() as *const _,
             )
-        };
+        });
 
-        let exception = ExecutorGlobals::take_exception();
-
-        if exec_result != ZEND_RESULT_CODE_SUCCESS {
-            Err(EmbedError::ExecuteError(exception))
-        } else {
-            Ok(result)
+        match exec_result {
+            Err(_) => Err(EmbedError::CatchError),
+            Ok(ZEND_RESULT_CODE_SUCCESS) => Ok(result),
+            Ok(_) => Err(EmbedError::ExecuteError(ExecutorGlobals::take_exception())),
         }
     }
 }
@@ -253,5 +259,15 @@ mod tests {
         });
 
         assert_eq!(foo, "foo");
+    }
+
+    #[test]
+    fn test_eval_bailout() {
+        Embed::run(|| {
+            let result = Embed::eval("str_repeat('a', 100_000_000_000_000);");
+
+            assert!(result.is_err());
+            assert!(result.unwrap_err().is_bailout());
+        });
     }
 }
