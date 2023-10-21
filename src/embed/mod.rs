@@ -111,7 +111,7 @@ impl Embed {
     ///    assert_eq!(foo.unwrap().string().unwrap(), "foo");
     /// });
     /// ```
-    pub fn run<R, F: Fn() -> R + RefUnwindSafe>(func: F) -> R
+    pub fn run<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> R
     where
         R: Default,
     {

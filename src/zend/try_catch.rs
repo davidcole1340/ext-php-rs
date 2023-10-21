@@ -6,12 +6,12 @@ use std::ptr::null_mut;
 #[derive(Debug)]
 pub struct CatchError;
 
-pub(crate) unsafe extern "C" fn panic_wrapper<R, F: Fn() -> R + RefUnwindSafe>(
+pub(crate) unsafe extern "C" fn panic_wrapper<R, F: FnMut() -> R + RefUnwindSafe>(
     ctx: *const c_void,
 ) -> *const c_void {
     // we try to catch panic here so we correctly shutdown php if it happens
     // mandatory when we do assert on test as other test would not run correctly
-    let panic = catch_unwind(|| (*(ctx as *const F))());
+    let panic = catch_unwind(|| (*(ctx as *mut F))());
 
     Box::into_raw(Box::new(panic)) as *mut c_void
 }
@@ -26,7 +26,7 @@ pub(crate) unsafe extern "C" fn panic_wrapper<R, F: Fn() -> R + RefUnwindSafe>(
 ///
 /// * `Ok(R)` - The result of the function
 /// * `Err(CatchError)` - A bailout occurred during the execution
-pub fn try_catch<R, F: Fn() -> R + RefUnwindSafe>(func: F) -> Result<R, CatchError> {
+pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, CatchError> {
     let mut panic_ptr = null_mut();
     let has_bailout = unsafe {
         ext_php_rs_zend_try_catch(
@@ -67,6 +67,7 @@ pub fn bailout() {
 mod tests {
     use crate::embed::Embed;
     use crate::zend::{bailout, try_catch};
+    use std::ptr::null_mut;
 
     #[test]
     fn test_catch() {
@@ -123,5 +124,22 @@ mod tests {
         });
 
         assert_eq!(foo, "foo");
+    }
+
+    #[test]
+    fn test_memory_leak() {
+        let mut ptr = null_mut();
+
+        let _ = try_catch(|| {
+            let mut result = "foo".to_string();
+            ptr = &mut result;
+
+            bailout();
+        });
+
+        // Check that the string is never released
+        let result = unsafe { &*ptr as &str };
+
+        assert_eq!(result, "foo");
     }
 }
