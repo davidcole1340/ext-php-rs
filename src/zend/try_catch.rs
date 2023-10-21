@@ -64,7 +64,7 @@ pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, Catch
 ///
 /// When using this function you should ensure that all the memory allocated in the current scope is released
 ///
-pub unsafe fn bailout() {
+pub unsafe fn bailout() -> ! {
     ext_php_rs_zend_bailout();
 }
 
@@ -83,7 +83,10 @@ mod tests {
                     bailout();
                 }
 
-                assert!(false);
+                #[allow(unreachable_code)]
+                {
+                    assert!(false);
+                }
             });
 
             assert!(catch.is_err());
@@ -108,7 +111,10 @@ mod tests {
                 bailout();
             }
 
-            assert!(false);
+            #[allow(unreachable_code)]
+            {
+                assert!(false);
+            }
         });
     }
 

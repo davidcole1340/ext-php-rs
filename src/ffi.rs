@@ -31,7 +31,7 @@ extern "C" {
         ctx: *const c_void,
         result: *mut *mut c_void,
     ) -> bool;
-    pub fn ext_php_rs_zend_bailout();
+    pub fn ext_php_rs_zend_bailout() -> !;
 }
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
