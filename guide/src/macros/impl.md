@@ -213,6 +213,8 @@ pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -> i32 {
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
     module.request_shutdown_function(request_shutdown)
 }
+
+# fn main() {}
 ```
 
 Here's the async PHP code we use to interact with the Rust class we just exposed.  

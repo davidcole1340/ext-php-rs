@@ -22,6 +22,7 @@ php-tokio = "0.1.4"
 
 [dev-dependencies]
 skeptic = "0.13"
+reqwest = "0.11.22"
 
 [build-dependencies]
 anyhow = "1"
