@@ -48,6 +48,7 @@ pub mod prelude {
     pub use crate::php_extern;
     pub use crate::php_function;
     pub use crate::php_impl;
+    #[cfg(any(docs, feature = "async"))]
     pub use crate::php_async_impl;
     pub use crate::php_module;
     pub use crate::php_print;
@@ -402,7 +403,7 @@ pub use ext_php_rs_derive::php_impl;
 /// # Example
 ///
 /// ```no_run
-/// # #![cfg(linux))]
+/// # #![cfg(linux)]
 /// # use ext_php_rs::prelude::*;
 /// use php_tokio::EventLoop;
 ///
@@ -431,7 +432,10 @@ pub use ext_php_rs_derive::php_impl;
 /// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 ///     module.request_shutdown_function(request_shutdown)
 /// }
+/// 
+/// pub fn main() {}
 /// ```
+#[cfg(any(docs, feature = "async"))]
 pub use php_tokio::php_async_impl;
 
 /// Annotates a function that will be used by PHP to retrieve information about

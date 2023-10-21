@@ -83,10 +83,10 @@ jobs:
       - name: Build
         env:
           EXT_PHP_RS_TEST: ""
-        run: cargo build --release --features closure,anyhow --all
+        run: cargo build --release --features closure,anyhow,async --all
       # Test & lint
       - name: Test inline examples
-        run: cargo test --release --all --features closure,anyhow
+        run: cargo test --release --all --features closure,anyhow,async
       - name: Run rustfmt
         if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.2'
         run: cargo fmt --all -- --check

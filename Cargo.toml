@@ -41,6 +41,7 @@ zip = "0.6"
 [features]
 closure = []
 embed = []
+async = []
 
 [workspace]
 members = ["crates/macros", "crates/cli"]
