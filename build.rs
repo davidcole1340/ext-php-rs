@@ -248,6 +248,8 @@ fn main() -> Result<()> {
     for path in [
         manifest.join("src").join("wrapper.h"),
         manifest.join("src").join("wrapper.c"),
+        manifest.join("src").join("embed").join("embed.h"),
+        manifest.join("src").join("embed").join("embed.c"),
         manifest.join("allowed_bindings.rs"),
         manifest.join("windows_build.rs"),
         manifest.join("unix_build.rs"),

@@ -9,6 +9,7 @@ mod globals;
 mod handlers;
 mod ini_entry_def;
 mod module;
+mod try_catch;
 
 use crate::{error::Result, ffi::php_printf};
 use std::ffi::CString;
@@ -22,6 +23,8 @@ pub use globals::ExecutorGlobals;
 pub use handlers::ZendObjectHandlers;
 pub use ini_entry_def::IniEntryDef;
 pub use module::ModuleEntry;
+pub(crate) use try_catch::panic_wrapper;
+pub use try_catch::{bailout, try_catch};
 
 // Used as the format string for `php_printf`.
 const FORMAT_STR: &[u8] = b"%s\0";

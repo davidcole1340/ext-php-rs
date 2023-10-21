@@ -13,10 +13,10 @@ use crate::ffi::{
     zend_stream_init_filename, ZEND_RESULT_CODE_SUCCESS,
 };
 use crate::types::{ZendObject, Zval};
-use crate::zend::ExecutorGlobals;
+use crate::zend::{panic_wrapper, ExecutorGlobals};
 use parking_lot::{const_rwlock, RwLock};
 use std::ffi::{c_char, c_void, CString, NulError};
-use std::panic::{catch_unwind, resume_unwind, RefUnwindSafe};
+use std::panic::{resume_unwind, RefUnwindSafe};
 use std::path::Path;
 use std::ptr::null_mut;
 
@@ -93,6 +93,12 @@ impl Embed {
     /// Which means subsequent calls to `Embed::eval` or `Embed::run_script` will be able to access
     /// variables defined in previous calls
     ///
+    /// # Returns
+    ///
+    /// * R - The result of the function passed to this method
+    ///
+    /// R must implement [`Default`] so it can be returned in case of a bailout
+    ///
     /// # Example
     ///
     /// ```
@@ -105,41 +111,36 @@ impl Embed {
     ///    assert_eq!(foo.unwrap().string().unwrap(), "foo");
     /// });
     /// ```
-    pub fn run<F: Fn() + RefUnwindSafe>(func: F) {
+    pub fn run<R, F: Fn() -> R + RefUnwindSafe>(func: F) -> R
+    where
+        R: Default,
+    {
         // @TODO handle php thread safe
         //
         // This is to prevent multiple threads from running php at the same time
         // At some point we should detect if php is compiled with thread safety and avoid doing that in this case
         let _guard = RUN_FN_LOCK.write();
 
-        unsafe extern "C" fn wrapper<F: Fn() + RefUnwindSafe>(ctx: *const c_void) -> *mut c_void {
-            // we try to catch panic here so we correctly shutdown php if it happens
-            // mandatory when we do assert on test as other test would not run correctly
-            let panic = catch_unwind(|| {
-                (*(ctx as *const F))();
-            });
-
-            let panic_ptr = Box::into_raw(Box::new(panic));
-
-            panic_ptr as *mut c_void
-        }
-
         let panic = unsafe {
             ext_php_rs_embed_callback(
                 0,
                 null_mut(),
-                wrapper::<F>,
+                panic_wrapper::<R, F>,
                 &func as *const F as *const c_void,
             )
         };
 
+        // This can happen if there is a bailout
         if panic.is_null() {
-            return;
+            return R::default();
         }
 
-        if let Err(err) = unsafe { *Box::from_raw(panic as *mut std::thread::Result<()>) } {
-            // we resume the panic here so it can be catched correctly by the test framework
-            resume_unwind(err);
+        match unsafe { *Box::from_raw(panic as *mut std::thread::Result<R>) } {
+            Ok(r) => r,
+            Err(err) => {
+                // we resume the panic here so it can be catched correctly by the test framework
+                resume_unwind(err);
+            }
         }
     }
 
@@ -243,5 +244,14 @@ mod tests {
         Embed::run(|| {
             panic!("test panic");
         });
+    }
+
+    #[test]
+    fn test_return() {
+        let foo = Embed::run(|| {
+            return "foo";
+        });
+
+        assert_eq!(foo, "foo");
     }
 }
