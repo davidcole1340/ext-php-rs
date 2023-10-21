@@ -402,7 +402,7 @@ pub use ext_php_rs_derive::php_impl;
 /// # Example
 ///
 /// ```no_run
-/// # #![cfg_attr(windows, feature(abi_vectorcall))]
+/// # #![cfg(unix))]
 /// # use ext_php_rs::prelude::*;
 /// use php_tokio::EventLoop;
 ///

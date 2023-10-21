@@ -182,10 +182,12 @@ var_dump(Human::MAX_AGE); // int(100)
 
 In this example, we're exposing an async Rust HTTP client library called [reqwest](https://docs.rs/reqwest/latest/reqwest/) to PHP, using [PHP fibers](https://www.php.net/manual/en/language.fibers.php), [php-tokio](https://github.com/danog/php-tokio) and the [PHP Revolt event loop](https://revolt.run) under the hood to handle async interoperability.  
 
-This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).
+This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).  
+
+Currently, only POSIX platforms are supported by php-tokio (Linux & Mac OS).
 
 ```rust,no_run
-# #![cfg_attr(windows, feature(abi_vectorcall))]
+# #![cfg(unix)]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
 use php_tokio::EventLoop;
