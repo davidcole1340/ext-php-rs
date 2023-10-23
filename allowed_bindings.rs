@@ -260,5 +260,6 @@ bind! {
     zend_eval_string,
     zend_file_handle,
     zend_stream_init_filename,
-    php_execute_script
+    php_execute_script,
+    zend_register_module_ex
 }
