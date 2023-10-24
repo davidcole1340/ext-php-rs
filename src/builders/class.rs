@@ -161,10 +161,10 @@ impl ClassBuilder {
     /// Panics if the class name associated with `T` is not the same as the
     /// class name specified when creating the builder.
     pub fn object_override<T: RegisteredClass>(mut self) -> Self {
-        extern "C" fn create_object<T: RegisteredClass>(_: *mut ClassEntry) -> *mut ZendObject {
+        extern "C" fn create_object<T: RegisteredClass>(ce: *mut ClassEntry) -> *mut ZendObject {
             // SAFETY: After calling this function, PHP will always call the constructor
             // defined below, which assumes that the object is uninitialized.
-            let obj = unsafe { ZendClassObject::<T>::new_uninit() };
+            let obj = unsafe { ZendClassObject::<T>::new_uninit(ce.as_ref()) };
             obj.into_raw().get_mut_zend_obj()
         }
 

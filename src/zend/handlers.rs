@@ -52,13 +52,13 @@ impl ZendObjectHandlers {
     }
 
     unsafe extern "C" fn free_obj<T: RegisteredClass>(object: *mut ZendObject) {
-        let obj = object
+        object
             .as_mut()
             .and_then(|obj| ZendClassObject::<T>::from_zend_obj_mut(obj))
-            .expect("Invalid object pointer given for `free_obj`");
+            .map(|obj|ptr::drop_in_place(&mut obj.obj));
 
         // Manually drop the object as we don't want to free the underlying memory.
-        ptr::drop_in_place(&mut obj.obj);
+
 
         zend_object_std_dtor(object)
     }

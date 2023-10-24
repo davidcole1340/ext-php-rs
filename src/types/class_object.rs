@@ -15,10 +15,10 @@ use crate::{
     error::{Error, Result},
     ffi::{
         ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_release, object_properties_init,
-        zend_object, zend_object_std_init, zend_objects_clone_members,
+        zend_object, zend_object_std_init, zend_objects_clone_members, _zend_class_entry,
     },
     flags::DataType,
-    types::{ZendObject, Zval},
+    types::{ZendObject, Zval}, zend::ClassEntry,
 };
 
 /// Representation of a Zend class object in memory.
@@ -43,7 +43,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// Panics if memory was unable to be allocated for the new object.
     pub fn new(val: T) -> ZBox<Self> {
         // SAFETY: We are providing a value to initialize the object with.
-        unsafe { Self::internal_new(Some(val)) }
+        unsafe { Self::internal_new(Some(val), None) }
     }
 
     /// Creates a new [`ZendClassObject`] of type `T`, with an uninitialized
@@ -67,8 +67,8 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Panics
     ///
     /// Panics if memory was unable to be allocated for the new object.
-    pub unsafe fn new_uninit() -> ZBox<Self> {
-        Self::internal_new(None)
+    pub unsafe fn new_uninit(ce: Option<&'static ClassEntry>) -> ZBox<Self> {
+        Self::internal_new(None, ce)
     }
 
     /// Creates a new [`ZendObject`] of type `T`, storing the given (and
@@ -102,10 +102,10 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Panics
     ///
     /// Panics if memory was unable to be allocated for the new object.
-    unsafe fn internal_new(val: Option<T>) -> ZBox<Self> {
+    unsafe fn internal_new(val: Option<T>, ce: Option<&'static ClassEntry>) -> ZBox<Self> {
         let size = mem::size_of::<ZendClassObject<T>>();
         let meta = T::get_metadata();
-        let ce = meta.ce() as *const _ as *mut _;
+        let ce = ce.unwrap_or_else(||meta.ce()) as *const _ as *mut _;
         let obj = ext_php_rs_zend_object_alloc(size as _, ce) as *mut ZendClassObject<T>;
         let obj = obj
             .as_mut()
