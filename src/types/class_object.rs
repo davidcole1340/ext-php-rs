@@ -14,11 +14,12 @@ use crate::{
     convert::{FromZendObject, FromZendObjectMut, FromZval, FromZvalMut, IntoZval},
     error::{Error, Result},
     ffi::{
-        ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_release, object_properties_init,
-        zend_object, zend_object_std_init, zend_objects_clone_members, _zend_class_entry,
+        _zend_class_entry, ext_php_rs_zend_object_alloc, ext_php_rs_zend_object_release,
+        object_properties_init, zend_object, zend_object_std_init, zend_objects_clone_members,
     },
     flags::DataType,
-    types::{ZendObject, Zval}, zend::ClassEntry,
+    types::{ZendObject, Zval},
+    zend::ClassEntry,
 };
 
 /// Representation of a Zend class object in memory.
@@ -105,7 +106,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     unsafe fn internal_new(val: Option<T>, ce: Option<&'static ClassEntry>) -> ZBox<Self> {
         let size = mem::size_of::<ZendClassObject<T>>();
         let meta = T::get_metadata();
-        let ce = ce.unwrap_or_else(||meta.ce()) as *const _ as *mut _;
+        let ce = ce.unwrap_or_else(|| meta.ce()) as *const _ as *mut _;
         let obj = ext_php_rs_zend_object_alloc(size as _, ce) as *mut ZendClassObject<T>;
         let obj = obj
             .as_mut()
