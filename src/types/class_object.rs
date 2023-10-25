@@ -167,7 +167,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
             (ptr as *mut Self).as_mut()?
         };
 
-        if ptr.std.is_instance::<T>() {
+        if ptr.std.instance_of(T::get_metadata().ce()) {
             Some(ptr)
         } else {
             None
