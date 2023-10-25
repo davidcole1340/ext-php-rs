@@ -4,7 +4,6 @@ use crate::{
     constant::IntoConst,
     error::Result,
     ffi::{ext_php_rs_php_build_id, ZEND_MODULE_API_NO},
-    flags::MethodFlags,
     zend::{FunctionEntry, ModuleEntry},
     PHP_DEBUG, PHP_ZTS,
 };

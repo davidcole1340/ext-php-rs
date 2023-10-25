@@ -38,7 +38,7 @@ pub struct ImplArgs {
 }
 
 /// Different types of rename rules for methods.
-#[derive(Debug, Copy, Clone, FromMeta)]
+#[derive(Debug, Default, Copy, Clone, FromMeta)]
 pub enum RenameRule {
     /// Methods won't be renamed.
     #[darling(rename = "none")]

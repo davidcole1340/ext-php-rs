@@ -1,15 +1,4 @@
-use ext_php_rs::{
-    args::Arg,
-    builders::{ClassBuilder, FunctionBuilder, ModuleStartup},
-    class::{ClassMetadata, ConstructorMeta, ConstructorResult, RegisteredClass},
-    constant::IntoConst,
-    convert::IntoZval,
-    flags::DataType,
-    internal::class::{PhpClassImpl, PhpClassImplCollector},
-    prelude::*,
-    types::{ZendClassObject, Zval},
-    zend::ExecuteData,
-};
+use ext_php_rs::{constant::IntoConst, prelude::*, types::ZendClassObject};
 
 #[derive(Debug)]
 #[php_class]
@@ -75,12 +64,12 @@ pub struct TestZvalConvert<'a> {
 }
 
 #[php_function]
-pub fn get_zval_convert<'a>(z: TestZvalConvert<'a>) -> i32 {
+pub fn get_zval_convert(z: TestZvalConvert) -> i32 {
     dbg!(z);
     5
 }
 
-fn startup(ty: i32, mod_num: i32) -> i32 {
+fn startup(_ty: i32, mod_num: i32) -> i32 {
     5.register_constant("SOME_CONST", mod_num).unwrap();
     0
 }

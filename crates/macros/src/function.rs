@@ -375,10 +375,10 @@ impl<'a> Args<'a> {
                         syn::Pat::Ident(syn::PatIdent { ident, .. }) => ident,
                         _ => bail!(pat => "Unsupported argument."),
                     };
-                    let nullable = type_is_nullable(&**ty)?;
+                    let nullable = type_is_nullable(ty)?;
                     result.typed.push(TypedArg {
                         name: ident,
-                        ty: &**ty,
+                        ty,
                         nullable,
                         default: defaults.remove(ident),
                     });
