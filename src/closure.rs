@@ -11,7 +11,7 @@ use crate::{
     flags::{DataType, MethodFlags},
     props::Property,
     types::Zval,
-    zend::ExecuteData,
+    zend::{ClassEntry, ExecuteData},
     zend_fastcall,
 };
 
@@ -152,12 +152,28 @@ impl Closure {
 impl RegisteredClass for Closure {
     const CLASS_NAME: &'static str = "RustClosure";
 
+    const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
+    const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
+    const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] = &[];
+
     fn get_metadata() -> &'static ClassMetadata<Self> {
         &CLOSURE_META
     }
 
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>> {
         HashMap::new()
+    }
+
+    fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)> {
+        unimplemented!()
+    }
+
+    fn constructor() -> Option<crate::class::ConstructorMeta<Self>> {
+        None
+    }
+
+    fn constants() -> &'static [(&'static str, &'static dyn crate::convert::IntoZvalDyn)] {
+        unimplemented!()
     }
 }
 
@@ -171,6 +187,7 @@ class_derives!(Closure);
 ///
 /// This trait is automatically implemented on functions with up to 8
 /// parameters.
+#[allow(clippy::missing_safety_doc)]
 pub unsafe trait PhpClosure {
     /// Invokes the closure.
     fn invoke<'a>(&'a mut self, parser: ArgParser<'a, '_>, ret: &mut Zval);
