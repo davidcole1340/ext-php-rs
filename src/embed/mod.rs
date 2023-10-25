@@ -13,10 +13,10 @@ use crate::ffi::{
     zend_stream_init_filename, ZEND_RESULT_CODE_SUCCESS,
 };
 use crate::types::{ZendObject, Zval};
-use crate::zend::ExecutorGlobals;
+use crate::zend::{panic_wrapper, try_catch, ExecutorGlobals};
 use parking_lot::{const_rwlock, RwLock};
 use std::ffi::{c_char, c_void, CString, NulError};
-use std::panic::{catch_unwind, resume_unwind, RefUnwindSafe};
+use std::panic::{resume_unwind, RefUnwindSafe};
 use std::path::Path;
 use std::ptr::null_mut;
 
@@ -29,6 +29,13 @@ pub enum EmbedError {
     ExecuteScriptError,
     InvalidEvalString(NulError),
     InvalidPath,
+    CatchError,
+}
+
+impl EmbedError {
+    pub fn is_bailout(&self) -> bool {
+        matches!(self, EmbedError::CatchError)
+    }
 }
 
 static RUN_FN_LOCK: RwLock<()> = const_rwlock(());
@@ -79,10 +86,12 @@ impl Embed {
             zend_stream_init_filename(&mut file_handle, path.as_ptr());
         }
 
-        if unsafe { php_execute_script(&mut file_handle) } {
-            Ok(())
-        } else {
-            Err(EmbedError::ExecuteScriptError)
+        let exec_result = try_catch(|| unsafe { php_execute_script(&mut file_handle) });
+
+        match exec_result {
+            Err(_) => Err(EmbedError::CatchError),
+            Ok(true) => Ok(()),
+            Ok(false) => Err(EmbedError::ExecuteScriptError),
         }
     }
 
@@ -92,6 +101,12 @@ impl Embed {
     /// inside the function passed to this method.
     /// Which means subsequent calls to `Embed::eval` or `Embed::run_script` will be able to access
     /// variables defined in previous calls
+    ///
+    /// # Returns
+    ///
+    /// * R - The result of the function passed to this method
+    ///
+    /// R must implement [`Default`] so it can be returned in case of a bailout
     ///
     /// # Example
     ///
@@ -105,41 +120,36 @@ impl Embed {
     ///    assert_eq!(foo.unwrap().string().unwrap(), "foo");
     /// });
     /// ```
-    pub fn run<F: Fn() + RefUnwindSafe>(func: F) {
+    pub fn run<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> R
+    where
+        R: Default,
+    {
         // @TODO handle php thread safe
         //
         // This is to prevent multiple threads from running php at the same time
         // At some point we should detect if php is compiled with thread safety and avoid doing that in this case
         let _guard = RUN_FN_LOCK.write();
 
-        unsafe extern "C" fn wrapper<F: Fn() + RefUnwindSafe>(ctx: *const c_void) -> *mut c_void {
-            // we try to catch panic here so we correctly shutdown php if it happens
-            // mandatory when we do assert on test as other test would not run correctly
-            let panic = catch_unwind(|| {
-                (*(ctx as *const F))();
-            });
-
-            let panic_ptr = Box::into_raw(Box::new(panic));
-
-            panic_ptr as *mut c_void
-        }
-
         let panic = unsafe {
             ext_php_rs_embed_callback(
                 0,
                 null_mut(),
-                wrapper::<F>,
+                panic_wrapper::<R, F>,
                 &func as *const F as *const c_void,
             )
         };
 
+        // This can happen if there is a bailout
         if panic.is_null() {
-            return;
+            return R::default();
         }
 
-        if let Err(err) = unsafe { *Box::from_raw(panic as *mut std::thread::Result<()>) } {
-            // we resume the panic here so it can be catched correctly by the test framework
-            resume_unwind(err);
+        match unsafe { *Box::from_raw(panic as *mut std::thread::Result<R>) } {
+            Ok(r) => r,
+            Err(err) => {
+                // we resume the panic here so it can be catched correctly by the test framework
+                resume_unwind(err);
+            }
         }
     }
 
@@ -170,21 +180,18 @@ impl Embed {
 
         let mut result = Zval::new();
 
-        // this eval is very limited as it only allow simple code, it's the same eval used by php -r
-        let exec_result = unsafe {
+        let exec_result = try_catch(|| unsafe {
             zend_eval_string(
                 cstr.as_ptr() as *const c_char,
                 &mut result,
                 b"run\0".as_ptr() as *const _,
             )
-        };
+        });
 
-        let exception = ExecutorGlobals::take_exception();
-
-        if exec_result != ZEND_RESULT_CODE_SUCCESS {
-            Err(EmbedError::ExecuteError(exception))
-        } else {
-            Ok(result)
+        match exec_result {
+            Err(_) => Err(EmbedError::CatchError),
+            Ok(ZEND_RESULT_CODE_SUCCESS) => Ok(result),
+            Ok(_) => Err(EmbedError::ExecuteError(ExecutorGlobals::take_exception())),
         }
     }
 }
@@ -242,6 +249,25 @@ mod tests {
     fn test_panic() {
         Embed::run(|| {
             panic!("test panic");
+        });
+    }
+
+    #[test]
+    fn test_return() {
+        let foo = Embed::run(|| {
+            return "foo";
+        });
+
+        assert_eq!(foo, "foo");
+    }
+
+    #[test]
+    fn test_eval_bailout() {
+        Embed::run(|| {
+            let result = Embed::eval("str_repeat('a', 100_000_000_000_000);");
+
+            assert!(result.is_err());
+            assert!(result.unwrap_err().is_bailout());
         });
     }
 }

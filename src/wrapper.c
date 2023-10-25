@@ -39,3 +39,17 @@ zend_executor_globals *ext_php_rs_executor_globals() {
   return &executor_globals;
 #endif
 }
+
+bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **result) {
+  zend_try {
+    *result = callback(ctx);
+  } zend_catch {
+    return true;
+  } zend_end_try();
+
+  return false;
+}
+
+void ext_php_rs_zend_bailout() {
+  zend_bailout();
+}
