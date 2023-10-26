@@ -1,3 +1,4 @@
+#![cfg_attr(windows, feature(abi_vectorcall))]
 use ext_php_rs::{constant::IntoConst, prelude::*, types::ZendClassObject};
 
 #[derive(Debug)]
