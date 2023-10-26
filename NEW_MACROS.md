@@ -120,6 +120,9 @@ fn some_rust_func() {
 The `#[php_startup]` macro has been deprecated. Instead, define a function with
 the signature `fn(ty: i32, mod_num: i32) -> i32` and provide the function name
 to the `#[php_module]` attribute:
+`mod_num` is the module number assigned by PHP for its internal management. The `ModuleBuilder` always defaults this parameter to `0`.
+`ty` is the type of module (flag) which can be set to `MODULE_PERSISTENT = 0`.
+The return number is for internal purposes and should always be `0` in this case. It's an internal mechanism to tell to the ModuleBuilder weither to use the defautlt startup function or the overriden one. (see: `crates/macros/src/module.rs:L35`)
 
 ```rs
 use ext_php_rs::prelude::*;

@@ -424,10 +424,6 @@ pub use ext_php_rs_derive::php_module;
 /// * `#[implements(ce)]` - Implements an interface on the new class. Can be
 ///   used multiple times, and `ce` may be any valid expression.
 ///
-/// This attribute (and its associated structs) must be defined *above* the
-/// startup function (which is annotated by the [`macro@php_startup`] macro, or
-/// automatically generated just above the [`macro@php_module`] function).
-///
 /// Fields defined on the struct *are not* the same as PHP properties, and are
 /// only accessible from Rust.
 ///
