@@ -32,4 +32,5 @@ void *ext_php_rs_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 void ext_php_rs_zend_object_release(zend_object *obj);
 zend_executor_globals *ext_php_rs_executor_globals();
 bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **result);
+bool ext_php_rs_zend_first_try_catch(void* (*callback)(void *), void *ctx, void **result);
 void ext_php_rs_zend_bailout();

@@ -5,6 +5,7 @@
 //! You should only use this crate for test purpose, it's not production ready
 
 mod ffi;
+mod sapi;
 
 use crate::boxed::ZBox;
 use crate::embed::ffi::ext_php_rs_embed_callback;
@@ -19,6 +20,9 @@ use std::ffi::{c_char, c_void, CString, NulError};
 use std::panic::{resume_unwind, RefUnwindSafe};
 use std::path::Path;
 use std::ptr::null_mut;
+
+pub use ffi::ext_php_rs_sapi_startup;
+pub use sapi::SapiModule;
 
 pub struct Embed;
 
@@ -86,7 +90,7 @@ impl Embed {
             zend_stream_init_filename(&mut file_handle, path.as_ptr());
         }
 
-        let exec_result = try_catch(|| unsafe { php_execute_script(&mut file_handle) });
+        let exec_result = try_catch(|| unsafe { php_execute_script(&mut file_handle) }, false);
 
         match exec_result {
             Err(_) => Err(EmbedError::CatchError),
@@ -180,13 +184,16 @@ impl Embed {
 
         let mut result = Zval::new();
 
-        let exec_result = try_catch(|| unsafe {
-            zend_eval_string(
-                cstr.as_ptr() as *const c_char,
-                &mut result,
-                b"run\0".as_ptr() as *const _,
-            )
-        });
+        let exec_result = try_catch(
+            || unsafe {
+                zend_eval_string(
+                    cstr.as_ptr() as *const c_char,
+                    &mut result,
+                    b"run\0".as_ptr() as *const _,
+                )
+            },
+            false,
+        );
 
         match exec_result {
             Err(_) => Err(EmbedError::CatchError),

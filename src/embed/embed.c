@@ -13,3 +13,18 @@ void* ext_php_rs_embed_callback(int argc, char** argv, void* (*callback)(void *)
 
   return result;
 }
+
+void ext_php_rs_sapi_startup() {
+  #if defined(SIGPIPE) && defined(SIG_IGN)
+    signal(SIGPIPE, SIG_IGN);
+  #endif
+
+  #ifdef ZTS
+    php_tsrm_startup();
+    #ifdef PHP_WIN32
+      ZEND_TSRMLS_CACHE_UPDATE();
+    #endif
+  #endif
+
+  zend_signal_startup();
+}

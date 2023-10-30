@@ -1,4 +1,6 @@
-use crate::ffi::{ext_php_rs_zend_bailout, ext_php_rs_zend_try_catch};
+use crate::ffi::{
+    ext_php_rs_zend_bailout, ext_php_rs_zend_first_try_catch, ext_php_rs_zend_try_catch,
+};
 use std::ffi::c_void;
 use std::panic::{catch_unwind, resume_unwind, RefUnwindSafe};
 use std::ptr::null_mut;
@@ -26,14 +28,25 @@ pub(crate) unsafe extern "C" fn panic_wrapper<R, F: FnMut() -> R + RefUnwindSafe
 ///
 /// * `Ok(R)` - The result of the function
 /// * `Err(CatchError)` - A bailout occurred during the execution
-pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, CatchError> {
+pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(
+    func: F,
+    first: bool,
+) -> Result<R, CatchError> {
     let mut panic_ptr = null_mut();
     let has_bailout = unsafe {
-        ext_php_rs_zend_try_catch(
-            panic_wrapper::<R, F>,
-            &func as *const F as *const c_void,
-            (&mut panic_ptr) as *mut *mut c_void,
-        )
+        if first {
+            ext_php_rs_zend_first_try_catch(
+                panic_wrapper::<R, F>,
+                &func as *const F as *const c_void,
+                (&mut panic_ptr) as *mut *mut c_void,
+            )
+        } else {
+            ext_php_rs_zend_try_catch(
+                panic_wrapper::<R, F>,
+                &func as *const F as *const c_void,
+                (&mut panic_ptr) as *mut *mut c_void,
+            )
+        }
     };
 
     let panic = panic_ptr as *mut std::thread::Result<R>;
@@ -78,16 +91,19 @@ mod tests {
     #[test]
     fn test_catch() {
         Embed::run(|| {
-            let catch = try_catch(|| {
-                unsafe {
-                    bailout();
-                }
+            let catch = try_catch(
+                || {
+                    unsafe {
+                        bailout();
+                    }
 
-                #[allow(unreachable_code)]
-                {
-                    assert!(false);
-                }
-            });
+                    #[allow(unreachable_code)]
+                    {
+                        assert!(false);
+                    }
+                },
+                false,
+            );
 
             assert!(catch.is_err());
         });
@@ -96,9 +112,12 @@ mod tests {
     #[test]
     fn test_no_catch() {
         Embed::run(|| {
-            let catch = try_catch(|| {
-                assert!(true);
-            });
+            let catch = try_catch(
+                || {
+                    assert!(true);
+                },
+                false,
+            );
 
             assert!(catch.is_ok());
         });
@@ -122,18 +141,24 @@ mod tests {
     #[should_panic]
     fn test_panic() {
         Embed::run(|| {
-            let _ = try_catch(|| {
-                panic!("should panic");
-            });
+            let _ = try_catch(
+                || {
+                    panic!("should panic");
+                },
+                false,
+            );
         });
     }
 
     #[test]
     fn test_return() {
         let foo = Embed::run(|| {
-            let result = try_catch(|| {
-                return "foo";
-            });
+            let result = try_catch(
+                || {
+                    return "foo";
+                },
+                false,
+            );
 
             assert!(result.is_ok());
 
@@ -147,14 +172,17 @@ mod tests {
     fn test_memory_leak() {
         let mut ptr = null_mut();
 
-        let _ = try_catch(|| {
-            let mut result = "foo".to_string();
-            ptr = &mut result;
+        let _ = try_catch(
+            || {
+                let mut result = "foo".to_string();
+                ptr = &mut result;
 
-            unsafe {
-                bailout();
-            }
-        });
+                unsafe {
+                    bailout();
+                }
+            },
+            false,
+        );
 
         // Check that the string is never released
         let result = unsafe { &*ptr as &str };
