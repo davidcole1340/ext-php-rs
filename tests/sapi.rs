@@ -2,6 +2,8 @@
 extern crate ext_php_rs;
 
 #[cfg(feature = "embed")]
+use std::ffi::c_char;
+#[cfg(feature = "embed")]
 use ext_php_rs::builders::SapiBuilder;
 #[cfg(feature = "embed")]
 use ext_php_rs::embed::{ext_php_rs_sapi_startup, Embed};
@@ -14,10 +16,29 @@ use ext_php_rs::prelude::*;
 #[cfg(feature = "embed")]
 use ext_php_rs::zend::try_catch;
 
+#[cfg(feature = "embed")]
+static mut LAST_OUTPUT: String = String::new();
+
+#[cfg(feature = "embed")]
+extern "C" fn output_tester(str: *const c_char, str_length: usize) -> usize {
+    let char = unsafe { std::slice::from_raw_parts(str as *const u8, str_length) };
+    let string = String::from_utf8_lossy(char);
+
+    println!("{}", string);
+
+    unsafe {
+        LAST_OUTPUT = string.to_string();
+    };
+
+    str_length
+}
+
 #[test]
 #[cfg(feature = "embed")]
 fn test_sapi() {
-    let builder = SapiBuilder::new("test", "Test");
+    let mut builder = SapiBuilder::new("test", "Test");
+    builder = builder.ub_write_function(output_tester);
+
     let sapi = builder.build().unwrap().into_raw();
     let module = get_module();
 
@@ -50,12 +71,20 @@ fn test_sapi() {
             let string = zval.string().unwrap();
 
             assert_eq!(string.to_string(), "Hello, foo!");
+
+            let result = Embed::eval("var_dump($foo);");
+
+            assert!(result.is_ok());
         },
         true,
     );
 
     unsafe {
         php_request_shutdown(std::ptr::null_mut());
+    }
+
+    unsafe {
+        assert_eq!(LAST_OUTPUT, "string(11) \"Hello, foo!\"\n");
     }
 
     unsafe {

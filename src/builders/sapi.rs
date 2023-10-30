@@ -1,7 +1,7 @@
 use crate::ffi::sapi_header_struct;
 use crate::{embed::SapiModule, error::Result};
 
-use std::ffi::c_void;
+use std::ffi::{c_char, c_void};
 use std::{ffi::CString, ptr};
 
 pub struct SapiBuilder {
@@ -56,6 +56,11 @@ impl SapiBuilder {
         }
     }
 
+    pub fn ub_write_function(mut self, func: SapiUbWriteFunc) -> Self {
+        self.module.ub_write = Some(func);
+        self
+    }
+
     /// Sets the send header function for this SAPI
     ///
     /// # Arguments
@@ -81,8 +86,11 @@ impl SapiBuilder {
     }
 }
 
-/// A function to be called when the extension is starting up or shutting down.
+/// A function to be called when PHP send a header
 pub type SapiSendHeaderFunc =
     extern "C" fn(header: *mut sapi_header_struct, server_context: *mut c_void);
+
+/// A function to be called when PHP write to the output buffer
+pub type SapiUbWriteFunc = extern "C" fn(str: *const c_char, str_length: usize) -> usize;
 
 extern "C" fn dummy_send_header(_header: *mut sapi_header_struct, _server_context: *mut c_void) {}
