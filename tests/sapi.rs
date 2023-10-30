@@ -5,11 +5,13 @@ extern crate ext_php_rs;
 use ext_php_rs::builders::SapiBuilder;
 #[cfg(feature = "embed")]
 use ext_php_rs::embed::{ext_php_rs_sapi_startup, Embed};
+#[cfg(feature = "embed")]
 use ext_php_rs::ffi::{
     php_module_shutdown, php_module_startup, php_request_shutdown, php_request_startup,
     sapi_shutdown, sapi_startup, ZEND_RESULT_CODE_SUCCESS,
 };
 use ext_php_rs::prelude::*;
+#[cfg(feature = "embed")]
 use ext_php_rs::zend::try_catch;
 
 #[test]
