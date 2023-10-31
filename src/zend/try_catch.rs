@@ -28,10 +28,28 @@ pub(crate) unsafe extern "C" fn panic_wrapper<R, F: FnMut() -> R + RefUnwindSafe
 ///
 /// * `Ok(R)` - The result of the function
 /// * `Err(CatchError)` - A bailout occurred during the execution
-pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(
-    func: F,
-    first: bool,
-) -> Result<R, CatchError> {
+pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, CatchError> {
+    do_try_catch(func, false)
+}
+
+/// PHP propose a try catch mechanism in C using setjmp and longjmp (bailout)
+/// It store the arg of setjmp into the bailout field of the global executor
+/// If a bailout is triggered, the executor will jump to the setjmp and restore the previous setjmp
+///
+/// try_catch_first allow to use this mechanism
+///
+/// This functions differs from ['try_catch'] as it also initialize the bailout mechanism
+/// for the first time
+///
+/// # Returns
+///
+/// * `Ok(R)` - The result of the function
+/// * `Err(CatchError)` - A bailout occurred during the execution
+pub fn try_catch_first<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, CatchError> {
+    do_try_catch(func, true)
+}
+
+fn do_try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F, first: bool) -> Result<R, CatchError> {
     let mut panic_ptr = null_mut();
     let has_bailout = unsafe {
         if first {
@@ -91,19 +109,16 @@ mod tests {
     #[test]
     fn test_catch() {
         Embed::run(|| {
-            let catch = try_catch(
-                || {
-                    unsafe {
-                        bailout();
-                    }
+            let catch = try_catch(|| {
+                unsafe {
+                    bailout();
+                }
 
-                    #[allow(unreachable_code)]
-                    {
-                        assert!(false);
-                    }
-                },
-                false,
-            );
+                #[allow(unreachable_code)]
+                {
+                    assert!(false);
+                }
+            });
 
             assert!(catch.is_err());
         });
@@ -112,12 +127,9 @@ mod tests {
     #[test]
     fn test_no_catch() {
         Embed::run(|| {
-            let catch = try_catch(
-                || {
-                    assert!(true);
-                },
-                false,
-            );
+            let catch = try_catch(|| {
+                assert!(true);
+            });
 
             assert!(catch.is_ok());
         });
@@ -141,24 +153,18 @@ mod tests {
     #[should_panic]
     fn test_panic() {
         Embed::run(|| {
-            let _ = try_catch(
-                || {
-                    panic!("should panic");
-                },
-                false,
-            );
+            let _ = try_catch(|| {
+                panic!("should panic");
+            });
         });
     }
 
     #[test]
     fn test_return() {
         let foo = Embed::run(|| {
-            let result = try_catch(
-                || {
-                    return "foo";
-                },
-                false,
-            );
+            let result = try_catch(|| {
+                return "foo";
+            });
 
             assert!(result.is_ok());
 
@@ -172,17 +178,14 @@ mod tests {
     fn test_memory_leak() {
         let mut ptr = null_mut();
 
-        let _ = try_catch(
-            || {
-                let mut result = "foo".to_string();
-                ptr = &mut result;
+        let _ = try_catch(|| {
+            let mut result = "foo".to_string();
+            ptr = &mut result;
 
-                unsafe {
-                    bailout();
-                }
-            },
-            false,
-        );
+            unsafe {
+                bailout();
+            }
+        });
 
         // Check that the string is never released
         let result = unsafe { &*ptr as &str };

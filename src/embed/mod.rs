@@ -90,7 +90,7 @@ impl Embed {
             zend_stream_init_filename(&mut file_handle, path.as_ptr());
         }
 
-        let exec_result = try_catch(|| unsafe { php_execute_script(&mut file_handle) }, false);
+        let exec_result = try_catch(|| unsafe { php_execute_script(&mut file_handle) });
 
         match exec_result {
             Err(_) => Err(EmbedError::CatchError),
@@ -184,16 +184,13 @@ impl Embed {
 
         let mut result = Zval::new();
 
-        let exec_result = try_catch(
-            || unsafe {
-                zend_eval_string(
-                    cstr.as_ptr() as *const c_char,
-                    &mut result,
-                    b"run\0".as_ptr() as *const _,
-                )
-            },
-            false,
-        );
+        let exec_result = try_catch(|| unsafe {
+            zend_eval_string(
+                cstr.as_ptr() as *const c_char,
+                &mut result,
+                b"run\0".as_ptr() as *const _,
+            )
+        });
 
         match exec_result {
             Err(_) => Err(EmbedError::CatchError),

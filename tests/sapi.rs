@@ -1,25 +1,19 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
+#![cfg(feature = "embed")]
 extern crate ext_php_rs;
 
-#[cfg(feature = "embed")]
-use std::ffi::c_char;
-#[cfg(feature = "embed")]
 use ext_php_rs::builders::SapiBuilder;
-#[cfg(feature = "embed")]
 use ext_php_rs::embed::{ext_php_rs_sapi_startup, Embed};
-#[cfg(feature = "embed")]
 use ext_php_rs::ffi::{
     php_module_shutdown, php_module_startup, php_request_shutdown, php_request_startup,
     sapi_shutdown, sapi_startup, ZEND_RESULT_CODE_SUCCESS,
 };
 use ext_php_rs::prelude::*;
-#[cfg(feature = "embed")]
-use ext_php_rs::zend::try_catch;
+use ext_php_rs::zend::try_catch_first;
+use std::ffi::c_char;
 
-#[cfg(feature = "embed")]
 static mut LAST_OUTPUT: String = String::new();
 
-#[cfg(feature = "embed")]
 extern "C" fn output_tester(str: *const c_char, str_length: usize) -> usize {
     let char = unsafe { std::slice::from_raw_parts(str as *const u8, str_length) };
     let string = String::from_utf8_lossy(char);
@@ -34,7 +28,6 @@ extern "C" fn output_tester(str: *const c_char, str_length: usize) -> usize {
 }
 
 #[test]
-#[cfg(feature = "embed")]
 fn test_sapi() {
     let mut builder = SapiBuilder::new("test", "Test");
     builder = builder.ub_write_function(output_tester);
@@ -58,26 +51,23 @@ fn test_sapi() {
 
     assert_eq!(result, ZEND_RESULT_CODE_SUCCESS);
 
-    let _ = try_catch(
-        || {
-            let result = Embed::eval("$foo = hello_world('foo');");
+    let _ = try_catch_first(|| {
+        let result = Embed::eval("$foo = hello_world('foo');");
 
-            assert!(result.is_ok());
+        assert!(result.is_ok());
 
-            let zval = result.unwrap();
+        let zval = result.unwrap();
 
-            assert!(zval.is_string());
+        assert!(zval.is_string());
 
-            let string = zval.string().unwrap();
+        let string = zval.string().unwrap();
 
-            assert_eq!(string.to_string(), "Hello, foo!");
+        assert_eq!(string.to_string(), "Hello, foo!");
 
-            let result = Embed::eval("var_dump($foo);");
+        let result = Embed::eval("var_dump($foo);");
 
-            assert!(result.is_ok());
-        },
-        true,
-    );
+        assert!(result.is_ok());
+    });
 
     unsafe {
         php_request_shutdown(std::ptr::null_mut());
