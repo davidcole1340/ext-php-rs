@@ -1157,7 +1157,7 @@ pub fn test_method() -&gt; () {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_async_impl"><a class="header" href="#php_async_impl"><code>#[php_async_impl]</code></a></h1>
 <p>Using <code>#[php_async_impl]</code> instead of <code>#[php_impl]</code> allows us to expose any async Rust library to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
 <p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
-<p>Traits annotated with <code>#[php_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
+<p>Traits annotated with <code>#[php_async_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
 <p>Make sure to also expose the <code>php_tokio::EventLoop::init</code> and <code>php_tokio::EventLoop::wakeup</code> functions to PHP in order to initialize the event loop, as specified in the full example <a href="macros/async_impl.html#async-example">here »</a>.</p>
 <p>Also, make sure to invoke <code>EventLoop::shutdown</code> in the request shutdown handler to clean up the tokio event loop before finishing the request.</p>
 <h2 id="async-example"><a class="header" href="#async-example">Async example</a></h2>
@@ -1718,7 +1718,7 @@ var_dump(Human::MAX_AGE); // int(100)
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_async_impl-1"><a class="header" href="#php_async_impl-1"><code>#[php_async_impl]</code></a></h1>
 <p>Using <code>#[php_async_impl]</code> instead of <code>#[php_impl]</code> allows us to expose any async Rust library to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
 <p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
-<p>Traits annotated with <code>#[php_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
+<p>Traits annotated with <code>#[php_async_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
 <p>Make sure to also expose the <code>php_tokio::EventLoop::init</code> and <code>php_tokio::EventLoop::wakeup</code> functions to PHP in order to initialize the event loop, as specified in the full example <a href="macros/async_impl.html#async-example">here »</a>.</p>
 <p>Also, make sure to invoke <code>EventLoop::shutdown</code> in the request shutdown handler to clean up the tokio event loop before finishing the request.</p>
 <h2 id="async-example-1"><a class="header" href="#async-example-1">Async example</a></h2>
