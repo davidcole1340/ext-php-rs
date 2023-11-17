@@ -4,7 +4,7 @@ Using `#[php_async_impl]` instead of `#[php_impl]` allows us to expose any async
 
 This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).
 
-Traits annotated with `#[php_impl]` can freely expose any async function, using `await` and any async Rust library.  
+Traits annotated with `#[php_async_impl]` can freely expose any async function, using `await` and any async Rust library.  
 
 Make sure to also expose the `php_tokio::EventLoop::init` and `php_tokio::EventLoop::wakeup` functions to PHP in order to initialize the event loop, as specified in the full example [here &raquo;](#async-example).
 
