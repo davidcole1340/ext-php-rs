@@ -5,7 +5,7 @@ use std::{
     fmt::Debug,
     mem,
     ops::{Deref, DerefMut},
-    ptr::{self, NonNull},
+    ptr::{self, NonNull}, os::raw::c_char,
 };
 
 use crate::{
@@ -161,7 +161,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     }
 
     fn _from_zend_obj(std: &zend_object) -> Option<&mut Self> {
-        let std = std as *const zend_object as *const i8;
+        let std = std as *const zend_object as *const c_char;
         let ptr = unsafe {
             let ptr = std.offset(0 - Self::std_offset() as isize) as *const Self;
             (ptr as *mut Self).as_mut()?

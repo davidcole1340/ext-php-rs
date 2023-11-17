@@ -52,7 +52,7 @@ pub type Function = zend_function;
 impl Function {
     pub fn try_from_function(name: &str) -> Option<Self> {
         unsafe {
-            let res = zend_fetch_function_str(name.as_ptr() as *const i8, name.len());
+            let res = zend_fetch_function_str(name.as_ptr() as *const c_char, name.len());
             if res.is_null() {
                 return None;
             }
@@ -65,7 +65,7 @@ impl Function {
             Some(ce) => unsafe {
                 let res = zend_hash_str_find_ptr_lc(
                     &ce.function_table,
-                    name.as_ptr() as *const i8,
+                    name.as_ptr() as *const c_char,
                     name.len(),
                 ) as *mut zend_function;
                 if res.is_null() {
