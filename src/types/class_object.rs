@@ -5,7 +5,8 @@ use std::{
     fmt::Debug,
     mem,
     ops::{Deref, DerefMut},
-    ptr::{self, NonNull}, os::raw::c_char,
+    os::raw::c_char,
+    ptr::{self, NonNull},
 };
 
 use crate::{
