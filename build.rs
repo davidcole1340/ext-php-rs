@@ -16,7 +16,7 @@ use bindgen::RustTarget;
 use impl_::Provider;
 
 const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20220829;
+const MAX_PHP_API_VER: u32 = 20230831;
 
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
