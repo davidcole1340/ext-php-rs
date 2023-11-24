@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use darling::FromMeta;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use syn::AttributeArgs;
+use syn::{AttributeArgs, Expr, LitStr, Token};
 
 #[derive(Debug, Default, FromMeta)]
 #[darling(default)]
@@ -85,7 +85,7 @@ pub fn parser(args: AttributeArgs, mut input: syn::ItemStruct) -> Result<TokenSt
 
 fn parse_fields<'a>(
     fields: impl Iterator<Item = &'a mut syn::Field>,
-) -> Result<Vec<(String, &'a syn::Ident)>> {
+) -> Result<Vec<(&'a syn::Ident, String, PropertyAttr)>> {
     #[derive(Debug, Default, FromMeta)]
     #[darling(default)]
     struct FieldAttr {
@@ -98,27 +98,55 @@ fn parse_fields<'a>(
         unparsed.append(&mut field.attrs);
         for attr in unparsed {
             if attr.path.is_ident("prop") {
-                let meta = match attr.parse_meta() {
-                    Ok(meta) => meta,
+                let prop: PropertyAttr = match attr.parse_args() {
+                    Ok(prop) => prop,
                     Err(_) => bail!(attr => "Failed to parse attribute arguments"),
                 };
                 let ident = field
                     .ident
                     .as_ref()
                     .expect("Named field struct should have ident.");
-                let field_name = match meta {
-                    syn::Meta::List(_) => FieldAttr::from_meta(&meta).unwrap(),
-                    _ => FieldAttr::default(),
-                }
-                .rename
-                .unwrap_or_else(|| ident.to_string());
-                result.push((field_name, ident))
+
+                let renamed = match &prop.rename {
+                    Some(v) => v.clone(),
+                    None => ident.to_string(),
+                };
+                result.push((ident, renamed, prop))
             } else {
                 field.attrs.push(attr);
             }
         }
     }
     Ok(result)
+}
+#[derive(Debug, Default)]
+pub struct PropertyAttr {
+    pub rename: Option<String>,
+    pub flags: Option<Expr>,
+}
+
+impl syn::parse::Parse for PropertyAttr {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut this = Self::default();
+        while !input.is_empty() {
+            let field = input.parse::<Ident>()?.to_string();
+            input.parse::<Token![=]>()?;
+
+            match field.as_str() {
+                "rename" => {
+                    this.rename.replace(input.parse::<LitStr>()?.value());
+                }
+                "flags" => {
+                    this.flags.replace(input.parse::<Expr>()?);
+                }
+                _ => return Err(input.error("invalid attribute field")),
+            }
+
+            let _ = input.parse::<Token![,]>();
+        }
+
+        Ok(this)
+    }
 }
 
 /// Generates an implementation of `RegisteredClass` for struct `ident`.
@@ -128,7 +156,7 @@ fn generate_registered_class_impl(
     modifier: Option<&syn::Ident>,
     extends: Option<&syn::Expr>,
     implements: &[syn::Expr],
-    fields: &[(String, &syn::Ident)],
+    fields: &[(&syn::Ident, String, PropertyAttr)],
     flags: Option<&syn::Expr>,
 ) -> TokenStream {
     let ident_str = ident.to_string();
@@ -138,7 +166,7 @@ fn generate_registered_class_impl(
     };
     let modifier = modifier.option_tokens();
     let extends = extends.option_tokens();
-    let fields = fields.iter().map(|(name, ident)| {
+    let fields = fields.iter().map(|(ident, name, _)| {
         quote! {
             (#name, ::ext_php_rs::props::Property::field(|this: &mut Self| &mut this.#ident))
         }
