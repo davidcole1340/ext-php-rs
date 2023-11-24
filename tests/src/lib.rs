@@ -1,3 +1,4 @@
+#![cfg_attr(windows, feature(abi_vectorcall))]
 use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
 use std::collections::HashMap;
 
