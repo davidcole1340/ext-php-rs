@@ -171,6 +171,7 @@ class_derives!(Closure);
 ///
 /// This trait is automatically implemented on functions with up to 8
 /// parameters.
+#[allow(clippy::missing_safety_doc)]
 pub unsafe trait PhpClosure {
     /// Invokes the closure.
     fn invoke<'a>(&'a mut self, parser: ArgParser<'a, '_>, ret: &mut Zval);
