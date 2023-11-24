@@ -1,13 +1,14 @@
 use std::ptr::{self, NonNull};
 
 use crate::{
+    error::Error,
     ffi::{
         php_register_url_stream_wrapper, php_register_url_stream_wrapper_volatile, php_stream,
         php_stream_context, php_stream_locate_url_wrapper, php_stream_wrapper,
         php_stream_wrapper_ops, php_unregister_url_stream_wrapper,
         php_unregister_url_stream_wrapper_volatile, zend_string,
     },
-    types::ZendStr, error::Error,
+    types::ZendStr,
 };
 
 pub type StreamWrapper = php_stream_wrapper;

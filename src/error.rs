@@ -105,9 +105,12 @@ impl Display for Error {
             Error::Exception(e) => write!(f, "Exception was thrown: {e:?}"),
             Error::StreamWrapperRegistrationFailure => {
                 write!(f, "A failure occurred while registering the stream wrapper")
-            },
+            }
             Error::StreamWrapperUnregistrationFailure => {
-                write!(f, "A failure occurred while unregistering the stream wrapper")
+                write!(
+                    f,
+                    "A failure occurred while unregistering the stream wrapper"
+                )
             }
         }
     }
