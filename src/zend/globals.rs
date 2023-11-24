@@ -10,6 +10,7 @@ use crate::boxed::ZBox;
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
     _sapi_globals_struct, _zend_executor_globals, ext_php_rs_executor_globals,
+    _sapi_module_struct, ext_php_rs_sapi_module,
     ext_php_rs_sapi_globals, zend_ini_entry,
 };
 use crate::types::{ZendHashTable, ZendObject};
@@ -19,6 +20,9 @@ pub type ExecutorGlobals = _zend_executor_globals;
 
 /// Stores global SAPI variables used in the PHP executor.
 pub type SapiGlobals = _sapi_globals_struct;
+
+/// Stores the SAPI module used in the PHP executor.
+pub type SapiModule = _sapi_module_struct;
 
 impl ExecutorGlobals {
     /// Returns a reference to the PHP executor globals.
@@ -167,6 +171,40 @@ impl SapiGlobals {
     }
 }
 
+impl SapiModule {
+    /// Returns a reference to the PHP SAPI module.
+    ///
+    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    pub fn get() -> GlobalReadGuard<Self> {
+        // SAFETY: PHP executor globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { ext_php_rs_sapi_module().as_ref() }
+            .expect("Static executor globals were invalid");
+        let guard = SAPI_MODULE_LOCK.read();
+        GlobalReadGuard { globals, guard }
+    }
+
+    /// Returns a mutable reference to the PHP executor globals.
+    ///
+    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    pub fn get_mut() -> GlobalWriteGuard<Self> {
+        // SAFETY: PHP executor globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { ext_php_rs_sapi_module().as_mut() }
+            .expect("Static executor globals were invalid");
+        let guard = SAPI_MODULE_LOCK.write();
+        GlobalWriteGuard { globals, guard }
+    }
+}
+
 /// Executor globals rwlock.
 ///
 /// PHP provides no indication if the executor globals are being accessed so
@@ -178,6 +216,12 @@ static GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 /// PHP provides no indication if the executor globals are being accessed so
 /// this is only effective on the Rust side.
 static SAPI_LOCK: RwLock<()> = const_rwlock(());
+
+/// SAPI globals rwlock.
+///
+/// PHP provides no indication if the executor globals are being accessed so
+/// this is only effective on the Rust side.
+static SAPI_MODULE_LOCK: RwLock<()> = const_rwlock(());
 
 /// Wrapper guard that contains a reference to a given type `T`. Dropping a
 /// guard releases the lock on the relevant rwlock.

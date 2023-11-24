@@ -52,6 +52,10 @@ sapi_globals_struct *ext_php_rs_sapi_globals() {
 #endif
 }
 
+sapi_module_struct *ext_php_rs_sapi_module() {
+  return &sapi_module;
+}
+
 bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **result) {
   zend_try {
     *result = callback(ctx);
