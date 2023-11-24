@@ -23,7 +23,9 @@ If you want a more universal `iterable` type that also supports arrays, see [Ite
 #[php_function]
 pub fn test_iterator(iterator: &mut ZendIterator) {
     for (k, v) in iterator.iter().expect("cannot rewind iterator") {
-        println!("k: {:?} v: {}", k, v.string().unwrap());
+        // Note that the key can be anything, even an object
+        // when iterating over Traversables!
+        println!("k: {} v: {}", k.string().unwrap(), v.string().unwrap());
     }
 }
 # fn main() {}
@@ -37,8 +39,6 @@ pub fn test_iterator(iterator: &mut ZendIterator) {
 $generator = function() {
     yield 'hello' => 'world';
     yield 'rust' => 'php';
-    yield 'okk';
-    yield new class {} => new class {};
 };
 
 test_iterator($generator());
@@ -49,5 +49,4 @@ Output:
 ```text
 k: hello v: world
 k: rust v: php
-k: 0 v: okk
 ```

@@ -20,7 +20,7 @@ that implements the `Traversable` interface. This means that any value that can 
 #[php_function]
 pub fn test_iterable(mut iterable: Iterable) {
     for (k, v) in iterable.iter().expect("cannot rewind iterator") {
-        println!("k: {:?} v: {}", k, v.string().unwrap());
+        println!("k: {} v: {}", k.string().unwrap(), v.string().unwrap());
     }
 }
 # fn main() {}
@@ -34,14 +34,11 @@ pub fn test_iterable(mut iterable: Iterable) {
 $generator = function() {
     yield 'hello' => 'world';
     yield 'rust' => 'php';
-    yield 'okk';
-    yield new class {} => new class {};
 };
 
 $array = [
     'hello' => 'world',
     'rust' => 'php',
-    'okk',
 ];
 
 test_iterable($generator());
@@ -53,8 +50,6 @@ Output:
 ```text
 k: hello v: world
 k: rust v: php
-k: 0 v: okk
 k: hello v: world
 k: rust v: php
-k: 0 v: okk
 ```
