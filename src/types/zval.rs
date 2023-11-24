@@ -51,6 +51,26 @@ impl Zval {
         }
     }
 
+    /// Dereference the zval, if it is a reference.
+    pub fn dereference(&self) -> &Self {
+        return self
+            .reference()
+            .or_else(|| self.indirect())
+            .or(Some(self))
+            .unwrap();
+    }
+
+    /// Dereference the zval mutable, if it is a reference.
+    pub fn dereference_mut(&mut self) -> &mut Self {
+        if self.is_reference() {
+            return self.reference_mut().unwrap();
+        }
+        if self.is_indirect() {
+            return self.indirect_mut().unwrap();
+        }
+        return self;
+    }
+
     /// Returns the value of the zval if it is a long.
     pub fn long(&self) -> Option<ZendLong> {
         if self.is_long() {

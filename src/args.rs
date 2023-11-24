@@ -87,7 +87,7 @@ impl<'a> Arg<'a> {
     {
         self.zval
             .as_mut()
-            .and_then(|zv| T::from_zval_mut(zv))
+            .and_then(|zv| T::from_zval_mut(zv.dereference_mut()))
             .ok_or(self)
     }
 
@@ -98,7 +98,7 @@ impl<'a> Arg<'a> {
     where
         T: FromZvalMut<'a>,
     {
-        self.zval.as_mut().and_then(|zv| T::from_zval_mut(zv))
+        self.zval.as_mut().and_then(|zv| T::from_zval_mut(zv.dereference_mut()))
     }
 
     /// Attempts to return a reference to the arguments internal Zval.
