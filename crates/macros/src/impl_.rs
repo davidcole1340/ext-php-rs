@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::collections::HashMap;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
 use crate::helpers::get_docs;
@@ -20,20 +19,15 @@ pub enum Visibility {
     Private,
 }
 
-#[derive(Debug, Copy, Clone, FromMeta)]
+#[derive(Debug, Copy, Clone, FromMeta, Default)]
 pub enum RenameRule {
     #[darling(rename = "none")]
     None,
     #[darling(rename = "camelCase")]
+    #[default]
     Camel,
     #[darling(rename = "snake_case")]
     Snake,
-}
-
-impl Default for RenameRule {
-    fn default() -> Self {
-        RenameRule::Camel
-    }
 }
 
 impl RenameRule {
@@ -85,6 +79,7 @@ pub enum ParsedAttribute {
     },
     Constructor,
     This,
+    Abstract,
 }
 
 #[derive(Default, Debug, FromMeta)]
@@ -212,6 +207,7 @@ pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
         "public" => ParsedAttribute::Visibility(Visibility::Public),
         "protected" => ParsedAttribute::Visibility(Visibility::Protected),
         "private" => ParsedAttribute::Visibility(Visibility::Private),
+        "abstract_method" => ParsedAttribute::Abstract,
         "rename" => {
             let ident = if let Meta::List(list) = meta {
                 if let Some(NestedMeta::Lit(lit)) = list.nested.first() {
@@ -293,10 +289,9 @@ mod tests {
 
     #[test]
     fn test_rename_php_methods() {
-        for &(original, camel, snake) in &[("get_name", "getName", "get_name")] {
-            assert_eq!(original, RenameRule::None.rename(original));
-            assert_eq!(camel, RenameRule::Camel.rename(original));
-            assert_eq!(snake, RenameRule::Snake.rename(original));
-        }
+        let &(original, camel, snake) = &("get_name", "getName", "get_name");
+        assert_eq!(original, RenameRule::None.rename(original));
+        assert_eq!(camel, RenameRule::Camel.rename(original));
+        assert_eq!(snake, RenameRule::Snake.rename(original));
     }
 }

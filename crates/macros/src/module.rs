@@ -34,7 +34,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
             fn php_module_startup() {}
         })
         .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
-        let startup = startup_function::parser(parsed)?;
+        let startup = startup_function::parser(None, parsed)?;
 
         state = STATE.lock();
         Some(startup)
@@ -55,8 +55,8 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
     });
     let registered_classes_impls = state
         .classes
-        .iter()
-        .map(|(_, class)| generate_registered_class_impl(class))
+        .values()
+        .map(generate_registered_class_impl)
         .collect::<Result<Vec<_>>>()?;
     let describe_fn = generate_stubs(&state);
 
@@ -170,7 +170,7 @@ impl Describe for Function {
         let name = &self.name;
         let ret = if let Some((ty, null)) = &self.output {
             let ty: Type = syn::parse_str(ty)
-                .expect("unreachable - failed to parse previosuly parsed function return type");
+                .expect("unreachable - failed to parse previously parsed function return type");
             quote! {
                 Some(Retval {
                     ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,
@@ -227,10 +227,7 @@ impl Describe for Class {
         } else {
             quote! { None }
         };
-        let interfaces = self
-            .interfaces
-            .iter()
-            .map(|iface| quote! { #iface.into(), });
+        let interfaces = self.interfaces.iter().map(|iface| quote! { #iface.into() });
         let properties = self.properties.iter().map(|d| d.describe());
         let mut methods: Vec<_> = self.methods.iter().map(Describe::describe).collect();
         let docs = self.docs.iter().map(|c| {
@@ -300,7 +297,7 @@ impl Describe for crate::method::Method {
             }
         });
         let ret = if let Some((ty, null)) = &self.output {
-            let ty: Type = syn::parse_str(ty).expect("failed to parse previosuly parsed type");
+            let ty: Type = syn::parse_str(ty).expect("failed to parse previously parsed type");
             quote! {
                 Some(Retval {
                     ty: <#ty as ::ext_php_rs::convert::IntoZval>::TYPE,
@@ -363,7 +360,7 @@ impl Describe for crate::constant::Constant {
 impl Describe for State {
     fn describe(&self) -> TokenStream {
         let functs = self.functions.iter().map(Describe::describe);
-        let classes = self.classes.iter().map(|(_, class)| class.describe());
+        let classes = self.classes.values().map(|class| class.describe());
         let constants = self.constants.iter().map(Describe::describe);
 
         quote! {

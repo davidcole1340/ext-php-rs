@@ -56,8 +56,8 @@ impl ModuleBuilder {
             module: ModuleEntry {
                 size: mem::size_of::<ModuleEntry>() as u16,
                 zend_api: ZEND_MODULE_API_NO,
-                zend_debug: if PHP_DEBUG { 1 } else { 0 },
-                zts: if PHP_ZTS { 1 } else { 0 },
+                zend_debug: u8::from(PHP_DEBUG),
+                zts: u8::from(PHP_ZTS),
                 ini_entry: ptr::null(),
                 deps: ptr::null(),
                 name: ptr::null(),
@@ -123,6 +123,20 @@ impl ModuleBuilder {
     /// * `func` - The function to be called when shutdown is requested.
     pub fn request_shutdown_function(mut self, func: StartupShutdownFunc) -> Self {
         self.module.request_shutdown_func = Some(func);
+        self
+    }
+
+    /// Sets the post request shutdown function for the extension.
+    ///
+    /// This function can be useful if you need to do any final cleanup at the
+    /// very end of a request, after all other resources have been released. For
+    /// example, if your extension creates any persistent resources that last
+    /// beyond a single request, you could use this function to clean those up.
+    /// # Arguments
+    ///
+    /// * `func` - The function to be called when shutdown is requested.
+    pub fn post_deactivate_function(mut self, func: extern "C" fn() -> i32) -> Self {
+        self.module.post_deactivate_func = Some(func);
         self
     }
 

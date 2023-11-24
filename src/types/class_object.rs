@@ -5,6 +5,7 @@ use std::{
     fmt::Debug,
     mem,
     ops::{Deref, DerefMut},
+    os::raw::c_char,
     ptr::{self, NonNull},
 };
 
@@ -19,6 +20,7 @@ use crate::{
     },
     flags::DataType,
     types::{ZendObject, Zval},
+    zend::ClassEntry,
 };
 
 /// Representation of a Zend class object in memory.
@@ -43,7 +45,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// Panics if memory was unable to be allocated for the new object.
     pub fn new(val: T) -> ZBox<Self> {
         // SAFETY: We are providing a value to initialize the object with.
-        unsafe { Self::internal_new(Some(val)) }
+        unsafe { Self::internal_new(Some(val), None) }
     }
 
     /// Creates a new [`ZendClassObject`] of type `T`, with an uninitialized
@@ -67,8 +69,8 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Panics
     ///
     /// Panics if memory was unable to be allocated for the new object.
-    pub unsafe fn new_uninit() -> ZBox<Self> {
-        Self::internal_new(None)
+    pub unsafe fn new_uninit(ce: Option<&'static ClassEntry>) -> ZBox<Self> {
+        Self::internal_new(None, ce)
     }
 
     /// Creates a new [`ZendObject`] of type `T`, storing the given (and
@@ -83,7 +85,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// Providing an initialized variant of [`MaybeUninit<T>`] is safe.
     ///
-    /// Providing an uninitalized variant of [`MaybeUninit<T>`] is unsafe. As
+    /// Providing an uninitialized variant of [`MaybeUninit<T>`] is unsafe. As
     /// the object is uninitialized, the caller must ensure the following
     /// until the internal object is initialized:
     ///
@@ -102,10 +104,10 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Panics
     ///
     /// Panics if memory was unable to be allocated for the new object.
-    unsafe fn internal_new(val: Option<T>) -> ZBox<Self> {
+    unsafe fn internal_new(val: Option<T>, ce: Option<&'static ClassEntry>) -> ZBox<Self> {
         let size = mem::size_of::<ZendClassObject<T>>();
         let meta = T::get_metadata();
-        let ce = meta.ce() as *const _ as *mut _;
+        let ce = ce.unwrap_or_else(|| meta.ce()) as *const _ as *mut _;
         let obj = ext_php_rs_zend_object_alloc(size as _, ce) as *mut ZendClassObject<T>;
         let obj = obj
             .as_mut()
@@ -115,7 +117,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         object_properties_init(&mut obj.std, ce);
 
         // SAFETY: `obj` is non-null and well aligned as it is a reference.
-        // As the data in `obj.obj` is uninitalized, we don't want to drop
+        // As the data in `obj.obj` is uninitialized, we don't want to drop
         // the data, but directly override it.
         ptr::write(&mut obj.obj, val);
 
@@ -155,18 +157,19 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Parameters
     ///
     /// * `obj` - The zend object to get the [`ZendClassObject`] for.
+    #[allow(clippy::needless_pass_by_ref_mut)]
     pub fn from_zend_obj_mut(std: &mut zend_object) -> Option<&mut Self> {
         Self::_from_zend_obj(std)
     }
 
     fn _from_zend_obj(std: &zend_object) -> Option<&mut Self> {
-        let std = std as *const zend_object as *const i8;
+        let std = std as *const zend_object as *const c_char;
         let ptr = unsafe {
             let ptr = std.offset(0 - Self::std_offset() as isize) as *const Self;
             (ptr as *mut Self).as_mut()?
         };
 
-        if ptr.std.is_instance::<T>() {
+        if ptr.std.instance_of(T::get_metadata().ce()) {
             Some(ptr)
         } else {
             None
@@ -234,7 +237,7 @@ impl<T> Deref for ZendClassObject<T> {
     fn deref(&self) -> &Self::Target {
         self.obj
             .as_ref()
-            .expect("Attempted to access uninitalized class object")
+            .expect("Attempted to access uninitialized class object")
     }
 }
 
@@ -242,7 +245,7 @@ impl<T> DerefMut for ZendClassObject<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.obj
             .as_mut()
-            .expect("Attempted to access uninitalized class object")
+            .expect("Attempted to access uninitialized class object")
     }
 }
 
@@ -260,7 +263,7 @@ impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
         // `ZendClassObject` pointer will contain a valid, initialized `obj`,
         // therefore we can dereference both safely.
         unsafe {
-            let mut new = ZendClassObject::new((&***self).clone());
+            let mut new = ZendClassObject::new((***self).clone());
             zend_objects_clone_members(&mut new.std, &self.std as *const _ as *mut _);
             new
         }

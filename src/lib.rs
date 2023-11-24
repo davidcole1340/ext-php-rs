@@ -9,6 +9,7 @@
 pub mod alloc;
 pub mod args;
 pub mod binary;
+pub mod binary_slice;
 pub mod builders;
 pub mod convert;
 pub mod error;
@@ -24,6 +25,8 @@ pub mod class;
 pub mod closure;
 pub mod constant;
 pub mod describe;
+#[cfg(feature = "embed")]
+pub mod embed;
 #[doc(hidden)]
 pub mod internal;
 pub mod props;
@@ -34,6 +37,7 @@ pub mod zend;
 /// A module typically glob-imported containing the typically required macros
 /// and imports.
 pub mod prelude {
+
     pub use crate::builders::ModuleBuilder;
     #[cfg(any(docs, feature = "closure"))]
     #[cfg_attr(docs, doc(cfg(feature = "closure")))]
@@ -138,8 +142,8 @@ pub use ext_php_rs_derive::php_const;
 /// ```
 ///
 /// [`strpos`]: https://www.php.net/manual/en/function.strpos.php
-/// [`IntoZval`]: ext_php_rs::php::types::zval::IntoZval
-/// [`Zval`]: ext_php_rs::php::types::zval::Zval
+/// [`IntoZval`]: crate::convert::IntoZval
+/// [`Zval`]: crate::types::Zval
 pub use ext_php_rs_derive::php_extern;
 
 /// Attribute used to annotate a function as a PHP function.
@@ -171,7 +175,7 @@ pub use ext_php_rs_derive::php_extern;
 ///
 /// You are able to implement [`FromZval`] on your own custom types to have
 /// arguments passed in seamlessly. Similarly, you can implement [`IntoZval`] on
-/// values that you want to be able to be returned from PHP fucntions.
+/// values that you want to be able to be returned from PHP functions.
 ///
 /// Parameters may be deemed optional by passing the parameter name into the
 /// attribute options. Note that all parameters that are optional (which
@@ -243,7 +247,7 @@ pub use ext_php_rs_derive::php_extern;
 /// ```
 ///
 /// Parameters can also be deemed optional by passing the parameter name in the
-/// attribute options. This function takes one required parameter (`hello`) and
+/// attribute options. This function takes one required parameter (`name`) and
 /// two optional parameters (`description` and `age`).
 ///
 /// ```
@@ -288,12 +292,12 @@ pub use ext_php_rs_derive::php_extern;
 ///
 /// [`Result<T, E>`]: std::result::Result
 /// [`FunctionBuilder`]: crate::php::function::FunctionBuilder
-/// [`FromZval`]: crate::php::types::zval::FromZval
-/// [`IntoZval`]: crate::php::types::zval::IntoZval
-/// [`Zval`]: crate::php::types::zval::Zval
-/// [`Binary<T>`]: crate::php::types::binary::Binary
-/// [`ZendCallable`]: crate::php::types::callable::ZendCallable
-/// [`PhpException`]: crate::php::exceptions::PhpException
+/// [`FromZval`]: crate::convert::FromZval
+/// [`IntoZval`]: crate::convert::IntoZval
+/// [`Zval`]: crate::types::Zval.
+/// [`Binary<T>`]: crate::binary::Binary
+/// [`ZendCallable`]: crate::types::ZendCallable
+/// [`PhpException`]: crate::exception::PhpException
 pub use ext_php_rs_derive::php_function;
 
 /// Annotates a structs `impl` block, declaring that all methods and constants
@@ -316,7 +320,7 @@ pub use ext_php_rs_derive::php_function;
 /// contents of the `impl` block are to be exported to PHP.
 ///
 /// The only contrary to this is setting the visibility, optional argument and
-/// default arguments for methods. These are done through seperate macros:
+/// default arguments for methods. These are done through separate macros:
 ///
 /// - `#[defaults(key = value, ...)]` for setting defaults of method variables,
 ///   similar to the
@@ -517,6 +521,11 @@ pub use ext_php_rs_derive::php_class;
 /// this macro if you have registered any classes or constants when using the
 /// [`macro@php_module`] macro.
 ///
+/// The attribute accepts one optional flag -- `#[php_startup(before)]` --
+/// which forces the annotated function to be called _before_ the other classes
+/// and constants are registered. By default the annotated function is called
+/// after these classes and constants are registered.
+///
 /// # Example
 ///
 /// ```
@@ -664,12 +673,12 @@ pub use ext_php_rs_derive::php_startup;
 /// var_dump(give_union()); // int(5)
 /// ```
 ///
-/// [`FromZval`]: crate::php::types::zval::FromZval
-/// [`IntoZval`]: crate::php::types::zval::IntoZval
-/// [`FromZendObject`]: crate::php::types::object::FromZendObject
-/// [`IntoZendObject`]: crate::php::types::object::IntoZendObject
-/// [`Zval`]: crate::php::types::zval::Zval
-/// [`Zval::string`]: crate::php::types::zval::Zval::string
+/// [`FromZval`]: crate::convert::FromZval
+/// [`IntoZval`]: crate::convert::IntoZval
+/// [`FromZendObject`]: crate::convert::FromZendObject
+/// [`IntoZendObject`]: crate::convert::IntoZendObject
+/// [`Zval`]: crate::types::Zval.
+/// [`Zval::string`]: crate::types::Zval.::string
 pub use ext_php_rs_derive::ZvalConvert;
 
 /// Defines an `extern` function with the Zend fastcall convention based on

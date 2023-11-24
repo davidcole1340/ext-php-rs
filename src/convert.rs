@@ -75,7 +75,7 @@ where
 /// let props: HashMap = obj.extract();
 /// ```
 ///
-/// Should be functionally equivalent to casting an object to another compatable
+/// Should be functionally equivalent to casting an object to another compatible
 /// type.
 pub trait FromZendObject<'a>: Sized {
     /// Extracts `Self` from the source `ZendObject`.
@@ -216,5 +216,15 @@ impl<T: IntoZval + Clone> IntoZvalDyn for T {
 
     fn get_type(&self) -> DataType {
         Self::TYPE
+    }
+}
+
+impl IntoZvalDyn for Zval {
+    fn as_zval(&self, _persistent: bool) -> Result<Zval> {
+        Ok(self.shallow_clone())
+    }
+
+    fn get_type(&self) -> DataType {
+        self.get_type()
     }
 }

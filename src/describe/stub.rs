@@ -52,7 +52,7 @@ impl ToStub for Module {
         // Inserts a value into the entries hashmap. Takes a key and an entry, creating
         // the internal vector if it doesn't already exist.
         let mut insert = |ns, entry| {
-            let bucket = entries.entry(ns).or_insert_with(StdVec::new);
+            let bucket = entries.entry(ns).or_default();
             bucket.push(entry);
         };
 
@@ -84,7 +84,7 @@ impl ToStub for Module {
                 .map(|(ns, entries)| {
                     let mut buf = String::new();
                     if let Some(ns) = ns {
-                        writeln!(buf, "namespace {} {{", ns)?;
+                        writeln!(buf, "namespace {ns} {{")?;
                     } else {
                         writeln!(buf, "namespace {{")?;
                     }
@@ -153,6 +153,7 @@ impl ToStub for Parameter {
 
 impl ToStub for DataType {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        let mut fqdn = "\\".to_owned();
         write!(
             buf,
             "{}",
@@ -162,12 +163,16 @@ impl ToStub for DataType {
                 DataType::Double => "float",
                 DataType::String => "string",
                 DataType::Array => "array",
-                DataType::Object(Some(ty)) => ty,
+                DataType::Object(Some(ty)) => {
+                    fqdn.push_str(ty);
+                    fqdn.as_str()
+                }
                 DataType::Object(None) => "object",
                 DataType::Resource => "resource",
                 DataType::Reference => "reference",
                 DataType::Callable => "callable",
                 DataType::Bool => "bool",
+                DataType::Iterable => "iterable",
                 _ => "mixed",
             }
         )
@@ -179,7 +184,7 @@ impl ToStub for DocBlock {
         if !self.0.is_empty() {
             writeln!(buf, "/**")?;
             for comment in self.0.iter() {
-                writeln!(buf, " *{}", comment)?;
+                writeln!(buf, " *{comment}")?;
             }
             writeln!(buf, " */")?;
         }
@@ -192,10 +197,10 @@ impl ToStub for Class {
         self.docs.fmt_stub(buf)?;
 
         let (_, name) = split_namespace(self.name.as_ref());
-        write!(buf, "class {} ", name)?;
+        write!(buf, "class {name} ")?;
 
         if let Option::Some(extends) = &self.extends {
-            write!(buf, "extends {} ", extends)?;
+            write!(buf, "extends {extends} ")?;
         }
 
         if !self.implements.is_empty() {
@@ -245,7 +250,7 @@ impl ToStub for Property {
         }
         write!(buf, "${}", self.name)?;
         if let Option::Some(default) = &self.default {
-            write!(buf, " = {}", default)?;
+            write!(buf, " = {default}")?;
         }
         writeln!(buf, ";")
     }
@@ -307,7 +312,7 @@ impl ToStub for Constant {
 
         write!(buf, "const {} = ", self.name)?;
         if let Option::Some(value) = &self.value {
-            write!(buf, "{}", value)?;
+            write!(buf, "{value}")?;
         } else {
             write!(buf, "null")?;
         }
@@ -340,7 +345,7 @@ fn split_namespace(class: &str) -> (StdOption<&str>, &str) {
 /// to be appended. Returns a new string with the new indentation. Will not
 /// indent whitespace lines.
 ///
-/// # Paramters
+/// # Parameters
 ///
 /// * `s` - The string to indent.
 /// * `depth` - The depth to indent the lines to, in spaces.
@@ -377,6 +382,7 @@ mod test {
 
     #[test]
     #[cfg(not(windows))]
+    #[allow(clippy::uninlined_format_args)]
     pub fn test_indent() {
         use super::indent;
         use crate::describe::stub::NEW_LINE_SEPARATOR;

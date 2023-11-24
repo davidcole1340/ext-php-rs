@@ -2,8 +2,8 @@
 
 [![Crates.io](https://img.shields.io/crates/v/ext-php-rs)](https://lib.rs/ext-php-rs)
 [![docs.rs](https://img.shields.io/docsrs/ext-php-rs/latest)](https://docs.rs/ext-php-rs)
-[![Guide Workflow Status](https://img.shields.io/github/workflow/status/davidcole1340/ext-php-rs/Deploy%20documentation?label=guide)](https://davidcole1340.github.io/ext-php-rs)
-![CI Workflow Status](https://img.shields.io/github/workflow/status/davidcole1340/ext-php-rs/Build%20and%20Lint)
+[![Guide Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/docs.yml?branch=master&label=guide)](https://davidcole1340.github.io/ext-php-rs)
+![CI Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/build.yml?branch=master)
 [![Discord](https://img.shields.io/discord/115233111977099271)](https://discord.gg/dphp)
 
 Bindings and abstractions for the Zend API to build PHP extensions natively in
@@ -106,7 +106,7 @@ Our main goal is to **make extension development easier.**
 ## Documentation
 
 The library guide can be read
-[here](https://davidcole1340.github.io/ext-php-rs/guide).
+[here](https://davidcole1340.github.io/ext-php-rs).
 
 The project is documented in-line, so viewing the `cargo` documentation is the
 best resource at the moment. This can be viewed at [docs.rs].
@@ -163,6 +163,8 @@ Check out one of the example projects:
 - [opus-php](https://github.com/davidcole1340/opus-php) - Audio encoder for the
   Opus codec in PHP.
 - [tomlrs-php](https://github.com/jphenow/tomlrs-php) - TOML data format parser.
+- [php-scrypt](https://github.com/appwrite/php-scrypt) - PHP wrapper for the
+  scrypt password hashing algorithm.
 
 ## Contributions
 

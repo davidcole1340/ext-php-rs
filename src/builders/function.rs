@@ -1,7 +1,7 @@
 use crate::{
     args::{Arg, ArgInfo},
     error::{Error, Result},
-    flags::DataType,
+    flags::{DataType, MethodFlags},
     types::Zval,
     zend::{ExecuteData, FunctionEntry, ZendType},
 };
@@ -64,6 +64,30 @@ impl<'a> FunctionBuilder<'a> {
         }
     }
 
+    /// Create a new function builder for an abstract function that can be used
+    /// on an abstract class or an interface.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the function.
+    pub fn new_abstract<T: Into<String>>(name: T) -> Self {
+        Self {
+            name: name.into(),
+            function: FunctionEntry {
+                fname: ptr::null(),
+                handler: None,
+                arg_info: ptr::null(),
+                num_args: 0,
+                flags: MethodFlags::Abstract.bits(),
+            },
+            args: vec![],
+            n_req: None,
+            retval: None,
+            ret_as_ref: false,
+            ret_as_null: false,
+        }
+    }
+
     /// Creates a constructor builder, used to build the constructor
     /// for classes.
     ///
@@ -96,7 +120,7 @@ impl<'a> FunctionBuilder<'a> {
     /// # Parameters
     ///
     /// * `type_` - The return type of the function.
-    /// * `as_ref` - Whether the fucntion returns a reference.
+    /// * `as_ref` - Whether the function returns a reference.
     /// * `allow_null` - Whether the function return value is nullable.
     pub fn returns(mut self, type_: DataType, as_ref: bool, allow_null: bool) -> Self {
         self.retval = Some(type_);

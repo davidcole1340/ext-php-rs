@@ -5,9 +5,8 @@ use std::{
     collections::HashMap,
     convert::{TryFrom, TryInto},
     ffi::CString,
-    fmt::Debug,
+    fmt::{Debug, Display},
     iter::FromIterator,
-    ptr::NonNull,
     u64,
 };
 
@@ -16,10 +15,12 @@ use crate::{
     convert::{FromZval, IntoZval},
     error::{Error, Result},
     ffi::{
-        _Bucket, _zend_new_array, zend_array_destroy, zend_array_dup, zend_hash_clean,
-        zend_hash_index_del, zend_hash_index_find, zend_hash_index_update,
+        _zend_new_array, zend_array_count, zend_array_destroy, zend_array_dup, zend_hash_clean,
+        zend_hash_get_current_data_ex, zend_hash_get_current_key_type_ex,
+        zend_hash_get_current_key_zval_ex, zend_hash_index_del, zend_hash_index_find,
+        zend_hash_index_update, zend_hash_move_backwards_ex, zend_hash_move_forward_ex,
         zend_hash_next_index_insert, zend_hash_str_del, zend_hash_str_find, zend_hash_str_update,
-        HT_MIN_SIZE,
+        HashPosition, HT_MIN_SIZE,
     },
     flags::DataType,
     types::Zval,
@@ -117,7 +118,7 @@ impl ZendHashTable {
     /// assert_eq!(ht.len(), 2);
     /// ```
     pub fn len(&self) -> usize {
-        self.nNumOfElements as usize
+        unsafe { zend_array_count(self as *const ZendHashTable as *mut ZendHashTable) as usize }
     }
 
     /// Returns whether the hash table is empty.
@@ -186,6 +187,33 @@ impl ZendHashTable {
         unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_ref() }
     }
 
+    /// Attempts to retrieve a value from the hash table with a string key.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to search for in the hash table.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash
+    ///   table.
+    /// * `None` - No value at the given position was found.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// ht.insert("test", "hello world");
+    /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
+    /// ```
+    pub fn get_mut(&self, key: &'_ str) -> Option<&mut Zval> {
+        let str = CString::new(key).ok()?;
+        unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_mut() }
+    }
+
     /// Attempts to retrieve a value from the hash table with an index.
     ///
     /// # Parameters
@@ -210,6 +238,32 @@ impl ZendHashTable {
     /// ```
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self, key).as_ref() }
+    }
+
+    /// Attempts to retrieve a value from the hash table with an index.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to search for in the hash table.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash
+    ///   table.
+    /// * `None` - No value at the given position was found.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// ht.push(100);
+    /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
+    /// ```
+    pub fn get_index_mut(&self, key: u64) -> Option<&mut Zval> {
+        unsafe { zend_hash_index_find(self, key).as_mut() }
     }
 
     /// Attempts to remove a value from the hash table with a string key.
@@ -312,14 +366,7 @@ impl ZendHashTable {
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        unsafe {
-            zend_hash_str_update(
-                self,
-                CString::new(key)?.as_ptr(),
-                key.len() as u64,
-                &mut val,
-            )
-        };
+        unsafe { zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &mut val) };
         val.release();
         Ok(())
     }
@@ -360,7 +407,7 @@ impl ZendHashTable {
     }
 
     /// Pushes an item onto the end of the hash table. Returns a result
-    /// containing nothing if the element was sucessfully inserted.
+    /// containing nothing if the element was successfully inserted.
     ///
     /// # Parameters
     ///
@@ -416,7 +463,7 @@ impl ZendHashTable {
     /// assert!(!ht.has_numerical_keys());
     /// ```
     pub fn has_numerical_keys(&self) -> bool {
-        !self.iter().any(|(_, k, _)| k.is_some())
+        !self.into_iter().any(|(k, _)| !k.is_long())
     }
 
     /// Checks if the hashtable has numerical, sequential keys.
@@ -443,31 +490,9 @@ impl ZendHashTable {
     /// ```
     pub fn has_sequential_keys(&self) -> bool {
         !self
-            .iter()
+            .into_iter()
             .enumerate()
-            .any(|(i, (k, strk, _))| i as u64 != k || strk.is_some())
-    }
-
-    /// Returns an iterator over the key(s) and value contained inside the
-    /// hashtable.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use ext_php_rs::types::ZendHashTable;
-    ///
-    /// let mut ht = ZendHashTable::new();
-    ///
-    /// for (idx, key, val) in ht.iter() {
-    /// //   ^ Index if inserted at an index.
-    /// //        ^ Optional string key, if inserted like a hashtable.
-    /// //             ^ Inserted value.
-    ///
-    ///     dbg!(idx, key, val);
-    /// }
-    #[inline]
-    pub fn iter(&self) -> Iter {
-        Iter::new(self)
+            .any(|(i, (k, _))| ArrayKey::Long(i as i64) != k)
     }
 
     /// Returns an iterator over the values contained inside the hashtable, as
@@ -487,6 +512,28 @@ impl ZendHashTable {
     pub fn values(&self) -> Values {
         Values::new(self)
     }
+
+    /// Returns an iterator over the key(s) and value contained inside the
+    /// hashtable.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// for (key, val) in ht.iter() {
+    /// //   ^ Index if inserted at an index.
+    /// //        ^ Optional string key, if inserted like a hashtable.
+    /// //             ^ Inserted value.
+    ///
+    ///     dbg!(key, val);
+    /// }
+    #[inline]
+    pub fn iter(&self) -> Iter {
+        self.into_iter()
+    }
 }
 
 unsafe impl ZBoxable for ZendHashTable {
@@ -499,10 +546,7 @@ unsafe impl ZBoxable for ZendHashTable {
 impl Debug for ZendHashTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
-            .entries(
-                self.iter()
-                    .map(|(k, k2, v)| (k2.unwrap_or_else(|| k.to_string()), v)),
-            )
+            .entries(self.into_iter().map(|(k, v)| (k.to_string(), v)))
             .finish()
     }
 }
@@ -527,8 +571,52 @@ impl ToOwned for ZendHashTable {
 /// Immutable iterator upon a reference to a hashtable.
 pub struct Iter<'a> {
     ht: &'a ZendHashTable,
-    pos: Option<NonNull<_Bucket>>,
-    end: Option<NonNull<_Bucket>>,
+    current_num: i64,
+    pos: HashPosition,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ArrayKey {
+    Long(i64),
+    String(String),
+}
+
+/// Represent the key of a PHP array, which can be either a long or a string.
+impl ArrayKey {
+    /// Check if the key is an integer.
+    ///
+    /// # Returns
+    ///
+    /// Returns true if the key is an integer, false otherwise.
+    pub fn is_long(&self) -> bool {
+        match self {
+            ArrayKey::Long(_) => true,
+            ArrayKey::String(_) => false,
+        }
+    }
+}
+
+impl Display for ArrayKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArrayKey::Long(key) => write!(f, "{}", key),
+            ArrayKey::String(key) => write!(f, "{}", key),
+        }
+    }
+}
+
+impl<'a> FromZval<'a> for ArrayKey {
+    const TYPE: DataType = DataType::String;
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        if let Some(key) = zval.long() {
+            return Some(ArrayKey::Long(key));
+        }
+        if let Some(key) = zval.string() {
+            return Some(ArrayKey::String(key));
+        }
+        None
+    }
 }
 
 impl<'a> Iter<'a> {
@@ -540,28 +628,45 @@ impl<'a> Iter<'a> {
     pub fn new(ht: &'a ZendHashTable) -> Self {
         Self {
             ht,
-            pos: NonNull::new(ht.arData),
-            end: NonNull::new(unsafe { ht.arData.offset(ht.nNumUsed as isize) }),
+            current_num: 0,
+            pos: 0,
         }
     }
 }
 
+impl<'a> IntoIterator for &'a ZendHashTable {
+    type Item = (ArrayKey, &'a Zval);
+    type IntoIter = Iter<'a>;
+
+    /// Returns an iterator over the key(s) and value contained inside the
+    /// hashtable.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// for (key, val) in ht.iter() {
+    /// //   ^ Index if inserted at an index.
+    /// //        ^ Optional string key, if inserted like a hashtable.
+    /// //             ^ Inserted value.
+    ///
+    ///     dbg!(key, val);
+    /// }
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        Iter::new(self)
+    }
+}
+
 impl<'a> Iterator for Iter<'a> {
-    type Item = (u64, Option<String>, &'a Zval);
+    type Item = (ArrayKey, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let pos = self.pos?;
-
-        if pos == self.end? {
-            return None;
-        }
-
-        let bucket = unsafe { pos.as_ref() };
-        let key = unsafe { bucket.key.as_ref() }.and_then(|s| s.try_into().ok());
-
-        self.pos = NonNull::new(unsafe { pos.as_ptr().offset(1) });
-
-        Some((bucket.h, key, &bucket.val))
+        self.next_zval()
+            .map(|(k, v)| (ArrayKey::from_zval(&k).expect("Invalid array key!"), v))
     }
 
     fn count(self) -> usize
@@ -580,18 +685,92 @@ impl<'a> ExactSizeIterator for Iter<'a> {
 
 impl<'a> DoubleEndedIterator for Iter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let end = self.end?;
+        let key_type = unsafe {
+            zend_hash_get_current_key_type_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
 
-        if end == self.pos? {
+        if key_type == -1 {
             return None;
         }
 
-        let new_end = NonNull::new(unsafe { end.as_ptr().offset(-1) })?;
-        let bucket = unsafe { new_end.as_ref() };
-        let key = unsafe { bucket.key.as_ref() }.and_then(|s| s.try_into().ok());
-        self.end = Some(new_end);
+        let key = Zval::new();
 
-        Some((bucket.h, key, &bucket.val))
+        unsafe {
+            zend_hash_get_current_key_zval_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &key as *const Zval as *mut Zval,
+                &mut self.pos as *mut HashPosition,
+            );
+        }
+        let value = unsafe {
+            &*zend_hash_get_current_data_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+
+        let key = match ArrayKey::from_zval(&key) {
+            Some(key) => key,
+            None => ArrayKey::Long(self.current_num),
+        };
+
+        unsafe {
+            zend_hash_move_backwards_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+        self.current_num -= 1;
+
+        Some((key, value))
+    }
+}
+
+impl<'a, 'b> Iter<'a> {
+    pub fn next_zval(&'b mut self) -> Option<(Zval, &'a Zval)> {
+        let key_type = unsafe {
+            zend_hash_get_current_key_type_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+
+        if key_type == -1 {
+            return None;
+        }
+
+        let mut key = Zval::new();
+
+        unsafe {
+            zend_hash_get_current_key_zval_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &key as *const Zval as *mut Zval,
+                &mut self.pos as *mut HashPosition,
+            );
+        }
+        let value = unsafe {
+            &*zend_hash_get_current_data_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+
+        if !key.is_long() && !key.is_string() {
+            key.set_long(self.current_num)
+        }
+
+        unsafe {
+            zend_hash_move_forward_ex(
+                self.ht as *const ZendHashTable as *mut ZendHashTable,
+                &mut self.pos as *mut HashPosition,
+            )
+        };
+        self.current_num += 1;
+
+        Some((key, value))
     }
 }
 
@@ -614,7 +793,7 @@ impl<'a> Iterator for Values<'a> {
     type Item = &'a Zval;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(_, _, zval)| zval)
+        self.0.next().map(|(_, zval)| zval)
     }
 
     fn count(self) -> usize
@@ -633,7 +812,7 @@ impl<'a> ExactSizeIterator for Values<'a> {
 
 impl<'a> DoubleEndedIterator for Values<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back().map(|(_, _, zval)| zval)
+        self.0.next_back().map(|(_, zval)| zval)
     }
 }
 
@@ -667,7 +846,7 @@ impl<'a> FromZval<'a> for &'a ZendHashTable {
 }
 
 ///////////////////////////////////////////
-//// HashMap
+/// HashMap
 ///////////////////////////////////////////
 
 impl<'a, V> TryFrom<&'a ZendHashTable> for HashMap<String, V>
@@ -679,9 +858,9 @@ where
     fn try_from(value: &'a ZendHashTable) -> Result<Self> {
         let mut hm = HashMap::with_capacity(value.len());
 
-        for (idx, key, val) in value.iter() {
+        for (key, val) in value {
             hm.insert(
-                key.unwrap_or_else(|| idx.to_string()),
+                key.to_string(),
                 V::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?,
             );
         }
@@ -736,7 +915,7 @@ where
 }
 
 ///////////////////////////////////////////
-//// Vec
+/// Vec
 ///////////////////////////////////////////
 
 impl<'a, T> TryFrom<&'a ZendHashTable> for Vec<T>
@@ -748,7 +927,7 @@ where
     fn try_from(value: &'a ZendHashTable) -> Result<Self> {
         let mut vec = Vec::with_capacity(value.len());
 
-        for (_, _, val) in value.iter() {
+        for (_, val) in value {
             vec.push(T::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?);
         }
 

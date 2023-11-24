@@ -38,7 +38,7 @@ impl ClassBuilder {
     pub fn new<T: Into<String>>(name: T) -> Self {
         Self {
             name: name.into(),
-            // SAFETY: A zeroed class entry is in an initalized state, as it is a raw C type
+            // SAFETY: A zeroed class entry is in an initialized state, as it is a raw C type
             // whose fields do not have a drop implementation.
             ce: unsafe { MaybeUninit::zeroed().assume_init() },
             extends: None,
@@ -85,7 +85,7 @@ impl ClassBuilder {
     /// * `func` - The function entry to add to the class.
     /// * `flags` - Flags relating to the function. See [`MethodFlags`].
     pub fn method(mut self, mut func: FunctionEntry, flags: MethodFlags) -> Self {
-        func.flags = flags.bits();
+        func.flags |= flags.bits();
         self.methods.push(func);
         self
     }
@@ -161,10 +161,10 @@ impl ClassBuilder {
     /// Panics if the class name associated with `T` is not the same as the
     /// class name specified when creating the builder.
     pub fn object_override<T: RegisteredClass>(mut self) -> Self {
-        extern "C" fn create_object<T: RegisteredClass>(_: *mut ClassEntry) -> *mut ZendObject {
+        extern "C" fn create_object<T: RegisteredClass>(ce: *mut ClassEntry) -> *mut ZendObject {
             // SAFETY: After calling this function, PHP will always call the constructor
             // defined below, which assumes that the object is uninitialized.
-            let obj = unsafe { ZendClassObject::<T>::new_uninit() };
+            let obj = unsafe { ZendClassObject::<T>::new_uninit(ce.as_ref()) };
             obj.into_raw().get_mut_zend_obj()
         }
 
@@ -226,7 +226,7 @@ impl ClassBuilder {
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
     pub fn build(mut self) -> Result<&'static mut ClassEntry> {
-        self.ce.name = ZendStr::new_interned(&self.name, true)?.into_raw();
+        self.ce.name = ZendStr::new_interned(&self.name, true).into_raw();
 
         self.methods.push(FunctionEntry::end());
         let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
@@ -247,7 +247,7 @@ impl ClassBuilder {
         // disable serialization if the class has an associated object
         if self.object_override.is_some() {
             cfg_if::cfg_if! {
-                if #[cfg(php81)] {
+                if #[cfg(any(php81, php82))] {
                     class.ce_flags |= ClassFlags::NotSerializable.bits();
                 } else {
                     class.serialize = Some(crate::ffi::zend_class_serialize_deny);
@@ -257,7 +257,13 @@ impl ClassBuilder {
         }
 
         for iface in self.interfaces {
-            unsafe { zend_do_implement_interface(class, std::mem::transmute(iface)) };
+            unsafe {
+                zend_do_implement_interface(
+                    class,
+                    iface as *const crate::ffi::_zend_class_entry
+                        as *mut crate::ffi::_zend_class_entry,
+                )
+            };
         }
 
         for (name, mut default, flags) in self.properties {
@@ -278,7 +284,7 @@ impl ClassBuilder {
                 zend_declare_class_constant(
                     class,
                     CString::new(name.as_str())?.as_ptr(),
-                    name.len() as u64,
+                    name.len(),
                     value,
                 )
             };

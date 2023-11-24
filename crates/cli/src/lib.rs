@@ -10,7 +10,7 @@ use dialoguer::{Confirm, Select};
 
 use std::{
     fs::OpenOptions,
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Seek, Write},
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -89,22 +89,25 @@ enum Args {
 struct Install {
     /// Changes the path that the extension is copied to. This will not
     /// activate the extension unless `ini_path` is also passed.
-    #[clap(long)]
+    #[arg(long)]
     install_dir: Option<PathBuf>,
     /// Path to the `php.ini` file to update with the new extension.
-    #[clap(long)]
+    #[arg(long)]
     ini_path: Option<PathBuf>,
     /// Installs the extension but doesn't enable the extension in the `php.ini`
     /// file.
-    #[clap(long)]
+    #[arg(long)]
     disable: bool,
     /// Whether to install the release version of the extension.
-    #[clap(long)]
+    #[arg(long)]
     release: bool,
     /// Path to the Cargo manifest of the extension. Defaults to the manifest in
     /// the directory the command is called.
-    #[clap(long)]
+    #[arg(long)]
     manifest: Option<PathBuf>,
+    /// Whether to bypass the install prompt.
+    #[clap(long)]
+    yes: bool,
 }
 
 #[derive(Parser)]
@@ -112,15 +115,18 @@ struct Remove {
     /// Changes the path that the extension will be removed from. This will not
     /// remove the extension from a configuration file unless `ini_path` is also
     /// passed.
-    #[clap(long)]
+    #[arg(long)]
     install_dir: Option<PathBuf>,
     /// Path to the `php.ini` file to remove the extension from.
-    #[clap(long)]
+    #[arg(long)]
     ini_path: Option<PathBuf>,
     /// Path to the Cargo manifest of the extension. Defaults to the manifest in
     /// the directory the command is called.
-    #[clap(long)]
+    #[arg(long)]
     manifest: Option<PathBuf>,
+    /// Whether to bypass the remove prompt.
+    #[clap(long)]
+    yes: bool,
 }
 
 #[cfg(not(windows))]
@@ -131,18 +137,18 @@ struct Stubs {
     ext: Option<PathBuf>,
     /// Path used to store generated stub file. Defaults to writing to
     /// `<ext-name>.stubs.php` in the current directory.
-    #[clap(short, long)]
+    #[arg(short, long)]
     out: Option<PathBuf>,
     /// Print stubs to stdout rather than write to file. Cannot be used with
     /// `out`.
-    #[clap(long, conflicts_with = "out")]
+    #[arg(long, conflicts_with = "out")]
     stdout: bool,
     /// Path to the Cargo manifest of the extension. Defaults to the manifest in
     /// the directory the command is called.
     ///
     /// This cannot be provided alongside the `ext` option, as that option
     /// provides a direct path to the extension shared library.
-    #[clap(long, conflicts_with = "ext")]
+    #[arg(long, conflicts_with = "ext")]
     manifest: Option<PathBuf>,
 }
 
@@ -172,12 +178,13 @@ impl Install {
             php_ini = Some(ini_path);
         }
 
-        if !Confirm::new()
-            .with_prompt(format!(
-                "Are you sure you want to install the extension `{}`?",
-                artifact.name
-            ))
-            .interact()?
+        if !self.yes
+            && !Confirm::new()
+                .with_prompt(format!(
+                    "Are you sure you want to install the extension `{}`?",
+                    artifact.name
+                ))
+                .interact()?
         {
             bail!("Installation cancelled.");
         }
@@ -200,13 +207,15 @@ impl Install {
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 
-            let mut ext_line = format!("extension={}", ext_name);
+            let mut ext_line = format!("extension={ext_name}");
 
             let mut new_lines = vec![];
             for line in BufReader::new(&file).lines() {
                 let line = line.with_context(|| "Failed to read line from `php.ini`")?;
                 if !line.contains(&ext_line) {
                     new_lines.push(line);
+                } else {
+                    bail!("Extension already enabled.");
                 }
             }
 
@@ -216,6 +225,8 @@ impl Install {
             }
 
             new_lines.push(ext_line);
+            file.rewind()?;
+            file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
         }
@@ -244,9 +255,8 @@ fn get_ext_dir() -> AResult<PathBuf> {
                 ext_dir
             );
         } else {
-            std::fs::create_dir(&ext_dir).with_context(|| {
-                format!("Failed to create extension directory at {:?}", ext_dir)
-            })?;
+            std::fs::create_dir(&ext_dir)
+                .with_context(|| format!("Failed to create extension directory at {ext_dir:?}"))?;
         }
     }
     Ok(ext_dir)
@@ -301,12 +311,13 @@ impl Remove {
             bail!("Unable to find extension installed.");
         }
 
-        if !Confirm::new()
-            .with_prompt(format!(
-                "Are you sure you want to remove the extension `{}`?",
-                artifact.name
-            ))
-            .interact()?
+        if !self.yes
+            && !Confirm::new()
+                .with_prompt(format!(
+                    "Are you sure you want to remove the extension `{}`?",
+                    artifact.name
+                ))
+                .interact()?
         {
             bail!("Installation cancelled.");
         }
@@ -318,7 +329,6 @@ impl Remove {
                 .read(true)
                 .write(true)
                 .create(true)
-                .truncate(true)
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 
@@ -330,6 +340,8 @@ impl Remove {
                 }
             }
 
+            file.rewind()?;
+            file.set_len(0)?;
             file.write(new_lines.join("\n").as_bytes())
                 .with_context(|| "Failed to update `php.ini`")?;
         }
@@ -376,7 +388,7 @@ impl Stubs {
             .with_context(|| "Failed to generate stubs.")?;
 
         if self.stdout {
-            print!("{}", stubs);
+            print!("{stubs}");
         } else {
             let out_path = if let Some(out_path) = &self.out {
                 Cow::Borrowed(out_path)

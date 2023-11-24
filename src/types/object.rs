@@ -1,16 +1,17 @@
 //! Represents an object in PHP. Allows for overriding the internal object used
 //! by classes, allowing users to store Rust data inside a PHP object.
 
-use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
+use std::{convert::TryInto, fmt::Debug, ops::DerefMut, os::raw::c_char};
 
 use crate::{
     boxed::{ZBox, ZBoxable},
     class::RegisteredClass,
-    convert::{FromZendObject, FromZval, FromZvalMut, IntoZval},
+    convert::{FromZendObject, FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
     ffi::{
-        ext_php_rs_zend_object_release, zend_call_known_function, zend_object, zend_objects_new,
-        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
+        ext_php_rs_zend_object_release, object_properties_init, zend_call_known_function,
+        zend_function, zend_hash_str_find_ptr_lc, zend_object, zend_objects_new, HashTable,
+        ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
     },
     flags::DataType,
     rc::PhpRc,
@@ -41,7 +42,18 @@ impl ZendObject {
         // SAFETY: Using emalloc to allocate memory inside Zend arena. Casting `ce` to
         // `*mut` is valid as the function will not mutate `ce`.
         unsafe {
-            let ptr = zend_objects_new(ce as *const _ as *mut _);
+            let ptr = match ce.__bindgen_anon_2.create_object {
+                None => {
+                    let ptr = zend_objects_new(ce as *const _ as *mut _);
+                    if ptr.is_null() {
+                        panic!("Failed to allocate memory for Zend object")
+                    }
+                    object_properties_init(ptr, ce as *const _ as *mut _);
+                    ptr
+                }
+                Some(v) => v(ce as *const _ as *mut _),
+            };
+
             ZBox::from_raw(
                 ptr.as_mut()
                     .expect("Failed to allocate memory for Zend object"),
@@ -80,6 +92,17 @@ impl ZendObject {
         unsafe { ZBox::from_raw(this.get_mut_zend_obj()) }
     }
 
+    /// Returns the [`ClassEntry`] associated with this object.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn get_class_entry(&self) -> &'static ClassEntry {
+        // SAFETY: it is OK to panic here since PHP would segfault anyway
+        // when encountering an object with no class entry.
+        unsafe { self.ce.as_ref() }.expect("Could not retrieve class entry.")
+    }
+
     /// Attempts to retrieve the class name of the object.
     pub fn get_class_name(&self) -> Result<String> {
         unsafe {
@@ -91,12 +114,66 @@ impl ZendObject {
         }
     }
 
+    /// Returns whether this object is an instance of the given [`ClassEntry`].
+    ///
+    /// This method checks the class and interface inheritance chain.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn instance_of(&self, ce: &ClassEntry) -> bool {
+        self.get_class_entry().instance_of(ce)
+    }
+
     /// Checks if the given object is an instance of a registered class with
     /// Rust type `T`.
+    ///
+    /// This method doesn't check the class and interface inheritance chain.
     pub fn is_instance<T: RegisteredClass>(&self) -> bool {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
 
+    /// Returns whether this object is an instance of \Traversable
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn is_traversable(&self) -> bool {
+        self.instance_of(ce::traversable())
+    }
+
+    #[inline(always)]
+    pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
+        let mut retval = Zval::new();
+        let len = params.len();
+        let params = params
+            .into_iter()
+            .map(|val| val.as_zval(false))
+            .collect::<Result<Vec<_>>>()?;
+        let packed = params.into_boxed_slice();
+
+        unsafe {
+            let res = zend_hash_str_find_ptr_lc(
+                &(*self.ce).function_table,
+                name.as_ptr() as *const c_char,
+                name.len(),
+            ) as *mut zend_function;
+            if res.is_null() {
+                return Err(Error::Callable);
+            }
+            zend_call_known_function(
+                res,
+                self as *const _ as *mut _,
+                self.ce,
+                &mut retval,
+                len as _,
+                packed.as_ptr() as *mut _,
+                std::ptr::null_mut(),
+            )
+        };
+
+        Ok(retval)
+    }
     /// Attempts to read a property from the Object. Returns a result containing
     /// the value of the property if it exists and can be read, and an
     /// [`Error`] otherwise.
@@ -113,7 +190,7 @@ impl ZendObject {
             return Err(Error::InvalidProperty);
         }
 
-        let mut name = ZendStr::new(name, false)?;
+        let mut name = ZendStr::new(name, false);
         let mut rv = Zval::new();
 
         let zv = unsafe {
@@ -138,7 +215,7 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `value` - The value to set the property to.
     pub fn set_property(&mut self, name: &str, value: impl IntoZval) -> Result<()> {
-        let mut name = ZendStr::new(name, false)?;
+        let mut name = ZendStr::new(name, false);
         let mut value = value.into_zval(false)?;
 
         unsafe {
@@ -163,7 +240,7 @@ impl ZendObject {
     /// * `name` - The name of the property.
     /// * `query` - The 'query' to classify if a property exists.
     pub fn has_property(&self, name: &str, query: PropertyQuery) -> Result<bool> {
-        let mut name = ZendStr::new(name, false)?;
+        let mut name = ZendStr::new(name, false);
 
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
@@ -196,6 +273,29 @@ impl ZendObject {
         T::from_zend_object(self)
     }
 
+    /// Returns an unique identifier for the object.
+    ///
+    /// The id is guaranteed to be unique for the lifetime of the object.
+    /// Once the object is destroyed, it may be reused for other objects.
+    /// This is equivalent to calling the [`spl_object_id`] PHP function.
+    ///
+    /// [`spl_object_id`]: https://www.php.net/manual/function.spl-object-id
+    #[inline]
+    pub fn get_id(&self) -> u32 {
+        self.handle
+    }
+
+    /// Computes an unique hash for the object.
+    ///
+    /// The hash is guaranteed to be unique for the lifetime of the object.
+    /// Once the object is destroyed, it may be reused for other objects.
+    /// This is equivalent to calling the [`spl_object_hash`] PHP function.
+    ///
+    /// [`spl_object_hash`]: https://www.php.net/manual/function.spl-object-hash.php
+    pub fn hash(&self) -> String {
+        format!("{:016x}0000000000000000", self.handle)
+    }
+
     /// Attempts to retrieve a reference to the object handlers.
     #[inline]
     unsafe fn handlers(&self) -> Result<&ZendObjectHandlers> {
@@ -226,8 +326,8 @@ impl Debug for ZendObject {
         );
 
         if let Ok(props) = self.get_properties() {
-            for (id, key, val) in props.iter() {
-                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
+            for (key, val) in props.iter() {
+                dbg.field(key.to_string().as_str(), val);
             }
         }
 

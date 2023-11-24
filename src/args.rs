@@ -118,11 +118,12 @@ impl<'a> Arg<'a> {
     /// return value of the function, or an error.
     ///
     /// You should not call this function directly, rather through the
-    /// [`call_user_func`] macro.
+    /// [`call_user_func`](crate::call_user_func) macro.
     ///
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
+    #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.zval.as_ref().ok_or(Error::Callable)?.try_call(params)
     }

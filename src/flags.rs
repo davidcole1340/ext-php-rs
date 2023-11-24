@@ -2,22 +2,28 @@
 
 use bitflags::bitflags;
 
+#[cfg(not(php82))]
+use crate::ffi::ZEND_ACC_REUSE_GET_ITERATOR;
 use crate::ffi::{
-    CONST_CS, CONST_DEPRECATED, CONST_NO_FILE_CACHE, CONST_PERSISTENT, IS_ARRAY, IS_CALLABLE,
-    IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_MIXED, IS_NULL, IS_OBJECT, IS_PTR,
-    IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_TYPE_COLLECTABLE, IS_TYPE_REFCOUNTED,
-    IS_UNDEF, IS_VOID, ZEND_ACC_ABSTRACT, ZEND_ACC_ANON_CLASS, ZEND_ACC_CALL_VIA_TRAMPOLINE,
-    ZEND_ACC_CHANGED, ZEND_ACC_CLOSURE, ZEND_ACC_CONSTANTS_UPDATED, ZEND_ACC_CTOR,
-    ZEND_ACC_DEPRECATED, ZEND_ACC_DONE_PASS_TWO, ZEND_ACC_EARLY_BINDING, ZEND_ACC_FAKE_CLOSURE,
-    ZEND_ACC_FINAL, ZEND_ACC_GENERATOR, ZEND_ACC_HAS_FINALLY_BLOCK, ZEND_ACC_HAS_RETURN_TYPE,
-    ZEND_ACC_HAS_TYPE_HINTS, ZEND_ACC_HEAP_RT_CACHE, ZEND_ACC_IMMUTABLE,
+    CONST_CS, CONST_DEPRECATED, CONST_NO_FILE_CACHE, CONST_PERSISTENT, E_COMPILE_ERROR,
+    E_COMPILE_WARNING, E_CORE_ERROR, E_CORE_WARNING, E_DEPRECATED, E_ERROR, E_NOTICE, E_PARSE,
+    E_RECOVERABLE_ERROR, E_STRICT, E_USER_DEPRECATED, E_USER_ERROR, E_USER_NOTICE, E_USER_WARNING,
+    E_WARNING, IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_INDIRECT,
+    IS_ITERABLE, IS_LONG, IS_MIXED, IS_NULL, IS_OBJECT, IS_PTR, IS_REFERENCE, IS_RESOURCE,
+    IS_STRING, IS_TRUE, IS_TYPE_COLLECTABLE, IS_TYPE_REFCOUNTED, IS_UNDEF, IS_VOID, PHP_INI_ALL,
+    PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER, ZEND_ACC_ABSTRACT, ZEND_ACC_ANON_CLASS,
+    ZEND_ACC_CALL_VIA_TRAMPOLINE, ZEND_ACC_CHANGED, ZEND_ACC_CLOSURE, ZEND_ACC_CONSTANTS_UPDATED,
+    ZEND_ACC_CTOR, ZEND_ACC_DEPRECATED, ZEND_ACC_DONE_PASS_TWO, ZEND_ACC_EARLY_BINDING,
+    ZEND_ACC_FAKE_CLOSURE, ZEND_ACC_FINAL, ZEND_ACC_GENERATOR, ZEND_ACC_HAS_FINALLY_BLOCK,
+    ZEND_ACC_HAS_RETURN_TYPE, ZEND_ACC_HAS_TYPE_HINTS, ZEND_ACC_HEAP_RT_CACHE, ZEND_ACC_IMMUTABLE,
     ZEND_ACC_IMPLICIT_ABSTRACT_CLASS, ZEND_ACC_INTERFACE, ZEND_ACC_LINKED, ZEND_ACC_NEARLY_LINKED,
     ZEND_ACC_NEVER_CACHE, ZEND_ACC_NO_DYNAMIC_PROPERTIES, ZEND_ACC_PRELOADED, ZEND_ACC_PRIVATE,
     ZEND_ACC_PROMOTED, ZEND_ACC_PROTECTED, ZEND_ACC_PUBLIC, ZEND_ACC_RESOLVED_INTERFACES,
-    ZEND_ACC_RESOLVED_PARENT, ZEND_ACC_RETURN_REFERENCE, ZEND_ACC_REUSE_GET_ITERATOR,
-    ZEND_ACC_STATIC, ZEND_ACC_STRICT_TYPES, ZEND_ACC_TOP_LEVEL, ZEND_ACC_TRAIT,
-    ZEND_ACC_TRAIT_CLONE, ZEND_ACC_UNRESOLVED_VARIANCE, ZEND_ACC_USES_THIS, ZEND_ACC_USE_GUARDS,
-    ZEND_ACC_VARIADIC, ZEND_HAS_STATIC_IN_METHODS, Z_TYPE_FLAGS_SHIFT, _IS_BOOL,
+    ZEND_ACC_RESOLVED_PARENT, ZEND_ACC_RETURN_REFERENCE, ZEND_ACC_STATIC, ZEND_ACC_STRICT_TYPES,
+    ZEND_ACC_TOP_LEVEL, ZEND_ACC_TRAIT, ZEND_ACC_TRAIT_CLONE, ZEND_ACC_UNRESOLVED_VARIANCE,
+    ZEND_ACC_USES_THIS, ZEND_ACC_USE_GUARDS, ZEND_ACC_VARIADIC, ZEND_EVAL_CODE,
+    ZEND_HAS_STATIC_IN_METHODS, ZEND_INTERNAL_FUNCTION, ZEND_USER_FUNCTION, Z_TYPE_FLAGS_SHIFT,
+    _IS_BOOL,
 };
 
 use std::{convert::TryFrom, fmt::Display};
@@ -26,6 +32,7 @@ use crate::error::{Error, Result};
 
 bitflags! {
     /// Flags used for setting the type of Zval.
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ZvalTypeFlags: u32 {
         const Undef = IS_UNDEF;
         const Null = IS_NULL;
@@ -42,14 +49,15 @@ bitflags! {
         const ConstantExpression = IS_CONSTANT_AST;
         const Void = IS_VOID;
         const Ptr = IS_PTR;
+        const Iterable = IS_ITERABLE;
 
-        const InternedStringEx = Self::String.bits;
-        const StringEx = Self::String.bits | Self::RefCounted.bits;
-        const ArrayEx = Self::Array.bits | Self::RefCounted.bits | Self::Collectable.bits;
-        const ObjectEx = Self::Object.bits | Self::RefCounted.bits | Self::Collectable.bits;
-        const ResourceEx = Self::Resource.bits | Self::RefCounted.bits;
-        const ReferenceEx = Self::Reference.bits | Self::RefCounted.bits;
-        const ConstantAstEx = Self::ConstantExpression.bits | Self::RefCounted.bits;
+        const InternedStringEx = Self::String.bits();
+        const StringEx = Self::String.bits() | Self::RefCounted.bits();
+        const ArrayEx = Self::Array.bits() | Self::RefCounted.bits() | Self::Collectable.bits();
+        const ObjectEx = Self::Object.bits() | Self::RefCounted.bits() | Self::Collectable.bits();
+        const ResourceEx = Self::Resource.bits() | Self::RefCounted.bits();
+        const ReferenceEx = Self::Reference.bits() | Self::RefCounted.bits();
+        const ConstantAstEx = Self::ConstantExpression.bits() | Self::RefCounted.bits();
 
         const RefCounted = (IS_TYPE_REFCOUNTED << Z_TYPE_FLAGS_SHIFT);
         const Collectable = (IS_TYPE_COLLECTABLE << Z_TYPE_FLAGS_SHIFT);
@@ -58,6 +66,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for building classes.
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ClassFlags: u32 {
         const Final = ZEND_ACC_FINAL;
         const Abstract = ZEND_ACC_ABSTRACT;
@@ -75,19 +84,21 @@ bitflags! {
         const ConstantsUpdated = ZEND_ACC_CONSTANTS_UPDATED;
         const NoDynamicProperties = ZEND_ACC_NO_DYNAMIC_PROPERTIES;
         const HasStaticInMethods = ZEND_HAS_STATIC_IN_METHODS;
+        #[cfg(not(php82))]
         const ReuseGetIterator = ZEND_ACC_REUSE_GET_ITERATOR;
         const ResolvedParent = ZEND_ACC_RESOLVED_PARENT;
         const ResolvedInterfaces = ZEND_ACC_RESOLVED_INTERFACES;
         const UnresolvedVariance = ZEND_ACC_UNRESOLVED_VARIANCE;
         const NearlyLinked = ZEND_ACC_NEARLY_LINKED;
 
-        #[cfg(php81)]
+        #[cfg(any(php81,php82))]
         const NotSerializable = crate::ffi::ZEND_ACC_NOT_SERIALIZABLE;
     }
 }
 
 bitflags! {
     /// Flags for building methods.
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct MethodFlags: u32 {
         const Public = ZEND_ACC_PUBLIC;
         const Protected = ZEND_ACC_PROTECTED;
@@ -123,6 +134,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for building properties.
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct PropertyFlags: u32 {
         const Public = ZEND_ACC_PUBLIC;
         const Protected = ZEND_ACC_PROTECTED;
@@ -135,6 +147,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for building constants.
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ConstantFlags: u32 {
         const Public = ZEND_ACC_PUBLIC;
         const Protected = ZEND_ACC_PROTECTED;
@@ -145,6 +158,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for building module global constants.
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct GlobalConstantFlags: u32 {
         const CaseSensitive = CONST_CS;
         const Persistent = CONST_PERSISTENT;
@@ -155,9 +169,60 @@ bitflags! {
 
 bitflags! {
     /// Represents the result of a function.
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ZendResult: i32 {
         const Success = 0;
         const Failure = -1;
+    }
+}
+
+bitflags! {
+    /// Represents permissions for where a configuration setting may be set.
+    pub struct IniEntryPermission: u32 {
+        const User = PHP_INI_USER;
+        const PerDir = PHP_INI_PERDIR;
+        const System = PHP_INI_SYSTEM;
+        const All = PHP_INI_ALL;
+    }
+}
+
+bitflags! {
+    /// Represents error types when used via php_error_docref for example.
+    pub struct ErrorType: u32 {
+        const Error = E_ERROR;
+        const Warning = E_WARNING;
+        const Parse = E_PARSE;
+        const Notice = E_NOTICE;
+        const CoreError = E_CORE_ERROR;
+        const CoreWarning = E_CORE_WARNING;
+        const CompileError = E_COMPILE_ERROR;
+        const CompileWarning = E_COMPILE_WARNING;
+        const UserError = E_USER_ERROR;
+        const UserWarning = E_USER_WARNING;
+        const UserNotice = E_USER_NOTICE;
+        const Strict = E_STRICT;
+        const RecoverableError = E_RECOVERABLE_ERROR;
+        const Deprecated = E_DEPRECATED;
+        const UserDeprecated = E_USER_DEPRECATED;
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+pub enum FunctionType {
+    Internal,
+    User,
+    Eval,
+}
+
+impl From<u8> for FunctionType {
+    #[allow(clippy::bad_bit_mask)]
+    fn from(value: u8) -> Self {
+        match value as _ {
+            ZEND_INTERNAL_FUNCTION => Self::Internal,
+            ZEND_USER_FUNCTION => Self::User,
+            ZEND_EVAL_CODE => Self::Eval,
+            _ => panic!("Unknown function type: {}", value),
+        }
     }
 }
 
@@ -173,6 +238,7 @@ pub enum DataType {
     Double,
     String,
     Array,
+    Iterable,
     Object(Option<&'static str>),
     Resource,
     Reference,
@@ -182,6 +248,7 @@ pub enum DataType {
     Mixed,
     Bool,
     Ptr,
+    Indirect,
 }
 
 impl Default for DataType {
@@ -205,12 +272,14 @@ impl DataType {
             DataType::Object(_) => IS_OBJECT,
             DataType::Resource => IS_RESOURCE,
             DataType::Reference => IS_RESOURCE,
+            DataType::Indirect => IS_INDIRECT,
             DataType::Callable => IS_CALLABLE,
             DataType::ConstantExpression => IS_CONSTANT_AST,
             DataType::Void => IS_VOID,
             DataType::Mixed => IS_MIXED,
             DataType::Bool => _IS_BOOL,
             DataType::Ptr => IS_PTR,
+            DataType::Iterable => IS_ITERABLE,
         }
     }
 }
@@ -272,6 +341,8 @@ impl From<u32> for DataType {
         }
 
         contains!(IS_VOID, Void);
+        contains!(IS_PTR, Ptr);
+        contains!(IS_INDIRECT, Indirect);
         contains!(IS_CALLABLE, Callable);
         contains!(IS_CONSTANT_AST, ConstantExpression);
         contains!(IS_REFERENCE, Reference);
@@ -283,7 +354,6 @@ impl From<u32> for DataType {
         contains!(IS_TRUE, True);
         contains!(IS_FALSE, False);
         contains!(IS_NULL, Null);
-        contains!(IS_PTR, Ptr);
 
         if (value & IS_OBJECT) == IS_OBJECT {
             return DataType::Object(None);
@@ -315,6 +385,8 @@ impl Display for DataType {
             DataType::Bool => write!(f, "Bool"),
             DataType::Mixed => write!(f, "Mixed"),
             DataType::Ptr => write!(f, "Pointer"),
+            DataType::Indirect => write!(f, "Indirect"),
+            DataType::Iterable => write!(f, "Iterable"),
         }
     }
 }
@@ -323,10 +395,10 @@ impl Display for DataType {
 mod tests {
     use super::DataType;
     use crate::ffi::{
-        IS_ARRAY, IS_ARRAY_EX, IS_CALLABLE, IS_CONSTANT_AST, IS_CONSTANT_AST_EX, IS_DOUBLE,
-        IS_FALSE, IS_INTERNED_STRING_EX, IS_LONG, IS_NULL, IS_OBJECT, IS_OBJECT_EX, IS_REFERENCE,
-        IS_REFERENCE_EX, IS_RESOURCE, IS_RESOURCE_EX, IS_STRING, IS_STRING_EX, IS_TRUE, IS_UNDEF,
-        IS_VOID,
+        IS_ARRAY, IS_ARRAY_EX, IS_CONSTANT_AST, IS_CONSTANT_AST_EX, IS_DOUBLE, IS_FALSE,
+        IS_INDIRECT, IS_INTERNED_STRING_EX, IS_LONG, IS_NULL, IS_OBJECT, IS_OBJECT_EX, IS_PTR,
+        IS_REFERENCE, IS_REFERENCE_EX, IS_RESOURCE, IS_RESOURCE_EX, IS_STRING, IS_STRING_EX,
+        IS_TRUE, IS_UNDEF, IS_VOID,
     };
     use std::convert::TryFrom;
 
@@ -350,8 +422,9 @@ mod tests {
         test!(IS_RESOURCE, Resource);
         test!(IS_REFERENCE, Reference);
         test!(IS_CONSTANT_AST, ConstantExpression);
-        test!(IS_CALLABLE, Callable);
+        test!(IS_INDIRECT, Indirect);
         test!(IS_VOID, Void);
+        test!(IS_PTR, Ptr);
 
         test!(IS_INTERNED_STRING_EX, String);
         test!(IS_STRING_EX, String);

@@ -1,6 +1,13 @@
 //! Builder and objects for creating classes in the PHP world.
 
-use crate::{ffi::zend_class_entry, flags::ClassFlags, types::ZendStr, zend::ExecutorGlobals};
+use crate::types::{ZendIterator, Zval};
+use crate::{
+    boxed::ZBox,
+    ffi::zend_class_entry,
+    flags::ClassFlags,
+    types::{ZendObject, ZendStr},
+    zend::ExecutorGlobals,
+};
 use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
 
 /// A PHP class entry.
@@ -15,11 +22,22 @@ impl ClassEntry {
     /// could not be found or the class table has not been initialized.
     pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
-        let mut name = ZendStr::new(name, false).ok()?;
+        let mut name = ZendStr::new(name, false);
 
         unsafe {
             crate::ffi::zend_lookup_class_ex(name.deref_mut(), std::ptr::null_mut(), 0).as_ref()
         }
+    }
+
+    /// Creates a new [`ZendObject`], returned inside an [`ZBox<ZendObject>`]
+    /// wrapper.
+    ///
+    /// # Panics
+    ///
+    /// Panics when allocating memory for the new object fails.
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(&self) -> ZBox<ZendObject> {
+        ZendObject::new(self)
     }
 
     /// Returns the class flags.
@@ -37,37 +55,19 @@ impl ClassEntry {
     ///
     /// # Parameters
     ///
-    /// * `ce` - The inherited class entry to check.
-    pub fn instance_of(&self, ce: &ClassEntry) -> bool {
-        if self == ce {
+    /// * `other` - The inherited class entry to check.
+    pub fn instance_of(&self, other: &ClassEntry) -> bool {
+        if self == other {
             return true;
         }
 
-        if ce.flags().contains(ClassFlags::Interface) {
-            let interfaces = match self.interfaces() {
-                Some(interfaces) => interfaces,
-                None => return false,
-            };
-
-            for i in interfaces {
-                if ce == i {
-                    return true;
-                }
-            }
-        } else {
-            loop {
-                let parent = match self.parent() {
-                    Some(parent) => parent,
-                    None => return false,
-                };
-
-                if parent == ce {
-                    return true;
-                }
-            }
+        if other.is_interface() {
+            return self
+                .interfaces()
+                .map_or(false, |mut it| it.any(|ce| ce == other));
         }
 
-        false
+        std::iter::successors(self.parent(), |p| p.parent()).any(|ce| ce == other)
     }
 
     /// Returns an iterator of all the interfaces that the class implements.
@@ -79,7 +79,6 @@ impl ClassEntry {
             .contains(ClassFlags::ResolvedInterfaces)
             .then(|| unsafe {
                 (0..self.num_interfaces)
-                    .into_iter()
                     .map(move |i| *self.__bindgen_anon_3.interfaces.offset(i as _))
                     .filter_map(|ptr| ptr.as_ref())
             })
@@ -95,8 +94,30 @@ impl ClassEntry {
             unsafe { self.__bindgen_anon_1.parent.as_ref() }
         } else {
             let name = unsafe { self.__bindgen_anon_1.parent_name.as_ref()? };
-            Self::try_find(name.as_str()?)
+            Self::try_find(name.as_str().ok()?)
         }
+    }
+
+    /// Returns the iterator for the class for a specific instance
+    ///
+    /// Returns [`None`] if there is no associated iterator for the class.
+    pub fn get_iterator<'a>(&self, zval: &'a Zval, by_ref: bool) -> Option<&'a mut ZendIterator> {
+        let ptr: *const Self = self;
+        let zval_ptr: *const Zval = zval;
+
+        let iterator = unsafe {
+            (*ptr).get_iterator?(
+                ptr as *mut ClassEntry,
+                zval_ptr as *mut Zval,
+                if by_ref { 1 } else { 0 },
+            )
+        };
+
+        unsafe { iterator.as_mut() }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        unsafe { self.name.as_ref().and_then(|s| s.as_str().ok()) }
     }
 }
 

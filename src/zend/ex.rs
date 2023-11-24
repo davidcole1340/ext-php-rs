@@ -6,6 +6,8 @@ use crate::{
     types::{ZendClassObject, ZendObject, Zval},
 };
 
+use super::function::Function;
+
 /// Execute data passed when a function is called from PHP.
 ///
 /// This generally contains things related to the call, including but not
@@ -42,7 +44,7 @@ impl ExecuteData {
     ///     dbg!(a);
     /// }
     /// ```
-    pub fn parser<'a>(&'a mut self) -> ArgParser<'a, '_> {
+    pub fn parser(&mut self) -> ArgParser<'_, '_> {
         self.parser_object().0
     }
 
@@ -73,7 +75,7 @@ impl ExecuteData {
     ///     dbg!(a, this);
     /// }
     /// ```
-    pub fn parser_object<'a>(&'a mut self) -> (ArgParser<'a, '_>, Option<&'a mut ZendObject>) {
+    pub fn parser_object(&mut self) -> (ArgParser<'_, '_>, Option<&mut ZendObject>) {
         // SAFETY: All fields of the `u2` union are the same type.
         let n_args = unsafe { self.This.u2.num_args };
         let mut args = vec![];
@@ -134,9 +136,9 @@ impl ExecuteData {
     /// ```
     ///
     /// [`parse_object`]: #method.parse_object
-    pub fn parser_method<'a, T: RegisteredClass>(
-        &'a mut self,
-    ) -> (ArgParser<'a, '_>, Option<&'a mut ZendClassObject<T>>) {
+    pub fn parser_method<T: RegisteredClass>(
+        &mut self,
+    ) -> (ArgParser<'_, '_>, Option<&mut ZendClassObject<T>>) {
         let (parser, obj) = self.parser_object();
         (
             parser,
@@ -194,12 +196,22 @@ impl ExecuteData {
         self.This.object_mut()
     }
 
+    /// Attempt to retrieve the function that is being called.
+    pub fn function(&self) -> Option<&Function> {
+        unsafe { self.func.as_ref() }
+    }
+
+    /// Attempt to retrieve the previous execute data on the call stack.
+    pub fn previous(&self) -> Option<&Self> {
+        unsafe { self.prev_execute_data.as_ref() }
+    }
+
     /// Translation of macro `ZEND_CALL_ARG(call, n)`
     /// zend_compile.h:578
     ///
     /// The resultant zval reference has a lifetime equal to the lifetime of
     /// `self`. This isn't specified because when you attempt to get a
-    /// reference to args and the `$this` object, Rust doesnt't let you.
+    /// reference to args and the `$this` object, Rust doesn't let you.
     /// Since this is a private method it's up to the caller to ensure the
     /// lifetime isn't exceeded.
     #[doc(hidden)]
@@ -213,7 +225,7 @@ impl ExecuteData {
     #[doc(hidden)]
     unsafe fn zend_call_var_num(&self, n: isize) -> *mut Zval {
         let ptr = self as *const Self as *mut Zval;
-        ptr.offset(Self::zend_call_frame_slot() + n as isize)
+        ptr.offset(Self::zend_call_frame_slot() + n)
     }
 
     /// Translation of macro `ZEND_CALL_FRAME_SLOT`

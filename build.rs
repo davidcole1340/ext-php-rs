@@ -16,7 +16,7 @@ use bindgen::RustTarget;
 use impl_::Provider;
 
 const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20210902;
+const MAX_PHP_API_VER: u32 = 20230831;
 
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
@@ -31,7 +31,7 @@ pub trait PHPProvider<'a>: Sized {
     /// Writes the bindings to a file.
     fn write_bindings(&self, bindings: String, writer: &mut impl Write) -> Result<()> {
         for line in bindings.lines() {
-            writeln!(writer, "{}", line)?;
+            writeln!(writer, "{line}")?;
         }
         Ok(())
     }
@@ -43,7 +43,7 @@ pub trait PHPProvider<'a>: Sized {
 }
 
 /// Finds the location of an executable `name`.
-fn find_executable(name: &str) -> Option<PathBuf> {
+pub fn find_executable(name: &str) -> Option<PathBuf> {
     const WHICH: &str = if cfg!(windows) { "where" } else { "which" };
     let cmd = Command::new(WHICH).arg(name).output().ok()?;
     if cmd.status.success() {
@@ -54,15 +54,25 @@ fn find_executable(name: &str) -> Option<PathBuf> {
     }
 }
 
+/// Returns an environment variable's value as a PathBuf
+pub fn path_from_env(key: &str) -> Option<PathBuf> {
+    std::env::var_os(key).map(PathBuf::from)
+}
+
 /// Finds the location of the PHP executable.
 fn find_php() -> Result<PathBuf> {
-    // If PHP path is given via env, it takes priority.
-    let env = std::env::var("PHP");
-    if let Ok(env) = env {
-        return Ok(env.into());
+    // If path is given via env, it takes priority.
+    if let Some(path) = path_from_env("PHP") {
+        if !path.try_exists()? {
+            // If path was explicitly given and it can't be found, this is a hard error
+            bail!("php executable not found at {:?}", path);
+        }
+        return Ok(path);
     }
-
-    find_executable("php").context("Could not find PHP path. Please ensure `php` is in your PATH or the `PHP` environment variable is set.")
+    find_executable("php").with_context(|| {
+        "Could not find PHP executable. \
+        Please ensure `php` is in your PATH or the `PHP` environment variable is set."
+    })
 }
 
 pub struct PHPInfo(String);
@@ -116,7 +126,7 @@ impl PHPInfo {
     }
 
     fn get_key(&self, key: &str) -> Option<&str> {
-        let split = format!("{} => ", key);
+        let split = format!("{key} => ");
         for line in self.0.lines() {
             let components: Vec<_> = line.split(&split).collect();
             if components.len() > 1 {
@@ -131,7 +141,7 @@ impl PHPInfo {
 fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     let mut build = cc::Build::new();
     for (var, val) in defines {
-        build.define(*var, *val);
+        build.define(var, *val);
     }
     build
         .file("src/wrapper.c")
@@ -141,21 +151,39 @@ fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "embed")]
+/// Builds the embed library.
+fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
+    let mut build = cc::Build::new();
+    for (var, val) in defines {
+        build.define(var, *val);
+    }
+    build
+        .file("src/embed/embed.c")
+        .includes(includes)
+        .try_compile("embed")
+        .context("Failed to compile ext-php-rs C embed interface")?;
+    Ok(())
+}
+
 /// Generates bindings to the Zend API.
 fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<String> {
-    let mut bindgen = bindgen::Builder::default()
+    let mut bindgen = bindgen::Builder::default();
+
+    #[cfg(feature = "embed")]
+    {
+        bindgen = bindgen.header("src/embed/embed.h");
+    }
+
+    bindgen = bindgen
         .header("src/wrapper.h")
         .clang_args(
             includes
                 .iter()
                 .map(|inc| format!("-I{}", inc.to_string_lossy())),
         )
-        .clang_args(
-            defines
-                .iter()
-                .map(|(var, val)| format!("-D{}={}", var, val)),
-        )
-        .rustfmt_bindings(true)
+        .clang_args(defines.iter().map(|(var, val)| format!("-D{var}={val}")))
+        .formatter(bindgen::Formatter::Rustfmt)
         .no_copy("_zval_struct")
         .no_copy("_zend_string")
         .no_copy("_zend_array")
@@ -198,23 +226,56 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     // should get both the `php81` and `php82` flags.
     const PHP_81_API_VER: u32 = 20210902;
 
-    if version >= PHP_81_API_VER {
+    const PHP_82_API_VER: u32 = 20220829;
+
+    const PHP_83_API_VER: u32 = 20230831;
+
+    println!("cargo:rustc-cfg=php80");
+
+    if (PHP_81_API_VER..PHP_82_API_VER).contains(&version) {
         println!("cargo:rustc-cfg=php81");
+    }
+
+    if version >= PHP_82_API_VER {
+        println!("cargo:rustc-cfg=php82");
+    }
+
+    if version >= PHP_83_API_VER {
+        println!("cargo:rustc-cfg=php83");
     }
 
     Ok(())
 }
 
 fn main() -> Result<()> {
+    let out_dir = env::var_os("OUT_DIR").context("Failed to get OUT_DIR")?;
+    let out_path = PathBuf::from(out_dir).join("bindings.rs");
     let manifest: PathBuf = std::env::var("CARGO_MANIFEST_DIR").unwrap().into();
     for path in [
         manifest.join("src").join("wrapper.h"),
         manifest.join("src").join("wrapper.c"),
+        manifest.join("src").join("embed").join("embed.h"),
+        manifest.join("src").join("embed").join("embed.c"),
         manifest.join("allowed_bindings.rs"),
         manifest.join("windows_build.rs"),
         manifest.join("unix_build.rs"),
     ] {
         println!("cargo:rerun-if-changed={}", path.to_string_lossy());
+    }
+    for env_var in ["PHP", "PHP_CONFIG", "PATH"] {
+        println!("cargo:rerun-if-env-changed={env_var}");
+    }
+
+    println!("cargo:rerun-if-changed=build.rs");
+
+    // docs.rs runners only have PHP 7.4 - use pre-generated bindings
+    if env::var("DOCS_RS").is_ok() {
+        println!("cargo:warning=docs.rs detected - using stub bindings");
+        println!("cargo:rustc-cfg=php_debug");
+        println!("cargo:rustc-cfg=php82");
+        std::fs::copy("docsrs_bindings.rs", out_path)
+            .expect("failed to copy docs.rs stub bindings to out directory");
+        return Ok(());
     }
 
     let php = find_php()?;
@@ -226,10 +287,12 @@ fn main() -> Result<()> {
 
     check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
+
+    #[cfg(feature = "embed")]
+    build_embed(&defines, &includes)?;
+
     let bindings = generate_bindings(&defines, &includes)?;
 
-    let out_dir = env::var_os("OUT_DIR").context("Failed to get OUT_DIR")?;
-    let out_path = PathBuf::from(out_dir).join("bindings.rs");
     let out_file =
         File::create(&out_path).context("Failed to open output bindings file for writing")?;
     let mut out_writer = BufWriter::new(out_file);

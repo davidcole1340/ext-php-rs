@@ -87,11 +87,7 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid property name pointer given")?;
             let self_ = &mut **obj;
             let props = T::get_metadata().get_properties();
-            let prop = props.get(
-                prop_name
-                    .as_str()
-                    .ok_or("Invalid property name was given")?,
-            );
+            let prop = props.get(prop_name.as_str()?);
 
             // retval needs to be treated as initialized, so we set the type to null
             let rv_mut = rv.as_mut().ok_or("Invalid return zval given")?;
@@ -110,7 +106,7 @@ impl ZendObjectHandlers {
             Ok(rv) => rv,
             Err(e) => {
                 let _ = e.throw();
-                (&mut *rv).set_null();
+                (*rv).set_null();
                 rv
             }
         }
@@ -138,7 +134,7 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid property name pointer given")?;
             let self_ = &mut **obj;
             let props = T::get_metadata().get_properties();
-            let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
+            let prop = props.get(prop_name.as_str()?);
             let value_mut = value.as_mut().ok_or("Invalid return zval given")?;
 
             Ok(match prop {
@@ -180,7 +176,7 @@ impl ZendObjectHandlers {
                     continue;
                 }
                 props.insert(name, zv).map_err(|e| {
-                    format!("Failed to insert value into properties hashtable: {:?}", e)
+                    format!("Failed to insert value into properties hashtable: {e:?}")
                 })?;
             }
 
@@ -220,7 +216,7 @@ impl ZendObjectHandlers {
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
             let props = T::get_metadata().get_properties();
-            let prop = props.get(prop_name.as_str().ok_or("Invalid property name given")?);
+            let prop = props.get(prop_name.as_str()?);
             let self_ = &mut **obj;
 
             match has_set_exists {
@@ -242,6 +238,7 @@ impl ZendObjectHandlers {
                         let mut zv = Zval::new();
                         val.get(self_, &mut zv)?;
 
+                        #[allow(clippy::unnecessary_mut_passed)]
                         if zend_is_true(&mut zv) == 1 {
                             return Ok(1);
                         }

@@ -62,7 +62,7 @@ impl<T: ZBoxable> ZBox<T> {
     pub fn into_raw(self) -> &'static mut T {
         let mut this = ManuallyDrop::new(self);
         // SAFETY: All constructors ensure the contained pointer is well-aligned and
-        // dereferencable.
+        // dereferenceable.
         unsafe { this.0.as_mut() }
     }
 }
@@ -80,7 +80,7 @@ impl<T: ZBoxable> Deref for ZBox<T> {
     #[inline]
     fn deref(&self) -> &Self::Target {
         // SAFETY: All constructors ensure the contained pointer is well-aligned and
-        // dereferencable.
+        // dereferenceable.
         unsafe { self.0.as_ref() }
     }
 }
@@ -89,7 +89,7 @@ impl<T: ZBoxable> DerefMut for ZBox<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         // SAFETY: All constructors ensure the contained pointer is well-aligned and
-        // dereferencable.
+        // dereferenceable.
         unsafe { self.0.as_mut() }
     }
 }
@@ -97,14 +97,14 @@ impl<T: ZBoxable> DerefMut for ZBox<T> {
 impl<T: ZBoxable + Debug> Debug for ZBox<T> {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        (&**self).fmt(f)
+        (**self).fmt(f)
     }
 }
 
 impl<T: ZBoxable> Borrow<T> for ZBox<T> {
     #[inline]
     fn borrow(&self) -> &T {
-        &**self
+        self
     }
 }
 

@@ -4,14 +4,17 @@
 
 use std::{convert::TryInto, ffi::c_void, fmt::Debug, ptr};
 
+use crate::types::iterable::Iterable;
+use crate::types::ZendIterator;
 use crate::{
     binary::Pack,
+    binary_slice::PackSlice,
     boxed::ZBox,
     convert::{FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
     ffi::{
-        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_is_callable, zend_resource,
-        zend_value, zval, zval_ptr_dtor,
+        _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_is_callable,
+        zend_is_identical, zend_is_iterable, zend_resource, zend_value, zval, zval_ptr_dtor,
     },
     flags::DataType,
     flags::ZvalTypeFlags,
@@ -112,12 +115,12 @@ impl Zval {
     /// convert other types into a [`String`], as it could not pass back a
     /// [`&str`] in those cases.
     pub fn str(&self) -> Option<&str> {
-        self.zend_str().and_then(|zs| zs.as_str())
+        self.zend_str().and_then(|zs| zs.as_str().ok())
     }
 
     /// Returns the value of the zval if it is a string and can be unpacked into
-    /// a vector of a given type. Similar to the [`unpack`](https://www.php.net/manual/en/function.unpack.php)
-    /// in PHP, except you can only unpack one type.
+    /// a vector of a given type. Similar to the [`unpack`] function in PHP,
+    /// except you can only unpack one type.
     ///
     /// # Safety
     ///
@@ -128,13 +131,31 @@ impl Zval {
     /// documentation for more details.
     ///
     /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
     pub fn binary<T: Pack>(&self) -> Option<Vec<T>> {
-        if self.is_string() {
-            // SAFETY: Type is string therefore we are able to take a reference.
-            Some(T::unpack_into(unsafe { self.value.str_.as_ref() }?))
-        } else {
-            None
-        }
+        self.zend_str().map(T::unpack_into)
+    }
+
+    /// Returns the value of the zval if it is a string and can be unpacked into
+    /// a slice of a given type. Similar to the [`unpack`] function in PHP,
+    /// except you can only unpack one type.
+    ///
+    /// This function is similar to [`Zval::binary`] except that a slice is
+    /// returned instead of a vector, meaning the contents of the string is
+    /// not copied.
+    ///
+    /// # Safety
+    ///
+    /// There is no way to tell if the data stored in the string is actually of
+    /// the given type. The results of this function can also differ from
+    /// platform-to-platform due to the different representation of some
+    /// types on different platforms. Consult the [`pack`] function
+    /// documentation for more details.
+    ///
+    /// [`pack`]: https://www.php.net/manual/en/function.pack.php
+    /// [`unpack`]: https://www.php.net/manual/en/function.unpack.php
+    pub fn binary_slice<T: PackSlice>(&self) -> Option<&[T]> {
+        self.zend_str().map(T::unpack_into)
     }
 
     /// Returns the value of the zval if it is a resource.
@@ -187,6 +208,32 @@ impl Zval {
         }
     }
 
+    #[inline(always)]
+    pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
+        self.object()
+            .ok_or(Error::Object)?
+            .try_call_method(name, params)
+    }
+
+    /// Returns the value of the zval if it is an internal indirect reference.
+    pub fn indirect(&self) -> Option<&Zval> {
+        if self.is_indirect() {
+            Some(unsafe { &*(self.value.zv as *mut Zval) })
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable reference to the zval if it is an internal indirect
+    /// reference.
+    pub fn indirect_mut(&self) -> Option<&mut Zval> {
+        if self.is_indirect() {
+            Some(unsafe { &mut *(self.value.zv as *mut Zval) })
+        } else {
+            None
+        }
+    }
+
     /// Returns the value of the zval if it is a reference.
     pub fn reference(&self) -> Option<&Zval> {
         if self.is_reference() {
@@ -209,6 +256,25 @@ impl Zval {
     pub fn callable(&self) -> Option<ZendCallable> {
         // The Zval is checked if it is callable in the `new` function.
         ZendCallable::new(self).ok()
+    }
+
+    /// Returns an iterator over the zval if it is traversable.
+    pub fn traversable(&self) -> Option<&mut ZendIterator> {
+        if self.is_traversable() {
+            self.object()?.get_class_entry().get_iterator(self, false)
+        } else {
+            None
+        }
+    }
+
+    /// Returns an iterable over the zval if it is an array or traversable. (is
+    /// iterable)
+    pub fn iterable(&self) -> Option<Iterable> {
+        if self.is_iterable() {
+            Iterable::from_zval(self)
+        } else {
+            None
+        }
     }
 
     /// Returns the value of the zval if it is a pointer.
@@ -238,6 +304,7 @@ impl Zval {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
+    #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.callable().ok_or(Error::Callable)?.try_call(params)
     }
@@ -302,10 +369,42 @@ impl Zval {
         self.get_type() == DataType::Reference
     }
 
+    /// Returns true if the zval is a reference, false otherwise.
+    pub fn is_indirect(&self) -> bool {
+        self.get_type() == DataType::Indirect
+    }
+
     /// Returns true if the zval is callable, false otherwise.
     pub fn is_callable(&self) -> bool {
         let ptr: *const Self = self;
         unsafe { zend_is_callable(ptr as *mut Self, 0, std::ptr::null_mut()) }
+    }
+
+    /// Checks if the zval is identical to another one.
+    /// This works like `===` in php.
+    ///
+    /// # Parameters
+    ///
+    /// * `other` - The the zval to check identity against.
+    pub fn is_identical(&self, other: &Self) -> bool {
+        let self_p: *const Self = self;
+        let other_p: *const Self = other;
+        unsafe { zend_is_identical(self_p as *mut Self, other_p as *mut Self) }
+    }
+
+    /// Returns true if the zval is traversable, false otherwise.
+    pub fn is_traversable(&self) -> bool {
+        match self.object() {
+            None => false,
+            Some(obj) => obj.is_traversable(),
+        }
+    }
+
+    /// Returns true if the zval is iterable (array or traversable), false
+    /// otherwise.
+    pub fn is_iterable(&self) -> bool {
+        let ptr: *const Self = self;
+        unsafe { zend_is_iterable(ptr as *mut Self) }
     }
 
     /// Returns true if the zval contains a pointer, false otherwise.
@@ -321,7 +420,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendStr::new(val, persistent)?);
+        self.set_zend_string(ZendStr::new(val, persistent));
         Ok(())
     }
 
@@ -355,7 +454,7 @@ impl Zval {
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
     pub fn set_interned_string(&mut self, val: &str, persistent: bool) -> Result<()> {
-        self.set_zend_string(ZendStr::new_interned(val, persistent)?);
+        self.set_zend_string(ZendStr::new_interned(val, persistent));
         Ok(())
     }
 
@@ -524,7 +623,7 @@ impl Zval {
         // SAFETY: If the value if refcounted (`self.u1.type_info & Z_TYPE_FLAGS_MASK`)
         // then it is valid to dereference `self.value.counted`.
         unsafe {
-            let flags = ZvalTypeFlags::from_bits_unchecked(self.u1.type_info);
+            let flags = ZvalTypeFlags::from_bits_retain(self.u1.type_info);
             if flags.contains(ZvalTypeFlags::RefCounted) {
                 (*self.value.counted).gc.refcount += 1;
             }
@@ -562,6 +661,8 @@ impl Debug for Zval {
             DataType::ConstantExpression => field!(Option::<()>::None),
             DataType::Void => field!(Option::<()>::None),
             DataType::Bool => field!(self.bool()),
+            DataType::Indirect => field!(self.indirect()),
+            DataType::Iterable => field!(self.iterable()),
             // SAFETY: We are not accessing the pointer.
             DataType::Ptr => field!(unsafe { self.ptr::<c_void>() }),
         };

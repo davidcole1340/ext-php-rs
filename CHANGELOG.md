@@ -1,5 +1,151 @@
 # Changelog
 
+## 0.10.1
+- chore: Bitflags upgrade to v2 by @ptondereau [#221]
+- chore: Update to bindgen 0.65.1 @ptondereau [#220]
+- fix: Switch to use zend apis for array iteration by @joehoyle [#219]
+- docs: Fix some typos + badges by @striezel [#218]
+- fix: Stop watching Cargo.lock for changes by @rmccue [#217]
+- fix: Fix Zval IS_PTR type detection by @joehoyle [#216]
+- feat: Pass args to startup function by @joehoyle [#215]
+- chore: Mate GlobalExecutor::get_mut() public by @joehoyle [#214]
+- feat: Add is_identical for zvals by @Christian-Rades [#213]
+
+[#213]: https://github.com/davidcole1340/ext-php-rs/pull/217
+[#214]: https://github.com/davidcole1340/ext-php-rs/pull/227
+[#215]: https://github.com/davidcole1340/ext-php-rs/pull/226
+[#216]: https://github.com/davidcole1340/ext-php-rs/pull/223
+[#217]: https://github.com/davidcole1340/ext-php-rs/pull/232
+[#218]: https://github.com/davidcole1340/ext-php-rs/pull/234
+[#219]: https://github.com/davidcole1340/ext-php-rs/pull/240
+[#220]: https://github.com/davidcole1340/ext-php-rs/pull/241
+[#221]: https://github.com/davidcole1340/ext-php-rs/pull/242
+
+## 0.10.0
+- feat: Add PHP 8.2 support by @ptondereau [#212]
+
+[#212]: https://github.com/davidcole1340/ext-php-rs/pull/212
+
+## Version 0.9.0
+
+- ci+docs: honour PHP_CONFIG & rebuild automatically when env vars change by @julius [#210]
+- chore: Update generated FFI bindings with bindgen 0.63 by @ptondereau [#211]
+
+**BC changes**
+- feat: allows ZendStr to contain null bytes by @julius [#202]
+
+**Migration**
+See: [#202]
+
+[#202]: https://github.com/davidcole1340/ext-php-rs/pull/202
+[#210]: https://github.com/davidcole1340/ext-php-rs/pull/210
+[#211]: https://github.com/davidcole1340/ext-php-rs/pull/211
+
+
+## Version 0.8.3
+
+- build: Check docs warnings in CI by @davidcole1340 in [#180]
+- fix: Fixes infinite loop in ClassEntry::instance_of() by @ju1ius in [#188]
+- fix: Fix binary slice lifetimes by @davidcole1340 in [#181]
+- build: Fixes CI workflow configuration by @ju1ius in [#195]
+- feat: Add get_id() and hash() methods on ZendObject by @ju1ius in [#196]
+- docs: Describes restrictions on generic parameters for `php_class` by @ju1ius in [#194]
+- feat: Add instance_of() and get_class_entry() methods on ZendObject by @ju1ius in [#197]
+
+[#180]: https://github.com/davidcole1340/ext-php-rs/pull/180
+[#188]: https://github.com/davidcole1340/ext-php-rs/pull/188
+[#181]: https://github.com/davidcole1340/ext-php-rs/pull/181
+[#195]: https://github.com/davidcole1340/ext-php-rs/pull/195
+[#196]: https://github.com/davidcole1340/ext-php-rs/pull/196
+[#194]: https://github.com/davidcole1340/ext-php-rs/pull/194
+[#197]: https://github.com/davidcole1340/ext-php-rs/pull/197
+
+## Version 0.8.2
+
+- Update changelog for latest versions by @striezel in [#161]
+- fix building docs on docs.rs by @davidcole1340 in [#165]
+- Add some standard zend interfaces by @nikeee in [#164]
+- Correct parameter name. by @denzyldick in [#168]
+- fix describe when using `#[implements]` by @davidcole1340 in [#169]
+- Add example that shows how to implement an interface by @nikeee in [#167]
+- add `before` flag to `#[php_startup]` by @davidcole1340 in [#170]
+- add ability to define abstract methods by @davidcole1340 in [#171]
+- chore(cli): Bump Clap for CLI tool by @ptondereau in [#177]
+- fix type links in docs.rs by @davidcole1340 in [#179]
+
+[#161]: https://github.com/davidcole1340/ext-php-rs/pull/161
+[#165]: https://github.com/davidcole1340/ext-php-rs/pull/165
+[#164]: https://github.com/davidcole1340/ext-php-rs/pull/164
+[#168]: https://github.com/davidcole1340/ext-php-rs/pull/168
+[#169]: https://github.com/davidcole1340/ext-php-rs/pull/169
+[#167]: https://github.com/davidcole1340/ext-php-rs/pull/167
+[#170]: https://github.com/davidcole1340/ext-php-rs/pull/170
+[#171]: https://github.com/davidcole1340/ext-php-rs/pull/171
+[#177]: https://github.com/davidcole1340/ext-php-rs/pull/177
+[#179]: https://github.com/davidcole1340/ext-php-rs/pull/179
+
+## Version 0.8.1
+
+- 404 /guide doesn't exists. by @denzyldick in [#149]
+- Fixed some typos by @denzyldick in [#148]
+- Fix a few typos by @striezel in [#150]
+- fix causes of some clippy warnings by @striezel in [#152]
+- fix more causes of clippy warnings by @striezel in [#157]
+- attempt to fix errors related to clap by @striezel in [#158]
+- ci: run clippy only on stable Rust channel by @striezel in [#159]
+- update actions/checkout in GitHub Actions workflows to v3 by @striezel in
+  [#151]
+- Add ability to set function name on php_function macro by @joehoyle in [#153]
+- Specify classes as fully-qualified names in stubs by @joehoyle in [#156]
+- Support marking classes as interfaces by @joehoyle in [#155]
+- Support marking methods as abstract by @joehoyle in [#154]
+- Add php-scrypt as a example project by @PineappleIOnic in [#146]
+- Fix ini file duplication and truncation when using cargo-php command by
+  @roborourke in [#136]
+- Allow passing --yes parameter to bypass prompts by @roborourke in [#135]
+
+[#135]: https://github.com/davidcole1340/ext-php-rs/pull/135
+[#136]: https://github.com/davidcole1340/ext-php-rs/pull/136
+[#146]: https://github.com/davidcole1340/ext-php-rs/pull/146
+[#148]: https://github.com/davidcole1340/ext-php-rs/pull/148
+[#149]: https://github.com/davidcole1340/ext-php-rs/pull/149
+[#150]: https://github.com/davidcole1340/ext-php-rs/pull/150
+[#151]: https://github.com/davidcole1340/ext-php-rs/pull/151
+[#152]: https://github.com/davidcole1340/ext-php-rs/pull/152
+[#153]: https://github.com/davidcole1340/ext-php-rs/pull/153
+[#154]: https://github.com/davidcole1340/ext-php-rs/pull/154
+[#155]: https://github.com/davidcole1340/ext-php-rs/pull/155
+[#156]: https://github.com/davidcole1340/ext-php-rs/pull/156
+[#157]: https://github.com/davidcole1340/ext-php-rs/pull/157
+[#158]: https://github.com/davidcole1340/ext-php-rs/pull/158
+[#159]: https://github.com/davidcole1340/ext-php-rs/pull/159
+
+## Version 0.8.0
+
+- Windows support by @davidcole1340 in [#128]
+- Support for binary slice to avoid extra allocation by @TobiasBengtsson in
+  [#139]
+- Bump dependencies by @ptondereau in [#144]
+
+[#128]: https://github.com/davidcole1340/ext-php-rs/pull/128
+[#139]: https://github.com/davidcole1340/ext-php-rs/pull/139
+[#144]: https://github.com/davidcole1340/ext-php-rs/pull/144
+
+## Version 0.7.4
+
+- Fix is_true() / is_false() in Zval by @joehoyle in [#116]
+- readme: fix link to guide by @TorstenDittmann in [#120]
+- Fix request_(startup|shutdown)_function in ModuleBuilder by @glyphpoch in
+  [#119]
+- Fix CI on macOS by @davidcole1340 in [#126]
+- Add ability to pass modifier function for classes by @davidcole1340 in [#127]
+
+[#116]: https://github.com/davidcole1340/ext-php-rs/pull/116
+[#119]: https://github.com/davidcole1340/ext-php-rs/pull/119
+[#120]: https://github.com/davidcole1340/ext-php-rs/pull/120
+[#126]: https://github.com/davidcole1340/ext-php-rs/pull/126
+[#127]: https://github.com/davidcole1340/ext-php-rs/pull/127
+
 ## Version 0.7.3
 
 - Upgrade `clap` to `3.0.0-rc3`. [#113]
@@ -170,7 +316,7 @@ Thanks to the contributors for this release:
       successfully with overwrite.
     - `push()` now returns a `Result`.
     - Converting from a `Vec` or `HashMap` to a `ZendHashTable` is fallible, so
-      it now implementes `TryFrom` as opposed to `From`.
+      it now implements `TryFrom` as opposed to `From`.
   - For `Zval`:
     - `set_string()` now returns a `Result`, and takes a second parameter
       (persistent).

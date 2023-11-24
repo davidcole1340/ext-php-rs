@@ -42,7 +42,7 @@ impl<'a> ZendCallable<'a> {
     ///
     /// # Parameters
     ///
-    /// * `callable` - TThe underlying [`Zval`] that is callable.
+    /// * `callable` - The underlying [`Zval`] that is callable.
     pub fn new_owned(callable: Zval) -> Result<Self> {
         if callable.is_callable() {
             Ok(Self(OwnedZval::Owned(callable)))
@@ -99,6 +99,7 @@ impl<'a> ZendCallable<'a> {
     /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
     /// assert_eq!(result.long(), Some(1));
     /// ```
+    #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         if !self.0.is_callable() {
             return Err(Error::Callable);
@@ -115,7 +116,7 @@ impl<'a> ZendCallable<'a> {
         let result = unsafe {
             _call_user_function_impl(
                 std::ptr::null_mut(),
-                std::mem::transmute(self.0.as_ref()),
+                self.0.as_ref() as *const crate::ffi::_zval_struct as *mut crate::ffi::_zval_struct,
                 &mut retval,
                 len as _,
                 packed.as_ptr() as *mut _,
@@ -160,7 +161,7 @@ enum OwnedZval<'a> {
 impl<'a> OwnedZval<'a> {
     fn as_ref(&self) -> &Zval {
         match self {
-            OwnedZval::Reference(zv) => *zv,
+            OwnedZval::Reference(zv) => zv,
             OwnedZval::Owned(zv) => zv,
         }
     }
