@@ -7,7 +7,7 @@ use crate::{
         php_stream_wrapper_ops, php_unregister_url_stream_wrapper,
         php_unregister_url_stream_wrapper_volatile, zend_string,
     },
-    types::ZendStr,
+    types::ZendStr, error::Error,
 };
 
 pub type StreamWrapper = php_stream_wrapper;
@@ -41,20 +41,20 @@ impl StreamWrapper {
         }
     }
 
-    pub fn register(self, name: &str) -> Result<Self, ()> {
+    pub fn register(self, name: &str) -> Result<Self, Error> {
         // We have to convert it to a static so owned streamwrapper doesn't get dropped.
         let copy = Box::new(self);
         let copy = Box::leak(copy);
-        let name = std::ffi::CString::new(name).unwrap();
+        let name = std::ffi::CString::new(name).expect("Could not create C string for name!");
         let result = unsafe { php_register_url_stream_wrapper(name.as_ptr(), copy) };
         if result == 0 {
             Ok(*copy)
         } else {
-            Err(())
+            Err(Error::StreamWrapperRegistrationFailure)
         }
     }
 
-    pub fn register_volatile(self, name: &str) -> Result<Self, ()> {
+    pub fn register_volatile(self, name: &str) -> Result<Self, Error> {
         // We have to convert it to a static so owned streamwrapper doesn't get dropped.
         let copy = Box::new(self);
         let copy = Box::leak(copy);
@@ -64,23 +64,23 @@ impl StreamWrapper {
         if result == 0 {
             Ok(*copy)
         } else {
-            Err(())
+            Err(Error::StreamWrapperRegistrationFailure)
         }
     }
 
-    pub fn unregister(name: &str) -> Result<(), ()> {
-        let name = std::ffi::CString::new(name).unwrap();
+    pub fn unregister(name: &str) -> Result<(), Error> {
+        let name = std::ffi::CString::new(name).expect("Could not create C string for name!");
         match unsafe { php_unregister_url_stream_wrapper(name.as_ptr()) } {
             0 => Ok(()),
-            _ => Err(()),
+            _ => Err(Error::StreamWrapperUnregistrationFailure),
         }
     }
 
-    pub fn unregister_volatile(name: &str) -> Result<(), ()> {
+    pub fn unregister_volatile(name: &str) -> Result<(), Error> {
         let name = ZendStr::new(name, false);
         match unsafe { php_unregister_url_stream_wrapper_volatile((*name).as_ptr() as _) } {
             0 => Ok(()),
-            _ => Err(()),
+            _ => Err(Error::StreamWrapperUnregistrationFailure),
         }
     }
 
