@@ -56,19 +56,20 @@ impl Zval {
         return self
             .reference()
             .or_else(|| self.indirect())
-            .or(Some(self))
-            .unwrap();
+            .unwrap_or(self)
     }
 
     /// Dereference the zval mutable, if it is a reference.
     pub fn dereference_mut(&mut self) -> &mut Self {
         if self.is_reference() {
+            #[allow(clippy::unwrap_used)]
             return self.reference_mut().unwrap();
         }
         if self.is_indirect() {
+            #[allow(clippy::unwrap_used)]
             return self.indirect_mut().unwrap();
         }
-        return self;
+        self
     }
 
     /// Returns the value of the zval if it is a long.
