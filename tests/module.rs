@@ -1,14 +1,12 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
+#![cfg(feature = "embed")]
 extern crate ext_php_rs;
 
-#[cfg(feature = "embed")]
 use ext_php_rs::embed::Embed;
-#[cfg(feature = "embed")]
 use ext_php_rs::ffi::zend_register_module_ex;
 use ext_php_rs::prelude::*;
 
 #[test]
-#[cfg(feature = "embed")]
 fn test_module() {
     Embed::run(|| {
         // Allow to load the module

@@ -1,7 +1,7 @@
 //! Represents an object in PHP. Allows for overriding the internal object used
 //! by classes, allowing users to store Rust data inside a PHP object.
 
-use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
+use std::{convert::TryInto, fmt::Debug, ops::DerefMut, os::raw::c_char};
 
 use crate::{
     boxed::{ZBox, ZBoxable},
@@ -146,7 +146,7 @@ impl ZendObject {
         unsafe {
             let res = zend_hash_str_find_ptr_lc(
                 &(*self.ce).function_table,
-                name.as_ptr() as *const i8,
+                name.as_ptr() as *const c_char,
                 name.len(),
             ) as *mut zend_function;
             if res.is_null() {
