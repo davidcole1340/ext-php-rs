@@ -45,7 +45,7 @@ pub fn test_binary(input: Binary<u32>) -> Binary<u32> {
 ```php
 <?php
 
-$data = pack('*L', [1, 2, 3, 4, 5]);
-$output = unpack('*L', test_binary($data));
+$data = pack('L*', 1, 2, 3, 4, 5);
+$output = unpack('L*', test_binary($data));
 var_dump($output); // array(5) { [0] => 5, [1] => 4, [2] => 3, [3] => 2, [4] => 1 }
 ```
