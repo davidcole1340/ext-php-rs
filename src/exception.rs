@@ -69,8 +69,8 @@ impl PhpException {
 
     /// Set the Zval object for the exception.
     ///
-    /// Exceptions can be based of instantiated Zval objects when you are throwing a custom exception with
-    /// stateful properties.
+    /// Exceptions can be based of instantiated Zval objects when you are
+    /// throwing a custom exception with stateful properties.
     ///
     /// # Parameters
     ///

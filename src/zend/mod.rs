@@ -7,8 +7,8 @@ mod ex;
 mod function;
 mod globals;
 mod handlers;
-mod linked_list;
 mod ini_entry_def;
+mod linked_list;
 mod module;
 mod try_catch;
 
@@ -27,12 +27,10 @@ pub use globals::ExecutorGlobals;
 pub use globals::FileGlobals;
 pub use globals::ProcessGlobals;
 pub use globals::SapiGlobals;
-pub use handlers::ZendObjectHandlers;
-pub use linked_list::ZendLinkedList;
-pub use globals::SapiGlobals;
 pub use globals::SapiModule;
 pub use handlers::ZendObjectHandlers;
 pub use ini_entry_def::IniEntryDef;
+pub use linked_list::ZendLinkedList;
 pub use module::ModuleEntry;
 #[cfg(feature = "embed")]
 pub(crate) use try_catch::panic_wrapper;

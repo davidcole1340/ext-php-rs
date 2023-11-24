@@ -1,6 +1,7 @@
 //! Types related to the PHP executor, sapi and process globals.
 
 use std::collections::HashMap;
+use std::ffi::CStr;
 use std::ops::{Deref, DerefMut};
 use std::slice;
 use std::str;
@@ -11,25 +12,20 @@ use crate::boxed::ZBox;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _zend_executor_globals, ext_php_rs_executor_globals, ext_php_rs_file_globals,
-    ext_php_rs_process_globals, ext_php_rs_sapi_globals, php_core_globals, php_file_globals,
-    sapi_globals_struct, sapi_header_struct, sapi_headers_struct, sapi_request_info,
+    _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
+    ext_php_rs_file_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
+    ext_php_rs_sapi_module, php_core_globals, php_file_globals, sapi_globals_struct,
+    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
     zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
     TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
-    _sapi_globals_struct, _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
-    ext_php_rs_sapi_globals, ext_php_rs_sapi_module, zend_ini_entry,
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
 
 use super::linked_list::ZendLinkedListIterator;
-use crate::types::{ZendHashTable, ZendObject};
 
 /// Stores global variables used in the PHP executor.
 pub type ExecutorGlobals = _zend_executor_globals;
-
-/// Stores global SAPI variables used in the PHP executor.
-pub type SapiGlobals = _sapi_globals_struct;
 
 /// Stores the SAPI module used in the PHP executor.
 pub type SapiModule = _sapi_module_struct;
@@ -154,40 +150,6 @@ impl ExecutorGlobals {
                 self.vm_interrupt = true;
             }
         }
-    }
-}
-
-impl SapiGlobals {
-    /// Returns a reference to the PHP SAPI globals.
-    ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
-    /// immutable references at one time but only ever one mutable reference.
-    /// Attempting to retrieve the globals while already holding the global
-    /// guard will lead to a deadlock. Dropping the globals guard will release
-    /// the lock.
-    pub fn get() -> GlobalReadGuard<Self> {
-        // SAFETY: PHP executor globals are statically declared therefore should never
-        // return an invalid pointer.
-        let globals = unsafe { ext_php_rs_sapi_globals().as_ref() }
-            .expect("Static executor globals were invalid");
-        let guard = SAPI_LOCK.read();
-        GlobalReadGuard { globals, guard }
-    }
-
-    /// Returns a mutable reference to the PHP executor globals.
-    ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
-    /// immutable references at one time but only ever one mutable reference.
-    /// Attempting to retrieve the globals while already holding the global
-    /// guard will lead to a deadlock. Dropping the globals guard will release
-    /// the lock.
-    pub fn get_mut() -> GlobalWriteGuard<Self> {
-        // SAFETY: PHP executor globals are statically declared therefore should never
-        // return an invalid pointer.
-        let globals = unsafe { ext_php_rs_sapi_globals().as_mut() }
-            .expect("Static executor globals were invalid");
-        let guard = SAPI_LOCK.write();
-        GlobalWriteGuard { globals, guard }
     }
 }
 
@@ -555,12 +517,6 @@ static GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 static PROCESS_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 static SAPI_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
 static FILE_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
-
-/// SAPI globals rwlock.
-///
-/// PHP provides no indication if the executor globals are being accessed so
-/// this is only effective on the Rust side.
-static SAPI_LOCK: RwLock<()> = const_rwlock(());
 
 /// SAPI globals rwlock.
 ///
