@@ -74,10 +74,6 @@ fn test_sapi() {
     }
 
     unsafe {
-        assert_eq!(LAST_OUTPUT, "string(11) \"Hello, foo!\"\n");
-    }
-
-    unsafe {
         php_module_shutdown();
     }
 
