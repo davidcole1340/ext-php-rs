@@ -61,6 +61,16 @@ impl ExecutorGlobals {
         unsafe { self.class_table.as_ref() }
     }
 
+    /// Attempts to retrieve the global functions hash table.
+    pub fn function_table(&self) -> Option<&ZendHashTable> {
+        unsafe { self.function_table.as_ref() }
+    }
+
+    /// Attempts to retrieve the global functions hash table as mutable.
+    pub fn function_table_mut(&self) -> Option<&mut ZendHashTable> {
+        unsafe { self.function_table.as_mut() }
+    }
+
     /// Retrieves the ini values for all ini directives in the current executor
     /// context..
     pub fn ini_values(&self) -> HashMap<String, Option<String>> {
