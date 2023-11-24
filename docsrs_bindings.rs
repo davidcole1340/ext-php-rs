@@ -1657,7 +1657,7 @@ extern "C" {
     );
 }
 extern "C" {
-    pub fn zend_is_iterable(iterable: *mut zval) -> bool;
+    pub fn zend_is_iterable(iterable: *const zval) -> bool;
 }
 pub const _zend_expected_type_Z_EXPECTED_LONG: _zend_expected_type = 0;
 pub const _zend_expected_type_Z_EXPECTED_LONG_OR_NULL: _zend_expected_type = 1;

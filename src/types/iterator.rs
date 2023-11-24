@@ -7,16 +7,17 @@ use std::fmt::{Debug, Display, Formatter};
 
 /// A PHP Iterator.
 ///
-/// In PHP, iterators are represented as zend_object_iterator. This allow user
-/// to iterate over object implementing Traversable interface using foreach.
+/// In PHP, iterators are represented as zend_object_iterator. This allows user
+/// to iterate over objects implementing Traversable interface using foreach.
+///
+/// Use ZendIterable to iterate over both iterators and arrays.
 pub type ZendIterator = zend_object_iterator;
 
 impl ZendIterator {
     /// Creates a new rust iterator from a zend_object_iterator.
     ///
-    /// # Returns
-    ///
-    /// Returns a iterator over the zend_object_iterator.
+    /// Returns a iterator over the zend_object_iterator, or None if the
+    /// iterator cannot be rewound.
     pub fn iter(&mut self) -> Option<Iter> {
         self.index = 0;
 
@@ -122,50 +123,18 @@ impl ZendIterator {
     }
 }
 
+impl<'a> IntoIterator for &'a mut ZendIterator {
+    type Item = (&'a Zval, &'a Zval);
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter().expect("Could not rewind iterator!")
+    }
+}
+
 impl Debug for ZendIterator {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ZendIterator").finish()
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum IterKey {
-    Long(u64),
-    String(String),
-}
-
-/// Represent the key of a PHP iterator, which can be either a long or a string.
-impl IterKey {
-    /// Check if the key is an integer.
-    ///
-    /// # Returns
-    ///
-    /// Returns true if the key is an integer, false otherwise.
-    pub fn is_long(&self) -> bool {
-        match self {
-            IterKey::Long(_) => true,
-            IterKey::String(_) => false,
-        }
-    }
-}
-
-impl Display for IterKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            IterKey::Long(key) => write!(f, "{}", key),
-            IterKey::String(key) => write!(f, "{}", key),
-        }
-    }
-}
-
-impl FromZval<'_> for IterKey {
-    const TYPE: DataType = DataType::String;
-
-    fn from_zval(zval: &Zval) -> Option<Self> {
-        match zval.long() {
-            Some(key) => Some(IterKey::Long(key as u64)),
-            None => zval.string().map(IterKey::String),
-        }
     }
 }
 
@@ -175,7 +144,7 @@ pub struct Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (IterKey, &'a Zval);
+    type Item = (&'a Zval, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         // Call next when index > 0, so next is really called at the start of each
