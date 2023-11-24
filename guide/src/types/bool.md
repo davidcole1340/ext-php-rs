@@ -45,3 +45,17 @@ pub fn test_bool(input: bool) -> String {
 var_dump(test_bool(true)); // string(4) "Yes!"
 var_dump(test_bool(false)); // string(3) "No!"
 ```
+
+## Rust example, taking by reference
+
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
+# extern crate ext_php_rs;
+# use ext_php_rs::prelude::*;
+# use ext_php_rs::types;
+#[php_function]
+pub fn test_bool(input: &mut types::Zval) {
+    input.reference_mut().unwrap().set_bool(false);
+}
+# fn main() {}
+```

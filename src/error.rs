@@ -57,6 +57,8 @@ pub enum Error {
     InvalidUtf8,
     /// Could not call the given function.
     Callable,
+    /// An object was expected.
+    Object,
     /// An invalid exception type was thrown.
     InvalidException(ClassFlags),
     /// Converting integer arguments resulted in an overflow.
@@ -89,6 +91,7 @@ impl Display for Error {
             ),
             Error::InvalidUtf8 => write!(f, "Invalid Utf8 byte sequence."),
             Error::Callable => write!(f, "Could not call given function."),
+            Error::Object => write!(f, "An object was expected."),
             Error::InvalidException(flags) => {
                 write!(f, "Invalid exception type was thrown: {flags:?}")
             }

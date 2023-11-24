@@ -187,6 +187,33 @@ impl ZendHashTable {
         unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_ref() }
     }
 
+    /// Attempts to retrieve a value from the hash table with a string key.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to search for in the hash table.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash
+    ///   table.
+    /// * `None` - No value at the given position was found.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// ht.insert("test", "hello world");
+    /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
+    /// ```
+    pub fn get_mut(&self, key: &'_ str) -> Option<&mut Zval> {
+        let str = CString::new(key).ok()?;
+        unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_mut() }
+    }
+
     /// Attempts to retrieve a value from the hash table with an index.
     ///
     /// # Parameters
@@ -211,6 +238,32 @@ impl ZendHashTable {
     /// ```
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self, key).as_ref() }
+    }
+
+    /// Attempts to retrieve a value from the hash table with an index.
+    ///
+    /// # Parameters
+    ///
+    /// * `key` - The key to search for in the hash table.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&Zval)` - A reference to the zval at the position in the hash
+    ///   table.
+    /// * `None` - No value at the given position was found.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let mut ht = ZendHashTable::new();
+    ///
+    /// ht.push(100);
+    /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
+    /// ```
+    pub fn get_index_mut(&self, key: u64) -> Option<&mut Zval> {
+        unsafe { zend_hash_index_find(self, key).as_mut() }
     }
 
     /// Attempts to remove a value from the hash table with a string key.
@@ -715,7 +768,7 @@ impl<'a> FromZval<'a> for &'a ZendHashTable {
 }
 
 ///////////////////////////////////////////
-//// HashMap
+/// HashMap
 ///////////////////////////////////////////
 
 impl<'a, V> TryFrom<&'a ZendHashTable> for HashMap<String, V>
@@ -784,7 +837,7 @@ where
 }
 
 ///////////////////////////////////////////
-//// Vec
+/// Vec
 ///////////////////////////////////////////
 
 impl<'a, T> TryFrom<&'a ZendHashTable> for Vec<T>
