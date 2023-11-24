@@ -141,6 +141,8 @@ mod integration {
                 "-dextension=../target/debug/libtests.{}",
                 std::env::consts::DLL_EXTENSION
             ))
+            .arg("-dassert.active=1")
+            .arg("-dassert.exception=1")
             .arg(format!("src/integration/{}", file))
             .output()
             .expect("failed to run php file");
