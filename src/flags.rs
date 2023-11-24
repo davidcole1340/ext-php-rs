@@ -9,6 +9,7 @@ use crate::ffi::{
     E_COMPILE_WARNING, E_CORE_ERROR, E_CORE_WARNING, E_DEPRECATED, E_ERROR, E_NOTICE, E_PARSE,
     E_RECOVERABLE_ERROR, E_STRICT, E_USER_DEPRECATED, E_USER_ERROR, E_USER_NOTICE, E_USER_WARNING,
     E_WARNING, IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_INDIRECT, IS_LONG,
+    IS_ITERABLE, 
     IS_MIXED, IS_NULL, IS_OBJECT, IS_PTR, IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE,
     IS_TYPE_COLLECTABLE, IS_TYPE_REFCOUNTED, IS_UNDEF, IS_VOID, PHP_INI_ALL, PHP_INI_PERDIR,
     PHP_INI_SYSTEM, PHP_INI_USER, ZEND_ACC_ABSTRACT, ZEND_ACC_ANON_CLASS,
@@ -49,6 +50,7 @@ bitflags! {
         const ConstantExpression = IS_CONSTANT_AST;
         const Void = IS_VOID;
         const Ptr = IS_PTR;
+        const Iterable = IS_ITERABLE;
 
         const InternedStringEx = Self::String.bits();
         const StringEx = Self::String.bits() | Self::RefCounted.bits();
@@ -237,6 +239,7 @@ pub enum DataType {
     Double,
     String,
     Array,
+    Iterable,
     Object(Option<&'static str>),
     Resource,
     Reference,
@@ -277,6 +280,7 @@ impl DataType {
             DataType::Mixed => IS_MIXED,
             DataType::Bool => _IS_BOOL,
             DataType::Ptr => IS_PTR,
+            DataType::Iterable => IS_ITERABLE,
         }
     }
 }
@@ -383,6 +387,7 @@ impl Display for DataType {
             DataType::Mixed => write!(f, "Mixed"),
             DataType::Ptr => write!(f, "Pointer"),
             DataType::Indirect => write!(f, "Indirect"),
+            DataType::Iterable => write!(f, "Iterable"),
         }
     }
 }

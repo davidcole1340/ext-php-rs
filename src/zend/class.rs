@@ -1,5 +1,6 @@
 //! Builder and objects for creating classes in the PHP world.
 
+use crate::types::{ZendIterator, Zval};
 use crate::{
     boxed::ZBox,
     ffi::zend_class_entry,
@@ -95,6 +96,24 @@ impl ClassEntry {
             let name = unsafe { self.__bindgen_anon_1.parent_name.as_ref()? };
             Self::try_find(name.as_str().ok()?)
         }
+    }
+
+    /// Returns the iterator for the class for a specific instance
+    ///
+    /// Returns [`None`] if there is no associated iterator for the class.
+    pub fn get_iterator<'a>(&self, zval: &'a Zval, by_ref: bool) -> Option<&'a mut ZendIterator> {
+        let ptr: *const Self = self;
+        let zval_ptr: *const Zval = zval;
+
+        let iterator = unsafe {
+            (*ptr).get_iterator?(
+                ptr as *mut ClassEntry,
+                zval_ptr as *mut Zval,
+                if by_ref { 1 } else { 0 },
+            )
+        };
+
+        unsafe { iterator.as_mut() }
     }
 
     pub fn name(&self) -> Option<&str> {

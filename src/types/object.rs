@@ -133,6 +133,15 @@ impl ZendObject {
         (self.ce as *const ClassEntry).eq(&(T::get_metadata().ce() as *const _))
     }
 
+    /// Returns whether this object is an instance of \Traversable
+    ///
+    /// # Panics
+    ///
+    /// Panics if the class entry is invalid.
+    pub fn is_traversable(&self) -> bool {
+        self.instance_of(ce::traversable())
+    }
+
     #[inline(always)]
     pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         let mut retval = Zval::new();
@@ -317,8 +326,8 @@ impl Debug for ZendObject {
         );
 
         if let Ok(props) = self.get_properties() {
-            for (id, key, val) in props.iter() {
-                dbg.field(key.unwrap_or_else(|| id.to_string()).as_str(), val);
+            for (key, val) in props.iter() {
+                dbg.field(key.to_string().as_str(), val);
             }
         }
 

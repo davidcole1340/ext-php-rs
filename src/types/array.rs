@@ -10,6 +10,7 @@ use std::{
     u64,
 };
 
+use crate::types::iterator::IterKey;
 use crate::{
     boxed::{ZBox, ZBoxable},
     convert::{FromZval, IntoZval},
@@ -463,7 +464,7 @@ impl ZendHashTable {
     /// assert!(!ht.has_numerical_keys());
     /// ```
     pub fn has_numerical_keys(&self) -> bool {
-        !self.iter().any(|(_, k, _)| k.is_some())
+        !self.iter().any(|(k, _)| !k.is_numerical())
     }
 
     /// Checks if the hashtable has numerical, sequential keys.
@@ -492,7 +493,7 @@ impl ZendHashTable {
         !self
             .iter()
             .enumerate()
-            .any(|(i, (k, strk, _))| i as u64 != k || strk.is_some())
+            .any(|(i, (k, _))| IterKey::Long(i as u64) != k)
     }
 
     /// Returns an iterator over the key(s) and value contained inside the
@@ -505,12 +506,12 @@ impl ZendHashTable {
     ///
     /// let mut ht = ZendHashTable::new();
     ///
-    /// for (idx, key, val) in ht.iter() {
+    /// for (key, val) in ht.iter() {
     /// //   ^ Index if inserted at an index.
     /// //        ^ Optional string key, if inserted like a hashtable.
     /// //             ^ Inserted value.
     ///
-    ///     dbg!(idx, key, val);
+    ///     dbg!(key, val);
     /// }
     #[inline]
     pub fn iter(&self) -> Iter {
@@ -546,10 +547,7 @@ unsafe impl ZBoxable for ZendHashTable {
 impl Debug for ZendHashTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
-            .entries(
-                self.iter()
-                    .map(|(k, k2, v)| (k2.unwrap_or_else(|| k.to_string()), v)),
-            )
+            .entries(self.iter().map(|(k, v)| (k.to_string(), v)))
             .finish()
     }
 }
@@ -594,7 +592,7 @@ impl<'a> Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (u64, Option<String>, &'a Zval);
+    type Item = (IterKey, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         let key_type = unsafe {
@@ -622,9 +620,10 @@ impl<'a> Iterator for Iter<'a> {
                 &mut self.pos as *mut HashPosition,
             )
         };
-        let r: (u64, Option<String>, &Zval) = match key.is_long() {
-            true => (key.long().unwrap_or(0) as u64, None, value),
-            false => (self.current_num, key.try_into().ok(), value),
+
+        let r = match IterKey::from_zval(&key) {
+            Some(key) => (key, value),
+            None => (IterKey::Long(self.current_num), value),
         };
 
         unsafe {
@@ -679,9 +678,10 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
                 &mut self.pos as *mut HashPosition,
             )
         };
-        let r: (u64, Option<String>, &Zval) = match key.is_long() {
-            true => (key.long().unwrap_or(0) as u64, None, value),
-            false => (self.current_num, key.try_into().ok(), value),
+
+        let r = match IterKey::from_zval(&key) {
+            Some(key) => (key, value),
+            None => (IterKey::Long(self.current_num), value),
         };
 
         unsafe {
@@ -715,7 +715,7 @@ impl<'a> Iterator for Values<'a> {
     type Item = &'a Zval;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(_, _, zval)| zval)
+        self.0.next().map(|(_, zval)| zval)
     }
 
     fn count(self) -> usize
@@ -734,7 +734,7 @@ impl<'a> ExactSizeIterator for Values<'a> {
 
 impl<'a> DoubleEndedIterator for Values<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back().map(|(_, _, zval)| zval)
+        self.0.next_back().map(|(_, zval)| zval)
     }
 }
 
@@ -780,9 +780,9 @@ where
     fn try_from(value: &'a ZendHashTable) -> Result<Self> {
         let mut hm = HashMap::with_capacity(value.len());
 
-        for (idx, key, val) in value.iter() {
+        for (key, val) in value.iter() {
             hm.insert(
-                key.unwrap_or_else(|| idx.to_string()),
+                key.to_string(),
                 V::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?,
             );
         }
@@ -849,7 +849,7 @@ where
     fn try_from(value: &'a ZendHashTable) -> Result<Self> {
         let mut vec = Vec::with_capacity(value.len());
 
-        for (_, _, val) in value.iter() {
+        for (_, val) in value.iter() {
             vec.push(T::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?);
         }
 
