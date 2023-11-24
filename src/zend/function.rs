@@ -9,6 +9,7 @@ use crate::{
         zend_call_known_function, zend_fetch_function_str, zend_function, zend_function_entry,
         zend_hash_str_find_ptr_lc,
     },
+    flags::FunctionType,
     types::Zval,
 };
 
@@ -50,6 +51,10 @@ impl FunctionEntry {
 pub type Function = zend_function;
 
 impl Function {
+    pub fn function_type(&self) -> FunctionType {
+        FunctionType::from(unsafe { self.type_ })
+    }
+
     pub fn try_from_function(name: &str) -> Option<Self> {
         unsafe {
             let res = zend_fetch_function_str(name.as_ptr() as *const c_char, name.len());
