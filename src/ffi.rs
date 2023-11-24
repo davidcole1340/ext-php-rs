@@ -35,6 +35,13 @@ extern "C" {
         ctx: *const c_void,
         result: *mut *mut c_void,
     ) -> bool;
+
+    pub fn ext_php_rs_zend_first_try_catch(
+        func: unsafe extern "C" fn(*const c_void) -> *const c_void,
+        ctx: *const c_void,
+        result: *mut *mut c_void,
+    ) -> bool;
+
     pub fn ext_php_rs_zend_bailout() -> !;
 }
 

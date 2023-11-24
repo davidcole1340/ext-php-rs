@@ -40,4 +40,5 @@ sapi_globals_struct *ext_php_rs_sapi_globals();
 php_file_globals *ext_php_rs_file_globals();
 sapi_module_struct *ext_php_rs_sapi_module();
 bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **result);
+bool ext_php_rs_zend_first_try_catch(void* (*callback)(void *), void *ctx, void **result);
 void ext_php_rs_zend_bailout();

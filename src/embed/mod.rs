@@ -6,6 +6,7 @@
 //! ready
 
 mod ffi;
+mod sapi;
 
 use crate::boxed::ZBox;
 use crate::embed::ffi::ext_php_rs_embed_callback;
@@ -20,6 +21,9 @@ use std::ffi::{c_char, c_void, CString, NulError};
 use std::panic::{resume_unwind, RefUnwindSafe};
 use std::path::Path;
 use std::ptr::null_mut;
+
+pub use ffi::ext_php_rs_sapi_startup;
+pub use sapi::SapiModule;
 
 pub struct Embed;
 

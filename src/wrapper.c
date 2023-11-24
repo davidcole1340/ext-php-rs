@@ -86,6 +86,16 @@ bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **resu
   return false;
 }
 
+bool ext_php_rs_zend_first_try_catch(void* (*callback)(void *), void *ctx, void **result) {
+  zend_first_try {
+    *result = callback(ctx);
+  } zend_catch {
+    return true;
+  } zend_end_try();
+
+  return false;
+}
+
 void ext_php_rs_zend_bailout() {
   zend_bailout();
 }

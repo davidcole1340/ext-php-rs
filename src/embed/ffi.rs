@@ -13,4 +13,6 @@ extern "C" {
         func: unsafe extern "C" fn(*const c_void) -> *const c_void,
         ctx: *const c_void,
     ) -> *mut c_void;
+
+    pub fn ext_php_rs_sapi_startup();
 }

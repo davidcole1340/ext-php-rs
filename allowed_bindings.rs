@@ -294,7 +294,14 @@ bind! {
     zend_eval_string,
     zend_file_handle,
     zend_stream_init_filename,
+    zend_destroy_file_handle,
     php_execute_script,
     zend_register_module_ex,
-    _zend_bailout
+    _zend_bailout,
+    sapi_startup,
+    sapi_shutdown,
+    php_module_startup,
+    php_module_shutdown,
+    php_request_startup,
+    php_request_shutdown
 }
