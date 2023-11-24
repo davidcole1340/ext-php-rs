@@ -6,7 +6,9 @@ use crate::{
     class::RegisteredClass,
     error::{Error, Result},
     ffi::zend_throw_exception_ex,
+    ffi::zend_throw_exception_object,
     flags::ClassFlags,
+    types::Zval,
     zend::{ce, ClassEntry},
 };
 
@@ -25,6 +27,7 @@ pub struct PhpException {
     message: String,
     code: i32,
     ex: &'static ClassEntry,
+    object: Option<Zval>,
 }
 
 impl PhpException {
@@ -36,7 +39,12 @@ impl PhpException {
     /// * `code` - Integer code to go inside the exception.
     /// * `ex` - Exception type to throw.
     pub fn new(message: String, code: i32, ex: &'static ClassEntry) -> Self {
-        Self { message, code, ex }
+        Self {
+            message,
+            code,
+            ex,
+            object: None,
+        }
     }
 
     /// Creates a new default exception instance, using the default PHP
@@ -59,10 +67,25 @@ impl PhpException {
         Self::new(message, 0, T::get_metadata().ce())
     }
 
+    /// Set the Zval object for the exception.
+    ///
+    /// Exceptions can be based of instantiated Zval objects when you are
+    /// throwing a custom exception with stateful properties.
+    ///
+    /// # Parameters
+    ///
+    /// * `object` - The Zval object.
+    pub fn set_object(&mut self, object: Option<Zval>) {
+        self.object = object;
+    }
+
     /// Throws the exception, returning nothing inside a result if successful
     /// and an error otherwise.
     pub fn throw(self) -> Result<()> {
-        throw_with_code(self.ex, self.code, &self.message)
+        match self.object {
+            Some(object) => throw_object(object),
+            None => throw_with_code(self.ex, self.code, &self.message),
+        }
     }
 }
 
@@ -144,5 +167,46 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
             CString::new(message)?.as_ptr(),
         )
     };
+    Ok(())
+}
+
+/// Throws an exception object.
+///
+/// Returns a result containing nothing if the exception was successfully
+/// thrown.
+///
+/// # Parameters
+///
+/// * `object` - The zval of type object
+///
+/// # Examples
+///
+/// ```no_run
+/// use ext_php_rs::prelude::*;
+/// use ext_php_rs::exception::throw_object;
+/// use crate::ext_php_rs::convert::IntoZval;
+///
+/// #[php_class]
+/// #[extends(ext_php_rs::zend::ce::exception())]
+/// pub struct JsException {
+///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///     message: String,
+///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///     code: i32,
+///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///     file: String,
+/// }
+///
+/// #[php_module]
+/// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+///     module
+/// }
+///
+/// let error = JsException { message: "A JS error occurred.".to_string(), code: 100, file: "index.js".to_string() };
+/// throw_object( error.into_zval(true).unwrap() );
+/// ```
+pub fn throw_object(zval: Zval) -> Result<()> {
+    let mut zv = core::mem::ManuallyDrop::new(zval);
+    unsafe { zend_throw_exception_object(core::ptr::addr_of_mut!(zv).cast()) };
     Ok(())
 }

@@ -65,6 +65,10 @@ pub enum Error {
     IntegerOverflow,
     /// An exception was thrown in a function.
     Exception(ZBox<ZendObject>),
+    /// A failure occurred while registering the stream wrapper
+    StreamWrapperRegistrationFailure,
+    /// A failure occurred while unregistering the stream wrapper
+    StreamWrapperUnregistrationFailure,
 }
 
 impl Display for Error {
@@ -99,6 +103,15 @@ impl Display for Error {
                 write!(f, "Converting integer arguments resulted in an overflow.")
             }
             Error::Exception(e) => write!(f, "Exception was thrown: {e:?}"),
+            Error::StreamWrapperRegistrationFailure => {
+                write!(f, "A failure occurred while registering the stream wrapper")
+            }
+            Error::StreamWrapperUnregistrationFailure => {
+                write!(
+                    f,
+                    "A failure occurred while unregistering the stream wrapper"
+                )
+            }
         }
     }
 }

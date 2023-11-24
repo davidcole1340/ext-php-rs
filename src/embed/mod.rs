@@ -1,8 +1,9 @@
 //! Provides implementations for running php code from rust.
 //! It only works on linux for now and you should have `php-embed` installed
 //!
-//! This crate was only test with PHP 8.2 please report any issue with other version
-//! You should only use this crate for test purpose, it's not production ready
+//! This crate was only test with PHP 8.2 please report any issue with other
+//! version You should only use this crate for test purpose, it's not production
+//! ready
 
 mod ffi;
 mod sapi;
@@ -47,13 +48,14 @@ static RUN_FN_LOCK: RwLock<()> = const_rwlock(());
 impl Embed {
     /// Run a php script from a file
     ///
-    /// This function will only work correctly when used inside the `Embed::run` function
-    /// otherwise behavior is unexpected
+    /// This function will only work correctly when used inside the `Embed::run`
+    /// function otherwise behavior is unexpected
     ///
     /// # Returns
     ///
     /// * `Ok(())` - The script was executed successfully
-    /// * `Err(EmbedError)` - An error occured during the execution of the script
+    /// * `Err(EmbedError)` - An error occured during the execution of the
+    ///   script
     ///
     /// # Example
     ///
@@ -101,10 +103,10 @@ impl Embed {
 
     /// Start and run embed sapi engine
     ///
-    /// This function will allow to run php code from rust, the same PHP context is keep between calls
-    /// inside the function passed to this method.
-    /// Which means subsequent calls to `Embed::eval` or `Embed::run_script` will be able to access
-    /// variables defined in previous calls
+    /// This function will allow to run php code from rust, the same PHP context
+    /// is keep between calls inside the function passed to this method.
+    /// Which means subsequent calls to `Embed::eval` or `Embed::run_script`
+    /// will be able to access variables defined in previous calls
     ///
     /// # Returns
     ///
@@ -131,7 +133,8 @@ impl Embed {
         // @TODO handle php thread safe
         //
         // This is to prevent multiple threads from running php at the same time
-        // At some point we should detect if php is compiled with thread safety and avoid doing that in this case
+        // At some point we should detect if php is compiled with thread safety and
+        // avoid doing that in this case
         let _guard = RUN_FN_LOCK.write();
 
         let panic = unsafe {
@@ -159,7 +162,8 @@ impl Embed {
 
     /// Evaluate a php code
     ///
-    /// This function will only work correctly when used inside the `Embed::run` function
+    /// This function will only work correctly when used inside the `Embed::run`
+    /// function
     ///
     /// # Returns
     ///

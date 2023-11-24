@@ -20,7 +20,8 @@ pub(crate) unsafe extern "C" fn panic_wrapper<R, F: FnMut() -> R + RefUnwindSafe
 
 /// PHP propose a try catch mechanism in C using setjmp and longjmp (bailout)
 /// It store the arg of setjmp into the bailout field of the global executor
-/// If a bailout is triggered, the executor will jump to the setjmp and restore the previous setjmp
+/// If a bailout is triggered, the executor will jump to the setjmp and restore
+/// the previous setjmp
 ///
 /// try_catch allow to use this mechanism
 ///
@@ -91,10 +92,11 @@ fn do_try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F, first: bool) -> Res
 /// # Safety
 ///
 /// This function is unsafe because it can cause memory leaks
-/// Since it will jump to the last try catch block, it will not call the destructor of the current scope
+/// Since it will jump to the last try catch block, it will not call the
+/// destructor of the current scope
 ///
-/// When using this function you should ensure that all the memory allocated in the current scope is released
-///
+/// When using this function you should ensure that all the memory allocated in
+/// the current scope is released
 pub unsafe fn bailout() -> ! {
     ext_php_rs_zend_bailout();
 }
