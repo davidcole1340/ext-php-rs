@@ -1,8 +1,5 @@
 <?php
 
-var_dump(get_declared_classes);
-/*
-die;
 require('_utils.php');
 
 $v = test_closure();
@@ -15,4 +12,3 @@ $closure = test_closure_once('test');
 
 assert(call_user_func($closure) === 'test');
 assert_exception_thrown($closure);
-*/
