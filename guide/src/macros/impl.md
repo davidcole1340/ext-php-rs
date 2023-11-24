@@ -8,6 +8,8 @@ implementations cannot be exported to PHP.
 If you do not want a function exported to PHP, you should place it in a separate
 `impl` block.
 
+If you want to use async Rust, use `#[php_async_impl]`, instead: see [here &raquo;](./async_impl.md) for more info.
+
 ## Methods
 
 Methods basically follow the same rules as functions, so read about the
@@ -162,4 +164,4 @@ var_dump(Human::get_max_age()); // int(100)
 var_dump(Human::MAX_AGE); // int(100)
 ```
 
-[`php_function`]: ./function.md
+[`php_async_impl`]: ./async_impl.md

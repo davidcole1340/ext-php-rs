@@ -1,0 +1,5 @@
+name: 'PHP Embed and Rust'
+description: 'Builds the crate after installing the latest PHP with php embed and stable Rust.'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

@@ -6,6 +6,8 @@ use crate::{
     types::{ZendClassObject, ZendObject, Zval},
 };
 
+use super::function::Function;
+
 /// Execute data passed when a function is called from PHP.
 ///
 /// This generally contains things related to the call, including but not
@@ -192,6 +194,16 @@ impl ExecuteData {
         // TODO(david): This should be a `&mut self` function but we need to fix arg
         // parser first.
         self.This.object_mut()
+    }
+
+    /// Attempt to retrieve the function that is being called.
+    pub fn function(&self) -> Option<&Function> {
+        unsafe { self.func.as_ref() }
+    }
+
+    /// Attempt to retrieve the previous execute data on the call stack.
+    pub fn previous(&self) -> Option<&Self> {
+        unsafe { self.prev_execute_data.as_ref() }
     }
 
     /// Translation of macro `ZEND_CALL_ARG(call, n)`
