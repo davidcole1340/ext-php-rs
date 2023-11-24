@@ -136,12 +136,12 @@ pub enum IterKey {
 
 /// Represent the key of a PHP iterator, which can be either a long or a string.
 impl IterKey {
-    /// Check if the key is numerical.
+    /// Check if the key is an integer.
     ///
     /// # Returns
     ///
-    /// Returns true if the key is numerical, false otherwise.
-    pub fn is_numerical(&self) -> bool {
+    /// Returns true if the key is an integer, false otherwise.
+    pub fn is_long(&self) -> bool {
         match self {
             IterKey::Long(_) => true,
             IterKey::String(_) => false,
@@ -289,14 +289,14 @@ mod tests {
 
                 let (key, value) = iter.next().unwrap();
 
-                assert!(!key.is_numerical());
+                assert!(!key.is_long());
                 assert_eq!(key, IterKey::String("key".to_string()));
                 assert!(value.is_string());
                 assert_eq!(value.string().unwrap(), "foo");
 
                 let (key, value) = iter.next().unwrap();
 
-                assert!(key.is_numerical());
+                assert!(key.is_long());
                 assert_eq!(key, IterKey::Long(10));
                 assert!(value.is_string());
                 assert_eq!(value.string().unwrap(), "bar");

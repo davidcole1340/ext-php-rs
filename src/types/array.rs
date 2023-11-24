@@ -464,7 +464,7 @@ impl ZendHashTable {
     /// assert!(!ht.has_numerical_keys());
     /// ```
     pub fn has_numerical_keys(&self) -> bool {
-        !self.iter().any(|(k, _)| !k.is_numerical())
+        !self.iter().any(|(k, _)| !k.is_long())
     }
 
     /// Checks if the hashtable has numerical, sequential keys.
