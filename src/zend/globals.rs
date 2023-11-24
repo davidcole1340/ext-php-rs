@@ -9,6 +9,7 @@ use std::str;
 use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
+use crate::exception::PhpResult;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
@@ -83,22 +84,20 @@ impl ExecutorGlobals {
     pub fn ini_values(&self) -> HashMap<String, Option<String>> {
         let hash_table = unsafe { &*self.ini_directives };
         let mut ini_hash_map: HashMap<String, Option<String>> = HashMap::new();
-        for (_index, key, value) in hash_table.iter() {
-            if let Some(key) = key {
-                ini_hash_map.insert(key, unsafe {
-                    let ini_entry = &*value.ptr::<zend_ini_entry>().expect("Invalid ini entry");
-                    if ini_entry.value.is_null() {
-                        None
-                    } else {
-                        Some(
-                            (*ini_entry.value)
-                                .as_str()
-                                .expect("Ini value is not a string")
-                                .to_owned(),
-                        )
-                    }
-                });
-            }
+        for (key, value) in hash_table.iter() {
+            ini_hash_map.insert(key.to_string(), unsafe {
+                let ini_entry = &*value.ptr::<zend_ini_entry>().expect("Invalid ini entry");
+                if ini_entry.value.is_null() {
+                    None
+                } else {
+                    Some(
+                        (*ini_entry.value)
+                            .as_str()
+                            .expect("Ini value is not a string")
+                            .to_owned(),
+                    )
+                }
+            });
         }
         ini_hash_map
     }
@@ -115,6 +114,13 @@ impl ExecutorGlobals {
     /// could lead to a deadlock if the globals are already borrowed immutably
     /// or mutably.
     pub fn take_exception() -> Option<ZBox<ZendObject>> {
+        {
+            // This avoid a write lock if there is no exception.
+            if Self::get().exception.is_null() {
+                return None;
+            }
+        }
+
         let mut globals = Self::get_mut();
 
         let mut exception_ptr = std::ptr::null_mut();
@@ -122,6 +128,25 @@ impl ExecutorGlobals {
 
         // SAFETY: `as_mut` checks for null.
         Some(unsafe { ZBox::from_raw(exception_ptr.as_mut()?) })
+    }
+
+    /// Checks if the executor globals contain an exception.
+    pub fn has_exception() -> bool {
+        !Self::get().exception.is_null()
+    }
+
+    /// Attempts to extract the last PHP exception captured by the interpreter.
+    /// Returned inside a [`PhpResult`].
+    ///
+    /// This function requires the executor globals to be mutably held, which
+    /// could lead to a deadlock if the globals are already borrowed immutably
+    /// or mutably.
+    pub fn throw_if_exception() -> PhpResult<()> {
+        if let Some(e) = Self::take_exception() {
+            Err(crate::error::Error::Exception(e).into())
+        } else {
+            Ok(())
+        }
     }
 
     /// Request an interrupt of the PHP VM. This will call the registered
