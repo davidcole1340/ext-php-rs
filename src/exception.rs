@@ -207,8 +207,6 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 /// ```
 pub fn throw_object(zval: Zval) -> Result<()> {
     let mut zv = core::mem::ManuallyDrop::new(zval);
-    unsafe {
-        zend_throw_exception_object(core::ptr::addr_of_mut!(zv).cast())
-    };
+    unsafe { zend_throw_exception_object(core::ptr::addr_of_mut!(zv).cast()) };
     Ok(())
 }
