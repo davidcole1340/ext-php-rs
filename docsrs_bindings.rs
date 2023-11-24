@@ -746,6 +746,9 @@ extern "C" {
         filename: *const ::std::os::raw::c_char,
     );
 }
+extern "C" {
+    pub fn zend_destroy_file_handle(file_handle: *mut zend_file_handle);
+}
 pub type zend_stat_t = stat;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2513,6 +2516,12 @@ pub struct _sapi_globals_struct {
 pub type sapi_globals_struct = _sapi_globals_struct;
 extern "C" {
     pub static mut sapi_globals: sapi_globals_struct;
+}
+extern "C" {
+    pub fn sapi_startup(sf: *mut sapi_module_struct);
+}
+extern "C" {
+    pub fn sapi_shutdown();
 }
 pub const sapi_header_op_enum_SAPI_HEADER_REPLACE: sapi_header_op_enum = 0;
 pub const sapi_header_op_enum_SAPI_HEADER_ADD: sapi_header_op_enum = 1;
