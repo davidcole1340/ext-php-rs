@@ -5,6 +5,7 @@ use std::{
     fmt::Debug,
     mem,
     ops::{Deref, DerefMut},
+    os::raw::c_char,
     ptr::{self, NonNull},
 };
 
@@ -155,12 +156,13 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Parameters
     ///
     /// * `obj` - The zend object to get the [`ZendClassObject`] for.
+    #[allow(clippy::needless_pass_by_ref_mut)]
     pub fn from_zend_obj_mut(std: &mut zend_object) -> Option<&mut Self> {
         Self::_from_zend_obj(std)
     }
 
     fn _from_zend_obj(std: &zend_object) -> Option<&mut Self> {
-        let std = std as *const zend_object as *const i8;
+        let std = std as *const zend_object as *const c_char;
         let ptr = unsafe {
             let ptr = std.offset(0 - Self::std_offset() as isize) as *const Self;
             (ptr as *mut Self).as_mut()?

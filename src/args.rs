@@ -123,6 +123,7 @@ impl<'a> Arg<'a> {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
+    #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.zval.as_ref().ok_or(Error::Callable)?.try_call(params)
     }

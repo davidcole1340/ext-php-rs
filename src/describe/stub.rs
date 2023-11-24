@@ -52,7 +52,7 @@ impl ToStub for Module {
         // Inserts a value into the entries hashmap. Takes a key and an entry, creating
         // the internal vector if it doesn't already exist.
         let mut insert = |ns, entry| {
-            let bucket = entries.entry(ns).or_insert_with(StdVec::new);
+            let bucket = entries.entry(ns).or_default();
             bucket.push(entry);
         };
 
