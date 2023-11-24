@@ -665,7 +665,8 @@ impl<'a> Iterator for Iter<'a> {
     type Item = (ArrayKey, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.next_zval().map(|(k, v)| (ArrayKey::from_zval(&k).expect("Invalid array key!"), v))
+        self.next_zval()
+            .map(|(k, v)| (ArrayKey::from_zval(&k).expect("Invalid array key!"), v))
     }
 
     fn count(self) -> usize
