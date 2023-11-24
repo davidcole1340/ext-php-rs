@@ -7,8 +7,8 @@ use std::fmt::{Debug, Display, Formatter};
 
 /// A PHP Iterator.
 ///
-/// In PHP, iterators are represented as zend_object_iterator. This allow user to iterate
-/// over object implementing Traversable interface using foreach.
+/// In PHP, iterators are represented as zend_object_iterator. This allow user
+/// to iterate over object implementing Traversable interface using foreach.
 pub type ZendIterator = zend_object_iterator;
 
 impl ZendIterator {
@@ -29,8 +29,8 @@ impl ZendIterator {
 
     /// Check if the current position of the iterator is valid.
     ///
-    /// As an example this will call the user defined valid method of the ['\Iterator'] interface.
-    /// see <https://www.php.net/manual/en/iterator.valid.php>
+    /// As an example this will call the user defined valid method of the
+    /// ['\Iterator'] interface. see <https://www.php.net/manual/en/iterator.valid.php>
     pub fn valid(&mut self) -> bool {
         if let Some(valid) = unsafe { (*self.funcs).valid } {
             let valid = unsafe { valid(&mut *self) == ZEND_RESULT_CODE_SUCCESS };
@@ -47,13 +47,13 @@ impl ZendIterator {
 
     /// Rewind the iterator to the first element.
     ///
-    /// As an example this will call the user defined rewind method of the ['\Iterator'] interface.
-    /// see <https://www.php.net/manual/en/iterator.rewind.php>
+    /// As an example this will call the user defined rewind method of the
+    /// ['\Iterator'] interface. see <https://www.php.net/manual/en/iterator.rewind.php>
     ///
     /// # Returns
     ///
-    /// Returns true if the iterator was successfully rewind, false otherwise. (when there is
-    /// an exception during rewind)
+    /// Returns true if the iterator was successfully rewind, false otherwise.
+    /// (when there is an exception during rewind)
     pub fn rewind(&mut self) -> bool {
         if let Some(rewind) = unsafe { (*self.funcs).rewind } {
             unsafe {
@@ -66,13 +66,13 @@ impl ZendIterator {
 
     /// Move the iterator forward to the next element.
     ///
-    /// As an example this will call the user defined next method of the ['\Iterator'] interface.
-    /// see <https://www.php.net/manual/en/iterator.next.php>
+    /// As an example this will call the user defined next method of the
+    /// ['\Iterator'] interface. see <https://www.php.net/manual/en/iterator.next.php>
     ///
     /// # Returns
     ///
-    /// Returns true if the iterator was successfully move, false otherwise. (when there is
-    /// an exception during next)
+    /// Returns true if the iterator was successfully move, false otherwise.
+    /// (when there is an exception during next)
     pub fn move_forward(&mut self) -> bool {
         if let Some(move_forward) = unsafe { (*self.funcs).move_forward } {
             unsafe {
@@ -104,8 +104,8 @@ impl ZendIterator {
     ///
     /// # Returns
     ///
-    /// Returns a new ['Zval'] containing the current key of the iterator if available
-    /// , ['None'] otherwise.
+    /// Returns a new ['Zval'] containing the current key of the iterator if
+    /// available , ['None'] otherwise.
     pub fn get_current_key(&mut self) -> Option<Zval> {
         let get_current_key = unsafe { (*self.funcs).get_current_key? };
         let mut key = Zval::new();
@@ -178,7 +178,8 @@ impl<'a> Iterator for Iter<'a> {
     type Item = (IterKey, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Call next when index > 0, so next is really called at the start of each iteration, which allow to work better with generator iterator
+        // Call next when index > 0, so next is really called at the start of each
+        // iteration, which allow to work better with generator iterator
         if self.zi.index > 0 && !self.zi.move_forward() {
             return None;
         }

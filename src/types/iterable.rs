@@ -5,8 +5,8 @@ use crate::flags::DataType;
 use crate::types::iterator::IterKey;
 use crate::types::{ZendHashTable, ZendIterator, Zval};
 
-/// This type represents a PHP iterable, which can be either an array or an object implementing
-/// the Traversable interface.
+/// This type represents a PHP iterable, which can be either an array or an
+/// object implementing the Traversable interface.
 #[derive(Debug)]
 pub enum Iterable<'a> {
     Array(&'a ZendHashTable),

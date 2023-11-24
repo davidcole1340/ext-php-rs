@@ -267,7 +267,8 @@ impl Zval {
         }
     }
 
-    /// Returns an iterable over the zval if it is an array or traversable. (is iterable)
+    /// Returns an iterable over the zval if it is an array or traversable. (is
+    /// iterable)
     pub fn iterable(&self) -> Option<Iterable> {
         if self.is_iterable() {
             Iterable::from_zval(self)
@@ -399,7 +400,8 @@ impl Zval {
         }
     }
 
-    /// Returns true if the zval is iterable (array or traversable), false otherwise.
+    /// Returns true if the zval is iterable (array or traversable), false
+    /// otherwise.
     pub fn is_iterable(&self) -> bool {
         let ptr: *const Self = self;
         unsafe { zend_is_iterable(ptr as *mut Self) }

@@ -11,6 +11,8 @@ the variable. This means that any value, at the exception of an `array`, that ca
 a `foreach` loop can be converted into a `ZendIterator`. As an example, a `Generator` can be
 used but also a the result of a `query` call with `PDO`.
 
+If you want a more universal `iterable` type that also supports arrays, see [Iterable](./iterable.md).  
+
 ## Rust example
 
 ```rust,no_run
