@@ -1,6 +1,6 @@
 //! Types and functions used for throwing exceptions from Rust to PHP.
 
-use std::ffi::CString;
+use std::{ffi::CString, fmt::Debug};
 
 use crate::{
     class::RegisteredClass,

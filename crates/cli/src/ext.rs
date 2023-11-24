@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use ext_php_rs::describe::Description;
 use libloading::os::unix::{Library, Symbol};
 
+#[allow(improper_ctypes_definitions)]
 pub struct Ext {
     // These need to be here to keep the libraries alive. The extension library needs to be alive
     // to access the describe function. Missing here is the lifetime on `Symbol<'a, fn() ->

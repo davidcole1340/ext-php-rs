@@ -25,6 +25,8 @@ pub mod class;
 pub mod closure;
 pub mod constant;
 pub mod describe;
+#[cfg(feature = "embed")]
+pub mod embed;
 #[doc(hidden)]
 pub mod internal;
 pub mod props;
@@ -35,6 +37,7 @@ pub mod zend;
 /// A module typically glob-imported containing the typically required macros
 /// and imports.
 pub mod prelude {
+
     pub use crate::builders::ModuleBuilder;
     #[cfg(any(docs, feature = "closure"))]
     #[cfg_attr(docs, doc(cfg(feature = "closure")))]

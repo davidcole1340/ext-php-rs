@@ -39,3 +39,33 @@ zend_executor_globals *ext_php_rs_executor_globals() {
   return &executor_globals;
 #endif
 }
+
+sapi_globals_struct *ext_php_rs_sapi_globals() {
+#ifdef ZTS
+#ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+  return TSRMG_FAST_BULK_STATIC(sapi_globals_offset, sapi_globals_struct);
+#else
+  return TSRMG_FAST_BULK(sapi_globals_offset, sapi_globals_struct *);
+#endif
+#else
+  return &sapi_globals;
+#endif
+}
+
+sapi_module_struct *ext_php_rs_sapi_module() {
+  return &sapi_module;
+}
+
+bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **result) {
+  zend_try {
+    *result = callback(ctx);
+  } zend_catch {
+    return true;
+  } zend_end_try();
+
+  return false;
+}
+
+void ext_php_rs_zend_bailout() {
+  zend_bailout();
+}

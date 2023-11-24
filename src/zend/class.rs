@@ -1,6 +1,12 @@
 //! Builder and objects for creating classes in the PHP world.
 
-use crate::{ffi::zend_class_entry, flags::ClassFlags, types::ZendStr, zend::ExecutorGlobals};
+use crate::{
+    boxed::ZBox,
+    ffi::zend_class_entry,
+    flags::ClassFlags,
+    types::{ZendObject, ZendStr},
+    zend::ExecutorGlobals,
+};
 use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
 
 /// A PHP class entry.
@@ -20,6 +26,17 @@ impl ClassEntry {
         unsafe {
             crate::ffi::zend_lookup_class_ex(name.deref_mut(), std::ptr::null_mut(), 0).as_ref()
         }
+    }
+
+    /// Creates a new [`ZendObject`], returned inside an [`ZBox<ZendObject>`]
+    /// wrapper.
+    ///
+    /// # Panics
+    ///
+    /// Panics when allocating memory for the new object fails.
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(&self) -> ZBox<ZendObject> {
+        ZendObject::new(self)
     }
 
     /// Returns the class flags.
