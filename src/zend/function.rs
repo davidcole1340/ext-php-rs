@@ -9,7 +9,8 @@ use crate::{
         zend_call_known_function, zend_fetch_function_str, zend_function, zend_function_entry,
         zend_hash_str_find_ptr_lc,
     },
-    types::Zval, flags::FunctionType,
+    flags::FunctionType,
+    types::Zval,
 };
 
 use super::ClassEntry;
