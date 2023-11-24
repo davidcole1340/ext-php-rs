@@ -186,7 +186,6 @@ impl<'a> FromZvalMut<'a> for &'a mut ZendIterator {
 #[cfg(feature = "embed")]
 mod tests {
     use crate::embed::Embed;
-    use crate::types::iterator::IterKey;
 
     #[test]
     fn test_generator() {
@@ -212,21 +211,26 @@ mod tests {
 
                 let (key, value) = iter.next().unwrap();
 
-                assert_eq!(key, IterKey::Long(0));
+                assert_eq!(key.long(), Some(0));
                 assert!(value.is_long());
                 assert_eq!(value.long().unwrap(), 1);
 
                 let (key, value) = iter.next().unwrap();
 
-                assert_eq!(key, IterKey::Long(1));
+                assert_eq!(key.long(), Some(1));
                 assert!(value.is_long());
                 assert_eq!(value.long().unwrap(), 2);
 
                 let (key, value) = iter.next().unwrap();
 
-                assert_eq!(key, IterKey::Long(2));
+                assert_eq!(key.long(), Some(2));
                 assert!(value.is_long());
                 assert_eq!(value.long().unwrap(), 3);
+
+                let (key, value) = iter.next().unwrap();
+
+                assert!(key.is_object());
+                assert!(value.is_object());
 
                 let next = iter.next();
 
@@ -260,22 +264,27 @@ mod tests {
                 let (key, value) = iter.next().unwrap();
 
                 assert!(!key.is_long());
-                assert_eq!(key, IterKey::String("key".to_string()));
+                assert_eq!(key.str(), Some("key"));
                 assert!(value.is_string());
-                assert_eq!(value.string().unwrap(), "foo");
+                assert_eq!(value.str(), Some("foo"));
 
                 let (key, value) = iter.next().unwrap();
 
                 assert!(key.is_long());
-                assert_eq!(key, IterKey::Long(10));
+                assert_eq!(key.long(), Some(10));
                 assert!(value.is_string());
                 assert_eq!(value.string().unwrap(), "bar");
 
                 let (key, value) = iter.next().unwrap();
 
-                assert_eq!(key, IterKey::Long(2));
+                assert_eq!(key.long(), Some(2));
                 assert!(value.is_string());
                 assert_eq!(value.string().unwrap(), "baz");
+
+                let (key, value) = iter.next().unwrap();
+
+                assert!(key.is_object());
+                assert!(value.is_object());
 
                 let next = iter.next();
 
@@ -288,21 +297,26 @@ mod tests {
 
                 let (key, value) = iter.next().unwrap();
 
-                assert_eq!(key, IterKey::String("key".to_string()));
+                assert_eq!(key.str(), Some("key"));
                 assert!(value.is_string());
                 assert_eq!(value.string().unwrap(), "foo");
 
                 let (key, value) = iter.next().unwrap();
 
-                assert_eq!(key, IterKey::Long(10));
+                assert_eq!(key.long(), Some(10));
                 assert!(value.is_string());
                 assert_eq!(value.string().unwrap(), "bar");
 
                 let (key, value) = iter.next().unwrap();
 
-                assert_eq!(key, IterKey::Long(2));
+                assert_eq!(key.long(), Some(2));
                 assert!(value.is_string());
                 assert_eq!(value.string().unwrap(), "baz");
+
+                let (key, value) = iter.next().unwrap();
+
+                assert!(key.is_object());
+                assert!(value.is_object());
 
                 let next = iter.next();
 

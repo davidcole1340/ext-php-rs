@@ -4,13 +4,13 @@ function create_generator() {
     yield 1;
     yield 2;
     yield 3;
-    yield new class {};
+    yield new class {} => new class {};
 }
 
 class TestIterator implements \Iterator {
     private $count = 0;
 
-    public function current()
+    public function current(): mixed
     {
         return match ($this->count) {
             0 => 'foo',
@@ -21,12 +21,12 @@ class TestIterator implements \Iterator {
         };
     }
 
-    public function next()
+    public function next(): void
     {
         $this->count++;
     }
 
-    public function key()
+    public function key(): mixed
     {
         return match ($this->count) {
             0 => 'key',
@@ -37,12 +37,12 @@ class TestIterator implements \Iterator {
         };
     }
 
-    public function valid()
+    public function valid(): bool
     {
-        return $this->count < 3;
+        return $this->count < 4;
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         $this->count = 0;
     }
