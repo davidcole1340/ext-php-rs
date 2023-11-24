@@ -1,4 +1,4 @@
-use super::array::{ArrayKey, Iter as ZendHashTableIter};
+use super::array::Iter as ZendHashTableIter;
 use super::iterator::Iter as ZendIteratorIter;
 use crate::convert::FromZval;
 use crate::flags::DataType;
@@ -24,7 +24,7 @@ impl<'a> Iterable<'a> {
 }
 
 impl<'a> IntoIterator for &'a mut Iterable<'a> {
-    type Item = (&'a Zval, &'a Zval);
+    type Item = (Zval, &'a Zval);
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -55,15 +55,11 @@ pub enum Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (&'a Zval, &'a Zval);
+    type Item = (Zval, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Iter::Array(array) => match array.next() {
-                Some((ArrayKey::Long(k), v)) => Zval::new().set_long(v),
-                Some((ArrayKey::String(k), v)) => Zval::new().set_string(v),
-                None => None,
-            },
+            Iter::Array(array) => array.next_zval(),
             Iter::Traversable(traversable) => traversable.next(),
         }
     }

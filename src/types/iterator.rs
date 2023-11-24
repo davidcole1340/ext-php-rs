@@ -1,9 +1,9 @@
-use crate::convert::{FromZval, FromZvalMut};
+use crate::convert::FromZvalMut;
 use crate::ffi::{zend_object_iterator, ZEND_RESULT_CODE_SUCCESS};
 use crate::flags::DataType;
 use crate::types::Zval;
 use crate::zend::ExecutorGlobals;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Formatter};
 
 /// A PHP Iterator.
 ///
@@ -124,7 +124,7 @@ impl ZendIterator {
 }
 
 impl<'a> IntoIterator for &'a mut ZendIterator {
-    type Item = (&'a Zval, &'a Zval);
+    type Item = (Zval, &'a Zval);
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -144,7 +144,7 @@ pub struct Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (&'a Zval, &'a Zval);
+    type Item = (Zval, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         // Call next when index > 0, so next is really called at the start of each
@@ -162,11 +162,12 @@ impl<'a> Iterator for Iter<'a> {
         let real_index = self.zi.index - 1;
 
         let key = match self.zi.get_current_key() {
-            None => IterKey::Long(real_index),
-            Some(key) => match IterKey::from_zval(&key) {
-                Some(key) => key,
-                None => IterKey::Long(real_index),
-            },
+            None => {
+                let mut z = Zval::new();
+                z.set_long(real_index as i64);
+                z
+            }
+            Some(key) => key,
         };
 
         self.zi.get_current_data().map(|value| (key, value))
