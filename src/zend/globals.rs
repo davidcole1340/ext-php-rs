@@ -9,9 +9,8 @@ use crate::boxed::ZBox;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _sapi_globals_struct, _zend_executor_globals, ext_php_rs_executor_globals,
-    _sapi_module_struct, ext_php_rs_sapi_module,
-    ext_php_rs_sapi_globals, zend_ini_entry,
+    _sapi_globals_struct, _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
+    ext_php_rs_sapi_globals, ext_php_rs_sapi_module, zend_ini_entry,
 };
 use crate::types::{ZendHashTable, ZendObject};
 
