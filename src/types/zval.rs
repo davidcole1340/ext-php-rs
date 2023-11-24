@@ -53,14 +53,12 @@ impl Zval {
 
     /// Dereference the zval, if it is a reference.
     pub fn dereference(&self) -> &Self {
-        return self
-            .reference()
-            .or_else(|| self.indirect())
-            .unwrap_or(self)
+        return self.reference().or_else(|| self.indirect()).unwrap_or(self);
     }
 
     /// Dereference the zval mutable, if it is a reference.
     pub fn dereference_mut(&mut self) -> &mut Self {
+        // TODO: probably more ZTS work is needed here
         if self.is_reference() {
             #[allow(clippy::unwrap_used)]
             return self.reference_mut().unwrap();

@@ -1,14 +1,12 @@
-use std::{
-    ffi::c_void,
-    ptr,
-};
+use std::{ffi::c_void, ptr};
 
 use crate::{
     ffi::{
         zend_type, IS_MIXED, MAY_BE_ANY, MAY_BE_BOOL, _IS_BOOL, _ZEND_IS_VARIADIC_BIT,
         _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NAME_BIT, _ZEND_TYPE_NULLABLE_BIT,
     },
-    flags::DataType, types::ZendStr,
+    flags::DataType,
+    types::ZendStr,
 };
 
 /// Internal Zend type.
@@ -82,7 +80,7 @@ impl ZendType {
         allow_null: bool,
     ) -> Option<Self> {
         Some(Self {
-            ptr: ZendStr::new(class_name, true).as_ptr() as *mut c_void,
+            ptr: ZendStr::new(class_name, true).into_raw().as_ptr() as *mut c_void,
             type_mask: _ZEND_TYPE_NAME_BIT
                 | (if allow_null {
                     _ZEND_TYPE_NULLABLE_BIT

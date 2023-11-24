@@ -5,7 +5,7 @@ require('_utils.php');
 $v = test_closure();
 
 // Closure
-assert($closure('works') === 'works');
+assert($v('works') === 'works');
 
 // Closure once
 $closure = test_closure_once('test');
