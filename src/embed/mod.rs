@@ -272,7 +272,7 @@ mod tests {
     #[test]
     fn test_eval_bailout() {
         Embed::run(|| {
-            let result = Embed::eval("str_repeat('a', 100_000_000_000_000);");
+            let result = Embed::eval("trigger_error(\"Fatal error\", E_USER_ERROR);");
 
             assert!(result.is_err());
             assert!(result.unwrap_err().is_bailout());
