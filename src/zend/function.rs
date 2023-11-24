@@ -50,7 +50,7 @@ impl FunctionEntry {
 pub type Function = zend_function;
 
 impl Function {
-    pub fn type_(&self) -> FunctionType {
+    pub fn function_type(&self) -> FunctionType {
         FunctionType::from(unsafe { self.type_ })
     }
 
