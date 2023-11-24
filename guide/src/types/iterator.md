@@ -22,8 +22,8 @@ If you want a more universal `iterable` type that also supports arrays, see [Ite
 # use ext_php_rs::types::ZendIterator;
 #[php_function]
 pub fn test_iterator(iterator: &mut ZendIterator) {
-    for (k, v) in iterator.iter().expect("cannot get iterator") {
-        println!("k: {} v: {}", k, v.string().unwrap());
+    for (k, v) in iterator.iter().expect("cannot rewind iterator") {
+        println!("k: {:?} v: {}", k, v.string().unwrap());
     }
 }
 # fn main() {}
@@ -38,6 +38,7 @@ $generator = function() {
     yield 'hello' => 'world';
     yield 'rust' => 'php';
     yield 'okk';
+    yield new class {} => new class {};
 };
 
 test_iterator($generator());

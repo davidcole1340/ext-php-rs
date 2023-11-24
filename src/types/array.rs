@@ -523,7 +523,7 @@ impl ZendHashTable {
     ///
     /// let mut ht = ZendHashTable::new();
     ///
-    /// for (key, val) in ht {
+    /// for (key, val) in ht.iter() {
     /// //   ^ Index if inserted at an index.
     /// //        ^ Optional string key, if inserted like a hashtable.
     /// //             ^ Inserted value.
@@ -648,7 +648,7 @@ impl<'a> IntoIterator for &'a ZendHashTable {
     ///
     /// let mut ht = ZendHashTable::new();
     ///
-    /// for (key, val) in ht {
+    /// for (key, val) in ht.iter() {
     /// //   ^ Index if inserted at an index.
     /// //        ^ Optional string key, if inserted like a hashtable.
     /// //             ^ Inserted value.
