@@ -8,9 +8,10 @@ use crate::ffi::{
     CONST_CS, CONST_DEPRECATED, CONST_NO_FILE_CACHE, CONST_PERSISTENT, E_COMPILE_ERROR,
     E_COMPILE_WARNING, E_CORE_ERROR, E_CORE_WARNING, E_DEPRECATED, E_ERROR, E_NOTICE, E_PARSE,
     E_RECOVERABLE_ERROR, E_STRICT, E_USER_DEPRECATED, E_USER_ERROR, E_USER_NOTICE, E_USER_WARNING,
-    E_WARNING, IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_LONG, IS_MIXED,
-    IS_NULL, IS_OBJECT, IS_PTR, IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE, IS_TYPE_COLLECTABLE,
-    IS_TYPE_REFCOUNTED, IS_UNDEF, IS_VOID, ZEND_ACC_ABSTRACT, ZEND_ACC_ANON_CLASS,
+    E_WARNING, IS_ARRAY, IS_CALLABLE, IS_CONSTANT_AST, IS_DOUBLE, IS_FALSE, IS_INDIRECT, IS_LONG,
+    IS_MIXED, IS_NULL, IS_OBJECT, IS_PTR, IS_REFERENCE, IS_RESOURCE, IS_STRING, IS_TRUE,
+    IS_TYPE_COLLECTABLE, IS_TYPE_REFCOUNTED, IS_UNDEF, IS_VOID, PHP_INI_ALL, PHP_INI_PERDIR,
+    PHP_INI_SYSTEM, PHP_INI_USER, ZEND_ACC_ABSTRACT, ZEND_ACC_ANON_CLASS,
     ZEND_ACC_CALL_VIA_TRAMPOLINE, ZEND_ACC_CHANGED, ZEND_ACC_CLOSURE, ZEND_ACC_CONSTANTS_UPDATED,
     ZEND_ACC_CTOR, ZEND_ACC_DEPRECATED, ZEND_ACC_DONE_PASS_TWO, ZEND_ACC_EARLY_BINDING,
     ZEND_ACC_FAKE_CLOSURE, ZEND_ACC_FINAL, ZEND_ACC_GENERATOR, ZEND_ACC_HAS_FINALLY_BLOCK,
@@ -175,6 +176,16 @@ bitflags! {
 }
 
 bitflags! {
+    /// Represents permissions for where a configuration setting may be set.
+    pub struct IniEntryPermission: u32 {
+        const User = PHP_INI_USER;
+        const PerDir = PHP_INI_PERDIR;
+        const System = PHP_INI_SYSTEM;
+        const All = PHP_INI_ALL;
+    }
+}
+
+bitflags! {
     /// Represents error types when used via php_error_docref for example.
     pub struct ErrorType: u32 {
         const Error = E_ERROR;
@@ -194,6 +205,7 @@ bitflags! {
         const UserDeprecated = E_USER_DEPRECATED;
     }
 }
+
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum FunctionType {
     Internal,
@@ -234,6 +246,7 @@ pub enum DataType {
     Mixed,
     Bool,
     Ptr,
+    Indirect,
 }
 
 impl Default for DataType {
@@ -257,6 +270,7 @@ impl DataType {
             DataType::Object(_) => IS_OBJECT,
             DataType::Resource => IS_RESOURCE,
             DataType::Reference => IS_RESOURCE,
+            DataType::Indirect => IS_INDIRECT,
             DataType::Callable => IS_CALLABLE,
             DataType::ConstantExpression => IS_CONSTANT_AST,
             DataType::Void => IS_VOID,
@@ -325,6 +339,7 @@ impl From<u32> for DataType {
 
         contains!(IS_VOID, Void);
         contains!(IS_PTR, Ptr);
+        contains!(IS_INDIRECT, Indirect);
         contains!(IS_CALLABLE, Callable);
         contains!(IS_CONSTANT_AST, ConstantExpression);
         contains!(IS_REFERENCE, Reference);
@@ -367,6 +382,7 @@ impl Display for DataType {
             DataType::Bool => write!(f, "Bool"),
             DataType::Mixed => write!(f, "Mixed"),
             DataType::Ptr => write!(f, "Pointer"),
+            DataType::Indirect => write!(f, "Indirect"),
         }
     }
 }
@@ -376,9 +392,9 @@ mod tests {
     use super::DataType;
     use crate::ffi::{
         IS_ARRAY, IS_ARRAY_EX, IS_CALLABLE, IS_CONSTANT_AST, IS_CONSTANT_AST_EX, IS_DOUBLE,
-        IS_FALSE, IS_INTERNED_STRING_EX, IS_LONG, IS_NULL, IS_OBJECT, IS_OBJECT_EX, IS_PTR,
-        IS_REFERENCE, IS_REFERENCE_EX, IS_RESOURCE, IS_RESOURCE_EX, IS_STRING, IS_STRING_EX,
-        IS_TRUE, IS_UNDEF, IS_VOID,
+        IS_FALSE, IS_INDIRECT, IS_INTERNED_STRING_EX, IS_LONG, IS_NULL, IS_OBJECT, IS_OBJECT_EX,
+        IS_PTR, IS_REFERENCE, IS_REFERENCE_EX, IS_RESOURCE, IS_RESOURCE_EX, IS_STRING,
+        IS_STRING_EX, IS_TRUE, IS_UNDEF, IS_VOID,
     };
     use std::convert::TryFrom;
 
@@ -402,7 +418,7 @@ mod tests {
         test!(IS_RESOURCE, Resource);
         test!(IS_REFERENCE, Reference);
         test!(IS_CONSTANT_AST, ConstantExpression);
-        test!(IS_CALLABLE, Callable);
+        test!(IS_INDIRECT, Indirect);
         test!(IS_VOID, Void);
         test!(IS_PTR, Ptr);
 

@@ -206,6 +206,31 @@ impl Zval {
         }
     }
 
+    #[inline(always)]
+    pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
+        self.object()
+            .ok_or(Error::Object)?
+            .try_call_method(name, params)
+    }
+
+    /// Returns the value of the zval if it is an internal indirect reference.
+    pub fn indirect(&self) -> Option<&Zval> {
+        if self.is_indirect() {
+            Some(unsafe { &*(self.value.zv as *mut Zval) })
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable reference to the zval if it is an internal indirect reference.
+    pub fn indirect_mut(&self) -> Option<&mut Zval> {
+        if self.is_indirect() {
+            Some(unsafe { &mut *(self.value.zv as *mut Zval) })
+        } else {
+            None
+        }
+    }
+
     /// Returns the value of the zval if it is a reference.
     pub fn reference(&self) -> Option<&Zval> {
         if self.is_reference() {
@@ -257,6 +282,7 @@ impl Zval {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
+    #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.callable().ok_or(Error::Callable)?.try_call(params)
     }
@@ -319,6 +345,11 @@ impl Zval {
     /// Returns true if the zval is a reference, false otherwise.
     pub fn is_reference(&self) -> bool {
         self.get_type() == DataType::Reference
+    }
+
+    /// Returns true if the zval is a reference, false otherwise.
+    pub fn is_indirect(&self) -> bool {
+        self.get_type() == DataType::Indirect
     }
 
     /// Returns true if the zval is callable, false otherwise.
@@ -593,6 +624,7 @@ impl Debug for Zval {
             DataType::ConstantExpression => field!(Option::<()>::None),
             DataType::Void => field!(Option::<()>::None),
             DataType::Bool => field!(self.bool()),
+            DataType::Indirect => field!(self.indirect()),
             // SAFETY: We are not accessing the pointer.
             DataType::Ptr => field!(unsafe { self.ptr::<c_void>() }),
         };

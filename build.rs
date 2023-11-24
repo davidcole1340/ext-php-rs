@@ -16,7 +16,7 @@ use bindgen::RustTarget;
 use impl_::Provider;
 
 const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20220829;
+const MAX_PHP_API_VER: u32 = 20230831;
 
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
@@ -151,9 +151,31 @@ fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "embed")]
+/// Builds the embed library.
+fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
+    let mut build = cc::Build::new();
+    for (var, val) in defines {
+        build.define(var, *val);
+    }
+    build
+        .file("src/embed/embed.c")
+        .includes(includes)
+        .try_compile("embed")
+        .context("Failed to compile ext-php-rs C embed interface")?;
+    Ok(())
+}
+
 /// Generates bindings to the Zend API.
 fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<String> {
-    let mut bindgen = bindgen::Builder::default()
+    let mut bindgen = bindgen::Builder::default();
+
+    #[cfg(feature = "embed")]
+    {
+        bindgen = bindgen.header("src/embed/embed.h");
+    }
+
+    bindgen = bindgen
         .header("src/wrapper.h")
         .clang_args(
             includes
@@ -206,6 +228,8 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
 
     const PHP_82_API_VER: u32 = 20220829;
 
+    const PHP_83_API_VER: u32 = 20230831;
+
     println!("cargo:rustc-cfg=php80");
 
     if (PHP_81_API_VER..PHP_82_API_VER).contains(&version) {
@@ -214,6 +238,10 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
 
     if version >= PHP_82_API_VER {
         println!("cargo:rustc-cfg=php82");
+    }
+
+    if version >= PHP_83_API_VER {
+        println!("cargo:rustc-cfg=php83");
     }
 
     Ok(())
@@ -226,6 +254,8 @@ fn main() -> Result<()> {
     for path in [
         manifest.join("src").join("wrapper.h"),
         manifest.join("src").join("wrapper.c"),
+        manifest.join("src").join("embed").join("embed.h"),
+        manifest.join("src").join("embed").join("embed.c"),
         manifest.join("allowed_bindings.rs"),
         manifest.join("windows_build.rs"),
         manifest.join("unix_build.rs"),
@@ -257,6 +287,10 @@ fn main() -> Result<()> {
 
     check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
+
+    #[cfg(feature = "embed")]
+    build_embed(&defines, &includes)?;
+
     let bindings = generate_bindings(&defines, &includes)?;
 
     let out_file =

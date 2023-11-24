@@ -29,6 +29,13 @@ extern "C" {
     pub fn ext_php_rs_process_globals() -> *mut php_core_globals;
     pub fn ext_php_rs_sapi_globals() -> *mut sapi_globals_struct;
     pub fn ext_php_rs_file_globals() -> *mut php_file_globals;
+    pub fn ext_php_rs_sapi_module() -> *mut sapi_module_struct;
+    pub fn ext_php_rs_zend_try_catch(
+        func: unsafe extern "C" fn(*const c_void) -> *const c_void,
+        ctx: *const c_void,
+        result: *mut *mut c_void,
+    ) -> bool;
+    pub fn ext_php_rs_zend_bailout() -> !;
 }
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

@@ -52,7 +52,6 @@ php_core_globals *ext_php_rs_process_globals() {
 #endif
 }
 
-
 sapi_globals_struct *ext_php_rs_sapi_globals() {
 #ifdef ZTS
 #ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
@@ -65,11 +64,28 @@ sapi_globals_struct *ext_php_rs_sapi_globals() {
 #endif
 }
 
-
 php_file_globals *ext_php_rs_file_globals() {
 #ifdef ZTS
   return TSRMG_FAST_BULK(file_globals_id, php_file_globals *);
 #else
   return &file_globals;
 #endif
+}
+
+sapi_module_struct *ext_php_rs_sapi_module() {
+  return &sapi_module;
+}
+
+bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **result) {
+  zend_try {
+    *result = callback(ctx);
+  } zend_catch {
+    return true;
+  } zend_end_try();
+
+  return false;
+}
+
+void ext_php_rs_zend_bailout() {
+  zend_bailout();
 }
