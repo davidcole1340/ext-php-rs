@@ -144,6 +144,7 @@ mod integration {
             ))
             .arg("-dassert.active=1")
             .arg("-dassert.exception=1")
+            .arg("-dzend.assertions=1")
             .arg(format!("src/integration/{}", file))
             .output()
             .expect("failed to run php file");
