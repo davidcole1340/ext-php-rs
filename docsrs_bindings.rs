@@ -2336,117 +2336,6 @@ extern "C" {
         module_number: ::std::os::raw::c_int,
     );
 }
-extern "C" {
-    pub fn php_info_print_table_header(num_cols: ::std::os::raw::c_int, ...);
-}
-extern "C" {
-    pub fn php_info_print_table_row(num_cols: ::std::os::raw::c_int, ...);
-}
-extern "C" {
-    pub fn php_info_print_table_start();
-}
-extern "C" {
-    pub fn php_info_print_table_end();
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct hostent {
-    pub h_name: *mut ::std::os::raw::c_char,
-    pub h_aliases: *mut *mut ::std::os::raw::c_char,
-    pub h_addrtype: ::std::os::raw::c_int,
-    pub h_length: ::std::os::raw::c_int,
-    pub h_addr_list: *mut *mut ::std::os::raw::c_char,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct php_file_globals {
-    pub pclose_ret: ::std::os::raw::c_int,
-    pub def_chunk_size: usize,
-    pub auto_detect_line_endings: bool,
-    pub default_socket_timeout: zend_long,
-    pub user_agent: *mut ::std::os::raw::c_char,
-    pub from_address: *mut ::std::os::raw::c_char,
-    pub user_stream_current_filename: *const ::std::os::raw::c_char,
-    pub default_context: *mut php_stream_context,
-    pub stream_wrappers: *mut HashTable,
-    pub stream_filters: *mut HashTable,
-    pub wrapper_errors: *mut HashTable,
-    pub pclose_wait: ::std::os::raw::c_int,
-    pub tmp_host_info: hostent,
-    pub tmp_host_buf: *mut ::std::os::raw::c_char,
-    pub tmp_host_buf_len: usize,
-}
-extern "C" {
-    pub static mut file_globals: php_file_globals;
-}
-extern "C" {
-    pub static mut zend_ce_throwable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_exception: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_error_exception: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_compile_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_parse_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_type_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_argument_count_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_value_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_arithmetic_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_division_by_zero_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_unhandled_match_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub fn zend_throw_exception_ex(
-        exception_ce: *mut zend_class_entry,
-        code: zend_long,
-        format: *const ::std::os::raw::c_char,
-        ...
-    ) -> *mut zend_object;
-}
-extern "C" {
-    pub fn zend_throw_exception_object(exception: *mut zval);
-}
-extern "C" {
-    pub fn zend_do_implement_interface(ce: *mut zend_class_entry, iface: *mut zend_class_entry);
-}
-extern "C" {
-    pub static mut zend_ce_traversable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_aggregate: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_iterator: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_arrayaccess: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_serializable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_countable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_stringable: *mut zend_class_entry;
-}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct sapi_header_struct {
@@ -2640,4 +2529,133 @@ pub struct _sapi_post_entry {
             arg: *mut ::std::os::raw::c_void,
         ),
     >,
+}
+extern "C" {
+    pub fn php_request_startup() -> zend_result;
+}
+extern "C" {
+    pub fn php_request_shutdown(dummy: *mut ::std::os::raw::c_void);
+}
+extern "C" {
+    pub fn php_module_startup(
+        sf: *mut sapi_module_struct,
+        additional_module: *mut zend_module_entry,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn php_module_shutdown();
+}
+extern "C" {
+    pub fn php_execute_script(primary_file: *mut zend_file_handle) -> bool;
+}
+extern "C" {
+    pub fn php_info_print_table_header(num_cols: ::std::os::raw::c_int, ...);
+}
+extern "C" {
+    pub fn php_info_print_table_row(num_cols: ::std::os::raw::c_int, ...);
+}
+extern "C" {
+    pub fn php_info_print_table_start();
+}
+extern "C" {
+    pub fn php_info_print_table_end();
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hostent {
+    pub h_name: *mut ::std::os::raw::c_char,
+    pub h_aliases: *mut *mut ::std::os::raw::c_char,
+    pub h_addrtype: ::std::os::raw::c_int,
+    pub h_length: ::std::os::raw::c_int,
+    pub h_addr_list: *mut *mut ::std::os::raw::c_char,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct php_file_globals {
+    pub pclose_ret: ::std::os::raw::c_int,
+    pub def_chunk_size: usize,
+    pub auto_detect_line_endings: bool,
+    pub default_socket_timeout: zend_long,
+    pub user_agent: *mut ::std::os::raw::c_char,
+    pub from_address: *mut ::std::os::raw::c_char,
+    pub user_stream_current_filename: *const ::std::os::raw::c_char,
+    pub default_context: *mut php_stream_context,
+    pub stream_wrappers: *mut HashTable,
+    pub stream_filters: *mut HashTable,
+    pub wrapper_errors: *mut HashTable,
+    pub pclose_wait: ::std::os::raw::c_int,
+    pub tmp_host_info: hostent,
+    pub tmp_host_buf: *mut ::std::os::raw::c_char,
+    pub tmp_host_buf_len: usize,
+}
+extern "C" {
+    pub static mut file_globals: php_file_globals;
+}
+extern "C" {
+    pub static mut zend_ce_throwable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_exception: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_error_exception: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_compile_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_parse_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_type_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_argument_count_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_value_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_arithmetic_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_division_by_zero_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_unhandled_match_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub fn zend_throw_exception_ex(
+        exception_ce: *mut zend_class_entry,
+        code: zend_long,
+        format: *const ::std::os::raw::c_char,
+        ...
+    ) -> *mut zend_object;
+}
+extern "C" {
+    pub fn zend_throw_exception_object(exception: *mut zval);
+}
+extern "C" {
+    pub fn zend_do_implement_interface(ce: *mut zend_class_entry, iface: *mut zend_class_entry);
+}
+extern "C" {
+    pub static mut zend_ce_traversable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_aggregate: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_iterator: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_arrayaccess: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_serializable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_countable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_stringable: *mut zend_class_entry;
 }

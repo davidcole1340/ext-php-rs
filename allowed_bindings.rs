@@ -298,7 +298,6 @@ bind! {
     php_execute_script,
     zend_register_module_ex,
     _zend_bailout,
-    sapi_module_struct,
     sapi_startup,
     sapi_shutdown,
     php_module_startup,
