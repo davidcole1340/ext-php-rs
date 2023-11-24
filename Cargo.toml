@@ -41,11 +41,7 @@ closure = []
 embed = []
 
 [workspace]
-members = [
-    "crates/macros",
-    "crates/cli",
-    "tests"
-]
+members = ["crates/macros", "crates/cli"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docs"]
