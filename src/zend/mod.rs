@@ -11,6 +11,7 @@ mod ini_entry_def;
 mod linked_list;
 mod module;
 mod try_catch;
+mod streams;
 
 use crate::{
     error::Result,
@@ -35,6 +36,7 @@ pub use module::ModuleEntry;
 #[cfg(feature = "embed")]
 pub(crate) use try_catch::panic_wrapper;
 pub use try_catch::{bailout, try_catch};
+pub use streams::*;
 
 // Used as the format string for `php_printf`.
 const FORMAT_STR: &[u8] = b"%s\0";

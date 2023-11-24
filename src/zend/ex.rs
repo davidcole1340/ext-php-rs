@@ -1,4 +1,4 @@
-use crate::ffi::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
+use crate::ffi::{_zend_function, zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
 
 use crate::{
     args::ArgParser,
