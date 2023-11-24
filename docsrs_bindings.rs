@@ -182,6 +182,13 @@ pub const ZEND_MODULE_API_NO: u32 = 20230831;
 pub const USING_ZTS: u32 = 0;
 pub const MAY_BE_BOOL: u32 = 12;
 pub const MAY_BE_ANY: u32 = 1022;
+pub const TRACK_VARS_POST: u32 = 0;
+pub const TRACK_VARS_GET: u32 = 1;
+pub const TRACK_VARS_COOKIE: u32 = 2;
+pub const TRACK_VARS_SERVER: u32 = 3;
+pub const TRACK_VARS_ENV: u32 = 4;
+pub const TRACK_VARS_FILES: u32 = 5;
+pub const TRACK_VARS_REQUEST: u32 = 6;
 pub const PHP_INI_USER: u32 = 1;
 pub const PHP_INI_PERDIR: u32 = 2;
 pub const PHP_INI_SYSTEM: u32 = 4;
@@ -506,6 +513,19 @@ pub struct _zend_llist {
     pub traverse_ptr: *mut zend_llist_element,
 }
 pub type zend_llist = _zend_llist;
+pub type zend_llist_position = *mut zend_llist_element;
+extern "C" {
+    pub fn zend_llist_get_next_ex(
+        l: *mut zend_llist,
+        pos: *mut zend_llist_position,
+    ) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    pub fn zend_llist_get_prev_ex(
+        l: *mut zend_llist,
+        pos: *mut zend_llist_position,
+    ) -> *mut ::std::os::raw::c_void;
+}
 pub type zend_string_init_interned_func_t = ::std::option::Option<
     unsafe extern "C" fn(
         str_: *const ::std::os::raw::c_char,
@@ -1469,6 +1489,9 @@ pub struct _zend_executor_globals {
     pub reserved_stack_size: zend_ulong,
     pub reserved: [*mut ::std::os::raw::c_void; 6usize],
 }
+extern "C" {
+    pub fn zend_is_auto_global(name: *mut zend_string) -> bool;
+}
 pub type zend_module_entry = _zend_module_entry;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2094,6 +2117,127 @@ impl _php_stream {
         __bindgen_bitfield_unit
     }
 }
+extern "C" {
+    pub static mut php_stream_stdio_ops: php_stream_ops;
+}
+extern "C" {
+    pub fn php_register_url_stream_wrapper(
+        protocol: *const ::std::os::raw::c_char,
+        wrapper: *const php_stream_wrapper,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn php_unregister_url_stream_wrapper(
+        protocol: *const ::std::os::raw::c_char,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn php_register_url_stream_wrapper_volatile(
+        protocol: *mut zend_string,
+        wrapper: *mut php_stream_wrapper,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn php_unregister_url_stream_wrapper_volatile(protocol: *mut zend_string) -> zend_result;
+}
+extern "C" {
+    pub fn php_stream_locate_url_wrapper(
+        path: *const ::std::os::raw::c_char,
+        path_for_open: *mut *const ::std::os::raw::c_char,
+        options: ::std::os::raw::c_int,
+    ) -> *mut php_stream_wrapper;
+}
+pub type php_core_globals = _php_core_globals;
+#[repr(C)]
+pub struct _php_core_globals {
+    pub output_buffering: zend_long,
+    pub implicit_flush: bool,
+    pub enable_dl: bool,
+    pub display_errors: u8,
+    pub display_startup_errors: bool,
+    pub log_errors: bool,
+    pub ignore_repeated_errors: bool,
+    pub ignore_repeated_source: bool,
+    pub report_memleaks: bool,
+    pub output_handler: *mut ::std::os::raw::c_char,
+    pub unserialize_callback_func: *mut ::std::os::raw::c_char,
+    pub serialize_precision: zend_long,
+    pub memory_limit: zend_long,
+    pub max_input_time: zend_long,
+    pub error_log: *mut ::std::os::raw::c_char,
+    pub doc_root: *mut ::std::os::raw::c_char,
+    pub user_dir: *mut ::std::os::raw::c_char,
+    pub include_path: *mut ::std::os::raw::c_char,
+    pub open_basedir: *mut ::std::os::raw::c_char,
+    pub open_basedir_modified: bool,
+    pub extension_dir: *mut ::std::os::raw::c_char,
+    pub php_binary: *mut ::std::os::raw::c_char,
+    pub sys_temp_dir: *mut ::std::os::raw::c_char,
+    pub upload_tmp_dir: *mut ::std::os::raw::c_char,
+    pub upload_max_filesize: zend_long,
+    pub error_append_string: *mut ::std::os::raw::c_char,
+    pub error_prepend_string: *mut ::std::os::raw::c_char,
+    pub auto_prepend_file: *mut ::std::os::raw::c_char,
+    pub auto_append_file: *mut ::std::os::raw::c_char,
+    pub input_encoding: *mut ::std::os::raw::c_char,
+    pub internal_encoding: *mut ::std::os::raw::c_char,
+    pub output_encoding: *mut ::std::os::raw::c_char,
+    pub arg_separator: arg_separators,
+    pub variables_order: *mut ::std::os::raw::c_char,
+    pub rfc1867_protected_variables: HashTable,
+    pub connection_status: ::std::os::raw::c_short,
+    pub ignore_user_abort: bool,
+    pub header_is_being_sent: ::std::os::raw::c_uchar,
+    pub tick_functions: zend_llist,
+    pub http_globals: [zval; 6usize],
+    pub expose_php: bool,
+    pub register_argc_argv: bool,
+    pub auto_globals_jit: bool,
+    pub html_errors: bool,
+    pub xmlrpc_errors: bool,
+    pub docref_root: *mut ::std::os::raw::c_char,
+    pub docref_ext: *mut ::std::os::raw::c_char,
+    pub xmlrpc_error_number: zend_long,
+    pub activated_auto_globals: [bool; 8usize],
+    pub modules_activated: bool,
+    pub file_uploads: bool,
+    pub during_request_startup: bool,
+    pub allow_url_fopen: bool,
+    pub enable_post_data_reading: bool,
+    pub report_zend_debug: bool,
+    pub last_error_type: ::std::os::raw::c_int,
+    pub last_error_lineno: ::std::os::raw::c_int,
+    pub last_error_message: *mut zend_string,
+    pub last_error_file: *mut zend_string,
+    pub php_sys_temp_dir: *mut ::std::os::raw::c_char,
+    pub disable_classes: *mut ::std::os::raw::c_char,
+    pub max_input_nesting_level: zend_long,
+    pub max_input_vars: zend_long,
+    pub user_ini_filename: *mut ::std::os::raw::c_char,
+    pub user_ini_cache_ttl: zend_long,
+    pub request_order: *mut ::std::os::raw::c_char,
+    pub mail_log: *mut ::std::os::raw::c_char,
+    pub mail_x_header: bool,
+    pub mail_mixed_lf_and_crlf: bool,
+    pub in_error_log: bool,
+    pub allow_url_include: bool,
+    pub in_user_include: bool,
+    pub have_called_openlog: bool,
+    pub syslog_facility: zend_long,
+    pub syslog_ident: *mut ::std::os::raw::c_char,
+    pub syslog_filter: zend_long,
+    pub error_log_mode: zend_long,
+}
+extern "C" {
+    pub static mut core_globals: _php_core_globals;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _arg_separators {
+    pub output: *mut ::std::os::raw::c_char,
+    pub input: *mut ::std::os::raw::c_char,
+}
+pub type arg_separators = _arg_separators;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_ini_entry_def {
@@ -2200,6 +2344,37 @@ extern "C" {
 }
 extern "C" {
     pub fn php_info_print_table_end();
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hostent {
+    pub h_name: *mut ::std::os::raw::c_char,
+    pub h_aliases: *mut *mut ::std::os::raw::c_char,
+    pub h_addrtype: ::std::os::raw::c_int,
+    pub h_length: ::std::os::raw::c_int,
+    pub h_addr_list: *mut *mut ::std::os::raw::c_char,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct php_file_globals {
+    pub pclose_ret: ::std::os::raw::c_int,
+    pub def_chunk_size: usize,
+    pub auto_detect_line_endings: bool,
+    pub default_socket_timeout: zend_long,
+    pub user_agent: *mut ::std::os::raw::c_char,
+    pub from_address: *mut ::std::os::raw::c_char,
+    pub user_stream_current_filename: *const ::std::os::raw::c_char,
+    pub default_context: *mut php_stream_context,
+    pub stream_wrappers: *mut HashTable,
+    pub stream_filters: *mut HashTable,
+    pub wrapper_errors: *mut HashTable,
+    pub pclose_wait: ::std::os::raw::c_int,
+    pub tmp_host_info: hostent,
+    pub tmp_host_buf: *mut ::std::os::raw::c_char,
+    pub tmp_host_buf_len: usize,
+}
+extern "C" {
+    pub static mut file_globals: php_file_globals;
 }
 extern "C" {
     pub static mut zend_ce_throwable: *mut zend_class_entry;

@@ -222,7 +222,8 @@ impl Zval {
         }
     }
 
-    /// Returns a mutable reference to the zval if it is an internal indirect reference.
+    /// Returns a mutable reference to the zval if it is an internal indirect
+    /// reference.
     pub fn indirect_mut(&self) -> Option<&mut Zval> {
         if self.is_indirect() {
             Some(unsafe { &mut *(self.value.zv as *mut Zval) })

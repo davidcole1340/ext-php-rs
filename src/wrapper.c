@@ -40,6 +40,18 @@ zend_executor_globals *ext_php_rs_executor_globals() {
 #endif
 }
 
+php_core_globals *ext_php_rs_process_globals() {
+#ifdef ZTS
+#ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+  return TSRMG_FAST_BULK_STATIC(core_globals_offset, php_core_globals);
+#else
+  return TSRMG_FAST_BULK(core_globals_offset, php_core_globals *);
+#endif
+#else
+  return &core_globals;
+#endif
+}
+
 sapi_globals_struct *ext_php_rs_sapi_globals() {
 #ifdef ZTS
 #ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
@@ -49,6 +61,14 @@ sapi_globals_struct *ext_php_rs_sapi_globals() {
 #endif
 #else
   return &sapi_globals;
+#endif
+}
+
+php_file_globals *ext_php_rs_file_globals() {
+#ifdef ZTS
+  return TSRMG_FAST_BULK(file_globals_id, php_file_globals *);
+#else
+  return &file_globals;
 #endif
 }
 

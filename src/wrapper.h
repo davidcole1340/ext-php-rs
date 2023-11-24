@@ -17,9 +17,12 @@
 #include "php.h"
 
 #include "ext/standard/info.h"
+#include "ext/standard/php_var.h"
+#include "ext/standard/file.h"
 #include "zend_exceptions.h"
 #include "zend_inheritance.h"
 #include "zend_interfaces.h"
+#include "php_variables.h"
 #include "zend_ini.h"
 #include "main/SAPI.h"
 
@@ -31,8 +34,10 @@ void ext_php_rs_set_known_valid_utf8(zend_string *zs);
 const char *ext_php_rs_php_build_id();
 void *ext_php_rs_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 void ext_php_rs_zend_object_release(zend_object *obj);
-zend_executor_globals *ext_php_rs_executor_globals();;
+zend_executor_globals *ext_php_rs_executor_globals();
+php_core_globals *ext_php_rs_process_globals();
 sapi_globals_struct *ext_php_rs_sapi_globals();
+php_file_globals *ext_php_rs_file_globals();
 sapi_module_struct *ext_php_rs_sapi_module();
 bool ext_php_rs_zend_try_catch(void* (*callback)(void *), void *ctx, void **result);
 void ext_php_rs_zend_bailout();
