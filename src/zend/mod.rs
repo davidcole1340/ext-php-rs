@@ -10,8 +10,8 @@ mod handlers;
 mod ini_entry_def;
 mod linked_list;
 mod module;
-mod try_catch;
 mod streams;
+mod try_catch;
 
 use crate::{
     error::Result,
@@ -33,10 +33,10 @@ pub use handlers::ZendObjectHandlers;
 pub use ini_entry_def::IniEntryDef;
 pub use linked_list::ZendLinkedList;
 pub use module::ModuleEntry;
+pub use streams::*;
 #[cfg(feature = "embed")]
 pub(crate) use try_catch::panic_wrapper;
 pub use try_catch::{bailout, try_catch};
-pub use streams::*;
 
 // Used as the format string for `php_printf`.
 const FORMAT_STR: &[u8] = b"%s\0";
