@@ -100,7 +100,9 @@ fn parse_fields<'a>(
             if attr.path.is_ident("prop") {
                 let prop: PropertyAttr = match attr.parse_args() {
                     Ok(prop) => prop,
-                    Err(_) => bail!(attr => "Failed to parse attribute arguments"),
+                    // TODO: Add a better error explanation instead of just defaulting.
+                    // `attr.parse_args()` require that `#[prop]` is followed by an expression (no empty content in parentheses or no parentheses).
+                    Err(_) => PropertyAttr::default(),
                 };
                 let ident = field
                     .ident
@@ -119,6 +121,7 @@ fn parse_fields<'a>(
     }
     Ok(result)
 }
+
 #[derive(Debug, Default)]
 pub struct PropertyAttr {
     pub rename: Option<String>,
