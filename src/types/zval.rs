@@ -95,7 +95,7 @@ impl Zval {
         if self.is_double() {
             Some(unsafe { self.value.dval })
         } else {
-            self.long().map(|x| x as f64)
+            None
         }
     }
 
@@ -114,17 +114,10 @@ impl Zval {
 
     /// Returns the value of the zval if it is a string.
     ///
-    /// If the zval does not contain a string, the function will check if it
-    /// contains a double or a long, and if so it will convert the value to
-    /// a [`String`] and return it. Don't rely on this logic, as there is
-    /// potential for this to change to match the output of the [`str()`]
-    /// function.
-    ///
     /// [`str()`]: #method.str
     pub fn string(&self) -> Option<String> {
         self.str()
             .map(|s| s.to_string())
-            .or_else(|| self.double().map(|x| x.to_string()))
     }
 
     /// Returns the value of the zval if it is a string.
