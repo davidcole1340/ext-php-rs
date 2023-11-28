@@ -519,15 +519,17 @@ impl ZendHashTable {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::types::ZendHashTable;
+    /// use ext_php_rs::types::{ZendHashTable, ArrayKey};
     ///
     /// let mut ht = ZendHashTable::new();
     ///
     /// for (key, val) in ht.iter() {
-    /// //   ^ Index if inserted at an index.
-    /// //        ^ Optional string key, if inserted like a hashtable.
-    /// //             ^ Inserted value.
-    ///
+    ///     match key {
+    ///         ArrayKey::Long(index) => {
+    ///         }
+    ///         ArrayKey::String(key) => {
+    ///         }
+    ///     }
     ///     dbg!(key, val);
     /// }
     #[inline]
