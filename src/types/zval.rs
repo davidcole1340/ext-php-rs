@@ -116,8 +116,7 @@ impl Zval {
     ///
     /// [`str()`]: #method.str
     pub fn string(&self) -> Option<String> {
-        self.str()
-            .map(|s| s.to_string())
+        self.str().map(|s| s.to_string())
     }
 
     /// Returns the value of the zval if it is a string.
