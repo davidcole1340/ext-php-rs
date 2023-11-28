@@ -97,6 +97,7 @@ pub const IS_RESOURCE: u32 = 9;
 pub const IS_REFERENCE: u32 = 10;
 pub const IS_CONSTANT_AST: u32 = 11;
 pub const IS_CALLABLE: u32 = 12;
+pub const IS_ITERABLE: u32 = 13;
 pub const IS_VOID: u32 = 14;
 pub const IS_MIXED: u32 = 16;
 pub const IS_INDIRECT: u32 = 12;
@@ -1657,6 +1658,9 @@ extern "C" {
         params: *mut zval,
         named_params: *mut HashTable,
     );
+}
+extern "C" {
+    pub fn zend_is_iterable(iterable: *const zval) -> bool;
 }
 pub const _zend_expected_type_Z_EXPECTED_LONG: _zend_expected_type = 0;
 pub const _zend_expected_type_Z_EXPECTED_LONG_OR_NULL: _zend_expected_type = 1;

@@ -35,12 +35,13 @@ pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, Catch
 
 /// PHP propose a try catch mechanism in C using setjmp and longjmp (bailout)
 /// It store the arg of setjmp into the bailout field of the global executor
-/// If a bailout is triggered, the executor will jump to the setjmp and restore the previous setjmp
+/// If a bailout is triggered, the executor will jump to the setjmp and restore
+/// the previous setjmp
 ///
 /// try_catch_first allow to use this mechanism
 ///
-/// This functions differs from ['try_catch'] as it also initialize the bailout mechanism
-/// for the first time
+/// This functions differs from ['try_catch'] as it also initialize the bailout
+/// mechanism for the first time
 ///
 /// # Returns
 ///

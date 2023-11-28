@@ -4,6 +4,8 @@
 
 use std::{convert::TryInto, ffi::c_void, fmt::Debug, ptr};
 
+use crate::types::iterable::Iterable;
+use crate::types::ZendIterator;
 use crate::{
     binary::Pack,
     binary_slice::PackSlice,
@@ -12,7 +14,7 @@ use crate::{
     error::{Error, Result},
     ffi::{
         _zval_struct__bindgen_ty_1, _zval_struct__bindgen_ty_2, zend_is_callable,
-        zend_is_identical, zend_resource, zend_value, zval, zval_ptr_dtor,
+        zend_is_identical, zend_is_iterable, zend_resource, zend_value, zval, zval_ptr_dtor,
     },
     flags::DataType,
     flags::ZvalTypeFlags,
@@ -47,6 +49,25 @@ impl Zval {
             },
             u2: _zval_struct__bindgen_ty_2 { next: 0 },
         }
+    }
+
+    /// Dereference the zval, if it is a reference.
+    pub fn dereference(&self) -> &Self {
+        return self.reference().or_else(|| self.indirect()).unwrap_or(self);
+    }
+
+    /// Dereference the zval mutable, if it is a reference.
+    pub fn dereference_mut(&mut self) -> &mut Self {
+        // TODO: probably more ZTS work is needed here
+        if self.is_reference() {
+            #[allow(clippy::unwrap_used)]
+            return self.reference_mut().unwrap();
+        }
+        if self.is_indirect() {
+            #[allow(clippy::unwrap_used)]
+            return self.indirect_mut().unwrap();
+        }
+        self
     }
 
     /// Returns the value of the zval if it is a long.
@@ -256,6 +277,25 @@ impl Zval {
         ZendCallable::new(self).ok()
     }
 
+    /// Returns an iterator over the zval if it is traversable.
+    pub fn traversable(&self) -> Option<&mut ZendIterator> {
+        if self.is_traversable() {
+            self.object()?.get_class_entry().get_iterator(self, false)
+        } else {
+            None
+        }
+    }
+
+    /// Returns an iterable over the zval if it is an array or traversable. (is
+    /// iterable)
+    pub fn iterable(&self) -> Option<Iterable> {
+        if self.is_iterable() {
+            Iterable::from_zval(self)
+        } else {
+            None
+        }
+    }
+
     /// Returns the value of the zval if it is a pointer.
     ///
     /// # Safety
@@ -369,6 +409,21 @@ impl Zval {
         let self_p: *const Self = self;
         let other_p: *const Self = other;
         unsafe { zend_is_identical(self_p as *mut Self, other_p as *mut Self) }
+    }
+
+    /// Returns true if the zval is traversable, false otherwise.
+    pub fn is_traversable(&self) -> bool {
+        match self.object() {
+            None => false,
+            Some(obj) => obj.is_traversable(),
+        }
+    }
+
+    /// Returns true if the zval is iterable (array or traversable), false
+    /// otherwise.
+    pub fn is_iterable(&self) -> bool {
+        let ptr: *const Self = self;
+        unsafe { zend_is_iterable(ptr as *mut Self) }
     }
 
     /// Returns true if the zval contains a pointer, false otherwise.
@@ -626,6 +681,7 @@ impl Debug for Zval {
             DataType::Void => field!(Option::<()>::None),
             DataType::Bool => field!(self.bool()),
             DataType::Indirect => field!(self.indirect()),
+            DataType::Iterable => field!(self.iterable()),
             // SAFETY: We are not accessing the pointer.
             DataType::Ptr => field!(unsafe { self.ptr::<c_void>() }),
         };
