@@ -524,7 +524,7 @@ impl ZendHashTable {
     /// let mut ht = ZendHashTable::new();
     ///
     /// for (key, val) in ht.iter() {
-    ///     match key {
+    ///     match &key {
     ///         ArrayKey::Long(index) => {
     ///         }
     ///         ArrayKey::String(key) => {
