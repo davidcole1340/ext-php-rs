@@ -1,5 +1,6 @@
 //! Builder and objects for creating classes in the PHP world.
 
+use crate::ffi::instanceof_function_slow;
 use crate::types::{ZendIterator, Zval};
 use crate::{
     boxed::ZBox,
@@ -61,13 +62,7 @@ impl ClassEntry {
             return true;
         }
 
-        if other.is_interface() {
-            return self
-                .interfaces()
-                .map_or(false, |mut it| it.any(|ce| ce == other));
-        }
-
-        std::iter::successors(self.parent(), |p| p.parent()).any(|ce| ce == other)
+        return unsafe { instanceof_function_slow(self as _, other as _) };
     }
 
     /// Returns an iterator of all the interfaces that the class implements.

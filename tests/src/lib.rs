@@ -119,6 +119,8 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 
 #[cfg(test)]
 mod integration {
+    use std::env;
+    use std::path::PathBuf;
     use std::process::Command;
     use std::sync::Once;
 
@@ -137,11 +139,14 @@ mod integration {
 
     pub fn run_php(file: &str) -> bool {
         setup();
+        let mut path = PathBuf::from(env::current_dir().expect("Could not get cwd"));
+        path.pop();
+        path.push("target");
+        path.push("debug");
+        path.push("libtests");
+        path.set_extension(std::env::consts::DLL_EXTENSION);
         let output = Command::new("php")
-            .arg(format!(
-                "-dextension=../target/debug/libtests.{}",
-                std::env::consts::DLL_EXTENSION
-            ))
+            .arg(format!("-dextension={}", path.to_str().unwrap()))
             .arg("-dassert.active=1")
             .arg("-dassert.exception=1")
             .arg("-dzend.assertions=1")

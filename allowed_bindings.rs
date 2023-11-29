@@ -305,5 +305,6 @@ bind! {
     php_module_startup,
     php_module_shutdown,
     php_request_startup,
-    php_request_shutdown
+    php_request_shutdown,
+    instanceof_function_slow
 }
