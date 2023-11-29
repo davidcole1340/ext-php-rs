@@ -12,4 +12,4 @@ ENV PATH=/cargo/bin:/rust/bin:$PATH
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
 
-ENTRYPOINT [ "/cargo/bin/cargo", "test", "--release", "--all-features", "--no-fail-fast", "-p", "ext-php-rs", "--lib", "types::iterator::tests::test_iterator" ]
+ENTRYPOINT [ "/cargo/bin/cargo", "test", "--all", "--release", "--all-features", "--no-fail-fast" ]
