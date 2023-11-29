@@ -143,7 +143,11 @@ mod integration {
         path.pop();
         path.push("target");
         path.push("debug");
-        path.push("libtests");
+        path.push(if std::env::consts::DLL_EXTENSION == "dll" {
+            "tests"
+        } else {
+            "libtests"
+        });
         path.set_extension(std::env::consts::DLL_EXTENSION);
         let output = Command::new("php")
             .arg(format!("-dextension={}", path.to_str().unwrap()))
