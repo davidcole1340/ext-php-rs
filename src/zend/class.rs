@@ -62,7 +62,7 @@ impl ClassEntry {
             return true;
         }
 
-        return unsafe { instanceof_function_slow(self as _, other as _) };
+        unsafe { instanceof_function_slow(self as _, other as _) }
     }
 
     /// Returns an iterator of all the interfaces that the class implements.
