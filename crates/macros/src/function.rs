@@ -27,6 +27,7 @@ pub struct Arg {
     pub nullable: bool,
     pub default: Option<String>,
     pub as_ref: bool,
+    pub variadic: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -256,6 +257,7 @@ impl Arg {
         nullable: bool,
         default: Option<String>,
         as_ref: bool,
+        variadic: bool,
     ) -> Self {
         Self {
             name,
@@ -263,6 +265,7 @@ impl Arg {
             nullable,
             default,
             as_ref,
+            variadic,
         }
     }
 
@@ -332,16 +335,21 @@ impl Arg {
                         None => path.to_token_stream().to_string(),
                     },
                 };
-
                 Some(Arg::new(
                     name,
                     stringified,
                     seg.ident == "Option" || default.is_some(),
                     default,
                     pass_by_ref,
+                    false,
                 ))
             }
             Type::Reference(ref_) => {
+                // If the variable is `&[&Zval]` treat it as the variadic argument.
+                let is_variadic = match ref_.elem.as_ref() {
+                    Type::Slice(slice) => slice.elem.to_token_stream().to_string() == "& Zval",
+                    _ => false,
+                };
                 // Returning references is invalid, so let's just create our arg
                 Some(Arg::new(
                     name,
@@ -349,6 +357,7 @@ impl Arg {
                     false,
                     default,
                     ref_.mutability.is_some(),
+                    is_variadic,
                 ))
             }
             _ => None,
@@ -384,6 +393,8 @@ impl Arg {
             quote! { #name_ident.val().unwrap_or(#val.into()) }
         } else if self.nullable {
             quote! { #name_ident.val() }
+        } else if self.variadic {
+            quote! { &#name_ident.variadic_vals() }
         } else {
             quote! {
                 match #name_ident.val() {
@@ -405,10 +416,14 @@ impl Arg {
     /// the argument.
     pub fn get_arg_definition(&self) -> TokenStream {
         let name = &self.name;
-        let ty = self.get_type_ident();
+        let mut ty = self.get_type_ident();
 
         let null = self.nullable.then(|| quote! { .allow_null() });
         let passed_by_ref = self.as_ref.then(|| quote! { .as_ref() });
+        let is_variadic = self.variadic.then(|| quote! { .is_variadic() });
+        if self.variadic {
+            ty = quote! { ::ext_php_rs::flags::DataType::Mixed }
+        }
         let default = self.default.as_ref().map(|val| {
             quote! {
                 .default(#val)
@@ -416,7 +431,7 @@ impl Arg {
         });
 
         quote! {
-            ::ext_php_rs::args::Arg::new(#name, #ty) #null #passed_by_ref #default
+            ::ext_php_rs::args::Arg::new(#name, #ty) #null #passed_by_ref #default #is_variadic
         }
     }
 }

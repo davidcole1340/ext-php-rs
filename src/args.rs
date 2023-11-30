@@ -27,6 +27,7 @@ pub struct Arg<'a> {
     variadic: bool,
     default_value: Option<String>,
     zval: Option<&'a mut Zval>,
+    variadic_zvals: Vec<Option<&'a mut Zval>>,
 }
 
 impl<'a> Arg<'a> {
@@ -45,6 +46,7 @@ impl<'a> Arg<'a> {
             variadic: false,
             default_value: None,
             zval: None,
+            variadic_zvals: vec![],
         }
     }
 
@@ -101,6 +103,18 @@ impl<'a> Arg<'a> {
         self.zval
             .as_mut()
             .and_then(|zv| T::from_zval_mut(zv.dereference_mut()))
+    }
+
+    /// Retrice all the variadic values for this Rust argument.
+    pub fn variadic_vals<T>(&'a mut self) -> Vec<T>
+    where
+        T: FromZvalMut<'a>,
+    {
+        self.variadic_zvals
+            .iter_mut()
+            .filter_map(|zv| zv.as_mut())
+            .filter_map(|zv| T::from_zval_mut(zv.dereference_mut()))
+            .collect()
     }
 
     /// Attempts to return a reference to the arguments internal Zval.
@@ -226,8 +240,9 @@ impl<'a, 'b> ArgParser<'a, 'b> {
         let max_num_args = self.args.len();
         let min_num_args = self.min_num_args.unwrap_or(max_num_args);
         let num_args = self.arg_zvals.len();
+        let has_variadic = self.args.last().map_or(false, |arg| arg.variadic);
 
-        if num_args < min_num_args || num_args > max_num_args {
+        if num_args < min_num_args || (!has_variadic && num_args > max_num_args) {
             // SAFETY: Exported C function is safe, return value is unused and parameters
             // are copied.
             unsafe { zend_wrong_parameters_count_error(min_num_args as _, max_num_args as _) };
@@ -235,8 +250,17 @@ impl<'a, 'b> ArgParser<'a, 'b> {
         }
 
         for (i, arg_zval) in self.arg_zvals.into_iter().enumerate() {
-            if let Some(arg) = self.args.get_mut(i) {
-                arg.zval = arg_zval;
+            let arg = match self.args.get_mut(i) {
+                Some(arg) => Some(arg),
+                // Only select the last item if it's variadic
+                None => self.args.last_mut().filter(|arg| arg.variadic),
+            };
+            if let Some(arg) = arg {
+                if arg.variadic {
+                    arg.variadic_zvals.push(arg_zval);
+                } else {
+                    arg.zval = arg_zval;
+                }
             }
         }
 

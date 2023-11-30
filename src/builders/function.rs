@@ -115,6 +115,11 @@ impl<'a> FunctionBuilder<'a> {
         self
     }
 
+    pub fn variadic(mut self) -> Self {
+        self.function.flags |= MethodFlags::Variadic.bits();
+        self
+    }
+
     /// Sets the return value of the function.
     ///
     /// # Parameters

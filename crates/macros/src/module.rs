@@ -202,6 +202,12 @@ impl Describe for Arg {
     fn describe(&self) -> TokenStream {
         let Arg { name, nullable, .. } = self;
         let ty: Type = syn::parse_str(&self.ty).expect("failed to parse previously parsed type");
+
+        let mut ty =
+            quote! { abi::Option::Some(<#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE) };
+        if self.variadic {
+            ty = quote! { abi::Option::Some(::ext_php_rs::flags::DataType::Array) }
+        }
         let default = if let Some(default) = &self.default {
             quote! { Some(#default.into()) }
         } else {
@@ -211,7 +217,7 @@ impl Describe for Arg {
         quote! {
             Parameter {
                 name: #name.into(),
-                ty: abi::Option::Some(<#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE),
+                ty: #ty,
                 nullable: #nullable,
                 default: abi::Option::#default,
             }
