@@ -9,7 +9,6 @@ use crate::{
         _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NAME_BIT, _ZEND_TYPE_NULLABLE_BIT,
     },
     flags::DataType,
-    types::ZendStr,
 };
 
 /// Internal Zend type.
