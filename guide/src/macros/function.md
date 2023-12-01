@@ -96,6 +96,24 @@ pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> Str
 # fn main() {}
 ```
 
+## Variadic Functions
+
+Variadic functions can be implemented by specifying the last argument in the Rust
+function to the type `&[&Zval]`. This is the equivelant of a PHP function using
+the `...$args` syntax.
+
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
+# extern crate ext_php_rs;
+# use ext_php_rs::prelude::*;
+/// This can be called from PHP as `add(1, 2, 3, 4, 5)`
+#[php_function]
+pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
+    // numbers is a slice of 4 Zvals all of type long
+    number
+}
+# fn main() {}
+
 ## Returning `Result<T, E>`
 
 You can also return a `Result` from the function. The error variant will be
