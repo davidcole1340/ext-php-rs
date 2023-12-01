@@ -106,6 +106,7 @@ the `...$args` syntax.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
+# use ext_php_rs::types::Zval;
 /// This can be called from PHP as `add(1, 2, 3, 4, 5)`
 #[php_function]
 pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
@@ -113,6 +114,7 @@ pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
     number
 }
 # fn main() {}
+```
 
 ## Returning `Result<T, E>`
 
