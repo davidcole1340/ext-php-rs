@@ -1,4 +1,7 @@
-use std::{ffi::{c_void, CString}, ptr};
+use std::{
+    ffi::{c_void, CString},
+    ptr,
+};
 
 use crate::{
     ffi::{
