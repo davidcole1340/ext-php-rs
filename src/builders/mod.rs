@@ -4,10 +4,13 @@
 mod class;
 mod function;
 mod module;
+mod enum_;
 #[cfg(feature = "embed")]
 mod sapi;
 
 pub use class::ClassBuilder;
+pub use enum_::EnumBuilder;
+pub use enum_::EnumBuilderCase;
 pub use function::FunctionBuilder;
 pub use module::ModuleBuilder;
 #[cfg(feature = "embed")]

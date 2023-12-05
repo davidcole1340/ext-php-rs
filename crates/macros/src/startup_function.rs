@@ -7,6 +7,8 @@ use quote::quote;
 use syn::{AttributeArgs, Expr, ItemFn, Signature};
 
 use crate::{class::Class, constant::Constant, STATE};
+#[cfg(php81)]
+use crate::enum_::Enum;
 
 #[derive(Default, Debug, FromMeta)]
 #[darling(default)]
@@ -30,6 +32,9 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
     state.startup_function = Some(ident.to_string());
 
     let classes = build_classes(&state.classes)?;
+    let enums: Vec<TokenStream> = vec![];
+    #[cfg(php81)]
+    let enums = build_enums(&state.enums)?;
     let constants = build_constants(&state.constants);
     let (before, after) = if args.before {
         (Some(quote! { internal(ty, module_number); }), None)
@@ -52,6 +57,7 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
             #before
             #(#classes)*
             #(#constants)*
+            #(#enums)*
             #after
 
             0
@@ -179,6 +185,44 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
                     .expect(concat!("Unable to build class `", #class_name, "`"));
 
                 #meta.set_ce(class);
+            }})
+        })
+        .collect::<Result<Vec<_>>>()
+}
+
+/// Returns a vector of `EnumBuilder`s for each enum.
+#[cfg(php81)]
+fn build_enums(enums: &HashMap<String, Enum>) -> Result<Vec<TokenStream>> {
+    enums
+        .iter()
+        .map(|(name, enum_)| {
+            dbg!(enum_);
+            let Enum { enum_name,  .. } = &enum_;
+            let ident = Ident::new(name, Span::call_site());
+            let meta = Ident::new(&format!("_{name}_META"), Span::call_site());
+            let methods = enum_.methods.iter().map(|method| {
+                let builder = method.get_builder(&ident);
+                let flags = method.get_flags();
+                quote! { .method(#builder.unwrap(), #flags) }
+            });
+            let cases = enum_.cases.iter().map(|case| {
+                let name = &case;
+                quote! { .case(::ext_php_rs::builders::EnumBuilderCase {
+                    name: #name.to_string(),
+                    value: None,
+                }) }
+            });
+
+            Ok(quote! {{
+                let builder: ::ext_php_rs::builders::EnumBuilder<String> = ::ext_php_rs::builders::EnumBuilder::new(#enum_name, ::ext_php_rs::flags::DataType::Undef )
+                    #(#methods)*
+                    #(#cases)*
+                    ;
+
+                let enum_ = builder.build()
+                    .expect(concat!("Unable to build enum `", #enum_name, "`"));
+
+                #meta.set_ce(enum_);
             }})
         })
         .collect::<Result<Vec<_>>>()

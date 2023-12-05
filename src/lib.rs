@@ -45,6 +45,8 @@ pub mod prelude {
     pub use crate::exception::{PhpException, PhpResult};
     pub use crate::php_class;
     pub use crate::php_const;
+    #[cfg(php81)]
+    pub use crate::php_enum;
     pub use crate::php_extern;
     pub use crate::php_function;
     pub use crate::php_impl;

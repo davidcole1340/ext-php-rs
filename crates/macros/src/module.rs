@@ -11,6 +11,9 @@ use crate::{
     startup_function, State, STATE,
 };
 
+#[cfg(php81)]
+use crate::enum_::Enum;
+
 pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
     let Signature { output, inputs, .. } = sig;
@@ -58,10 +61,21 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         .values()
         .map(generate_registered_class_impl)
         .collect::<Result<Vec<_>>>()?;
+
+    let registered_enums_impls: Vec<TokenStream> = vec![];
+
+    #[cfg(php81)]
+    let registered_enums_impls = state
+        .enums
+        .values()
+        .map(generate_registered_enum_impl)
+        .collect::<Result<Vec<_>>>()?;
+
     let describe_fn = generate_stubs(&state);
 
     let result = quote! {
         #(#registered_classes_impls)*
+        #(#registered_enums_impls)*
 
         #startup_fn
 
@@ -92,6 +106,33 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         #describe_fn
     };
     Ok(result)
+}
+
+/// Generates an implementation for `RegisteredClass` on the given enum.
+#[cfg(php81)]
+pub fn generate_registered_enum_impl(enum_: &Enum) -> Result<TokenStream> {
+    let self_ty = Ident::new(&enum_.struct_path, Span::call_site());
+    let enum_name = &enum_.enum_name;
+    let meta = Ident::new(&format!("_{}_META", &enum_.struct_path), Span::call_site());
+
+    Ok(quote! {
+        static #meta: ::ext_php_rs::class::ClassMetadata<#self_ty> = ::ext_php_rs::class::ClassMetadata::new();
+
+        impl ::ext_php_rs::class::RegisteredClass for #self_ty {
+            const CLASS_NAME: &'static str = #enum_name;
+            const CONSTRUCTOR: ::std::option::Option<
+                ::ext_php_rs::class::ConstructorMeta<Self>
+            > = None;
+
+            fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
+                &#meta
+            }
+
+            fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::props::Property<'a, Self>> {
+                ::std::collections::HashMap::new()
+            }
+        }
+    })
 }
 
 /// Generates an implementation for `RegisteredClass` on the given class.

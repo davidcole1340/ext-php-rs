@@ -22,6 +22,7 @@
 #include "zend_exceptions.h"
 #include "zend_inheritance.h"
 #include "zend_interfaces.h"
+#include "Zend/zend_enum.h"
 #include "php_variables.h"
 #include "zend_ini.h"
 #include "main/SAPI.h"

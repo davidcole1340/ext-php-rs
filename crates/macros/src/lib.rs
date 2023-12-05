@@ -10,6 +10,8 @@ mod module;
 mod startup_function;
 mod syn_ext;
 mod zval;
+#[cfg(php81)]
+mod enum_;
 
 use std::{
     collections::HashMap,
@@ -21,7 +23,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use syn::{
     parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl,
-    ItemStruct,
+    ItemStruct, ItemEnum,
 };
 
 extern crate proc_macro;
@@ -31,6 +33,8 @@ struct State {
     functions: Vec<function::Function>,
     classes: HashMap<String, class::Class>,
     constants: Vec<Constant>,
+    #[cfg(php81)]
+    enums: HashMap<String, enum_::Enum>,
     startup_function: Option<String>,
     built_module: bool,
 }
@@ -57,6 +61,19 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
 
     match class::parser(args, input) {
+        Ok(parsed) => parsed,
+        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    }
+    .into()
+}
+
+#[cfg(php81)]
+#[proc_macro_attribute]
+pub fn php_enum(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
+    let input = parse_macro_input!(input as ItemEnum);
+
+    match enum_::parser(args, input) {
         Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }
