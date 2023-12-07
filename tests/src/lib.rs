@@ -183,4 +183,5 @@ mod integration {
     mod number;
     mod object;
     mod string;
+    mod types;
 }
