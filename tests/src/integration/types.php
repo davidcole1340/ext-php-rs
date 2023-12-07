@@ -25,7 +25,7 @@ function toStr(ReflectionNamedType|ReflectionUnionType|ReflectionIntersectionTyp
         return '<null>';
     }
     return match (true) {
-        $v instanceof ReflectionNamedType => $v->allowsNull() ? '?'.$v->getName() : $v->getName(),
+        $v instanceof ReflectionNamedType => $v->allowsNull() && $v->getName() !== 'mixed' ? '?'.$v->getName() : $v->getName(),
         $v instanceof ReflectionUnionType => $v->getName(),
         $v instanceof ReflectionIntersectionType => $v->getName(),
     };
@@ -33,8 +33,10 @@ function toStr(ReflectionNamedType|ReflectionUnionType|ReflectionIntersectionTyp
 
 foreach (TYPES as $func => [$args, $return]) {
     $f = new ReflectionFunction($func);
-    assert(toStr($f->getReturnType()) === $return, "Wrong return type of $func, expected $return, got ".((string)$f->getReturnType()));
+    $tReturn = toStr($f->getReturnType());
+    assert($tReturn === $return, "Wrong return type of $func, expected $return, got $tReturn");
     foreach ($f->getParameters() as $idx => $param) {
-        assert(toStr($param->getType()) === $args[$idx], "Wrong arg type $idx of $func, expected {$args[$idx]}, got ".((string)$param->getType()));
+        $tParam = toStr($param->getType());
+        assert($tParam === $args[$idx], "Wrong arg type $idx of $func, expected {$args[$idx]}, got $tParam");
     }
 }
