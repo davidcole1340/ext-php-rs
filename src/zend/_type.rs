@@ -3,10 +3,9 @@ use std::{ffi::c_void, ptr};
 use crate::{
     ffi::{
         zend_type, IS_MIXED, MAY_BE_ANY, MAY_BE_BOOL, _IS_BOOL, _ZEND_IS_VARIADIC_BIT,
-        _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NAME_BIT, _ZEND_TYPE_NULLABLE_BIT,
+        _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NULLABLE_BIT,
     },
     flags::DataType,
-    types::ZendStr,
 };
 
 /// Internal Zend type.
@@ -79,15 +78,21 @@ impl ZendType {
         is_variadic: bool,
         allow_null: bool,
     ) -> Option<Self> {
+        let mut flags = Self::arg_info_flags(pass_by_ref, is_variadic);
+        if allow_null {
+            flags |= _ZEND_TYPE_NULLABLE_BIT
+        }
+        cfg_if::cfg_if! {
+            if #[cfg(php83)] {
+                flags |= crate::ffi::_ZEND_TYPE_LITERAL_NAME_BIT
+            } else {
+                flags |= crate::ffi::_ZEND_TYPE_NAME_BIT
+            }
+        }
+
         Some(Self {
-            ptr: ZendStr::new(class_name, true).into_raw().as_ptr() as *mut c_void,
-            type_mask: _ZEND_TYPE_NAME_BIT
-                | (if allow_null {
-                    _ZEND_TYPE_NULLABLE_BIT
-                } else {
-                    0
-                })
-                | Self::arg_info_flags(pass_by_ref, is_variadic),
+            ptr: std::ffi::CString::new(class_name).ok()?.into_raw() as *mut c_void,
+            type_mask: flags,
         })
     }
 

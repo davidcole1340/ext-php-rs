@@ -92,7 +92,7 @@ jobs:
         run: cargo build --release --features closure,anyhow --all
       # Test & lint
       - name: Test inline examples
-        run: cargo test --release --all --features closure,anyhow
+        run: cargo test --release --all --features closure,anyhow --no-fail-fast
       - name: Run rustfmt
         if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.2'
         run: cargo fmt --all -- --check

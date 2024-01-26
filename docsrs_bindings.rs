@@ -1164,6 +1164,12 @@ extern "C" {
     pub fn zend_is_identical(op1: *const zval, op2: *const zval) -> bool;
 }
 extern "C" {
+    pub fn instanceof_function_slow(
+        instance_ce: *const zend_class_entry,
+        ce: *const zend_class_entry,
+    ) -> bool;
+}
+extern "C" {
     pub fn zend_is_true(op: *const zval) -> ::std::os::raw::c_int;
 }
 pub type zend_op_array = _zend_op_array;
@@ -1986,7 +1992,7 @@ pub struct _php_stream {
     pub wrapperthis: *mut ::std::os::raw::c_void,
     pub wrapperdata: zval,
     pub _bitfield_align_1: [u8; 0],
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 2usize]>,
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
     pub mode: [::std::os::raw::c_char; 16usize],
     pub flags: u32,
     pub res: *mut zend_resource,
@@ -2005,121 +2011,104 @@ pub struct _php_stream {
 }
 impl _php_stream {
     #[inline]
-    pub fn is_persistent(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u16) }
+    pub fn is_persistent(&self) -> u8 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u8) }
     }
     #[inline]
-    pub fn set_is_persistent(&mut self, val: u16) {
+    pub fn set_is_persistent(&mut self, val: u8) {
         unsafe {
-            let val: u16 = ::std::mem::transmute(val);
+            let val: u8 = ::std::mem::transmute(val);
             self._bitfield_1.set(0usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn in_free(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u16) }
+    pub fn in_free(&self) -> u8 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u8) }
     }
     #[inline]
-    pub fn set_in_free(&mut self, val: u16) {
+    pub fn set_in_free(&mut self, val: u8) {
         unsafe {
-            let val: u16 = ::std::mem::transmute(val);
+            let val: u8 = ::std::mem::transmute(val);
             self._bitfield_1.set(1usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn eof(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u16) }
+    pub fn eof(&self) -> u8 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u8) }
     }
     #[inline]
-    pub fn set_eof(&mut self, val: u16) {
+    pub fn set_eof(&mut self, val: u8) {
         unsafe {
-            let val: u16 = ::std::mem::transmute(val);
+            let val: u8 = ::std::mem::transmute(val);
             self._bitfield_1.set(3usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn __exposed(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u16) }
+    pub fn __exposed(&self) -> u8 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u8) }
     }
     #[inline]
-    pub fn set___exposed(&mut self, val: u16) {
+    pub fn set___exposed(&mut self, val: u8) {
         unsafe {
-            let val: u16 = ::std::mem::transmute(val);
+            let val: u8 = ::std::mem::transmute(val);
             self._bitfield_1.set(4usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn fclose_stdiocast(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u16) }
+    pub fn fclose_stdiocast(&self) -> u8 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u8) }
     }
     #[inline]
-    pub fn set_fclose_stdiocast(&mut self, val: u16) {
+    pub fn set_fclose_stdiocast(&mut self, val: u8) {
         unsafe {
-            let val: u16 = ::std::mem::transmute(val);
+            let val: u8 = ::std::mem::transmute(val);
             self._bitfield_1.set(5usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn has_buffered_data(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u16) }
+    pub fn has_buffered_data(&self) -> u8 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u8) }
     }
     #[inline]
-    pub fn set_has_buffered_data(&mut self, val: u16) {
+    pub fn set_has_buffered_data(&mut self, val: u8) {
         unsafe {
-            let val: u16 = ::std::mem::transmute(val);
+            let val: u8 = ::std::mem::transmute(val);
             self._bitfield_1.set(7usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn fclose_stdiocast_flush_in_progress(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u16) }
-    }
-    #[inline]
-    pub fn set_fclose_stdiocast_flush_in_progress(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self._bitfield_1.set(8usize, 1u8, val as u64)
-        }
-    }
-    #[inline]
     pub fn new_bitfield_1(
-        is_persistent: u16,
-        in_free: u16,
-        eof: u16,
-        __exposed: u16,
-        fclose_stdiocast: u16,
-        has_buffered_data: u16,
-        fclose_stdiocast_flush_in_progress: u16,
-    ) -> __BindgenBitfieldUnit<[u8; 2usize]> {
-        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 2usize]> = Default::default();
+        is_persistent: u8,
+        in_free: u8,
+        eof: u8,
+        __exposed: u8,
+        fclose_stdiocast: u8,
+        has_buffered_data: u8,
+    ) -> __BindgenBitfieldUnit<[u8; 1usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 1usize]> = Default::default();
         __bindgen_bitfield_unit.set(0usize, 1u8, {
-            let is_persistent: u16 = unsafe { ::std::mem::transmute(is_persistent) };
+            let is_persistent: u8 = unsafe { ::std::mem::transmute(is_persistent) };
             is_persistent as u64
         });
         __bindgen_bitfield_unit.set(1usize, 2u8, {
-            let in_free: u16 = unsafe { ::std::mem::transmute(in_free) };
+            let in_free: u8 = unsafe { ::std::mem::transmute(in_free) };
             in_free as u64
         });
         __bindgen_bitfield_unit.set(3usize, 1u8, {
-            let eof: u16 = unsafe { ::std::mem::transmute(eof) };
+            let eof: u8 = unsafe { ::std::mem::transmute(eof) };
             eof as u64
         });
         __bindgen_bitfield_unit.set(4usize, 1u8, {
-            let __exposed: u16 = unsafe { ::std::mem::transmute(__exposed) };
+            let __exposed: u8 = unsafe { ::std::mem::transmute(__exposed) };
             __exposed as u64
         });
         __bindgen_bitfield_unit.set(5usize, 2u8, {
-            let fclose_stdiocast: u16 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
+            let fclose_stdiocast: u8 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
             fclose_stdiocast as u64
         });
         __bindgen_bitfield_unit.set(7usize, 1u8, {
-            let has_buffered_data: u16 = unsafe { ::std::mem::transmute(has_buffered_data) };
+            let has_buffered_data: u8 = unsafe { ::std::mem::transmute(has_buffered_data) };
             has_buffered_data as u64
-        });
-        __bindgen_bitfield_unit.set(8usize, 1u8, {
-            let fclose_stdiocast_flush_in_progress: u16 =
-                unsafe { ::std::mem::transmute(fclose_stdiocast_flush_in_progress) };
-            fclose_stdiocast_flush_in_progress as u64
         });
         __bindgen_bitfield_unit
     }
@@ -2340,6 +2329,117 @@ extern "C" {
         module_number: ::std::os::raw::c_int,
     );
 }
+extern "C" {
+    pub fn php_info_print_table_header(num_cols: ::std::os::raw::c_int, ...);
+}
+extern "C" {
+    pub fn php_info_print_table_row(num_cols: ::std::os::raw::c_int, ...);
+}
+extern "C" {
+    pub fn php_info_print_table_start();
+}
+extern "C" {
+    pub fn php_info_print_table_end();
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct hostent {
+    pub h_name: *mut ::std::os::raw::c_char,
+    pub h_aliases: *mut *mut ::std::os::raw::c_char,
+    pub h_addrtype: ::std::os::raw::c_int,
+    pub h_length: ::std::os::raw::c_int,
+    pub h_addr_list: *mut *mut ::std::os::raw::c_char,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct php_file_globals {
+    pub pclose_ret: ::std::os::raw::c_int,
+    pub def_chunk_size: usize,
+    pub auto_detect_line_endings: bool,
+    pub default_socket_timeout: zend_long,
+    pub user_agent: *mut ::std::os::raw::c_char,
+    pub from_address: *mut ::std::os::raw::c_char,
+    pub user_stream_current_filename: *const ::std::os::raw::c_char,
+    pub default_context: *mut php_stream_context,
+    pub stream_wrappers: *mut HashTable,
+    pub stream_filters: *mut HashTable,
+    pub wrapper_errors: *mut HashTable,
+    pub pclose_wait: ::std::os::raw::c_int,
+    pub tmp_host_info: hostent,
+    pub tmp_host_buf: *mut ::std::os::raw::c_char,
+    pub tmp_host_buf_len: usize,
+}
+extern "C" {
+    pub static mut file_globals: php_file_globals;
+}
+extern "C" {
+    pub static mut zend_ce_throwable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_exception: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_error_exception: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_compile_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_parse_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_type_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_argument_count_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_value_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_arithmetic_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_division_by_zero_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_unhandled_match_error: *mut zend_class_entry;
+}
+extern "C" {
+    pub fn zend_throw_exception_ex(
+        exception_ce: *mut zend_class_entry,
+        code: zend_long,
+        format: *const ::std::os::raw::c_char,
+        ...
+    ) -> *mut zend_object;
+}
+extern "C" {
+    pub fn zend_throw_exception_object(exception: *mut zval);
+}
+extern "C" {
+    pub fn zend_do_implement_interface(ce: *mut zend_class_entry, iface: *mut zend_class_entry);
+}
+extern "C" {
+    pub static mut zend_ce_traversable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_aggregate: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_iterator: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_arrayaccess: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_serializable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_countable: *mut zend_class_entry;
+}
+extern "C" {
+    pub static mut zend_ce_stringable: *mut zend_class_entry;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct sapi_header_struct {
@@ -2533,133 +2633,4 @@ pub struct _sapi_post_entry {
             arg: *mut ::std::os::raw::c_void,
         ),
     >,
-}
-extern "C" {
-    pub fn php_request_startup() -> zend_result;
-}
-extern "C" {
-    pub fn php_request_shutdown(dummy: *mut ::std::os::raw::c_void);
-}
-extern "C" {
-    pub fn php_module_startup(
-        sf: *mut sapi_module_struct,
-        additional_module: *mut zend_module_entry,
-    ) -> zend_result;
-}
-extern "C" {
-    pub fn php_module_shutdown();
-}
-extern "C" {
-    pub fn php_execute_script(primary_file: *mut zend_file_handle) -> bool;
-}
-extern "C" {
-    pub fn php_info_print_table_header(num_cols: ::std::os::raw::c_int, ...);
-}
-extern "C" {
-    pub fn php_info_print_table_row(num_cols: ::std::os::raw::c_int, ...);
-}
-extern "C" {
-    pub fn php_info_print_table_start();
-}
-extern "C" {
-    pub fn php_info_print_table_end();
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct hostent {
-    pub h_name: *mut ::std::os::raw::c_char,
-    pub h_aliases: *mut *mut ::std::os::raw::c_char,
-    pub h_addrtype: ::std::os::raw::c_int,
-    pub h_length: ::std::os::raw::c_int,
-    pub h_addr_list: *mut *mut ::std::os::raw::c_char,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct php_file_globals {
-    pub pclose_ret: ::std::os::raw::c_int,
-    pub def_chunk_size: usize,
-    pub auto_detect_line_endings: bool,
-    pub default_socket_timeout: zend_long,
-    pub user_agent: *mut ::std::os::raw::c_char,
-    pub from_address: *mut ::std::os::raw::c_char,
-    pub user_stream_current_filename: *const ::std::os::raw::c_char,
-    pub default_context: *mut php_stream_context,
-    pub stream_wrappers: *mut HashTable,
-    pub stream_filters: *mut HashTable,
-    pub wrapper_errors: *mut HashTable,
-    pub pclose_wait: ::std::os::raw::c_int,
-    pub tmp_host_info: hostent,
-    pub tmp_host_buf: *mut ::std::os::raw::c_char,
-    pub tmp_host_buf_len: usize,
-}
-extern "C" {
-    pub static mut file_globals: php_file_globals;
-}
-extern "C" {
-    pub static mut zend_ce_throwable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_exception: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_error_exception: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_compile_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_parse_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_type_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_argument_count_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_value_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_arithmetic_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_division_by_zero_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_unhandled_match_error: *mut zend_class_entry;
-}
-extern "C" {
-    pub fn zend_throw_exception_ex(
-        exception_ce: *mut zend_class_entry,
-        code: zend_long,
-        format: *const ::std::os::raw::c_char,
-        ...
-    ) -> *mut zend_object;
-}
-extern "C" {
-    pub fn zend_throw_exception_object(exception: *mut zval);
-}
-extern "C" {
-    pub fn zend_do_implement_interface(ce: *mut zend_class_entry, iface: *mut zend_class_entry);
-}
-extern "C" {
-    pub static mut zend_ce_traversable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_aggregate: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_iterator: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_arrayaccess: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_serializable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_countable: *mut zend_class_entry;
-}
-extern "C" {
-    pub static mut zend_ce_stringable: *mut zend_class_entry;
 }

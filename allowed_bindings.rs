@@ -231,6 +231,7 @@ bind! {
     _ZEND_TYPE_NULLABLE_BIT,
     ts_rsrc_id,
     _ZEND_TYPE_NAME_BIT,
+    _ZEND_TYPE_LITERAL_NAME_BIT,
     ZEND_INTERNAL_FUNCTION,
     ZEND_USER_FUNCTION,
     ZEND_EVAL_CODE,
@@ -305,5 +306,6 @@ bind! {
     php_module_startup,
     php_module_shutdown,
     php_request_startup,
-    php_request_shutdown
+    php_request_shutdown,
+    instanceof_function_slow
 }
