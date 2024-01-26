@@ -78,31 +78,18 @@ impl ZendType {
         is_variadic: bool,
         allow_null: bool,
     ) -> Option<Self> {
-        cfg_if::cfg_if! {
-            if #[cfg(php83)] {
-                Some(Self {
-                    ptr: std::ffi::CString::new(class_name).ok()?.into_raw() as *mut c_void,
-                    type_mask: crate::ffi::_ZEND_TYPE_LITERAL_NAME_BIT
-                        | (if allow_null {
-                            _ZEND_TYPE_NULLABLE_BIT
-                        } else {
-                            0
-                        })
-                        | Self::arg_info_flags(pass_by_ref, is_variadic),
-                })
+        Some(Self {
+            ptr: std::ffi::CString::new(class_name).ok()?.into_raw() as *mut c_void,
+            type_mask: if cfg!(php83) {
+                crate::ffi::_ZEND_TYPE_LITERAL_NAME_BIT
             } else {
-                Some(Self {
-                    ptr: crate::types::ZendStr::new(class_name, true).into_raw().as_ptr() as *mut c_void,
-                    type_mask: crate::ffi::_ZEND_TYPE_NAME_BIT
-                        | (if allow_null {
-                            _ZEND_TYPE_NULLABLE_BIT
-                        } else {
-                            0
-                        })
-                        | Self::arg_info_flags(pass_by_ref, is_variadic),
-                })
-            }
-        }
+                crate::ffi::_ZEND_TYPE_NAME_BIT
+            } | (if allow_null {
+                _ZEND_TYPE_NULLABLE_BIT
+            } else {
+                0
+            }) | Self::arg_info_flags(pass_by_ref, is_variadic),
+        })
     }
 
     /// Attempts to create a zend type for a primitive PHP type.
