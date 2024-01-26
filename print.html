@@ -850,8 +850,8 @@ pub fn test_binary(input: Binary&lt;u32&gt;) -&gt; Binary&lt;u32&gt; {
 <h2 id="php-usage"><a class="header" href="#php-usage">PHP Usage</a></h2>
 <pre><code class="language-php">&lt;?php
 
-$data = pack('*L', [1, 2, 3, 4, 5]);
-$output = unpack('*L', test_binary($data));
+$data = pack('L*', 1, 2, 3, 4, 5);
+$output = unpack('L*', test_binary($data));
 var_dump($output); // array(5) { [0] =&gt; 5, [1] =&gt; 4, [2] =&gt; 3, [3] =&gt; 2, [4] =&gt; 1 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="binary-slices"><a class="header" href="#binary-slices"><code>Binary Slices</code></a></h1>
