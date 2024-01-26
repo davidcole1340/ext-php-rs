@@ -1,7 +1,4 @@
-use std::{
-    ffi::{c_void, CString},
-    ptr,
-};
+use std::{ffi::c_void, ptr};
 
 use crate::{
     ffi::{
@@ -81,16 +78,31 @@ impl ZendType {
         is_variadic: bool,
         allow_null: bool,
     ) -> Option<Self> {
-        Some(Self {
-            ptr: CString::new(class_name).ok()?.into_raw() as *mut c_void,
-            type_mask: _ZEND_TYPE_NAME_BIT
-                | (if allow_null {
-                    _ZEND_TYPE_NULLABLE_BIT
-                } else {
-                    0
+        cfg_if::cfg_if! {
+            if #[cfg(any(php80,php81,php82))] {
+                Some(Self {
+                    ptr: crate::types::ZendStr::new(class_name, true).into_raw().as_ptr() as *mut c_void,
+                    type_mask: _ZEND_TYPE_NAME_BIT
+                        | (if allow_null {
+                            _ZEND_TYPE_NULLABLE_BIT
+                        } else {
+                            0
+                        })
+                        | Self::arg_info_flags(pass_by_ref, is_variadic),
                 })
-                | Self::arg_info_flags(pass_by_ref, is_variadic),
-        })
+            } else {
+                Some(Self {
+                    ptr: std::ffi::CString::new(class_name).ok()?.into_raw() as *mut c_void,
+                    type_mask: _ZEND_TYPE_NAME_BIT
+                        | (if allow_null {
+                            _ZEND_TYPE_NULLABLE_BIT
+                        } else {
+                            0
+                        })
+                        | Self::arg_info_flags(pass_by_ref, is_variadic),
+                })
+            }
+        }
     }
 
     /// Attempts to create a zend type for a primitive PHP type.
