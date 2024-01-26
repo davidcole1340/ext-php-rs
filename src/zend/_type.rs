@@ -78,17 +78,21 @@ impl ZendType {
         is_variadic: bool,
         allow_null: bool,
     ) -> Option<Self> {
+        let mut flags = Self::arg_info_flags(pass_by_ref, is_variadic);
+        if allow_null {
+            flags |= _ZEND_TYPE_NULLABLE_BIT
+        }
+        cfg_if::cfg_if! {
+                if #[cfg(php83)] {
+                    flags |= crate::ffi::_ZEND_TYPE_LITERAL_NAME_BIT
+                } else {
+                    flags |= crate::ffi::_ZEND_TYPE_NAME_BIT
+                }
+        }
+
         Some(Self {
             ptr: std::ffi::CString::new(class_name).ok()?.into_raw() as *mut c_void,
-            type_mask: if cfg!(php83) {
-                crate::ffi::_ZEND_TYPE_LITERAL_NAME_BIT
-            } else {
-                crate::ffi::_ZEND_TYPE_NAME_BIT
-            } | (if allow_null {
-                _ZEND_TYPE_NULLABLE_BIT
-            } else {
-                0
-            }) | Self::arg_info_flags(pass_by_ref, is_variadic),
+            type_mask: flags,
         })
     }
 
