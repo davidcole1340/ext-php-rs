@@ -83,11 +83,11 @@ impl ZendType {
             flags |= _ZEND_TYPE_NULLABLE_BIT
         }
         cfg_if::cfg_if! {
-                if #[cfg(php83)] {
-                    flags |= crate::ffi::_ZEND_TYPE_LITERAL_NAME_BIT
-                } else {
-                    flags |= crate::ffi::_ZEND_TYPE_NAME_BIT
-                }
+            if #[cfg(php83)] {
+                flags |= crate::ffi::_ZEND_TYPE_LITERAL_NAME_BIT
+            } else {
+                flags |= crate::ffi::_ZEND_TYPE_NAME_BIT
+            }
         }
 
         Some(Self {
