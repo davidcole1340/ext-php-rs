@@ -188,10 +188,10 @@ default value.</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
-    let mut greeting = format!(&quot;Hello, {}!&quot;, name);
+    let mut greeting = format!("Hello, {}!", name);
 
     if let Some(age) = age {
-        greeting += &amp;format!(&quot; You are {} years old.&quot;, age);
+        greeting += &amp;format!(" You are {} years old.", age);
     }
 
     greeting
@@ -218,13 +218,13 @@ argument rather than an optional argument.</p>
 </span>/// `age` will be deemed required and nullable rather than optional.
 #[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: String) -&gt; String {
-    let mut greeting = format!(&quot;Hello, {}!&quot;, name);
+    let mut greeting = format!("Hello, {}!", name);
 
     if let Some(age) = age {
-        greeting += &amp;format!(&quot; You are {} years old.&quot;, age);
+        greeting += &amp;format!(" You are {} years old.", age);
     }
 
-    greeting += &amp;format!(&quot; {}.&quot;, description);
+    greeting += &amp;format!(" {}.", description);
     greeting
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
@@ -236,16 +236,16 @@ parameter:</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>/// `age` will be deemed required and nullable rather than optional,
 /// while description will be optional.
-#[php_function(optional = &quot;description&quot;)]
+#[php_function(optional = "description")]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String&gt;) -&gt; String {
-    let mut greeting = format!(&quot;Hello, {}!&quot;, name);
+    let mut greeting = format!("Hello, {}!", name);
 
     if let Some(age) = age {
-        greeting += &amp;format!(&quot; You are {} years old.&quot;, age);
+        greeting += &amp;format!(" You are {} years old.", age);
     }
 
     if let Some(description) = description {
-        greeting += &amp;format!(&quot; {}.&quot;, description);
+        greeting += &amp;format!(" {}.", description);
     }
 
     greeting

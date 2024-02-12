@@ -180,7 +180,7 @@ lifetime, so not <code>self</code> in methods), and can take up to 8 parameters,
 which must implement <code>FromZval</code>. The return type must implement <code>IntoZval</code>.</p>
 <p>Passing closures from Rust to PHP is feature-gated behind the <code>closure</code> feature.
 Enable it in your <code>Cargo.toml</code>:</p>
-<pre><code class="language-toml">ext-php-rs = { version = &quot;...&quot;, features = [&quot;closure&quot;] }
+<pre><code class="language-toml">ext-php-rs = { version = "...", features = ["closure"] }
 </code></pre>
 <p>PHP callables (which includes closures) can be passed to Rust through the
 <code>Callable</code> type. When calling a callable, you must provide it with a <code>Vec</code> of
@@ -212,7 +212,7 @@ fact that it can modify variables in its scope.</p>
 pub fn closure_get_string() -&gt; Closure {
     // Return a closure which takes two integers and returns a string
     Closure::wrap(Box::new(|a, b| {
-        format!(&quot;A: {} B: {}&quot;, a, b)
+        format!("A: {} B: {}", a, b)
     }) as Box&lt;dyn Fn(i32, i32) -&gt; String&gt;)
 }
 
@@ -244,7 +244,7 @@ will be thrown.</p>
 
 #[php_function]
 pub fn closure_return_string() -&gt; Closure {
-    let example: String = &quot;Hello, world!&quot;.into();
+    let example: String = "Hello, world!".into();
 
     // This closure consumes `example` and therefore cannot be called more than once.
     Closure::wrap_once(Box::new(move || {
@@ -265,7 +265,7 @@ function by its name, or as a parameter. They can be called through the
 
 #[php_function]
 pub fn callable_parameter(call: ZendCallable) {
-    let val = call.try_call(vec![&amp;0, &amp;1, &amp;&quot;Hello&quot;]).expect(&quot;Failed to call function&quot;);
+    let val = call.try_call(vec![&amp;0, &amp;1, &amp;"Hello"]).expect("Failed to call function");
     dbg!(val);
 }
 <span class="boring">fn main() {}</span></code></pre></pre>

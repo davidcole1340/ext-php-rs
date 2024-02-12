@@ -201,7 +201,7 @@ the same name as the field. Property types must implement <code>IntoZval</code> 
 <p>You can rename the property with options:</p>
 <ul>
 <li><code>rename</code> - Allows you to rename the property, e.g.
-<code>#[prop(rename = &quot;new_name&quot;)]</code></li>
+<code>#[prop(rename = "new_name")]</code></li>
 </ul>
 <h2 id="restrictions"><a class="header" href="#restrictions">Restrictions</a></h2>
 <h3 id="no-lifetime-parameters"><a class="header" href="#no-lifetime-parameters">No lifetime parameters</a></h3>
@@ -248,7 +248,7 @@ it in the <code>Redis\Exception</code> namespace:</p>
 </span>use ext_php_rs::prelude::*;
 use ext_php_rs::{exception::PhpException, zend::ce};
 
-#[php_class(name = &quot;Redis\\Exception\\RedisException&quot;)]
+#[php_class(name = "Redis\\Exception\\RedisException")]
 #[extends(ce::exception())]
 #[derive(Default)]
 pub struct RedisException;
@@ -256,7 +256,7 @@ pub struct RedisException;
 // Throw our newly created exception
 #[php_function]
 pub fn throw_exception() -&gt; PhpResult&lt;i32&gt; {
-    Err(PhpException::from_class::&lt;RedisException&gt;(&quot;Not good!&quot;.into()))
+    Err(PhpException::from_class::&lt;RedisException&gt;("Not good!".into()))
 }
 <span class="boring">#[php_module]
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
@@ -297,14 +297,14 @@ impl EvenNumbersArray {
         offset.is_long()
     }
     pub fn offset_get(&amp;self, offset: &amp;'_ Zval) -&gt; PhpResult&lt;bool&gt; {
-        let integer_offset = offset.long().ok_or(&quot;Expected integer offset&quot;)?;
+        let integer_offset = offset.long().ok_or("Expected integer offset")?;
         Ok(integer_offset % 2 == 0)
     }
     pub fn offset_set(&amp;mut self, _offset: &amp;'_ Zval, _value: &amp;'_ Zval) -&gt; PhpResult {
-        Err(&quot;Setting values is not supported&quot;.into())
+        Err("Setting values is not supported".into())
     }
     pub fn offset_unset(&amp;mut self, _offset: &amp;'_ Zval) -&gt; PhpResult {
-        Err(&quot;Setting values is not supported&quot;.into())
+        Err("Setting values is not supported".into())
     }
 }
 <span class="boring">#[php_module]

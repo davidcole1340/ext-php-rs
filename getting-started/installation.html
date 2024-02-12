@@ -212,11 +212,11 @@ cd php-src
 # development version. You can check out a stable branch instead:
 git checkout PHP-8.1
 ./buildconf
-PREFIX=&quot;${HOME}/build/php&quot;
-./configure --prefix=&quot;${PREFIX}&quot; \
+PREFIX="${HOME}/build/php"
+./configure --prefix="${PREFIX}" \
     --enable-debug \
     --disable-all --disable-cgi
-make -j &quot;$(nproc)&quot;
+make -j "$(nproc)"
 make install
 </code></pre>
 <p>The PHP CLI binary should now be located at <code>${PREFIX}/bin/php</code>

@@ -193,13 +193,13 @@ fail.</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn test_vec(vec: Vec&lt;String&gt;) -&gt; String {
-    vec.join(&quot; &quot;)
+    vec.join(" ")
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example"><a class="header" href="#php-example">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(test_vec(['hello', 'world', 5])); // string(13) &quot;hello world 5&quot;
+var_dump(test_vec(['hello', 'world', 5])); // string(13) "hello world 5"
 </code></pre>
 
                     </main>

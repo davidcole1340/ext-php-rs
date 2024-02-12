@@ -184,7 +184,7 @@ that implements <code>IntoConst</code>.</p>
 const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
-const ANOTHER_STRING_CONST: &amp;'static str = &quot;Hello world!&quot;;
+const ANOTHER_STRING_CONST: &amp;'static str = "Hello world!";
 <span class="boring">#[php_module]
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
 </span><span class="boring">fn main() {}</span></code></pre></pre>
@@ -192,7 +192,7 @@ const ANOTHER_STRING_CONST: &amp;'static str = &quot;Hello world!&quot;;
 <pre><code class="language-php">&lt;?php
 
 var_dump(TEST_CONSTANT); // int(100)
-var_dump(ANOTHER_STRING_CONST); // string(12) &quot;Hello world!&quot;
+var_dump(ANOTHER_STRING_CONST); // string(12) "Hello world!"
 </code></pre>
 
                     </main>

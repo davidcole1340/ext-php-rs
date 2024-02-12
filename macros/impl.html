@@ -195,21 +195,21 @@ reference to <code>$this</code>.</p>
 method name. This can be changed on the <code>#[php_impl]</code> attribute, by passing one
 of the following as the <code>rename_methods</code> option:</p>
 <ul>
-<li><code>&quot;none&quot;</code> - does not rename the methods.</li>
-<li><code>&quot;camelCase&quot;</code> - renames all methods to camel case (default).</li>
-<li><code>&quot;snake_case&quot;</code> - renames all methods to snake case.</li>
+<li><code>"none"</code> - does not rename the methods.</li>
+<li><code>"camelCase"</code> - renames all methods to camel case (default).</li>
+<li><code>"snake_case"</code> - renames all methods to snake case.</li>
 </ul>
 <p>For example, to disable renaming, change the <code>#[php_impl]</code> attribute to
-<code>#[php_impl(rename_methods = &quot;none&quot;)]</code>.</p>
+<code>#[php_impl(rename_methods = "none")]</code>.</p>
 <p>The rest of the options are passed as separate attributes:</p>
 <ul>
-<li><code>#[defaults(i = 5, b = &quot;hello&quot;)]</code> - Sets the default value for parameter(s).</li>
+<li><code>#[defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
 <li><code>#[optional(i)]</code> - Sets the first optional parameter. Note that this also sets
 the remaining parameters as optional, so all optional parameters must be a
 variant of <code>Option&lt;T&gt;</code>.</li>
 <li><code>#[public]</code>, <code>#[protected]</code> and <code>#[private]</code> - Sets the visibility of the
 method.</li>
-<li><code>#[rename(&quot;method_name&quot;)]</code> - Renames the PHP method to a different identifier,
+<li><code>#[rename("method_name")]</code> - Renames the PHP method to a different identifier,
 without renaming the Rust method name.</li>
 </ul>
 <p>The <code>#[defaults]</code> and <code>#[optional]</code> attributes operate the same as the
@@ -283,7 +283,7 @@ impl Human {
     }
 
     pub fn introduce(&amp;self) {
-        println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, self.address);
+        println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
     }
 
     pub fn get_raw_obj(#[this] this: &amp;mut ZendClassObject&lt;Human&gt;) {

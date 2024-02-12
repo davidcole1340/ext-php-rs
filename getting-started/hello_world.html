@@ -183,18 +183,18 @@ $ cd hello_world
 <p>Let's set up our crate by adding <code>ext-php-rs</code> as a dependency and setting the
 crate type to <code>cdylib</code>. Update the <code>Cargo.toml</code> to look something like so:</p>
 <pre><code class="language-toml">[package]
-name = &quot;hello_world&quot;
-version = &quot;0.1.0&quot;
-edition = &quot;2018&quot;
+name = "hello_world"
+version = "0.1.0"
+edition = "2018"
 
 [lib]
-crate-type = [&quot;cdylib&quot;]
+crate-type = ["cdylib"]
 
 [dependencies]
-ext-php-rs = &quot;*&quot;
+ext-php-rs = "*"
 
 [profile.release]
-strip = &quot;debuginfo&quot;
+strip = "debuginfo"
 </code></pre>
 <h3 id="cargoconfigtoml"><a class="header" href="#cargoconfigtoml"><code>.cargo/config.toml</code></a></h3>
 <p>When compiling for Linux and macOS, we do not link directly to PHP, rather PHP
@@ -207,14 +207,14 @@ issues if your linker is not compatible with the linker used to compile PHP.</p>
 </blockquote>
 <p>We do this by creating a Cargo config file in <code>.cargo/config.toml</code> with the
 following contents:</p>
-<pre><code class="language-toml">[target.'cfg(not(target_os = &quot;windows&quot;))']
-rustflags = [&quot;-C&quot;, &quot;link-arg=-Wl,-undefined,dynamic_lookup&quot;]
+<pre><code class="language-toml">[target.'cfg(not(target_os = "windows"))']
+rustflags = ["-C", "link-arg=-Wl,-undefined,dynamic_lookup"]
 
 [target.x86_64-pc-windows-msvc]
-linker = &quot;rust-lld&quot;
+linker = "rust-lld"
 
 [target.i686-pc-windows-msvc]
-linker = &quot;rust-lld&quot;
+linker = "rust-lld"
 </code></pre>
 <h2 id="writing-our-extension"><a class="header" href="#writing-our-extension">Writing our extension</a></h2>
 <h3 id="srclibrs"><a class="header" href="#srclibrs"><code>src/lib.rs</code></a></h3>
@@ -234,7 +234,7 @@ use ext_php_rs::prelude::*;
 
 #[php_function]
 pub fn hello_world(name: &amp;str) -&gt; String {
-    format!(&quot;Hello, {}!&quot;, name)
+    format!("Hello, {}!", name)
 }
 
 #[php_module]
@@ -259,7 +259,7 @@ export PHP_CONFIG=/path/to/php-config
 <p>As an alternative, if you compiled PHP from source and installed it under
 it's own prefix (<code>configure --prefix=/my/prefix</code>), you can just put
 this prefix in front of your PATH:</p>
-<pre><code class="language-sh">export PATH=&quot;/my/prefix:${PATH}&quot;
+<pre><code class="language-sh">export PATH="/my/prefix:${PATH}"
 </code></pre>
 <p>Once you've setup these variables, you can just run</p>
 <pre><code class="language-sh">cargo build
@@ -291,11 +291,11 @@ For now we'll simply pass the <code>-d extension=/path/to/extension</code> optio
 <h3 id="testphp"><a class="header" href="#testphp"><code>test.php</code></a></h3>
 <pre><code class="language-php">&lt;?php
 
-var_dump(hello_world(&quot;David&quot;));
+var_dump(hello_world("David"));
 </code></pre>
 <p>And run it:</p>
 <pre><code class="language-sh">$ php -d extension=./target/debug/libhello_world.so test.php
-string(13) &quot;Hello, David!&quot;
+string(13) "Hello, David!"
 </code></pre>
 
                     </main>

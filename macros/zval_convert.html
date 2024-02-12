@@ -203,8 +203,8 @@ pub fn take_object(obj: ExampleClass) {
 pub fn give_object() -&gt; ExampleClass&lt;'static&gt; {
     ExampleClass {
         a: 5,
-        b: &quot;String&quot;.to_string(),
-        c: &quot;Borrowed&quot;,
+        b: "String".to_string(),
+        c: "Borrowed",
     }
 }
 <span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
@@ -277,8 +277,8 @@ pub fn give_union() -&gt; UnionExample&lt;'static&gt; {
 </span><span class="boring">fn main() {}</span></code></pre></pre>
 <p>Use in PHP:</p>
 <pre><code class="language-php">test_union(5); // UnionExample::Long(5)
-test_union(&quot;Hello, world!&quot;); // UnionExample::ProperStr(&quot;Hello, world!&quot;)
-test_union(5.66666); // UnionExample::ParsedStr(&quot;5.6666&quot;)
+test_union("Hello, world!"); // UnionExample::ProperStr("Hello, world!")
+test_union(5.66666); // UnionExample::ParsedStr("5.6666")
 test_union(null); // UnionExample::None
 var_dump(give_union()); // int(5)
 </code></pre>

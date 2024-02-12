@@ -187,8 +187,8 @@
 pub fn startup_function(ty: i32, module_number: i32) {
     let ini_entries: Vec&lt;IniEntryDef&gt; = vec![
         IniEntryDef::new(
-            &quot;my_extension.display_emoji&quot;.to_owned(),
-            &quot;yes&quot;.to_owned(),
+            "my_extension.display_emoji".to_owned(),
+            "yes".to_owned(),
             IniEntryPermission::All,
         ),
     ];
@@ -206,7 +206,7 @@ pub fn startup_function(ty: i32, module_number: i32) {
 pub fn startup_function(ty: i32, module_number: i32) {
     // Get all INI values
     let ini_values = ExecutorGlobals::get().ini_values(); // HashMap&lt;String, Option&lt;String&gt;&gt;
-    let my_ini_value = ini_values.get(&quot;my_extension.display_emoji&quot;); // Option&lt;Option&lt;String&gt;&gt;
+    let my_ini_value = ini_values.get("my_extension.display_emoji"); // Option&lt;Option&lt;String&gt;&gt;
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 

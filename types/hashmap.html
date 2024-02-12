@@ -193,7 +193,7 @@ numeric key, the key is represented as a string before being inserted.</p>
 </span>#[php_function]
 pub fn test_hashmap(hm: HashMap&lt;String, String&gt;) -&gt; Vec&lt;String&gt; {
     for (k, v) in hm.iter() {
-        println!(&quot;k: {} v: {}&quot;, k, v);
+        println!("k: {} v: {}", k, v);
     }
 
     hm.into_iter()
@@ -215,9 +215,9 @@ var_dump(test_hashmap([
 k: rust v: php
 k: 0 v: okk
 array(3) {
-    [0] =&gt; string(5) &quot;world&quot;,
-    [1] =&gt; string(3) &quot;php&quot;,
-    [2] =&gt; string(3) &quot;okk&quot;
+    [0] =&gt; string(5) "world",
+    [1] =&gt; string(3) "php",
+    [2] =&gt; string(3) "okk"
 }
 </code></pre>
 

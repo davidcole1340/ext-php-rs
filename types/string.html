@@ -192,14 +192,14 @@ be thrown if one is encountered while converting a <code>String</code> to a zval
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn str_example(input: String) -&gt; String {
-    format!(&quot;Hello {}&quot;, input)
+    format!("Hello {}", input)
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example"><a class="header" href="#php-example">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(str_example(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
-var_dump(str_example(5)); // string(7) &quot;Hello 5&quot;
+var_dump(str_example("World")); // string(11) "Hello World"
+var_dump(str_example(5)); // string(7) "Hello 5"
 </code></pre>
 
                     </main>

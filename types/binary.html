@@ -196,7 +196,7 @@ use ext_php_rs::binary::Binary;
 #[php_function]
 pub fn test_binary(input: Binary&lt;u32&gt;) -&gt; Binary&lt;u32&gt; {
     for i in input.iter() {
-        println!(&quot;{}&quot;, i);
+        println!("{}", i);
     }
 
     vec![5, 4, 3, 2, 1]

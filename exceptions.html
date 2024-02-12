@@ -202,7 +202,7 @@ use std::convert::TryInto;
 // so the `u32` would be converted back to `u64`, but that's okay for an example.
 #[php_function]
 pub fn something_fallible(n: u64) -&gt; PhpResult&lt;u32&gt; {
-    let n: u32 = n.try_into().map_err(|_| &quot;Could not convert into u32&quot;)?;
+    let n: u32 = n.try_into().map_err(|_| "Could not convert into u32")?;
     Ok(n)
 }
 

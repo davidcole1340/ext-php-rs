@@ -202,7 +202,7 @@ impl Client {
     }
 }
 
-pub extern &quot;C&quot; fn request_shutdown(_type: i32, _module_number: i32) -&gt; i32 {
+pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -&gt; i32 {
     EventLoop::shutdown();
     0
 }
@@ -233,7 +233,7 @@ final class Client
             return;
         }
 
-        $f = \fopen(&quot;php://fd/&quot;.\Client::init(), 'r+');
+        $f = \fopen("php://fd/".\Client::init(), 'r+');
         \stream_set_blocking($f, false);
         self::$id = EventLoop::onReadable($f, fn () =&gt; \Client::wakeup());
     }
@@ -258,12 +258,12 @@ Client::init();
 
 function test(int $delay): void
 {
-    $url = &quot;https://httpbin.org/delay/$delay&quot;;
+    $url = "https://httpbin.org/delay/$delay";
     $t = time();
-    echo &quot;Making async reqwest to $url that will return after $delay seconds...&quot;.PHP_EOL;
+    echo "Making async reqwest to $url that will return after $delay seconds...".PHP_EOL;
     Client::get($url);
     $t = time() - $t;
-    echo &quot;Got response from $url after ~&quot;.$t.&quot; seconds!&quot;.PHP_EOL;
+    echo "Got response from $url after ~".$t." seconds!".PHP_EOL;
 };
 
 $futures = [];

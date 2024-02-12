@@ -194,7 +194,7 @@ object.</p>
 // Take an object reference and also return it.
 #[php_function]
 pub fn take_obj(obj: &amp;mut ZendObject) -&gt; () {
-    let _ = obj.try_call_method(&quot;hello&quot;, vec![&amp;&quot;arg1&quot;, &amp;&quot;arg2&quot;]);
+    let _ = obj.try_call_method("hello", vec![&amp;"arg1", &amp;"arg2"]);
 }
 <span class="boring">#[php_module]
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
@@ -209,7 +209,7 @@ pub fn take_obj(obj: &amp;mut ZendObject) -&gt; () {
 // Take an object reference and also return it.
 #[php_function]
 pub fn take_obj(obj: &amp;mut ZendObject) -&gt; &amp;mut ZendObject {
-    let _ = obj.set_property(&quot;hello&quot;, 5);
+    let _ = obj.set_property("hello", 5);
     dbg!(obj)
 }
 <span class="boring">#[php_module]
@@ -226,7 +226,7 @@ pub fn take_obj(obj: &amp;mut ZendObject) -&gt; &amp;mut ZendObject {
 #[php_function]
 pub fn make_object() -&gt; ZBox&lt;ZendObject&gt; {
     let mut obj = ZendObject::new_stdclass();
-    let _ = obj.set_property(&quot;hello&quot;, 5);
+    let _ = obj.set_property("hello", 5);
     obj
 }
 <span class="boring">#[php_module]

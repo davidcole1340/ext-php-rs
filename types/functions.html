@@ -185,14 +185,14 @@ use ext_php_rs::zend::Function;
 
 #[php_function]
 pub fn test_function() -&gt; () {
-    let var_dump = Function::try_from_function(&quot;var_dump&quot;).unwrap();
-    let _ = var_dump.try_call(vec![&amp;&quot;abc&quot;]);
+    let var_dump = Function::try_from_function("var_dump").unwrap();
+    let _ = var_dump.try_call(vec![&amp;"abc"]);
 }
 
 #[php_function]
 pub fn test_method() -&gt; () {
-    let f = Function::try_from_method(&quot;ClassName&quot;, &quot;staticMethod&quot;).unwrap();
-    let _ = f.try_call(vec![&amp;&quot;abc&quot;]);
+    let f = Function::try_from_method("ClassName", "staticMethod").unwrap();
+    let _ = f.try_call(vec![&amp;"abc"]);
 }
 
 <span class="boring">fn main() {}</span></code></pre></pre>

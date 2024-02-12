@@ -177,7 +177,7 @@
 <p>The module macro is used to annotate the <code>get_module</code> function, which is used by
 the PHP interpreter to retrieve information about your extension, including the
 name, version, functions and extra initialization functions. Regardless if you
-use this macro, your extension requires a <code>extern &quot;C&quot; fn get_module()</code> so that
+use this macro, your extension requires a <code>extern "C" fn get_module()</code> so that
 PHP can get this information.</p>
 <p>Using the macro, any functions annotated with the <code>php_function</code> macro will be
 automatically registered with the extension in this function. If you have
@@ -214,9 +214,9 @@ registered inside the extension startup function.</p>
 </span><span class="boring">use ext_php_rs::php::module::ModuleEntry;
 </span>/// Used by the `phpinfo()` function and when you run `php -i`.
 /// This will probably be simplified with another macro eventually!
-pub extern &quot;C&quot; fn php_module_info(_module: *mut ModuleEntry) {
+pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_start!();
-    info_table_row!(&quot;my extension&quot;, &quot;enabled&quot;);
+    info_table_row!("my extension", "enabled");
     info_table_end!();
 }
 

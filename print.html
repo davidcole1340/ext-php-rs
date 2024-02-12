@@ -247,11 +247,11 @@ cd php-src
 # development version. You can check out a stable branch instead:
 git checkout PHP-8.1
 ./buildconf
-PREFIX=&quot;${HOME}/build/php&quot;
-./configure --prefix=&quot;${PREFIX}&quot; \
+PREFIX="${HOME}/build/php"
+./configure --prefix="${PREFIX}" \
     --enable-debug \
     --disable-all --disable-cgi
-make -j &quot;$(nproc)&quot;
+make -j "$(nproc)"
 make install
 </code></pre>
 <p>The PHP CLI binary should now be located at <code>${PREFIX}/bin/php</code>
@@ -269,18 +269,18 @@ $ cd hello_world
 <p>Let's set up our crate by adding <code>ext-php-rs</code> as a dependency and setting the
 crate type to <code>cdylib</code>. Update the <code>Cargo.toml</code> to look something like so:</p>
 <pre><code class="language-toml">[package]
-name = &quot;hello_world&quot;
-version = &quot;0.1.0&quot;
-edition = &quot;2018&quot;
+name = "hello_world"
+version = "0.1.0"
+edition = "2018"
 
 [lib]
-crate-type = [&quot;cdylib&quot;]
+crate-type = ["cdylib"]
 
 [dependencies]
-ext-php-rs = &quot;*&quot;
+ext-php-rs = "*"
 
 [profile.release]
-strip = &quot;debuginfo&quot;
+strip = "debuginfo"
 </code></pre>
 <h3 id="cargoconfigtoml"><a class="header" href="#cargoconfigtoml"><code>.cargo/config.toml</code></a></h3>
 <p>When compiling for Linux and macOS, we do not link directly to PHP, rather PHP
@@ -293,14 +293,14 @@ issues if your linker is not compatible with the linker used to compile PHP.</p>
 </blockquote>
 <p>We do this by creating a Cargo config file in <code>.cargo/config.toml</code> with the
 following contents:</p>
-<pre><code class="language-toml">[target.'cfg(not(target_os = &quot;windows&quot;))']
-rustflags = [&quot;-C&quot;, &quot;link-arg=-Wl,-undefined,dynamic_lookup&quot;]
+<pre><code class="language-toml">[target.'cfg(not(target_os = "windows"))']
+rustflags = ["-C", "link-arg=-Wl,-undefined,dynamic_lookup"]
 
 [target.x86_64-pc-windows-msvc]
-linker = &quot;rust-lld&quot;
+linker = "rust-lld"
 
 [target.i686-pc-windows-msvc]
-linker = &quot;rust-lld&quot;
+linker = "rust-lld"
 </code></pre>
 <h2 id="writing-our-extension"><a class="header" href="#writing-our-extension">Writing our extension</a></h2>
 <h3 id="srclibrs"><a class="header" href="#srclibrs"><code>src/lib.rs</code></a></h3>
@@ -320,7 +320,7 @@ use ext_php_rs::prelude::*;
 
 #[php_function]
 pub fn hello_world(name: &amp;str) -&gt; String {
-    format!(&quot;Hello, {}!&quot;, name)
+    format!("Hello, {}!", name)
 }
 
 #[php_module]
@@ -345,7 +345,7 @@ export PHP_CONFIG=/path/to/php-config
 <p>As an alternative, if you compiled PHP from source and installed it under
 it's own prefix (<code>configure --prefix=/my/prefix</code>), you can just put
 this prefix in front of your PATH:</p>
-<pre><code class="language-sh">export PATH=&quot;/my/prefix:${PATH}&quot;
+<pre><code class="language-sh">export PATH="/my/prefix:${PATH}"
 </code></pre>
 <p>Once you've setup these variables, you can just run</p>
 <pre><code class="language-sh">cargo build
@@ -377,11 +377,11 @@ For now we'll simply pass the <code>-d extension=/path/to/extension</code> optio
 <h3 id="testphp"><a class="header" href="#testphp"><code>test.php</code></a></h3>
 <pre><code class="language-php">&lt;?php
 
-var_dump(hello_world(&quot;David&quot;));
+var_dump(hello_world("David"));
 </code></pre>
 <p>And run it:</p>
 <pre><code class="language-sh">$ php -d extension=./target/debug/libhello_world.so test.php
-string(13) &quot;Hello, David!&quot;
+string(13) "Hello, David!"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cargo-php"><a class="header" href="#cargo-php"><code>cargo php</code></a></h1>
 <p>ext-php-rs comes with a cargo subcommand called <a href="https://crates.io/crates/cargo-php"><code>cargo-php</code></a>. When called in
@@ -623,7 +623,7 @@ fallible.</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn test_numbers(a: i32, b: u32, c: f32) -&gt; u8 {
-    println!(&quot;a {} b {} c {}&quot;, a, b, c);
+    println!("a {} b {} c {}", a, b, c);
     0
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
@@ -651,14 +651,14 @@ be thrown if one is encountered while converting a <code>String</code> to a zval
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn str_example(input: String) -&gt; String {
-    format!(&quot;Hello {}&quot;, input)
+    format!("Hello {}", input)
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example-1"><a class="header" href="#php-example-1">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(str_example(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
-var_dump(str_example(5)); // string(7) &quot;Hello 5&quot;
+var_dump(str_example("World")); // string(11) "Hello World"
+var_dump(str_example(5)); // string(7) "Hello 5"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="str"><a class="header" href="#str"><code>&amp;str</code></a></h1>
 <p>A borrowed string. When this type is encountered, you are given a reference to
@@ -679,18 +679,18 @@ PHP strings.</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn str_example(input: &amp;str) -&gt; String {
-    format!(&quot;Hello {}&quot;, input)
+    format!("Hello {}", input)
 }
 
 #[php_function]
 pub fn str_return_example() -&gt; &amp;'static str {
-    &quot;Hello from Rust&quot;
+    "Hello from Rust"
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example-2"><a class="header" href="#php-example-2">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(str_example(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
+var_dump(str_example("World")); // string(11) "Hello World"
 var_dump(str_example(5)); // Invalid
 
 var_dump(str_return_example());
@@ -719,17 +719,17 @@ equivalent structure in Rust would look like:</p>
 </span>#[php_function]
 pub fn test_bool(input: bool) -&gt; String {
     if input {
-        &quot;Yes!&quot;.into()
+        "Yes!".into()
     } else {
-        &quot;No!&quot;.into()
+        "No!".into()
     }
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example-3"><a class="header" href="#php-example-3">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(test_bool(true)); // string(4) &quot;Yes!&quot;
-var_dump(test_bool(false)); // string(3) &quot;No!&quot;
+var_dump(test_bool(true)); // string(4) "Yes!"
+var_dump(test_bool(false)); // string(3) "No!"
 </code></pre>
 <h2 id="rust-example-taking-by-reference"><a class="header" href="#rust-example-taking-by-reference">Rust example, taking by reference</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
@@ -761,13 +761,13 @@ fail.</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn test_vec(vec: Vec&lt;String&gt;) -&gt; String {
-    vec.join(&quot; &quot;)
+    vec.join(" ")
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example-4"><a class="header" href="#php-example-4">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(test_vec(['hello', 'world', 5])); // string(13) &quot;hello world 5&quot;
+var_dump(test_vec(['hello', 'world', 5])); // string(13) "hello world 5"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hashmap"><a class="header" href="#hashmap"><code>HashMap</code></a></h1>
 <p><code>HashMap</code>s are represented as associative arrays in PHP.</p>
@@ -789,7 +789,7 @@ numeric key, the key is represented as a string before being inserted.</p>
 </span>#[php_function]
 pub fn test_hashmap(hm: HashMap&lt;String, String&gt;) -&gt; Vec&lt;String&gt; {
     for (k, v) in hm.iter() {
-        println!(&quot;k: {} v: {}&quot;, k, v);
+        println!("k: {} v: {}", k, v);
     }
 
     hm.into_iter()
@@ -811,9 +811,9 @@ var_dump(test_hashmap([
 k: rust v: php
 k: 0 v: okk
 array(3) {
-    [0] =&gt; string(5) &quot;world&quot;,
-    [1] =&gt; string(3) &quot;php&quot;,
-    [2] =&gt; string(3) &quot;okk&quot;
+    [0] =&gt; string(5) "world",
+    [1] =&gt; string(3) "php",
+    [2] =&gt; string(3) "okk"
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="binary"><a class="header" href="#binary"><code>Binary</code></a></h1>
@@ -839,7 +839,7 @@ use ext_php_rs::binary::Binary;
 #[php_function]
 pub fn test_binary(input: Binary&lt;u32&gt;) -&gt; Binary&lt;u32&gt; {
     for i in input.iter() {
-        println!(&quot;{}&quot;, i);
+        println!("{}", i);
     }
 
     vec![5, 4, 3, 2, 1]
@@ -911,13 +911,13 @@ null to PHP.</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn test_option_null(input: Option&lt;String&gt;) -&gt; Option&lt;String&gt; {
-    input.map(|input| format!(&quot;Hello {}&quot;, input).into())
+    input.map(|input| format!("Hello {}", input).into())
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example-6"><a class="header" href="#php-example-6">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(test_option_null(&quot;World&quot;)); // string(11) &quot;Hello World&quot;
+var_dump(test_option_null("World")); // string(11) "Hello World"
 var_dump(test_option_null()); // null
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="object"><a class="header" href="#object">Object</a></h1>
@@ -941,7 +941,7 @@ object.</p>
 // Take an object reference and also return it.
 #[php_function]
 pub fn take_obj(obj: &amp;mut ZendObject) -&gt; () {
-    let _ = obj.try_call_method(&quot;hello&quot;, vec![&amp;&quot;arg1&quot;, &amp;&quot;arg2&quot;]);
+    let _ = obj.try_call_method("hello", vec![&amp;"arg1", &amp;"arg2"]);
 }
 <span class="boring">#[php_module]
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
@@ -956,7 +956,7 @@ pub fn take_obj(obj: &amp;mut ZendObject) -&gt; () {
 // Take an object reference and also return it.
 #[php_function]
 pub fn take_obj(obj: &amp;mut ZendObject) -&gt; &amp;mut ZendObject {
-    let _ = obj.set_property(&quot;hello&quot;, 5);
+    let _ = obj.set_property("hello", 5);
     dbg!(obj)
 }
 <span class="boring">#[php_module]
@@ -973,7 +973,7 @@ pub fn take_obj(obj: &amp;mut ZendObject) -&gt; &amp;mut ZendObject {
 #[php_function]
 pub fn make_object() -&gt; ZBox&lt;ZendObject&gt; {
     let mut obj = ZendObject::new_stdclass();
-    let _ = obj.set_property(&quot;hello&quot;, 5);
+    let _ = obj.set_property("hello", 5);
     obj
 }
 <span class="boring">#[php_module]
@@ -1044,7 +1044,7 @@ lifetime, so not <code>self</code> in methods), and can take up to 8 parameters,
 which must implement <code>FromZval</code>. The return type must implement <code>IntoZval</code>.</p>
 <p>Passing closures from Rust to PHP is feature-gated behind the <code>closure</code> feature.
 Enable it in your <code>Cargo.toml</code>:</p>
-<pre><code class="language-toml">ext-php-rs = { version = &quot;...&quot;, features = [&quot;closure&quot;] }
+<pre><code class="language-toml">ext-php-rs = { version = "...", features = ["closure"] }
 </code></pre>
 <p>PHP callables (which includes closures) can be passed to Rust through the
 <code>Callable</code> type. When calling a callable, you must provide it with a <code>Vec</code> of
@@ -1076,7 +1076,7 @@ fact that it can modify variables in its scope.</p>
 pub fn closure_get_string() -&gt; Closure {
     // Return a closure which takes two integers and returns a string
     Closure::wrap(Box::new(|a, b| {
-        format!(&quot;A: {} B: {}&quot;, a, b)
+        format!("A: {} B: {}", a, b)
     }) as Box&lt;dyn Fn(i32, i32) -&gt; String&gt;)
 }
 
@@ -1108,7 +1108,7 @@ will be thrown.</p>
 
 #[php_function]
 pub fn closure_return_string() -&gt; Closure {
-    let example: String = &quot;Hello, world!&quot;.into();
+    let example: String = "Hello, world!".into();
 
     // This closure consumes `example` and therefore cannot be called more than once.
     Closure::wrap_once(Box::new(move || {
@@ -1129,7 +1129,7 @@ function by its name, or as a parameter. They can be called through the
 
 #[php_function]
 pub fn callable_parameter(call: ZendCallable) {
-    let val = call.try_call(vec![&amp;0, &amp;1, &amp;&quot;Hello&quot;]).expect(&quot;Failed to call function&quot;);
+    let val = call.try_call(vec![&amp;0, &amp;1, &amp;"Hello"]).expect("Failed to call function");
     dbg!(val);
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
@@ -1145,14 +1145,14 @@ use ext_php_rs::zend::Function;
 
 #[php_function]
 pub fn test_function() -&gt; () {
-    let var_dump = Function::try_from_function(&quot;var_dump&quot;).unwrap();
-    let _ = var_dump.try_call(vec![&amp;&quot;abc&quot;]);
+    let var_dump = Function::try_from_function("var_dump").unwrap();
+    let _ = var_dump.try_call(vec![&amp;"abc"]);
 }
 
 #[php_function]
 pub fn test_method() -&gt; () {
-    let f = Function::try_from_method(&quot;ClassName&quot;, &quot;staticMethod&quot;).unwrap();
-    let _ = f.try_call(vec![&amp;&quot;abc&quot;]);
+    let f = Function::try_from_method("ClassName", "staticMethod").unwrap();
+    let _ = f.try_call(vec![&amp;"abc"]);
 }
 
 <span class="boring">fn main() {}</span></code></pre></pre>
@@ -1185,7 +1185,7 @@ impl Client {
     }
 }
 
-pub extern &quot;C&quot; fn request_shutdown(_type: i32, _module_number: i32) -&gt; i32 {
+pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -&gt; i32 {
     EventLoop::shutdown();
     0
 }
@@ -1216,7 +1216,7 @@ final class Client
             return;
         }
 
-        $f = \fopen(&quot;php://fd/&quot;.\Client::init(), 'r+');
+        $f = \fopen("php://fd/".\Client::init(), 'r+');
         \stream_set_blocking($f, false);
         self::$id = EventLoop::onReadable($f, fn () =&gt; \Client::wakeup());
     }
@@ -1241,12 +1241,12 @@ Client::init();
 
 function test(int $delay): void
 {
-    $url = &quot;https://httpbin.org/delay/$delay&quot;;
+    $url = "https://httpbin.org/delay/$delay";
     $t = time();
-    echo &quot;Making async reqwest to $url that will return after $delay seconds...&quot;.PHP_EOL;
+    echo "Making async reqwest to $url that will return after $delay seconds...".PHP_EOL;
     Client::get($url);
     $t = time() - $t;
-    echo &quot;Got response from $url after ~&quot;.$t.&quot; seconds!&quot;.PHP_EOL;
+    echo "Got response from $url after ~".$t." seconds!".PHP_EOL;
 };
 
 $futures = [];
@@ -1294,7 +1294,7 @@ manually inside the <code>#[php_module]</code> function.</p>
 <p>The module macro is used to annotate the <code>get_module</code> function, which is used by
 the PHP interpreter to retrieve information about your extension, including the
 name, version, functions and extra initialization functions. Regardless if you
-use this macro, your extension requires a <code>extern &quot;C&quot; fn get_module()</code> so that
+use this macro, your extension requires a <code>extern "C" fn get_module()</code> so that
 PHP can get this information.</p>
 <p>Using the macro, any functions annotated with the <code>php_function</code> macro will be
 automatically registered with the extension in this function. If you have
@@ -1331,9 +1331,9 @@ registered inside the extension startup function.</p>
 </span><span class="boring">use ext_php_rs::php::module::ModuleEntry;
 </span>/// Used by the `phpinfo()` function and when you run `php -i`.
 /// This will probably be simplified with another macro eventually!
-pub extern &quot;C&quot; fn php_module_info(_module: *mut ModuleEntry) {
+pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_start!();
-    info_table_row!(&quot;my extension&quot;, &quot;enabled&quot;);
+    info_table_row!("my extension", "enabled");
     info_table_end!();
 }
 
@@ -1376,10 +1376,10 @@ default value.</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>#[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
-    let mut greeting = format!(&quot;Hello, {}!&quot;, name);
+    let mut greeting = format!("Hello, {}!", name);
 
     if let Some(age) = age {
-        greeting += &amp;format!(&quot; You are {} years old.&quot;, age);
+        greeting += &amp;format!(" You are {} years old.", age);
     }
 
     greeting
@@ -1406,13 +1406,13 @@ argument rather than an optional argument.</p>
 </span>/// `age` will be deemed required and nullable rather than optional.
 #[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: String) -&gt; String {
-    let mut greeting = format!(&quot;Hello, {}!&quot;, name);
+    let mut greeting = format!("Hello, {}!", name);
 
     if let Some(age) = age {
-        greeting += &amp;format!(&quot; You are {} years old.&quot;, age);
+        greeting += &amp;format!(" You are {} years old.", age);
     }
 
-    greeting += &amp;format!(&quot; {}.&quot;, description);
+    greeting += &amp;format!(" {}.", description);
     greeting
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
@@ -1424,16 +1424,16 @@ parameter:</p>
 </span><span class="boring">use ext_php_rs::prelude::*;
 </span>/// `age` will be deemed required and nullable rather than optional,
 /// while description will be optional.
-#[php_function(optional = &quot;description&quot;)]
+#[php_function(optional = "description")]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String&gt;) -&gt; String {
-    let mut greeting = format!(&quot;Hello, {}!&quot;, name);
+    let mut greeting = format!("Hello, {}!", name);
 
     if let Some(age) = age {
-        greeting += &amp;format!(&quot; You are {} years old.&quot;, age);
+        greeting += &amp;format!(" You are {} years old.", age);
     }
 
     if let Some(description) = description {
-        greeting += &amp;format!(&quot; {}.&quot;, description);
+        greeting += &amp;format!(" {}.", description);
     }
 
     greeting
@@ -1486,7 +1486,7 @@ the same name as the field. Property types must implement <code>IntoZval</code> 
 <p>You can rename the property with options:</p>
 <ul>
 <li><code>rename</code> - Allows you to rename the property, e.g.
-<code>#[prop(rename = &quot;new_name&quot;)]</code></li>
+<code>#[prop(rename = "new_name")]</code></li>
 </ul>
 <h2 id="restrictions"><a class="header" href="#restrictions">Restrictions</a></h2>
 <h3 id="no-lifetime-parameters"><a class="header" href="#no-lifetime-parameters">No lifetime parameters</a></h3>
@@ -1533,7 +1533,7 @@ it in the <code>Redis\Exception</code> namespace:</p>
 </span>use ext_php_rs::prelude::*;
 use ext_php_rs::{exception::PhpException, zend::ce};
 
-#[php_class(name = &quot;Redis\\Exception\\RedisException&quot;)]
+#[php_class(name = "Redis\\Exception\\RedisException")]
 #[extends(ce::exception())]
 #[derive(Default)]
 pub struct RedisException;
@@ -1541,7 +1541,7 @@ pub struct RedisException;
 // Throw our newly created exception
 #[php_function]
 pub fn throw_exception() -&gt; PhpResult&lt;i32&gt; {
-    Err(PhpException::from_class::&lt;RedisException&gt;(&quot;Not good!&quot;.into()))
+    Err(PhpException::from_class::&lt;RedisException&gt;("Not good!".into()))
 }
 <span class="boring">#[php_module]
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
@@ -1582,14 +1582,14 @@ impl EvenNumbersArray {
         offset.is_long()
     }
     pub fn offset_get(&amp;self, offset: &amp;'_ Zval) -&gt; PhpResult&lt;bool&gt; {
-        let integer_offset = offset.long().ok_or(&quot;Expected integer offset&quot;)?;
+        let integer_offset = offset.long().ok_or("Expected integer offset")?;
         Ok(integer_offset % 2 == 0)
     }
     pub fn offset_set(&amp;mut self, _offset: &amp;'_ Zval, _value: &amp;'_ Zval) -&gt; PhpResult {
-        Err(&quot;Setting values is not supported&quot;.into())
+        Err("Setting values is not supported".into())
     }
     pub fn offset_unset(&amp;mut self, _offset: &amp;'_ Zval) -&gt; PhpResult {
-        Err(&quot;Setting values is not supported&quot;.into())
+        Err("Setting values is not supported".into())
     }
 }
 <span class="boring">#[php_module]
@@ -1619,21 +1619,21 @@ reference to <code>$this</code>.</p>
 method name. This can be changed on the <code>#[php_impl]</code> attribute, by passing one
 of the following as the <code>rename_methods</code> option:</p>
 <ul>
-<li><code>&quot;none&quot;</code> - does not rename the methods.</li>
-<li><code>&quot;camelCase&quot;</code> - renames all methods to camel case (default).</li>
-<li><code>&quot;snake_case&quot;</code> - renames all methods to snake case.</li>
+<li><code>"none"</code> - does not rename the methods.</li>
+<li><code>"camelCase"</code> - renames all methods to camel case (default).</li>
+<li><code>"snake_case"</code> - renames all methods to snake case.</li>
 </ul>
 <p>For example, to disable renaming, change the <code>#[php_impl]</code> attribute to
-<code>#[php_impl(rename_methods = &quot;none&quot;)]</code>.</p>
+<code>#[php_impl(rename_methods = "none")]</code>.</p>
 <p>The rest of the options are passed as separate attributes:</p>
 <ul>
-<li><code>#[defaults(i = 5, b = &quot;hello&quot;)]</code> - Sets the default value for parameter(s).</li>
+<li><code>#[defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
 <li><code>#[optional(i)]</code> - Sets the first optional parameter. Note that this also sets
 the remaining parameters as optional, so all optional parameters must be a
 variant of <code>Option&lt;T&gt;</code>.</li>
 <li><code>#[public]</code>, <code>#[protected]</code> and <code>#[private]</code> - Sets the visibility of the
 method.</li>
-<li><code>#[rename(&quot;method_name&quot;)]</code> - Renames the PHP method to a different identifier,
+<li><code>#[rename("method_name")]</code> - Renames the PHP method to a different identifier,
 without renaming the Rust method name.</li>
 </ul>
 <p>The <code>#[defaults]</code> and <code>#[optional]</code> attributes operate the same as the
@@ -1707,7 +1707,7 @@ impl Human {
     }
 
     pub fn introduce(&amp;self) {
-        println!(&quot;My name is {} and I am {} years old. I live at {}.&quot;, self.name, self.age, self.address);
+        println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
     }
 
     pub fn get_raw_obj(#[this] this: &amp;mut ZendClassObject&lt;Human&gt;) {
@@ -1761,7 +1761,7 @@ impl Client {
     }
 }
 
-pub extern &quot;C&quot; fn request_shutdown(_type: i32, _module_number: i32) -&gt; i32 {
+pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -&gt; i32 {
     EventLoop::shutdown();
     0
 }
@@ -1792,7 +1792,7 @@ final class Client
             return;
         }
 
-        $f = \fopen(&quot;php://fd/&quot;.\Client::init(), 'r+');
+        $f = \fopen("php://fd/".\Client::init(), 'r+');
         \stream_set_blocking($f, false);
         self::$id = EventLoop::onReadable($f, fn () =&gt; \Client::wakeup());
     }
@@ -1817,12 +1817,12 @@ Client::init();
 
 function test(int $delay): void
 {
-    $url = &quot;https://httpbin.org/delay/$delay&quot;;
+    $url = "https://httpbin.org/delay/$delay";
     $t = time();
-    echo &quot;Making async reqwest to $url that will return after $delay seconds...&quot;.PHP_EOL;
+    echo "Making async reqwest to $url that will return after $delay seconds...".PHP_EOL;
     Client::get($url);
     $t = time() - $t;
-    echo &quot;Got response from $url after ~&quot;.$t.&quot; seconds!&quot;.PHP_EOL;
+    echo "Got response from $url after ~".$t." seconds!".PHP_EOL;
 };
 
 $futures = [];
@@ -1851,7 +1851,7 @@ that implements <code>IntoConst</code>.</p>
 const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
-const ANOTHER_STRING_CONST: &amp;'static str = &quot;Hello world!&quot;;
+const ANOTHER_STRING_CONST: &amp;'static str = "Hello world!";
 <span class="boring">#[php_module]
 </span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
 </span><span class="boring">fn main() {}</span></code></pre></pre>
@@ -1859,7 +1859,7 @@ const ANOTHER_STRING_CONST: &amp;'static str = &quot;Hello world!&quot;;
 <pre><code class="language-php">&lt;?php
 
 var_dump(TEST_CONSTANT); // int(100)
-var_dump(ANOTHER_STRING_CONST); // string(12) &quot;Hello world!&quot;
+var_dump(ANOTHER_STRING_CONST); // string(12) "Hello world!"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="zvalconvert"><a class="header" href="#zvalconvert"><code>ZvalConvert</code></a></h1>
 <p>The <code>#[derive(ZvalConvert)]</code> macro derives the <code>FromZval</code> and <code>IntoZval</code> traits
@@ -1891,8 +1891,8 @@ pub fn take_object(obj: ExampleClass) {
 pub fn give_object() -&gt; ExampleClass&lt;'static&gt; {
     ExampleClass {
         a: 5,
-        b: &quot;String&quot;.to_string(),
-        c: &quot;Borrowed&quot;,
+        b: "String".to_string(),
+        c: "Borrowed",
     }
 }
 <span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
@@ -1965,8 +1965,8 @@ pub fn give_union() -&gt; UnionExample&lt;'static&gt; {
 </span><span class="boring">fn main() {}</span></code></pre></pre>
 <p>Use in PHP:</p>
 <pre><code class="language-php">test_union(5); // UnionExample::Long(5)
-test_union(&quot;Hello, world!&quot;); // UnionExample::ProperStr(&quot;Hello, world!&quot;)
-test_union(5.66666); // UnionExample::ParsedStr(&quot;5.6666&quot;)
+test_union("Hello, world!"); // UnionExample::ProperStr("Hello, world!")
+test_union(5.66666); // UnionExample::ParsedStr("5.6666")
 test_union(null); // UnionExample::None
 var_dump(give_union()); // int(5)
 </code></pre>
@@ -1999,7 +1999,7 @@ use std::convert::TryInto;
 // so the `u32` would be converted back to `u64`, but that's okay for an example.
 #[php_function]
 pub fn something_fallible(n: u64) -&gt; PhpResult&lt;u32&gt; {
-    let n: u32 = n.try_into().map_err(|_| &quot;Could not convert into u32&quot;)?;
+    let n: u32 = n.try_into().map_err(|_| "Could not convert into u32")?;
     Ok(n)
 }
 
@@ -2022,8 +2022,8 @@ pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
 pub fn startup_function(ty: i32, module_number: i32) {
     let ini_entries: Vec&lt;IniEntryDef&gt; = vec![
         IniEntryDef::new(
-            &quot;my_extension.display_emoji&quot;.to_owned(),
-            &quot;yes&quot;.to_owned(),
+            "my_extension.display_emoji".to_owned(),
+            "yes".to_owned(),
             IniEntryPermission::All,
         ),
     ];
@@ -2041,7 +2041,7 @@ pub fn startup_function(ty: i32, module_number: i32) {
 pub fn startup_function(ty: i32, module_number: i32) {
     // Get all INI values
     let ini_values = ExecutorGlobals::get().ini_values(); // HashMap&lt;String, Option&lt;String&gt;&gt;
-    let my_ini_value = ini_values.get(&quot;my_extension.display_emoji&quot;); // Option&lt;Option&lt;String&gt;&gt;
+    let my_ini_value = ini_values.get("my_extension.display_emoji"); // Option&lt;Option&lt;String&gt;&gt;
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 

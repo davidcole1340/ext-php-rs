@@ -197,17 +197,17 @@ equivalent structure in Rust would look like:</p>
 </span>#[php_function]
 pub fn test_bool(input: bool) -&gt; String {
     if input {
-        &quot;Yes!&quot;.into()
+        "Yes!".into()
     } else {
-        &quot;No!&quot;.into()
+        "No!".into()
     }
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-example"><a class="header" href="#php-example">PHP example</a></h2>
 <pre><code class="language-php">&lt;?php
 
-var_dump(test_bool(true)); // string(4) &quot;Yes!&quot;
-var_dump(test_bool(false)); // string(3) &quot;No!&quot;
+var_dump(test_bool(true)); // string(4) "Yes!"
+var_dump(test_bool(false)); // string(3) "No!"
 </code></pre>
 <h2 id="rust-example-taking-by-reference"><a class="header" href="#rust-example-taking-by-reference">Rust example, taking by reference</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
