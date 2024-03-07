@@ -85,7 +85,7 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
-            let self_ = &mut **obj;
+            let self_ = &mut *obj;
             let props = T::get_metadata().get_properties();
             let prop = props.get(prop_name.as_str()?);
 
@@ -132,7 +132,8 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
-            let self_ = &mut **obj;
+
+            let self_ = &mut *obj;
             let props = T::get_metadata().get_properties();
             let prop = props.get(prop_name.as_str()?);
             let value_mut = value.as_mut().ok_or("Invalid return zval given")?;
