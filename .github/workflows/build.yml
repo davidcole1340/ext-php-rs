@@ -75,6 +75,7 @@ jobs:
         with:
           version: ${{ matrix.clang }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          arch: ${{ matrix.os == 'macos-latest' && 'arm64' || 'x64' }}
           cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Configure Clang
         if: "!contains(matrix.os, 'windows')"
