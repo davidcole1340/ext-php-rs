@@ -70,7 +70,7 @@ jobs:
           key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
       - name: Setup LLVM & Clang
         id: clang
-        uses: KyleMayes/install-llvm-action@v1
+        uses: KyleMayes/install-llvm-action@v2
         if: "!contains(matrix.os, 'windows')"
         with:
           version: ${{ matrix.clang }}
