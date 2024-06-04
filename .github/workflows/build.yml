@@ -70,11 +70,12 @@ jobs:
           key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
       - name: Setup LLVM & Clang
         id: clang
-        uses: KyleMayes/install-llvm-action@v1
+        uses: KyleMayes/install-llvm-action@v2
         if: "!contains(matrix.os, 'windows')"
         with:
           version: ${{ matrix.clang }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          arch: ${{ matrix.os == 'macos-latest' && 'arm64' || 'x64' }}
           cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Configure Clang
         if: "!contains(matrix.os, 'windows')"

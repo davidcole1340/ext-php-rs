@@ -80,8 +80,9 @@ where
         }
     }
 }
-pub const ZEND_DEBUG: u32 = 1;
+pub const ZEND_DEBUG: u32 = 0;
 pub const _ZEND_TYPE_NAME_BIT: u32 = 16777216;
+pub const _ZEND_TYPE_LITERAL_NAME_BIT: u32 = 8388608;
 pub const _ZEND_TYPE_NULLABLE_BIT: u32 = 2;
 pub const HT_MIN_SIZE: u32 = 8;
 pub const IS_UNDEF: u32 = 0;
@@ -472,22 +473,10 @@ pub struct _zend_ast_ref {
     pub gc: zend_refcounted_h,
 }
 extern "C" {
-    pub fn _emalloc(
-        size: usize,
-        __zend_filename: *const ::std::os::raw::c_char,
-        __zend_lineno: u32,
-        __zend_orig_filename: *const ::std::os::raw::c_char,
-        __zend_orig_lineno: u32,
-    ) -> *mut ::std::os::raw::c_void;
+    pub fn _emalloc(size: usize) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    pub fn _efree(
-        ptr: *mut ::std::os::raw::c_void,
-        __zend_filename: *const ::std::os::raw::c_char,
-        __zend_lineno: u32,
-        __zend_orig_filename: *const ::std::os::raw::c_char,
-        __zend_orig_lineno: u32,
-    );
+    pub fn _efree(ptr: *mut ::std::os::raw::c_void);
 }
 extern "C" {
     pub fn __zend_malloc(len: usize) -> *mut ::std::os::raw::c_void;
@@ -1599,6 +1588,17 @@ pub struct _zend_function_entry {
 }
 pub type zend_function_entry = _zend_function_entry;
 #[repr(C)]
+pub struct _zend_fcall_info {
+    pub size: usize,
+    pub function_name: zval,
+    pub retval: *mut zval,
+    pub params: *mut zval,
+    pub object: *mut zend_object,
+    pub param_count: u32,
+    pub named_params: *mut HashTable,
+}
+pub type zend_fcall_info = _zend_fcall_info;
+#[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_fcall_info_cache {
     pub function_handler: *mut zend_function,
@@ -1652,6 +1652,23 @@ extern "C" {
         param_count: u32,
         params: *mut zval,
         named_params: *mut HashTable,
+    ) -> zend_result;
+}
+extern "C" {
+    #[doc = " Build zend_call_info/cache from a zval*\n\n Caller is responsible to provide a return value (fci->retval), otherwise the we will crash.\n In order to pass parameters the following members need to be set:\n fci->param_count = 0;\n fci->params = NULL;\n The callable_name argument may be NULL."]
+    pub fn zend_fcall_info_init(
+        callable: *mut zval,
+        check_flags: u32,
+        fci: *mut zend_fcall_info,
+        fcc: *mut zend_fcall_info_cache,
+        callable_name: *mut *mut zend_string,
+        error: *mut *mut ::std::os::raw::c_char,
+    ) -> zend_result;
+}
+extern "C" {
+    pub fn zend_call_function(
+        fci: *mut zend_fcall_info,
+        fci_cache: *mut zend_fcall_info_cache,
     ) -> zend_result;
 }
 extern "C" {
@@ -1885,11 +1902,6 @@ pub struct _php_stream_wrapper_ops {
             options: ::std::os::raw::c_int,
             opened_path: *mut *mut zend_string,
             context: *mut php_stream_context,
-            __php_stream_call_depth: ::std::os::raw::c_int,
-            __zend_filename: *const ::std::os::raw::c_char,
-            __zend_lineno: u32,
-            __zend_orig_filename: *const ::std::os::raw::c_char,
-            __zend_orig_lineno: u32,
         ) -> *mut php_stream,
     >,
     pub stream_closer: ::std::option::Option<
@@ -1922,11 +1934,6 @@ pub struct _php_stream_wrapper_ops {
             options: ::std::os::raw::c_int,
             opened_path: *mut *mut zend_string,
             context: *mut php_stream_context,
-            __php_stream_call_depth: ::std::os::raw::c_int,
-            __zend_filename: *const ::std::os::raw::c_char,
-            __zend_lineno: u32,
-            __zend_orig_filename: *const ::std::os::raw::c_char,
-            __zend_orig_lineno: u32,
         ) -> *mut php_stream,
     >,
     pub label: *const ::std::os::raw::c_char,
@@ -1992,7 +1999,7 @@ pub struct _php_stream {
     pub wrapperthis: *mut ::std::os::raw::c_void,
     pub wrapperdata: zval,
     pub _bitfield_align_1: [u8; 0],
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 2usize]>,
     pub mode: [::std::os::raw::c_char; 16usize],
     pub flags: u32,
     pub res: *mut zend_resource,
@@ -2005,110 +2012,125 @@ pub struct _php_stream {
     pub readpos: zend_off_t,
     pub writepos: zend_off_t,
     pub chunk_size: usize,
-    pub open_filename: *const ::std::os::raw::c_char,
-    pub open_lineno: u32,
     pub enclosing_stream: *mut _php_stream,
 }
 impl _php_stream {
     #[inline]
-    pub fn is_persistent(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u8) }
+    pub fn is_persistent(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_is_persistent(&mut self, val: u8) {
+    pub fn set_is_persistent(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(0usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn in_free(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u8) }
+    pub fn in_free(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u16) }
     }
     #[inline]
-    pub fn set_in_free(&mut self, val: u8) {
+    pub fn set_in_free(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(1usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn eof(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u8) }
+    pub fn eof(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_eof(&mut self, val: u8) {
+    pub fn set_eof(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(3usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn __exposed(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u8) }
+    pub fn __exposed(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set___exposed(&mut self, val: u8) {
+    pub fn set___exposed(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(4usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn fclose_stdiocast(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u8) }
+    pub fn fclose_stdiocast(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u16) }
     }
     #[inline]
-    pub fn set_fclose_stdiocast(&mut self, val: u8) {
+    pub fn set_fclose_stdiocast(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(5usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn has_buffered_data(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u8) }
+    pub fn has_buffered_data(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_has_buffered_data(&mut self, val: u8) {
+    pub fn set_has_buffered_data(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(7usize, 1u8, val as u64)
         }
     }
     #[inline]
+    pub fn fclose_stdiocast_flush_in_progress(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u16) }
+    }
+    #[inline]
+    pub fn set_fclose_stdiocast_flush_in_progress(&mut self, val: u16) {
+        unsafe {
+            let val: u16 = ::std::mem::transmute(val);
+            self._bitfield_1.set(8usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
     pub fn new_bitfield_1(
-        is_persistent: u8,
-        in_free: u8,
-        eof: u8,
-        __exposed: u8,
-        fclose_stdiocast: u8,
-        has_buffered_data: u8,
-    ) -> __BindgenBitfieldUnit<[u8; 1usize]> {
-        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 1usize]> = Default::default();
+        is_persistent: u16,
+        in_free: u16,
+        eof: u16,
+        __exposed: u16,
+        fclose_stdiocast: u16,
+        has_buffered_data: u16,
+        fclose_stdiocast_flush_in_progress: u16,
+    ) -> __BindgenBitfieldUnit<[u8; 2usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 2usize]> = Default::default();
         __bindgen_bitfield_unit.set(0usize, 1u8, {
-            let is_persistent: u8 = unsafe { ::std::mem::transmute(is_persistent) };
+            let is_persistent: u16 = unsafe { ::std::mem::transmute(is_persistent) };
             is_persistent as u64
         });
         __bindgen_bitfield_unit.set(1usize, 2u8, {
-            let in_free: u8 = unsafe { ::std::mem::transmute(in_free) };
+            let in_free: u16 = unsafe { ::std::mem::transmute(in_free) };
             in_free as u64
         });
         __bindgen_bitfield_unit.set(3usize, 1u8, {
-            let eof: u8 = unsafe { ::std::mem::transmute(eof) };
+            let eof: u16 = unsafe { ::std::mem::transmute(eof) };
             eof as u64
         });
         __bindgen_bitfield_unit.set(4usize, 1u8, {
-            let __exposed: u8 = unsafe { ::std::mem::transmute(__exposed) };
+            let __exposed: u16 = unsafe { ::std::mem::transmute(__exposed) };
             __exposed as u64
         });
         __bindgen_bitfield_unit.set(5usize, 2u8, {
-            let fclose_stdiocast: u8 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
+            let fclose_stdiocast: u16 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
             fclose_stdiocast as u64
         });
         __bindgen_bitfield_unit.set(7usize, 1u8, {
-            let has_buffered_data: u8 = unsafe { ::std::mem::transmute(has_buffered_data) };
+            let has_buffered_data: u16 = unsafe { ::std::mem::transmute(has_buffered_data) };
             has_buffered_data as u64
+        });
+        __bindgen_bitfield_unit.set(8usize, 1u8, {
+            let fclose_stdiocast_flush_in_progress: u16 =
+                unsafe { ::std::mem::transmute(fclose_stdiocast_flush_in_progress) };
+            fclose_stdiocast_flush_in_progress as u64
         });
         __bindgen_bitfield_unit
     }

@@ -56,6 +56,8 @@ bind! {
     std_object_handlers,
     zend_array_destroy,
     zend_array_dup,
+    zend_call_function,
+    zend_fcall_info_init,
     zend_call_known_function,
     zend_fetch_function_str,
     zend_hash_str_find_ptr_lc,
