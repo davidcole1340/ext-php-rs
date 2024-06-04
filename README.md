@@ -166,6 +166,7 @@ Check out one of the example projects:
 - [php-scrypt](https://github.com/appwrite/php-scrypt) - PHP wrapper for the
   scrypt password hashing algorithm.
 - [fluent-php](https://github.com/Ennexa/fluent-php) - PHP wrapper for Mozilla's Project Fluent i18n library.
+- [php-rocksdb-rc](https://github.com/s00d/php-rocksdb-rc) - PHP wrapper for rocksdb library.
 
 ## Contributions
 
