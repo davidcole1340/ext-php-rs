@@ -84,7 +84,12 @@ impl PHPInfo {
             .output()
             .context("Failed to call `php -i`")?;
         if !cmd.status.success() {
-            bail!("Failed to call `php -i` status code {}", cmd.status);
+            let stderr = String::from_utf8_lossy(&cmd.stderr);
+            bail!(
+                "Failed to call `php -i` status code {} with stderr: {}",
+                cmd.status,
+                stderr
+            );
         }
         let stdout = String::from_utf8_lossy(&cmd.stdout);
         Ok(Self(stdout.to_string()))

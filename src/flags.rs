@@ -418,7 +418,7 @@ mod tests {
         test!(IS_DOUBLE, Double);
         test!(IS_STRING, String);
         test!(IS_ARRAY, Array);
-        assert_eq!(DataType::try_from(IS_OBJECT), Ok(DataType::Object(None)));
+        assert_eq!(DataType::from(IS_OBJECT), DataType::Object(None));
         test!(IS_RESOURCE, Resource);
         test!(IS_REFERENCE, Reference);
         test!(IS_CONSTANT_AST, ConstantExpression);
@@ -429,7 +429,7 @@ mod tests {
         test!(IS_INTERNED_STRING_EX, String);
         test!(IS_STRING_EX, String);
         test!(IS_ARRAY_EX, Array);
-        assert_eq!(DataType::try_from(IS_OBJECT_EX), Ok(DataType::Object(None)));
+        assert_eq!(DataType::from(IS_OBJECT_EX), DataType::Object(None));
         test!(IS_RESOURCE_EX, Resource);
         test!(IS_REFERENCE_EX, Reference);
         test!(IS_CONSTANT_AST_EX, ConstantExpression);

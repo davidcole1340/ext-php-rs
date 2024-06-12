@@ -17,7 +17,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         php: ["8.0", "8.1", "8.2", "8.3"]
         rust: [stable, nightly]
-        clang: ["15", "17"]
+        clang: ["15", "17", "18"]
         phpts: [ts, nts]
         exclude:
           # ext-php-rs requires nightly Rust when on Windows.
@@ -29,9 +29,9 @@ jobs:
           - os: ubuntu-latest
             phpts: ts
           - os: macos-latest
-            clang: "17"
+            clang: "18"
           - os: ubuntu-latest
-            clang: "15"
+            clang: "18"
           - os: windows-latest
             clang: "15"
     env:
@@ -43,9 +43,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          tools: phpize, php-config
         env:
           phpts: ${{ matrix.phpts }}
           debug: true
+          update: true
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
         with:
@@ -64,27 +66,30 @@ jobs:
       - name: Cache LLVM and Clang
         id: cache-llvm
         uses: actions/cache@v3
-        if: "!contains(matrix.os, 'windows')"
+        if: ${{ !contains(matrix.os, 'windows') }}
         with:
           path: ${{ runner.temp }}/llvm-${{ matrix.clang }}
           key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
       - name: Setup LLVM & Clang
         id: clang
-        uses: KyleMayes/install-llvm-action@v1
-        if: "!contains(matrix.os, 'windows')"
+        uses: KyleMayes/install-llvm-action@master
+        if: ${{ !contains(matrix.os, 'windows') }}
         with:
           version: ${{ matrix.clang }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
           cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Configure Clang
-        if: "!contains(matrix.os, 'windows')"
+        if: ${{ !contains(matrix.os, 'windows') }}
         run: |
           echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/lib" >> $GITHUB_ENV
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
           echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/bin/llvm-config" >> $GITHUB_ENV
       - name: Configure Clang (macOS only)
-        if: "contains(matrix.os, 'macos')"
+        if: ${{ contains(matrix.os, 'macos') }}
         run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
+      - name: Install libsqlite3 (OSX only)
+        if: ${{ contains(matrix.os, 'macos-latest') }}
+        run: brew reinstall sqlite
       # Build
       - name: Build
         env:
