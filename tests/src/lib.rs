@@ -1,5 +1,5 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
+use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval, exception::PhpException, zend::ce};
 use std::collections::HashMap;
 
 #[php_function]
@@ -112,6 +112,21 @@ pub fn test_class(string: String, number: i32) -> TestClass {
     }
 }
 
+#[php_class(name = "Test\\TestException")]
+#[extends(ce::exception())]
+#[derive(Debug)]
+pub struct TestException;
+
+#[php_function]
+pub fn throw_custom_exception() -> PhpResult<i32> {
+    Err(PhpException::from_class::<TestException>("Not good custom!".into()))
+}
+
+#[php_function]
+pub fn throw_default_exception() -> PhpResult<i32> {
+    Err(PhpException::default("Not good!".into()))
+}
+
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
     module
@@ -179,6 +194,7 @@ mod integration {
     mod callable;
     mod class;
     mod closure;
+    mod exception;
     mod nullable;
     mod number;
     mod object;
