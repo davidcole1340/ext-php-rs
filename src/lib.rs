@@ -153,7 +153,7 @@ pub use ext_php_rs_derive::php_extern;
 ///
 /// - Most primitive integers ([`i8`], [`i16`], [`i32`], [`i64`], [`u8`],
 ///   [`u16`], [`u32`], [`u64`],
-/// [`usize`], [`isize`])
+///   [`usize`], [`isize`])
 /// - Double-precision floating point numbers ([`f64`])
 /// - [`bool`]
 /// - [`String`]
@@ -164,9 +164,9 @@ pub use ext_php_rs_derive::php_extern;
 ///   values.
 /// - [`Option<T>`] where `T: FromZval`. When used as a parameter, the parameter
 ///   will be
-/// deemed nullable, and will contain [`None`] when `null` is passed. When used
-/// as a return type, if [`None`] is returned the [`Zval`] will be set to null.
-/// Optional parameters *must* be of the type [`Option<T>`].
+///   deemed nullable, and will contain [`None`] when `null` is passed. When used
+///   as a return type, if [`None`] is returned the [`Zval`] will be set to null.
+///   Optional parameters *must* be of the type [`Option<T>`].
 ///
 /// Additionally, you are able to return a variant of [`Result<T, E>`]. `T` must
 /// implement [`IntoZval`] and `E` must implement `Into<PhpException>`. If an
@@ -324,14 +324,14 @@ pub use ext_php_rs_derive::php_function;
 ///
 /// - `#[defaults(key = value, ...)]` for setting defaults of method variables,
 ///   similar to the
-/// function macro. Arguments with defaults need to be optional.
+///   function macro. Arguments with defaults need to be optional.
 /// - `#[optional(key)]` for setting `key` as an optional argument (and
 ///   therefore the rest of the
-/// arguments).
+///   arguments).
 /// - `#[public]`, `#[protected]` and `#[private]` for setting the visibility of
 ///   the method,
-/// defaulting to public. The Rust visibility has no effect on the PHP
-/// visibility.
+///   defaulting to public. The Rust visibility has no effect on the PHP
+///   visibility.
 ///
 /// Methods can take a immutable or a mutable reference to `self`, but cannot
 /// consume `self`. They can also take no reference to `self` which indicates a

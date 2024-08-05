@@ -329,6 +329,7 @@ impl Remove {
                 .read(true)
                 .write(true)
                 .create(true)
+                .truncate(false)
                 .open(php_ini)
                 .with_context(|| "Failed to open `php.ini`")?;
 

@@ -7,7 +7,6 @@ use std::{
     ffi::CString,
     fmt::{Debug, Display},
     iter::FromIterator,
-    u64,
 };
 
 use crate::{
