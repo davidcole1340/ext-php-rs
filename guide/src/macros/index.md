@@ -31,7 +31,7 @@ manually inside the `#[php_module]` function.
 [`php_module`]: ./module.md
 [`php_startup`]: ./module_startup.md
 [`php_function`]: ./function.md
-[`php_class`]: ./structs.md
+[`php_class`]: ./classes.md
 [`php_impl`]: ./impl.md
 [`php_const`]: ./constant.md
 [see here]: https://github.com/rust-lang/reference/issues/578
