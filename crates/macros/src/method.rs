@@ -18,13 +18,6 @@ pub enum Arg {
     Typed(function::Arg),
 }
 
-#[derive(Debug)]
-pub struct AttrArgs {
-    pub defaults: HashMap<String, Lit>,
-    pub optional: Option<String>,
-    pub visibility: Visibility,
-}
-
 #[derive(Debug, Clone)]
 pub struct Method {
     /// Method name
