@@ -44,7 +44,7 @@ pub struct ParsedMethod {
 
 #[derive(Debug, Clone, Copy)]
 pub enum MethodType {
-    Receiver { mutable: bool },
+    Receiver,
     ReceiverClassObject,
     Static,
 }
@@ -169,7 +169,7 @@ pub fn parser(
         }
     } else {
         let this = match method_type {
-            MethodType::Receiver { .. } => quote! { this. },
+            MethodType::Receiver => quote! { this. },
             MethodType::ReceiverClassObject | MethodType::Static => quote! { Self:: },
         };
 
@@ -302,9 +302,7 @@ fn build_args(
                 if receiver.reference.is_none() {
                     bail!("`self` parameter must be a reference.");
                 }
-                Ok(Arg::Receiver(MethodType::Receiver {
-                    mutable: receiver.mutability.is_some(),
-                }))
+                Ok(Arg::Receiver(MethodType::Receiver))
             }
             FnArg::Typed(ty) => {
                 let mut this = false;
