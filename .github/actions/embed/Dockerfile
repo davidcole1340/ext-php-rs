@@ -1,4 +1,4 @@
-FROM php:8.2-bullseye
+FROM php:8.3-bookworm
 
 WORKDIR /tmp
 
