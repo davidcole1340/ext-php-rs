@@ -153,8 +153,8 @@ impl ClassBuilder {
     ///
     /// * `T` - The type which will override the Zend object. Must implement
     ///   [`RegisteredClass`]
-    /// which can be derived using the [`php_class`](crate::php_class) attribute
-    /// macro.
+    ///   which can be derived using the [`php_class`](crate::php_class) attribute
+    ///   macro.
     ///
     /// # Panics
     ///

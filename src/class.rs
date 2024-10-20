@@ -108,6 +108,12 @@ impl<T> ClassMetadata<T> {
     }
 }
 
+impl<T> Default for ClassMetadata<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: RegisteredClass> ClassMetadata<T> {
     /// Returns an immutable reference to the object handlers contained inside
     /// the class metadata.
