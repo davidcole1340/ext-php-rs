@@ -18,7 +18,7 @@ use crate::ffi::{
     ext_php_rs_sapi_module, php_core_globals, php_file_globals, sapi_globals_struct,
     sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
     zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
-    TRACK_VARS_POST, TRACK_VARS_REQUEST, TRACK_VARS_SERVER,
+    TRACK_VARS_POST, TRACK_VARS_SERVER,
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
@@ -283,10 +283,18 @@ impl ProcessGlobals {
     }
 
     /// Get the HTTP Request variables. Equivalent of $_REQUEST.
+    ///
+    /// # Panics
+    /// There is an outstanding issue with the implementation of this function.
+    /// Untill resolved, this function will allways panic.
+    ///
+    /// - <https://github.com/davidcole1340/ext-php-rs/issues/331>
+    /// - <https://github.com/php/php-src/issues/16541>
     pub fn http_request_vars(&self) -> &ZendHashTable {
-        self.http_globals[TRACK_VARS_REQUEST as usize]
-            .array()
-            .expect("Type is not a ZendArray")
+        todo!("$_REQUEST super global was erroneously fetched from http_globals which resulted in an out-of-bounds access. A new implementation is needed.");
+        // self.http_globals[TRACK_VARS_REQUEST as usize]
+        //     .array()
+        //     .expect("Type is not a ZendArray")
     }
 
     /// Get the HTTP Environment variables. Equivalent of $_ENV.
