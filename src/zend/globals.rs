@@ -13,11 +13,12 @@ use crate::exception::PhpResult;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
-    ext_php_rs_file_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
-    ext_php_rs_sapi_module, php_core_globals, php_file_globals, sapi_globals_struct,
-    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
-    zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
+    _sapi_module_struct, _zend_executor_globals, _zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST,
+    executor_globals, ext_php_rs_executor_globals, ext_php_rs_file_globals,
+    ext_php_rs_process_globals, ext_php_rs_sapi_globals, ext_php_rs_sapi_module, php_core_globals,
+    php_file_globals, sapi_globals_struct, sapi_header_struct, sapi_headers_struct,
+    sapi_request_info, zend_hash_find_known_hash, zend_ini_entry, zend_is_auto_global,
+    zend_known_strings, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
     TRACK_VARS_POST, TRACK_VARS_SERVER,
 };
 
@@ -285,16 +286,24 @@ impl ProcessGlobals {
     /// Get the HTTP Request variables. Equivalent of $_REQUEST.
     ///
     /// # Panics
-    /// There is an outstanding issue with the implementation of this function.
-    /// Until resolved, this function will always panic.
-    ///
-    /// - <https://github.com/davidcole1340/ext-php-rs/issues/331>
-    /// - <https://github.com/php/php-src/issues/16541>
-    pub fn http_request_vars(&self) -> &ZendHashTable {
-        todo!("$_REQUEST super global was erroneously fetched from http_globals which resulted in an out-of-bounds access. A new implementation is needed.");
-        // self.http_globals[TRACK_VARS_REQUEST as usize]
-        //     .array()
-        //     .expect("Type is not a ZendArray")
+    /// - If the request global is not found or fails to be populated.
+    /// - If the request global is not a ZendArray.
+    pub fn http_request_vars(&self) -> Option<&ZendHashTable> {
+        let key = unsafe {
+            *zend_known_strings.add(_zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST as usize)
+        };
+
+        // `$_REQUEST` is lazy-initted, we need to call `zend_is_auto_global` to make sure it's populated.
+        if !unsafe { zend_is_auto_global(key) } {
+            panic!("Failed to get request global");
+        }
+
+        let request = unsafe { zend_hash_find_known_hash(&executor_globals.symbol_table, key) };
+        if request.is_null() {
+            return None;
+        }
+
+        Some(unsafe { (*request).array() }.expect("Type is not a ZendArray"))
     }
 
     /// Get the HTTP Environment variables. Equivalent of $_ENV.
