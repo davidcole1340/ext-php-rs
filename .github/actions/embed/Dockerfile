@@ -10,6 +10,6 @@ ENV RUSTUP_HOME=/rust
 ENV CARGO_HOME=/cargo
 ENV PATH=/cargo/bin:/rust/bin:$PATH
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+RUN (curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly --no-modify-path) && rustup default nightly
 
 ENTRYPOINT [ "/cargo/bin/cargo", "test", "--all", "--release", "--all-features", "--no-fail-fast" ]

@@ -3,7 +3,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-#![cfg_attr(docs, feature(doc_cfg))]
+#![cfg_attr(doc, feature(doc_cfg))]
 #![cfg_attr(windows, feature(abi_vectorcall))]
 
 pub mod alloc;
@@ -20,8 +20,8 @@ pub mod flags;
 pub mod macros;
 pub mod boxed;
 pub mod class;
-#[cfg(any(docs, feature = "closure"))]
-#[cfg_attr(docs, doc(cfg(feature = "closure")))]
+#[cfg(any(doc, feature = "closure"))]
+#[cfg_attr(doc, doc(cfg(feature = "closure")))]
 pub mod closure;
 pub mod constant;
 pub mod describe;
@@ -39,8 +39,8 @@ pub mod zend;
 pub mod prelude {
 
     pub use crate::builders::ModuleBuilder;
-    #[cfg(any(docs, feature = "closure"))]
-    #[cfg_attr(docs, doc(cfg(feature = "closure")))]
+    #[cfg(any(doc, feature = "closure"))]
+    #[cfg_attr(doc, doc(cfg(feature = "closure")))]
     pub use crate::closure::Closure;
     pub use crate::exception::{PhpException, PhpResult};
     pub use crate::php_class;
