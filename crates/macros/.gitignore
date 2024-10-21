@@ -1,1 +1,6 @@
-../../.gitignore
+/target
+Cargo.lock
+/.vscode
+/.idea
+/tmp
+expand.rs
