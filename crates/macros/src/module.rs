@@ -1,5 +1,3 @@
-use std::sync::MutexGuard;
-
 use anyhow::{anyhow, bail, Result};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -11,56 +9,36 @@ use crate::{
     startup_function, State, STATE,
 };
 
-pub fn parser(input: ItemFn) -> Result<TokenStream> {
+fn prepare<'a>(
+    input: ItemFn,
+    functions: &[Function],
+    startup_fn: Option<&TokenStream>,
+    startup_function_name: Option<&str>,
+    classes: impl Iterator<Item = &'a Class>,
+    describe: &TokenStream,
+) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
     let Signature { output, inputs, .. } = sig;
     let stmts = &block.stmts;
 
-    let mut state = STATE.lock();
-
-    if state.built_module {
-        bail!("You may only define a module with the `#[php_module]` attribute once.");
-    }
-
-    state.built_module = true;
-
     // Generate startup function if one hasn't already been tagged with the macro.
-    let startup_fn = if (!state.classes.is_empty() || !state.constants.is_empty())
-        && state.startup_function.is_none()
-    {
-        drop(state);
 
-        let parsed = syn::parse2(quote! {
-            fn php_module_startup() {}
-        })
-        .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
-        let startup = startup_function::parser(None, parsed)?;
-
-        state = STATE.lock();
-        Some(startup)
-    } else {
-        None
-    };
-
-    let functions = state
-        .functions
+    let functions = functions
         .iter()
         .map(|func| func.get_builder())
         .collect::<Vec<_>>();
-    let startup = state.startup_function.as_ref().map(|ident| {
+    let startup = startup_function_name.as_ref().map(|ident| {
         let ident = Ident::new(ident, Span::call_site());
         quote! {
             .startup_function(#ident)
         }
     });
-    let registered_classes_impls = state
-        .classes
-        .values()
+    let registered_classes_impls = classes
         .map(generate_registered_class_impl)
         .collect::<Result<Vec<_>>>()?;
-    let describe_fn = generate_stubs(&state);
+    let describe_fn = generate_stubs(describe);
 
-    let result = quote! {
+    Ok(quote! {
         #(#registered_classes_impls)*
 
         #startup_fn
@@ -90,8 +68,46 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         }
 
         #describe_fn
+    })
+}
+
+fn prepare_startup() -> Result<TokenStream> {
+    let parsed = syn::parse2(quote! {
+        fn php_module_startup() {}
+    })
+    .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
+    startup_function::parser(None, parsed)
+}
+
+pub fn parser(input: ItemFn) -> Result<TokenStream> {
+    let mut state = STATE.lock();
+
+    if state.built_module {
+        bail!("You may only define a module with the `#[php_module]` attribute once.");
+    }
+
+    state.built_module = true;
+
+    // Generate startup function if one hasn't already been tagged with the macro.
+    let startup_fn = if (!state.classes.is_empty() || !state.constants.is_empty())
+        && state.startup_function.is_none()
+    {
+        drop(state);
+        let prepared = prepare_startup()?;
+        state = STATE.lock();
+        Some(prepared)
+    } else {
+        None
     };
-    Ok(result)
+
+    prepare(
+        input,
+        &state.functions,
+        startup_fn.as_ref(),
+        state.startup_function.as_deref(),
+        state.classes.values(),
+        &state.describe(),
+    )
 }
 
 /// Generates an implementation for `RegisteredClass` on the given class.
@@ -151,9 +167,7 @@ pub trait Describe {
     fn describe(&self) -> TokenStream;
 }
 
-fn generate_stubs(state: &MutexGuard<State>) -> TokenStream {
-    let module = state.describe();
-
+fn generate_stubs(module: &TokenStream) -> TokenStream {
     quote! {
         #[cfg(debug_assertions)]
         #[no_mangle]
