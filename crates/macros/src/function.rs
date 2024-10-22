@@ -40,7 +40,7 @@ pub struct Function {
     pub output: Option<(String, bool)>,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Function)> {
+pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
     let attr_args = match AttrArgs::from_list(&args) {
         Ok(args) => args,
         Err(e) => bail!("Unable to parse attribute arguments: {:?}", e),
@@ -106,7 +106,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
 
     state.functions.push(function.clone());
 
-    Ok((func, function))
+    Ok(func)
 }
 
 fn build_args(

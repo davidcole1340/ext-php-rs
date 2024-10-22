@@ -69,7 +69,7 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
     match function::parser(args, input) {
-        Ok((parsed, _)) => parsed,
+        Ok(parsed) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }
     .into()
