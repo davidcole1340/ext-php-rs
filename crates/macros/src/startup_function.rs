@@ -14,23 +14,18 @@ struct StartupArgs {
     before: bool,
 }
 
-pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream> {
-    let args = if let Some(args) = args {
-        StartupArgs::from_list(&args)
-            .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?
-    } else {
-        StartupArgs::default()
-    };
-
+fn prepare(
+    args: StartupArgs,
+    input: ItemFn,
+    classes: &HashMap<String, Class>,
+    constants: &[Constant],
+) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
     let Signature { ident, .. } = sig;
     let stmts = &block.stmts;
 
-    let mut state = STATE.lock();
-    state.startup_function = Some(ident.to_string());
-
-    let classes = build_classes(&state.classes)?;
-    let constants = build_constants(&state.constants);
+    let classes = build_classes(classes)?;
+    let constants = build_constants(constants);
     let (before, after) = if args.before {
         (Some(quote! { internal(ty, module_number); }), None)
     } else {
@@ -59,6 +54,21 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
     };
 
     Ok(func)
+}
+
+pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream> {
+    let args = if let Some(args) = args {
+        StartupArgs::from_list(&args)
+            .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?
+    } else {
+        StartupArgs::default()
+    };
+
+    let mut state = STATE.lock();
+    let ident = input.sig.ident.to_string();
+    state.startup_function = Some(ident);
+
+    prepare(args, input, &state.classes, &state.constants)
 }
 
 fn class_tokenstream(name: &str, class: &Class) -> Result<TokenStream> {
