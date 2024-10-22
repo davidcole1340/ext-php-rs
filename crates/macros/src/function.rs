@@ -40,12 +40,7 @@ pub struct Function {
     pub output: Option<(String, bool)>,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
-    let attr_args = match AttrArgs::from_list(&args) {
-        Ok(args) => args,
-        Err(e) => bail!("Unable to parse attribute arguments: {:?}", e),
-    };
-
+fn prepare(attr_args: AttrArgs, input: ItemFn) -> Result<(TokenStream, Function)> {
     let ItemFn { sig, .. } = &input;
     let Signature {
         ident,
@@ -89,20 +84,37 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
         }
     };
 
-    let mut state = STATE.lock();
-
-    if state.built_module && !attr_args.ignore_module {
-        bail!("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`");
-    }
+    let name = if let Some(name) = attr_args.name {
+        name
+    } else {
+        ident.to_string()
+    };
 
     let function = Function {
-        name: attr_args.name.unwrap_or_else(|| ident.to_string()),
+        name,
         docs: get_docs(&input.attrs),
         ident: internal_ident.to_string(),
         args,
         optional,
         output: return_type,
     };
+
+    Ok((func, function))
+}
+
+pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
+    let attr_args = match AttrArgs::from_list(&args) {
+        Ok(args) => args,
+        Err(e) => bail!("Unable to parse attribute arguments: {:?}", e),
+    };
+    let ignore_module = attr_args.ignore_module;
+    let (func, function) = prepare(attr_args, input)?;
+
+    let mut state = STATE.lock();
+
+    if state.built_module && !ignore_module {
+        bail!("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`");
+    }
 
     state.functions.push(function.clone());
 
