@@ -295,11 +295,14 @@ impl ProcessGlobals {
     /// - If the request global is not found or fails to be populated.
     /// - If the request global is not a ZendArray.
     pub fn http_request_vars(&self) -> Option<&ZendHashTable> {
-        #[cfg(not(php81))]
-        let key = _zend_string::new("_REQUEST", false).as_mut_ptr();
-        #[cfg(php81)]
-        let key = unsafe {
-            *zend_known_strings.add(_zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST as usize)
+        cfg_if::cfg_if! {
+            if #[cfg(php81)] {
+                let key = unsafe {
+                    *zend_known_strings.add(_zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST as usize)
+                };
+            } else {
+                let key = _zend_string::new("_REQUEST", false).as_mut_ptr();
+            }
         };
 
         // `$_REQUEST` is lazy-initted, we need to call `zend_is_auto_global` to make
@@ -309,10 +312,13 @@ impl ProcessGlobals {
         }
 
         let symbol_table = &ExecutorGlobals::get().symbol_table;
-        #[cfg(not(php81))]
-        let request = unsafe { _zend_hash_find_known_hash(symbol_table, key) };
-        #[cfg(php81)]
-        let request = unsafe { zend_hash_find_known_hash(symbol_table, key) };
+        cfg_if::cfg_if! {
+            if #[cfg(php81)] {
+                let request = unsafe { zend_hash_find_known_hash(symbol_table, key) };
+            } else {
+                let request = unsafe { _zend_hash_find_known_hash(symbol_table, key) };
+            }
+        };
 
         if request.is_null() {
             return None;
