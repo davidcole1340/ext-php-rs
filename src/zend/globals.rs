@@ -10,18 +10,18 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::exception::PhpResult;
-#[cfg(php80)]
-use crate::ffi::_zend_hash_find_known_hash;
-#[cfg(php82)]
+#[cfg(not(any(php80, php81)))]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _sapi_module_struct, _zend_executor_globals, _zend_string, executor_globals,
-    ext_php_rs_executor_globals, ext_php_rs_file_globals, ext_php_rs_process_globals,
-    ext_php_rs_sapi_globals, ext_php_rs_sapi_module, php_core_globals, php_file_globals,
-    sapi_globals_struct, sapi_header_struct, sapi_headers_struct, sapi_request_info,
-    zend_ini_entry, zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES,
-    TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_SERVER,
+    _sapi_module_struct, _zend_executor_globals, executor_globals, ext_php_rs_executor_globals,
+    ext_php_rs_file_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
+    ext_php_rs_sapi_module, php_core_globals, php_file_globals, sapi_globals_struct,
+    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
+    zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
+    TRACK_VARS_POST, TRACK_VARS_SERVER,
 };
+#[cfg(php80)]
+use crate::ffi::{_zend_hash_find_known_hash, _zend_string};
 #[cfg(not(php80))]
 use crate::ffi::{
     _zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST, zend_hash_find_known_hash,
@@ -161,7 +161,7 @@ impl ExecutorGlobals {
     /// set with [`crate::ffi::zend_interrupt_function`].
     pub fn request_interrupt(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(php82)] {
+            if #[cfg(not(any(php80, php81)))] {
                 unsafe {
                     zend_atomic_bool_store(&mut self.vm_interrupt, true);
                 }
@@ -174,7 +174,7 @@ impl ExecutorGlobals {
     /// Cancel a requested an interrupt of the PHP VM.
     pub fn cancel_interrupt(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(php82)] {
+            if #[cfg(not(any(php80, php81)))] {
                 unsafe {
                     zend_atomic_bool_store(&mut self.vm_interrupt, false);
                 }
