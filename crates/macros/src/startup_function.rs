@@ -61,7 +61,7 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
     Ok(func)
 }
 
-fn generate_class(name: &str, class: &Class) -> Result<TokenStream> {
+fn class_tokenstream(name: &str, class: &Class) -> Result<TokenStream> {
     let class_name = &class.class_name;
     let ident = Ident::new(name, Span::call_site());
     let methods = class.methods.iter().map(|method| {
@@ -179,7 +179,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
             let meta = Ident::new(&format!("_{name}_META"), Span::call_site());
 
             let class_name = &class.class_name;
-            let generated = generate_class(name, class)?;
+            let generated = class_tokenstream(name, class)?;
 
             Ok(quote! {{
                 #generated
