@@ -13,7 +13,7 @@ use crate::exception::PhpResult;
 #[cfg(not(any(php80, php81)))]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _sapi_module_struct, _zend_executor_globals, executor_globals, ext_php_rs_executor_globals,
+    _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
     ext_php_rs_file_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
     ext_php_rs_sapi_module, php_core_globals, php_file_globals, sapi_globals_struct,
     sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
@@ -307,10 +307,11 @@ impl ProcessGlobals {
             panic!("Failed to get request global");
         }
 
+        let symbol_table = &ExecutorGlobals::get().symbol_table;
         #[cfg(php80)]
-        let request = unsafe { _zend_hash_find_known_hash(&executor_globals.symbol_table, key) };
+        let request = unsafe { _zend_hash_find_known_hash(symbol_table, key) };
         #[cfg(not(php80))]
-        let request = unsafe { zend_hash_find_known_hash(&executor_globals.symbol_table, key) };
+        let request = unsafe { zend_hash_find_known_hash(symbol_table, key) };
 
         if request.is_null() {
             return None;
