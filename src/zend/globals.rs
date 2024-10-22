@@ -10,19 +10,19 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::exception::PhpResult;
-#[cfg(php80)]
-use crate::ffi::_zend_hash_find_known_hash;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _sapi_module_struct, _zend_executor_globals, _zend_string, executor_globals,
-    ext_php_rs_executor_globals, ext_php_rs_file_globals, ext_php_rs_process_globals,
-    ext_php_rs_sapi_globals, ext_php_rs_sapi_module, php_core_globals, php_file_globals,
-    sapi_globals_struct, sapi_header_struct, sapi_headers_struct, sapi_request_info,
-    zend_ini_entry, zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES,
-    TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_SERVER,
+    _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
+    ext_php_rs_file_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
+    ext_php_rs_sapi_module, php_core_globals, php_file_globals, sapi_globals_struct,
+    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
+    zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
+    TRACK_VARS_POST, TRACK_VARS_SERVER,
 };
-#[cfg(not(php80))]
+#[cfg(not(php81))]
+use crate::ffi::{_zend_hash_find_known_hash, _zend_string};
+#[cfg(php81)]
 use crate::ffi::{
     _zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST, zend_hash_find_known_hash,
     zend_known_strings,
@@ -295,22 +295,24 @@ impl ProcessGlobals {
     /// - If the request global is not found or fails to be populated.
     /// - If the request global is not a ZendArray.
     pub fn http_request_vars(&self) -> Option<&ZendHashTable> {
-        #[cfg(php80)]
+        #[cfg(not(php81))]
         let key = _zend_string::new("_REQUEST", false).as_mut_ptr();
-        #[cfg(not(php80))]
+        #[cfg(php81)]
         let key = unsafe {
             *zend_known_strings.add(_zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST as usize)
         };
 
-        // `$_REQUEST` is lazy-initted, we need to call `zend_is_auto_global` to make sure it's populated.
+        // `$_REQUEST` is lazy-initted, we need to call `zend_is_auto_global` to make
+        // sure it's populated.
         if !unsafe { zend_is_auto_global(key) } {
             panic!("Failed to get request global");
         }
 
-        #[cfg(php80)]
-        let request = unsafe { _zend_hash_find_known_hash(&executor_globals.symbol_table, key) };
-        #[cfg(not(php80))]
-        let request = unsafe { zend_hash_find_known_hash(&executor_globals.symbol_table, key) };
+        let symbol_table = &ExecutorGlobals::get().symbol_table;
+        #[cfg(not(php81))]
+        let request = unsafe { _zend_hash_find_known_hash(symbol_table, key) };
+        #[cfg(php81)]
+        let request = unsafe { zend_hash_find_known_hash(symbol_table, key) };
 
         if request.is_null() {
             return None;
