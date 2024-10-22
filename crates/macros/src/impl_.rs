@@ -96,23 +96,12 @@ pub enum PropAttrTy {
 }
 
 // note: this takes a mutable argument as it mutates a class
-fn prepare(
-    args: AttrArgs,
-    input: ItemImpl,
-    classes: &mut HashMap<String, Class>,
-) -> Result<TokenStream> {
+fn prepare(args: AttrArgs, input: ItemImpl, class: &mut Class) -> Result<TokenStream> {
     let ItemImpl { self_ty, items, .. } = input;
-    let class_name = self_ty.to_token_stream().to_string();
 
     if input.trait_.is_some() {
         bail!("This macro cannot be used on trait implementations.");
     }
-
-    let class = classes.get_mut(&class_name).ok_or_else(|| {
-        anyhow!(
-            "You must use `#[php_class]` on the struct before using this attribute on the impl."
-        )
-    })?;
 
     let tokens = items
         .into_iter()
@@ -185,7 +174,15 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
         );
     }
 
-    prepare(args, input, &mut state.classes)
+    let class_name = input.self_ty.to_token_stream().to_string();
+
+    let class = state.classes.get_mut(&class_name).ok_or_else(|| {
+        anyhow!(
+            "You must use `#[php_class]` on the struct before using this attribute on the impl."
+        )
+    })?;
+
+    prepare(args, input, class)
 }
 
 pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
