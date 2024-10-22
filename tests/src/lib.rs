@@ -1,5 +1,11 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
+use ext_php_rs::{
+    binary::Binary,
+    boxed::ZBox,
+    prelude::*,
+    types::{ZendHashTable, ZendObject, Zval},
+    zend::ProcessGlobals,
+};
 use std::collections::HashMap;
 
 #[php_function]
@@ -55,6 +61,40 @@ pub fn test_nullable(a: Option<String>) -> Option<String> {
 #[php_function]
 pub fn test_object(a: &mut ZendObject) -> &mut ZendObject {
     a
+}
+
+// GLOBALS
+#[php_function]
+pub fn test_globals_http_get() -> ZBox<ZendHashTable> {
+    ProcessGlobals::get().http_get_vars().to_owned()
+}
+
+#[php_function]
+pub fn test_globals_http_post() -> ZBox<ZendHashTable> {
+    ProcessGlobals::get().http_post_vars().to_owned()
+}
+
+#[php_function]
+pub fn test_globals_http_cookie() -> ZBox<ZendHashTable> {
+    ProcessGlobals::get().http_cookie_vars().to_owned()
+}
+
+#[php_function]
+pub fn test_globals_http_server() -> ZBox<ZendHashTable> {
+    ProcessGlobals::get().http_server_vars().unwrap().to_owned()
+}
+
+#[php_function]
+pub fn test_globals_http_request() -> ZBox<ZendHashTable> {
+    ProcessGlobals::get()
+        .http_request_vars()
+        .unwrap()
+        .to_owned()
+}
+
+#[php_function]
+pub fn test_globals_http_files() -> ZBox<ZendHashTable> {
+    ProcessGlobals::get().http_files_vars().to_owned()
 }
 
 #[php_function]
@@ -179,6 +219,7 @@ mod integration {
     mod callable;
     mod class;
     mod closure;
+    mod globals;
     mod nullable;
     mod number;
     mod object;
