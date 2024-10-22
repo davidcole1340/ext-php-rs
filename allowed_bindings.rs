@@ -86,6 +86,7 @@ bind! {
     zend_function_entry,
     zend_hash_clean,
     zend_hash_find_known_hash,
+    _zend_hash_find_known_hash,
     zend_hash_index_del,
     zend_hash_index_find,
     zend_hash_index_update,
