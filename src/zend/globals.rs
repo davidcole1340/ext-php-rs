@@ -10,7 +10,7 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::exception::PhpResult;
-#[cfg(php82)]
+#[cfg(not(any(php80, php81)))]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
     _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
@@ -19,6 +19,13 @@ use crate::ffi::{
     sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
     zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
     TRACK_VARS_POST, TRACK_VARS_SERVER,
+};
+#[cfg(php80)]
+use crate::ffi::{_zend_hash_find_known_hash, _zend_string};
+#[cfg(not(php80))]
+use crate::ffi::{
+    _zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST, zend_hash_find_known_hash,
+    zend_known_strings,
 };
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
@@ -154,7 +161,7 @@ impl ExecutorGlobals {
     /// set with [`crate::ffi::zend_interrupt_function`].
     pub fn request_interrupt(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(php82)] {
+            if #[cfg(not(any(php80, php81)))] {
                 unsafe {
                     zend_atomic_bool_store(&mut self.vm_interrupt, true);
                 }
@@ -167,7 +174,7 @@ impl ExecutorGlobals {
     /// Cancel a requested an interrupt of the PHP VM.
     pub fn cancel_interrupt(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(php82)] {
+            if #[cfg(not(any(php80, php81)))] {
                 unsafe {
                     zend_atomic_bool_store(&mut self.vm_interrupt, false);
                 }
@@ -285,16 +292,38 @@ impl ProcessGlobals {
     /// Get the HTTP Request variables. Equivalent of $_REQUEST.
     ///
     /// # Panics
-    /// There is an outstanding issue with the implementation of this function.
-    /// Untill resolved, this function will allways panic.
-    ///
-    /// - <https://github.com/davidcole1340/ext-php-rs/issues/331>
-    /// - <https://github.com/php/php-src/issues/16541>
-    pub fn http_request_vars(&self) -> &ZendHashTable {
-        todo!("$_REQUEST super global was erroneously fetched from http_globals which resulted in an out-of-bounds access. A new implementation is needed.");
-        // self.http_globals[TRACK_VARS_REQUEST as usize]
-        //     .array()
-        //     .expect("Type is not a ZendArray")
+    /// - If the request global is not found or fails to be populated.
+    /// - If the request global is not a ZendArray.
+    pub fn http_request_vars(&self) -> Option<&ZendHashTable> {
+        cfg_if::cfg_if! {
+            if #[cfg(php80)] {
+                let key = _zend_string::new("_REQUEST", false).as_mut_ptr();
+            } else {
+                let key = unsafe {
+                    *zend_known_strings.add(_zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST as usize)
+                };
+            }
+        };
+
+        // `$_REQUEST` is lazy-initted, we need to call `zend_is_auto_global` to make sure it's populated.
+        if !unsafe { zend_is_auto_global(key) } {
+            panic!("Failed to get request global");
+        }
+
+        let symbol_table = &ExecutorGlobals::get().symbol_table;
+        cfg_if::cfg_if! {
+            if #[cfg(php80)] {
+                let request = unsafe { _zend_hash_find_known_hash(symbol_table, key) };
+            } else {
+                let request = unsafe { zend_hash_find_known_hash(symbol_table, key) };
+            }
+        };
+
+        if request.is_null() {
+            return None;
+        }
+
+        Some(unsafe { (*request).array() }.expect("Type is not a ZendArray"))
     }
 
     /// Get the HTTP Environment variables. Equivalent of $_ENV.
