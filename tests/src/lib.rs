@@ -1,5 +1,7 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval, exception::PhpException, zend::ce};
+use ext_php_rs::{
+    binary::Binary, exception::PhpException, prelude::*, types::ZendObject, types::Zval, zend::ce,
+};
 use std::collections::HashMap;
 
 #[php_function]
@@ -119,7 +121,9 @@ pub struct TestException;
 
 #[php_function]
 pub fn throw_custom_exception() -> PhpResult<i32> {
-    Err(PhpException::from_class::<TestException>("Not good custom!".into()))
+    Err(PhpException::from_class::<TestException>(
+        "Not good custom!".into(),
+    ))
 }
 
 #[php_function]
