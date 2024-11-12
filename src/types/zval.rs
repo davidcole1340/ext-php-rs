@@ -718,3 +718,18 @@ impl<'a> FromZvalMut<'a> for &'a mut Zval {
         Some(zval)
     }
 }
+
+impl<'a> FromZvalMut<'a> for &'a [&'a Zval] {
+    const TYPE: DataType = DataType::Array;
+
+    fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
+        // Check if the input Zval is an array and convert it into a slice of references
+        if let Some(a) = zval.array(){
+            // Collect references to each element in the array
+            let slice: Vec<&'a Zval> = a.values().collect();
+            Some(Box::leak(slice.into_boxed_slice()))
+        } else {
+            None
+        }
+    }
+}
