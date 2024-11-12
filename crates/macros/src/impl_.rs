@@ -187,7 +187,7 @@ pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
     Ok(Some(match name.as_ref() {
         "defaults" => {
             let defaults = HashMap::from_meta(&meta)
-                .map_err(|_| anyhow!("Unable to parse `#[default]` macro."))?;
+                .map_err(|_| anyhow!("Unable to parse `#[defaults]` macro."))?;
             ParsedAttribute::Default(defaults)
         }
         "optional" => {
