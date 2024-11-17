@@ -15,6 +15,13 @@ pub struct Constant {
     pub value: String,
 }
 
+fn prepare(input: ItemConst) -> Result<TokenStream> {
+    Ok(quote! {
+        #[allow(dead_code)]
+        #input
+    })
+}
+
 pub fn parser(input: ItemConst) -> Result<TokenStream> {
     let mut state = STATE.lock();
 
@@ -28,10 +35,7 @@ pub fn parser(input: ItemConst) -> Result<TokenStream> {
         value: input.expr.to_token_stream().to_string(),
     });
 
-    Ok(quote! {
-        #[allow(dead_code)]
-        #input
-    })
+    prepare(input)
 }
 
 impl Constant {
