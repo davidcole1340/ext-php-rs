@@ -38,6 +38,10 @@ impl FunctionEntry {
             arg_info: ptr::null(),
             num_args: 0,
             flags: 0,
+            #[cfg(php84)]
+            doc_comment: ptr::null(),
+            #[cfg(php84)]
+            frameless_function_infos: ptr::null(),
         }
     }
 

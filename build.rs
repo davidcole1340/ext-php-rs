@@ -230,7 +230,9 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
 
     const PHP_83_API_VER: u32 = 20230831;
 
-    println!("cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php_zts, php_debug, docs)");
+    const PHP_84_API_VER: u32 = 20240924;
+
+    println!("cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)");
     println!("cargo:rustc-cfg=php80");
 
     if (PHP_81_API_VER..PHP_82_API_VER).contains(&version) {
@@ -243,6 +245,10 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
 
     if version >= PHP_83_API_VER {
         println!("cargo:rustc-cfg=php83");
+    }
+
+    if version >= PHP_84_API_VER {
+        println!("cargo:rustc-cfg=php84");
     }
 
     Ok(())

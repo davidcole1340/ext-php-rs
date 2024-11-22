@@ -55,6 +55,10 @@ impl<'a> FunctionBuilder<'a> {
                 arg_info: ptr::null(),
                 num_args: 0,
                 flags: 0, // TBD?
+                #[cfg(php84)]
+                doc_comment: ptr::null(),
+                #[cfg(php84)]
+                frameless_function_infos: ptr::null(),
             },
             args: vec![],
             n_req: None,
@@ -79,6 +83,10 @@ impl<'a> FunctionBuilder<'a> {
                 arg_info: ptr::null(),
                 num_args: 0,
                 flags: MethodFlags::Abstract.bits(),
+                #[cfg(php84)]
+                doc_comment: ptr::null(),
+                #[cfg(php84)]
+                frameless_function_infos: ptr::null(),
             },
             args: vec![],
             n_req: None,
