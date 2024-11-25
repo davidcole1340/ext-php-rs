@@ -42,7 +42,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.os == 'windows-latest' && matrix.php == '8.4' && '8.4.1' || matrix.php }}
         env:
           phpts: ${{ matrix.phpts }}
           debug: true
