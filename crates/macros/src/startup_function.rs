@@ -6,31 +6,23 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{AttributeArgs, Expr, ItemFn, Signature};
 
-use crate::{class::Class, constant::Constant, STATE};
+use crate::{class::Class, constant::Constant};
 
 #[derive(Default, Debug, FromMeta)]
 #[darling(default)]
-struct StartupArgs {
+pub(crate) struct StartupArgs {
     before: bool,
 }
 
-pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream> {
-    let args = if let Some(args) = args {
-        StartupArgs::from_list(&args)
-            .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?
-    } else {
-        StartupArgs::default()
-    };
+pub fn parser(args: Option<StartupArgs>, input: &ItemFn) -> Result<(TokenStream, Ident)> {
+    let args = args.unwrap_or_default();
 
     let ItemFn { sig, block, .. } = input;
     let Signature { ident, .. } = sig;
     let stmts = &block.stmts;
 
-    let mut state = STATE.lock();
-    state.startup_function = Some(ident.to_string());
-
-    let classes = build_classes(&state.classes)?;
-    let constants = build_constants(&state.constants);
+    // let classes = build_classes(&state.classes)?;
+    // let constants = build_constants(&state.constants);
     let (before, after) = if args.before {
         (Some(quote! { internal(ty, module_number); }), None)
     } else {
@@ -50,15 +42,15 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
             ::ext_php_rs::internal::ext_php_rs_startup();
 
             #before
-            #(#classes)*
-            #(#constants)*
+            // #(#classes)*
+            // #(#constants)*
             #after
 
             0
         }
     };
 
-    Ok(func)
+    Ok((func, ident.clone()))
 }
 
 /// Returns a vector of `ClassBuilder`s for each class.
