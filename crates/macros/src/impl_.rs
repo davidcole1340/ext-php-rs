@@ -105,31 +105,29 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
         bail!("This macro cannot be used on trait implementations.");
     }
 
-    let mut state = crate::STATE.lock();
-
-    if state.startup_function.is_some() {
-        bail!(
-            "Impls must be declared before you declare your startup function and module function."
-        );
-    }
-
-    let class = state.classes.get_mut(&class_name).ok_or_else(|| {
-        anyhow!(
-            "You must use `#[php_class]` on the struct before using this attribute on the impl."
-        )
-    })?;
+    // if state.startup_function.is_some() {
+    //     bail!(
+    //         "Impls must be declared before you declare your startup function and module function."
+    //     );
+    // }
+    //
+    // let class = state.classes.get_mut(&class_name).ok_or_else(|| {
+    //     anyhow!(
+    //         "You must use `#[php_class]` on the struct before using this attribute on the impl."
+    //     )
+    // })?;
 
     let tokens = items
         .into_iter()
         .map(|item| {
             Ok(match item {
                 syn::ImplItem::Const(constant) => {
-                    class.constants.push(Constant {
-                        name: constant.ident.to_string(),
-                        // visibility: Visibility::Public,
-                        docs: get_docs(&constant.attrs),
-                        value: constant.expr.to_token_stream().to_string(),
-                    });
+                    // class.constants.push(Constant {
+                    //     name: constant.ident.to_string(),
+                    //     // visibility: Visibility::Public,
+                    //     docs: get_docs(&constant.attrs),
+                    //     value: constant.expr.to_token_stream().to_string(),
+                    // });
 
                     quote! {
                         #[allow(dead_code)]
@@ -143,24 +141,24 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
                     // TODO(david): How do we handle comments for getter/setter? Take the comments
                     // from the methods??
                     if let Some((prop, ty)) = parsed_method.property {
-                        let prop = class
-                            .properties
-                            .entry(prop)
-                            .or_insert_with(|| Property::method(vec![], None));
+                        // let prop = class
+                        //     .properties
+                        //     .entry(prop)
+                        //     .or_insert_with(|| Property::method(vec![], None));
                         let ident = parsed_method.method.orig_ident.clone();
 
-                        match ty {
-                            PropAttrTy::Getter => prop.add_getter(ident)?,
-                            PropAttrTy::Setter => prop.add_setter(ident)?,
-                        }
+                        // match ty {
+                        //     PropAttrTy::Getter => prop.add_getter(ident)?,
+                        //     PropAttrTy::Setter => prop.add_setter(ident)?,
+                        // }
                     }
                     if parsed_method.constructor {
-                        if class.constructor.is_some() {
-                            bail!("You cannot have two constructors on the same class.");
-                        }
-                        class.constructor = Some(parsed_method.method);
+                        // if class.constructor.is_some() {
+                        //     bail!("You cannot have two constructors on the same class.");
+                        // }
+                        // class.constructor = Some(parsed_method.method);
                     } else {
-                        class.methods.push(parsed_method.method);
+                        // class.methods.push(parsed_method.method);
                     }
                     parsed_method.tokens
                 }

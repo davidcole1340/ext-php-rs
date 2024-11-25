@@ -3,40 +3,44 @@ use std::sync::MutexGuard;
 use anyhow::{anyhow, bail, Result};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{ItemFn, Signature, Type};
+use syn::{Item, ItemFn, ItemMod, Signature, Type};
 
 use crate::{
     class::{Class, Property},
     function::{Arg, Function},
-    startup_function, State, STATE,
+    startup_function, State,
 };
 
-pub fn parser(input: ItemFn) -> Result<TokenStream> {
-    let ItemFn { sig, block, .. } = input;
-    let Signature { output, inputs, .. } = sig;
-    let stmts = &block.stmts;
-
-    let mut state = STATE.lock();
-
-    if state.built_module {
-        bail!("You may only define a module with the `#[php_module]` attribute once.");
+pub fn parser(input: ItemMod) -> Result<TokenStream> {
+    if input.ident != "module" {
+        return Ok(
+            quote! { compile_error!("The `php_module` attribute must be used on a module named `module`."); },
+        );
     }
+    if input.content.is_none() {
+        return Ok(quote! {});
+    }
+    let mut state = State::default();
+    let (_, content) = &input.content.expect("module content is missing");
+    let content = content
+        .iter()
+        .map(|i| state.parse_item(i))
+        .collect::<Vec<_>>();
 
-    state.built_module = true;
+    // let ItemFn { sig, block, .. } = input;
+    // let Signature { output, inputs, .. } = sig;
+    // let stmts = &block.stmts;
 
     // Generate startup function if one hasn't already been tagged with the macro.
     let startup_fn = if (!state.classes.is_empty() || !state.constants.is_empty())
         && state.startup_function.is_none()
     {
-        drop(state);
-
         let parsed = syn::parse2(quote! {
             fn php_module_startup() {}
         })
         .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
-        let startup = startup_function::parser(None, parsed)?;
+        let (startup, _) = startup_function::parser(None, &parsed)?;
 
-        state = STATE.lock();
         Some(startup)
     } else {
         None
@@ -49,8 +53,9 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         .collect::<Vec<_>>();
     let startup = state.startup_function.as_ref().map(|ident| {
         let ident = Ident::new(ident, Span::call_site());
+        // TODO: fix module name
         quote! {
-            .startup_function(#ident)
+            .startup_function(module::#ident)
         }
     });
     let registered_classes_impls = state
@@ -65,12 +70,16 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
 
         #startup_fn
 
+        mod module {
+            #( #content )*
+        }
+
         #[doc(hidden)]
         #[no_mangle]
         pub extern "C" fn get_module() -> *mut ::ext_php_rs::zend::ModuleEntry {
-            fn internal(#inputs) #output {
-                #(#stmts)*
-            }
+            // fn internal(#inputs) #output {
+            //     #(#stmts)*
+            // }
 
             let mut builder = ::ext_php_rs::builders::ModuleBuilder::new(
                 env!("CARGO_PKG_NAME"),
@@ -81,7 +90,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
             ;
 
             // TODO allow result return types
-            let builder = internal(builder);
+            // let builder = internal(builder);
 
             match builder.build() {
                 Ok(module) => module.into_raw(),
@@ -151,7 +160,7 @@ pub trait Describe {
     fn describe(&self) -> TokenStream;
 }
 
-fn generate_stubs(state: &MutexGuard<State>) -> TokenStream {
+fn generate_stubs(state: &State) -> TokenStream {
     let module = state.describe();
 
     quote! {

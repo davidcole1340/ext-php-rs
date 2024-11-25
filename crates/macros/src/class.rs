@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::STATE;
 use anyhow::{anyhow, bail, Context, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
@@ -132,17 +131,17 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         ..Default::default()
     };
 
-    let mut state = STATE.lock();
-
-    if state.built_module {
-        bail!("The `#[php_module]` macro must be called last to ensure functions and classes are registered.");
-    }
-
-    if state.startup_function.is_some() {
-        bail!("The `#[php_startup]` macro must be called after all the classes have been defined.");
-    }
-
-    state.classes.insert(ident.to_string(), class);
+    // let mut state = STATE.lock();
+    //
+    // if state.built_module {
+    //     bail!("The `#[php_module]` macro must be called last to ensure functions and classes are registered.");
+    // }
+    //
+    // if state.startup_function.is_some() {
+    //     bail!("The `#[php_startup]` macro must be called after all the classes have been defined.");
+    // }
+    //
+    // state.classes.insert(ident.to_string(), class);
 
     Ok(quote! {
         #input
