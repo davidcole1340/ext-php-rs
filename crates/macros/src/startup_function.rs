@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use darling::FromMeta;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{AttributeArgs, Expr, ItemFn, Signature};
+use syn::{Expr, ItemFn, Signature};
 
 use crate::{class::Class, constant::Constant};
 
@@ -14,7 +14,11 @@ pub(crate) struct StartupArgs {
     before: bool,
 }
 
-pub fn parser(args: Option<StartupArgs>, input: &ItemFn) -> Result<(TokenStream, Ident)> {
+pub fn parser(
+    args: Option<StartupArgs>,
+    input: &ItemFn,
+    constants: &Vec<Constant>,
+) -> Result<(TokenStream, Ident)> {
     let args = args.unwrap_or_default();
 
     let ItemFn { sig, block, .. } = input;
@@ -22,7 +26,7 @@ pub fn parser(args: Option<StartupArgs>, input: &ItemFn) -> Result<(TokenStream,
     let stmts = &block.stmts;
 
     // let classes = build_classes(&state.classes)?;
-    // let constants = build_constants(&state.constants);
+    let constants = build_constants(&constants);
     let (before, after) = if args.before {
         (Some(quote! { internal(ty, module_number); }), None)
     } else {
@@ -43,7 +47,7 @@ pub fn parser(args: Option<StartupArgs>, input: &ItemFn) -> Result<(TokenStream,
 
             #before
             // #(#classes)*
-            // #(#constants)*
+            #(#constants)*
             #after
 
             0
