@@ -163,12 +163,27 @@ impl DevelPack {
     /// Downloads a new PHP development pack, unzips it in the build script
     /// temporary directory.
     fn new(version: &str, is_zts: bool, arch: Arch) -> Result<DevelPack> {
+        // If the PHP version is more than 8.4.1, use VS17 instead of VS16.
+        let version_float = version
+            .split('.')
+            .take(2)
+            .collect::<Vec<_>>()
+            .join(".")
+            .parse::<f32>()
+            .context("Failed to parse PHP version as float")?;
+
+        // PHP builds switched to VS17 in PHP 8.4.1.
+        let visual_studio_version = if version_float >= 8.4f32 {
+            "vs17"
+        } else {
+            "vs16"
+        };
+
         let zip_name = format!(
             "php-devel-pack-{}{}-Win32-{}-{}.zip",
             version,
             if is_zts { "" } else { "-nts" },
-            "vs16", /* TODO(david): At the moment all PHPs supported by ext-php-rs use VS16 so
-                     * this is constant. */
+            visual_studio_version,
             arch
         );
 
@@ -207,8 +222,10 @@ impl DevelPack {
             Ok(devpack_path)
         }
 
+        let is_archive = if version == "8.4.1" { false } else { true };
+
         download(&zip_name, false)
-            .or_else(|_| download(&zip_name, true))
+            .or_else(|_| download(&zip_name, is_archive))
             .map(DevelPack)
     }
 
