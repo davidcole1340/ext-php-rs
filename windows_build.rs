@@ -179,7 +179,6 @@ impl DevelPack {
             "vs16"
         };
 
-
         let zip_name = format!(
             "php-devel-pack-{}{}-Win32-{}-{}.zip",
             version,
