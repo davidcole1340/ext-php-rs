@@ -9,6 +9,7 @@ use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitSt
 
 #[derive(Debug, Default)]
 pub struct Class {
+    pub name: String,
     pub class_name: String,
     pub struct_path: String,
     pub parent: Option<String>,
@@ -40,7 +41,7 @@ pub struct AttrArgs {
     flags: Option<Expr>,
 }
 
-pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream> {
+pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<(TokenStream, Class)> {
     let args = AttrArgs::from_list(&args)
         .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
 
@@ -51,7 +52,11 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     input.attrs = {
         let mut unused = vec![];
-        for attr in input.attrs.into_iter() {
+        for attr in input
+            .attrs
+            .into_iter()
+            .filter(|a| !a.path.is_ident("php_class"))
+        {
             match parse_attribute(&attr)? {
                 Some(parsed) => match parsed {
                     ParsedAttribute::Extends(class) => {
@@ -120,6 +125,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
     let struct_path = ident.to_string();
     let flags = args.flags.map(|flags| flags.to_token_stream().to_string());
     let class = Class {
+        name: ident.to_string(),
         class_name,
         struct_path,
         parent,
@@ -131,23 +137,14 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         ..Default::default()
     };
 
-    // let mut state = STATE.lock();
-    //
-    // if state.built_module {
-    //     bail!("The `#[php_module]` macro must be called last to ensure functions and classes are registered.");
-    // }
-    //
-    // if state.startup_function.is_some() {
-    //     bail!("The `#[php_startup]` macro must be called after all the classes have been defined.");
-    // }
-    //
-    // state.classes.insert(ident.to_string(), class);
+    Ok((
+        quote! {
+            #input
 
-    Ok(quote! {
-        #input
-
-        ::ext_php_rs::class_derives!(#ident);
-    })
+            ::ext_php_rs::class_derives!(#ident);
+        },
+        class,
+    ))
 }
 
 #[derive(Debug)]

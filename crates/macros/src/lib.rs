@@ -60,7 +60,7 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
 
     match class::parser(args, input) {
-        Ok(parsed) => parsed,
+        Ok((parsed, _)) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }
     .into()

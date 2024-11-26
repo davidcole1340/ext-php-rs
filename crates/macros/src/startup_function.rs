@@ -17,6 +17,7 @@ pub(crate) struct StartupArgs {
 pub fn parser(
     args: Option<StartupArgs>,
     input: &ItemFn,
+    classes: &Vec<Class>,
     constants: &Vec<Constant>,
 ) -> Result<(TokenStream, Ident)> {
     let args = args.unwrap_or_default();
@@ -25,7 +26,7 @@ pub fn parser(
     let Signature { ident, .. } = sig;
     let stmts = &block.stmts;
 
-    // let classes = build_classes(&state.classes)?;
+    let classes = build_classes(classes)?;
     let constants = build_constants(&constants);
     let (before, after) = if args.before {
         (Some(quote! { internal(ty, module_number); }), None)
@@ -46,7 +47,7 @@ pub fn parser(
             ::ext_php_rs::internal::ext_php_rs_startup();
 
             #before
-            // #(#classes)*
+            #(#classes)*
             #(#constants)*
             #after
 
@@ -58,13 +59,13 @@ pub fn parser(
 }
 
 /// Returns a vector of `ClassBuilder`s for each class.
-fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
+fn build_classes(classes: &Vec<Class>) -> Result<Vec<TokenStream>> {
     classes
         .iter()
-        .map(|(name, class)| {
+        .map(|class| {
             let Class { class_name, .. } = &class;
-            let ident = Ident::new(name, Span::call_site());
-            let meta = Ident::new(&format!("_{name}_META"), Span::call_site());
+            let ident = Ident::new(&class.name, Span::call_site());
+            let meta = Ident::new(&format!("_{}_META", ident), Span::call_site());
             let methods = class.methods.iter().map(|method| {
                 let builder = method.get_builder(&ident);
                 let flags = method.get_flags();

@@ -46,6 +46,16 @@ pub fn parser(input: ItemMod) -> Result<TokenStream> {
                 builder.add_constant(c.clone());
                 continue;
             }
+            Item::Struct(s) => {
+                if s.attrs
+                    .iter()
+                    .find(|a| a.path.is_ident("php_class"))
+                    .is_some()
+                {
+                    builder.add_class(s.clone());
+                    continue;
+                }
+            }
             _ => {}
         }
         builder.add_unmapped(item.clone());
