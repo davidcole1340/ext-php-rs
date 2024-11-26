@@ -13,23 +13,22 @@ pub struct Constant {
     pub value: String,
 }
 
-pub fn parser(input: ItemConst) -> Result<TokenStream> {
-    // let mut state = STATE.lock();
-    //
-    // if state.startup_function.is_some() {
-    //     bail!("Constants must be declared before you declare your startup function and module function.");
-    // }
-    //
-    // state.constants.push(Constant {
-    //     name: input.ident.to_string(),
-    //     docs: get_docs(&input.attrs),
-    //     value: input.expr.to_token_stream().to_string(),
-    // });
+pub fn parser(input: &mut ItemConst) -> Result<(TokenStream, Constant)> {
+    let constant = Constant {
+        name: input.ident.to_string(),
+        docs: get_docs(&input.attrs),
+        value: input.expr.to_token_stream().to_string(),
+    };
 
-    Ok(quote! {
-        #[allow(dead_code)]
-        #input
-    })
+    input.attrs.remove(0);
+
+    Ok((
+        quote! {
+            #[allow(dead_code)]
+            #input
+        },
+        constant,
+    ))
 }
 
 impl Constant {

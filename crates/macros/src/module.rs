@@ -1,14 +1,13 @@
-use std::sync::MutexGuard;
-
-use anyhow::{anyhow, bail, Result};
+use anyhow::Result;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{Item, ItemFn, ItemMod, Signature, Type};
+use syn::{Item, ItemMod, Type};
 
 use crate::{
     class::{Class, Property},
     function::{Arg, Function},
-    startup_function, State,
+    module_builder::ModuleBuilder,
+    State,
 };
 
 pub fn parser(input: ItemMod) -> Result<TokenStream> {
@@ -20,87 +19,50 @@ pub fn parser(input: ItemMod) -> Result<TokenStream> {
     if input.content.is_none() {
         return Ok(quote! {});
     }
-    let mut state = State::default();
+
+    let mut builder = ModuleBuilder::new();
     let (_, content) = &input.content.expect("module content is missing");
-    let content = content
-        .iter()
-        .map(|i| state.parse_item(i))
-        .collect::<Vec<_>>();
+    for item in content {
+        match item {
+            Item::Fn(f) => {
+                if f.attrs
+                    .iter()
+                    .find(|a| a.path.is_ident("php_startup"))
+                    .is_some()
+                {
+                    builder.set_startup_function(f.clone());
+                    continue;
+                } else if f
+                    .attrs
+                    .iter()
+                    .find(|a| a.path.is_ident("php_function"))
+                    .is_some()
+                {
+                    builder.add_function(f.clone());
+                    continue;
+                }
+            }
+            Item::Const(c) => {
+                builder.add_constant(c.clone());
+                continue;
+            }
+            _ => {}
+        }
+        builder.add_unmapped(item.clone());
+    }
 
     // let ItemFn { sig, block, .. } = input;
     // let Signature { output, inputs, .. } = sig;
     // let stmts = &block.stmts;
 
-    // Generate startup function if one hasn't already been tagged with the macro.
-    let startup_fn = if (!state.classes.is_empty() || !state.constants.is_empty())
-        && state.startup_function.is_none()
-    {
-        let parsed = syn::parse2(quote! {
-            fn php_module_startup() {}
-        })
-        .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
-        let (startup, _) = startup_function::parser(None, &parsed)?;
+    // let registered_classes_impls = state
+    //     .classes
+    //     .values()
+    //     .map(generate_registered_class_impl)
+    //     .collect::<Result<Vec<_>>>()?;
+    // let describe_fn = generate_stubs(&state);
 
-        Some(startup)
-    } else {
-        None
-    };
-
-    let functions = state
-        .functions
-        .iter()
-        .map(|func| func.get_builder())
-        .collect::<Vec<_>>();
-    let startup = state.startup_function.as_ref().map(|ident| {
-        let ident = Ident::new(ident, Span::call_site());
-        // TODO: fix module name
-        quote! {
-            .startup_function(module::#ident)
-        }
-    });
-    let registered_classes_impls = state
-        .classes
-        .values()
-        .map(generate_registered_class_impl)
-        .collect::<Result<Vec<_>>>()?;
-    let describe_fn = generate_stubs(&state);
-
-    let result = quote! {
-        #(#registered_classes_impls)*
-
-        #startup_fn
-
-        mod module {
-            #( #content )*
-        }
-
-        #[doc(hidden)]
-        #[no_mangle]
-        pub extern "C" fn get_module() -> *mut ::ext_php_rs::zend::ModuleEntry {
-            // fn internal(#inputs) #output {
-            //     #(#stmts)*
-            // }
-
-            let mut builder = ::ext_php_rs::builders::ModuleBuilder::new(
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION")
-            )
-            #startup
-            #(.function(#functions.unwrap()))*
-            ;
-
-            // TODO allow result return types
-            // let builder = internal(builder);
-
-            match builder.build() {
-                Ok(module) => module.into_raw(),
-                Err(e) => panic!("Failed to build PHP module: {:?}", e),
-            }
-        }
-
-        #describe_fn
-    };
-    Ok(result)
+    Ok(builder.build())
 }
 
 /// Generates an implementation for `RegisteredClass` on the given class.

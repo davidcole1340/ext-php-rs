@@ -8,11 +8,12 @@ mod helpers;
 mod impl_;
 mod method;
 mod module;
+mod module_builder;
 mod startup_function;
 mod syn_ext;
 mod zval;
 
-use std::collections::HashMap;
+use std::{borrow::BorrowMut, collections::HashMap};
 
 use constant::Constant;
 use darling::FromMeta;
@@ -35,65 +36,6 @@ struct State {
 }
 
 impl State {
-    fn parse_item(&mut self, item: &Item) -> TokenStream2 {
-        let mut unparsed_attr = vec![];
-        let tokens: TokenStream2 = match item {
-            Item::Fn(func) => {
-                for attr in &func.attrs {
-                    if attr.style == syn::AttrStyle::Outer && attr.path.is_ident("php_function") {
-                        match Self::parse_attr(attr) {
-                            Ok(attr_args) => {
-                                let (tokens, func) = function::parser(attr_args, func)
-                                    .expect("Failed to parse function");
-                                self.functions.push(func);
-                                return tokens;
-                            }
-                            Err(e) => return e,
-                        }
-                    } else if attr.style == syn::AttrStyle::Outer
-                        && attr.path.is_ident("php_startup")
-                    {
-                        match Self::parse_attr(attr) {
-                            Ok(attr_args) => {
-                                let (tokens, func) =
-                                    startup_function::parser(Some(attr_args), func)
-                                        .expect("Failed to parse startup function");
-                                self.startup_function = Some(func.to_string());
-                                return tokens;
-                            }
-                            Err(e) => return e,
-                        }
-                    } else {
-                        unparsed_attr.push(attr.into_token_stream());
-                    }
-
-                    unparsed_attr.push(attr.into_token_stream());
-                }
-                return quote! { #func };
-            }
-            _ => quote! { #item },
-        };
-
-        tokens
-    }
-
-    fn parse_attr<T>(attr: &Attribute) -> Result<T, TokenStream2>
-    where
-        T: FromMeta,
-    {
-        let meta = Self::parse_metadata(attr);
-
-        Self::parse_from_meta(&meta, Some(attr.span()))
-    }
-
-    fn parse_metadata(attr: &Attribute) -> Vec<NestedMeta> {
-        if let Ok(args) = attr.parse_args::<TokenStream2>().map(|args| args.into()) {
-            syn::parse_macro_input::parse::<AttributeArgs>(args).unwrap_or(vec![])
-        } else {
-            vec![]
-        }
-    }
-
     fn parse_from_meta<T>(
         meta: &Vec<NestedMeta>,
         call_site: Option<Span>,
@@ -153,18 +95,21 @@ pub fn php_module(_: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn php_startup(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
-    let input = parse_macro_input!(input as ItemFn);
-    let attr_args = match State::parse_from_meta(&args, None) {
-        Ok(attr_args) => attr_args,
-        Err(e) => return e.into(),
-    };
-
-    match startup_function::parser(Some(attr_args), &input) {
-        Ok((parsed, _)) => parsed,
-        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
-    }
-    .into()
+    // let args = parse_macro_input!(args as AttributeArgs);
+    // let input = parse_macro_input!(input as ItemFn);
+    // let attr_args = match State::parse_from_meta(&args, None) {
+    //     Ok(attr_args) => attr_args,
+    //     Err(e) => return e.into(),
+    // };
+    //
+    // match startup_function::parser(Some(attr_args), &input) {
+    //     Ok((parsed, _)) => parsed,
+    //     Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    // }
+    // .into()
+    syn::Error::new(Span::call_site(), "php_startup is not supported")
+        .to_compile_error()
+        .into()
 }
 
 #[proc_macro_attribute]
@@ -181,10 +126,10 @@ pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn php_const(_: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemConst);
+    let mut input = parse_macro_input!(input as ItemConst);
 
-    match constant::parser(input) {
-        Ok(parsed) => parsed,
+    match constant::parser(&mut input) {
+        Ok((parsed, _)) => parsed,
         Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
     }
     .into()
