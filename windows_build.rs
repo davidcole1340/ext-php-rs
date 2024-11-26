@@ -222,10 +222,8 @@ impl DevelPack {
             Ok(devpack_path)
         }
 
-        let is_archive = if version == "8.4.1" { false } else { true };
-
         download(&zip_name, false)
-            .or_else(|_| download(&zip_name, is_archive))
+            .or_else(|_| download(&zip_name, true))
             .map(DevelPack)
     }
 
