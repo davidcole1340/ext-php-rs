@@ -3,12 +3,15 @@ use darling::FromMeta;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    spanned::Spanned as _, Attribute, AttributeArgs, Ident, Item, ItemConst, ItemFn, NestedMeta,
+    spanned::Spanned as _, Attribute, AttributeArgs, Ident, Item, ItemConst, ItemFn, ItemStruct,
+    NestedMeta,
 };
 
 use crate::{
+    class::{self, Class},
     constant::{self, Constant},
     function::{self, Function},
+    module::generate_registered_class_impl,
     startup_function,
 };
 
@@ -17,6 +20,7 @@ pub(crate) struct ModuleBuilder {
     pub functions: Vec<ItemFn>,
     pub startup_function: Option<ItemFn>,
     pub constants: Vec<ItemConst>,
+    pub classes: Vec<ItemStruct>,
     pub unmapped: Vec<Item>,
 }
 
@@ -37,27 +41,39 @@ impl ModuleBuilder {
         self.constants.push(constant);
     }
 
+    pub fn add_class(&mut self, class: ItemStruct) {
+        self.classes.push(class);
+    }
+
     pub fn add_unmapped(&mut self, item: Item) {
         self.unmapped.push(item);
     }
 
     pub fn build(&self) -> TokenStream {
+        let (class_stream, classes) = self.build_classes();
         let (function_stream, functions) = self.build_functions();
         let (constant_stream, constants) = self.build_constants();
-        let (startup_function, startup_ident) = self.build_startup_function(&constants).unwrap();
+        let (startup_function, startup_ident) =
+            self.build_startup_function(&classes, &constants).unwrap();
 
         let functions = functions
             .iter()
             .map(|func| func.get_builder())
             .collect::<Vec<_>>();
+        let registered_classes_impls = classes
+            .iter()
+            .map(|class| generate_registered_class_impl(class))
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
         let unmapped = &self.unmapped;
 
         // let describe_fn = generate_stubs(&state);
 
         quote! {
-            // #(#registered_classes_impls)*
 
             mod module {
+                #class_stream
+                #(#registered_classes_impls)*
                 #function_stream
                 #constant_stream
                 #startup_function
@@ -128,20 +144,47 @@ impl ModuleBuilder {
         )
     }
 
-    fn build_startup_function(&self, constants: &Vec<Constant>) -> Result<(TokenStream, Ident)> {
+    fn build_classes(&self) -> (TokenStream, Vec<Class>) {
+        let structs = self
+            .classes
+            .iter()
+            .map(|class| {
+                let args = class
+                    .attrs
+                    .iter()
+                    .find(|attr| attr.path.is_ident("php_class"));
+                let args = parse_metadata(args.unwrap());
+                class::parser(args, class.clone())
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        let tokens = structs.iter().map(|(tokens, _)| tokens);
+
+        (
+            quote! { #(#tokens)* },
+            structs.into_iter().map(|(_, c)| c).collect(),
+        )
+    }
+
+    fn build_startup_function(
+        &self,
+        classes: &Vec<Class>,
+        constants: &Vec<Constant>,
+    ) -> Result<(TokenStream, Ident)> {
         self.startup_function
             .as_ref()
             .map(|f| {
                 let attr = f.attrs.iter().find(|a| a.path.is_ident("php_startup"));
                 let args = parse_attr(attr.unwrap()).unwrap();
-                startup_function::parser(Some(args), f, constants)
+                startup_function::parser(Some(args), f, classes, constants)
             })
             .unwrap_or_else(|| {
                 let parsed = syn::parse2(quote! {
                     fn php_module_startup() {}
                 })
                 .map_err(|_| anyhow!("Unable to generate PHP module startup function."))?;
-                startup_function::parser(None, &parsed, constants)
+                startup_function::parser(None, &parsed, classes, constants)
             })
     }
 }
