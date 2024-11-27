@@ -17,7 +17,7 @@ pub(crate) struct StartupArgs {
 pub fn parser(
     args: Option<StartupArgs>,
     input: &ItemFn,
-    classes: &Vec<Class>,
+    classes: &HashMap<String, Class>,
     constants: &Vec<Constant>,
 ) -> Result<(TokenStream, Ident)> {
     let args = args.unwrap_or_default();
@@ -59,12 +59,12 @@ pub fn parser(
 }
 
 /// Returns a vector of `ClassBuilder`s for each class.
-fn build_classes(classes: &Vec<Class>) -> Result<Vec<TokenStream>> {
+fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
     classes
         .iter()
-        .map(|class| {
+        .map(|(name, class)| {
             let Class { class_name, .. } = &class;
-            let ident = Ident::new(&class.name, Span::call_site());
+            let ident = Ident::new(&name, Span::call_site());
             let meta = Ident::new(&format!("_{}_META", ident), Span::call_site());
             let methods = class.methods.iter().map(|method| {
                 let builder = method.get_builder(&ident);
