@@ -9,7 +9,6 @@ use syn::{Attribute, AttributeArgs, Expr, Fields, FieldsNamed, ItemStruct, LitSt
 
 #[derive(Debug, Default)]
 pub struct Class {
-    pub name: String,
     pub class_name: String,
     pub struct_path: String,
     pub parent: Option<String>,
@@ -41,7 +40,7 @@ pub struct AttrArgs {
     flags: Option<Expr>,
 }
 
-pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<(TokenStream, Class)> {
+pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<(TokenStream, String, Class)> {
     let args = AttrArgs::from_list(&args)
         .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
 
@@ -125,7 +124,6 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<(TokenStream
     let struct_path = ident.to_string();
     let flags = args.flags.map(|flags| flags.to_token_stream().to_string());
     let class = Class {
-        name: ident.to_string(),
         class_name,
         struct_path,
         parent,
@@ -143,6 +141,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<(TokenStream
 
             ::ext_php_rs::class_derives!(#ident);
         },
+        ident.to_string(),
         class,
     ))
 }

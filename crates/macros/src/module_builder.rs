@@ -1,16 +1,19 @@
+use std::{collections::HashMap, iter::Map};
+
 use anyhow::{anyhow, Result};
 use darling::FromMeta;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    spanned::Spanned as _, Attribute, AttributeArgs, Ident, Item, ItemConst, ItemFn, ItemStruct,
-    NestedMeta,
+    spanned::Spanned as _, Attribute, AttributeArgs, Ident, Item, ItemConst, ItemFn, ItemImpl,
+    ItemStruct, NestedMeta,
 };
 
 use crate::{
     class::{self, Class},
     constant::{self, Constant},
     function::{self, Function},
+    impl_,
     module::generate_registered_class_impl,
     startup_function,
 };
@@ -21,6 +24,7 @@ pub(crate) struct ModuleBuilder {
     pub startup_function: Option<ItemFn>,
     pub constants: Vec<ItemConst>,
     pub classes: Vec<ItemStruct>,
+    pub implementations: Vec<ItemImpl>,
     pub unmapped: Vec<Item>,
 }
 
@@ -45,12 +49,30 @@ impl ModuleBuilder {
         self.classes.push(class);
     }
 
+    pub fn add_implementation(&mut self, implementation: ItemImpl) {
+        self.implementations.push(implementation);
+    }
+
     pub fn add_unmapped(&mut self, item: Item) {
         self.unmapped.push(item);
     }
 
     pub fn build(&self) -> TokenStream {
-        let (class_stream, classes) = self.build_classes();
+        let (class_stream, mut classes) = self.build_classes();
+        let impl_stream = &self
+            .implementations
+            .iter()
+            .map(|implementation| {
+                let args = implementation
+                    .attrs
+                    .iter()
+                    .find(|attr| attr.path.is_ident("php_impl"));
+                let args = parse_metadata(args.unwrap());
+                impl_::parser(args, implementation.clone(), &mut classes)
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
         let (function_stream, functions) = self.build_functions();
         let (constant_stream, constants) = self.build_constants();
         let (startup_function, startup_ident) =
@@ -62,7 +84,7 @@ impl ModuleBuilder {
             .collect::<Vec<_>>();
         let registered_classes_impls = classes
             .iter()
-            .map(|class| generate_registered_class_impl(class))
+            .map(|(_, class)| generate_registered_class_impl(class))
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         let unmapped = &self.unmapped;
@@ -70,40 +92,39 @@ impl ModuleBuilder {
         // let describe_fn = generate_stubs(&state);
 
         quote! {
-
             mod module {
                 #class_stream
+                #(#impl_stream)*
                 #(#registered_classes_impls)*
                 #function_stream
                 #constant_stream
                 #startup_function
                 #(#unmapped)*
-            }
 
-            #[doc(hidden)]
-            #[no_mangle]
-            pub extern "C" fn get_module() -> *mut ::ext_php_rs::zend::ModuleEntry {
-                // fn internal(#inputs) #output {
-                //     #(#stmts)*
-                // }
+                #[doc(hidden)]
+                #[no_mangle]
+                pub extern "C" fn get_module() -> *mut ::ext_php_rs::zend::ModuleEntry {
+                    // fn internal(#inputs) #output {
+                    //     #(#stmts)*
+                    // }
 
-                let mut builder = ::ext_php_rs::builders::ModuleBuilder::new(
-                    env!("CARGO_PKG_NAME"),
-                    env!("CARGO_PKG_VERSION")
-                )
-                .startup_function(module::#startup_ident)
-                #(.function(#functions.unwrap()))*
-                ;
+                    let mut builder = ::ext_php_rs::builders::ModuleBuilder::new(
+                        env!("CARGO_PKG_NAME"),
+                        env!("CARGO_PKG_VERSION")
+                    )
+                    .startup_function(#startup_ident)
+                    #(.function(#functions.unwrap()))*
+                    ;
 
-                // TODO allow result return types
-                // let builder = internal(builder);
+                    // TODO allow result return types
+                    // let builder = internal(builder);
 
-                match builder.build() {
-                    Ok(module) => module.into_raw(),
-                    Err(e) => panic!("Failed to build PHP module: {:?}", e),
+                    match builder.build() {
+                        Ok(module) => module.into_raw(),
+                        Err(e) => panic!("Failed to build PHP module: {:?}", e),
+                    }
                 }
             }
-
             // #describe_fn
         }
     }
@@ -144,7 +165,7 @@ impl ModuleBuilder {
         )
     }
 
-    fn build_classes(&self) -> (TokenStream, Vec<Class>) {
+    fn build_classes(&self) -> (TokenStream, HashMap<String, Class>) {
         let structs = self
             .classes
             .iter()
@@ -159,17 +180,20 @@ impl ModuleBuilder {
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
-        let tokens = structs.iter().map(|(tokens, _)| tokens);
+        let tokens = structs.iter().map(|(tokens, _, _)| tokens);
 
         (
             quote! { #(#tokens)* },
-            structs.into_iter().map(|(_, c)| c).collect(),
+            structs
+                .into_iter()
+                .map(|(_, name, class)| (name, class))
+                .collect(),
         )
     }
 
     fn build_startup_function(
         &self,
-        classes: &Vec<Class>,
+        classes: &HashMap<String, Class>,
         constants: &Vec<Constant>,
     ) -> Result<(TokenStream, Ident)> {
         self.startup_function

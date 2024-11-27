@@ -457,9 +457,8 @@ impl Function {
             }
         });
 
-        // TODO: fix module name
         quote! {
-            ::ext_php_rs::builders::FunctionBuilder::new(#name, module::#name_ident)
+            ::ext_php_rs::builders::FunctionBuilder::new(#name, #name_ident)
                 #(#args)*
                 #output
                 .build()

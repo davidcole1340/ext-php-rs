@@ -56,6 +56,16 @@ pub fn parser(input: ItemMod) -> Result<TokenStream> {
                     continue;
                 }
             }
+            Item::Impl(i) => {
+                if i.attrs
+                    .iter()
+                    .find(|a| a.path.is_ident("php_impl"))
+                    .is_some()
+                {
+                    builder.add_implementation(i.clone());
+                    continue;
+                }
+            }
             _ => {}
         }
         builder.add_unmapped(item.clone());

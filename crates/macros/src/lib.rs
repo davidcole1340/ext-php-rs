@@ -13,16 +13,15 @@ mod startup_function;
 mod syn_ext;
 mod zval;
 
-use std::{borrow::BorrowMut, collections::HashMap};
+use std::collections::HashMap;
 
 use constant::Constant;
 use darling::FromMeta;
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, spanned::Spanned, Attribute, AttributeArgs, DeriveInput, Item, ItemConst,
-    ItemFn, ItemForeignMod, ItemImpl, ItemMod, ItemStruct, NestedMeta,
+    parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemMod,
+    NestedMeta,
 };
 
 extern crate proc_macro;
@@ -32,7 +31,6 @@ struct State {
     functions: Vec<function::Function>,
     classes: HashMap<String, class::Class>,
     constants: Vec<Constant>,
-    startup_function: Option<String>,
 }
 
 impl State {
@@ -55,15 +53,18 @@ impl State {
 }
 
 #[proc_macro_attribute]
-pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
-    let input = parse_macro_input!(input as ItemStruct);
-
-    match class::parser(args, input) {
-        Ok((parsed, _)) => parsed,
-        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
-    }
-    .into()
+pub fn php_class(_args: TokenStream, _input: TokenStream) -> TokenStream {
+    // let args = parse_macro_input!(args as AttributeArgs);
+    // let input = parse_macro_input!(input as ItemStruct);
+    //
+    // match class::parser(args, input) {
+    //     Ok((parsed, _)) => parsed,
+    //     Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    // }
+    // .into()
+    syn::Error::new(Span::call_site(), "php_class is not supported")
+        .to_compile_error()
+        .into()
 }
 
 #[proc_macro_attribute]
@@ -114,14 +115,17 @@ pub fn php_startup(args: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
-    let input = parse_macro_input!(input as ItemImpl);
-
-    match impl_::parser(args, input) {
-        Ok(parsed) => parsed,
-        Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
-    }
-    .into()
+    // let args = parse_macro_input!(args as AttributeArgs);
+    // let input = parse_macro_input!(input as ItemImpl);
+    //
+    // match impl_::parser(args, input) {
+    //     Ok(parsed) => parsed,
+    //     Err(e) => syn::Error::new(Span::call_site(), e).to_compile_error(),
+    // }
+    // .into()
+    syn::Error::new(Span::call_site(), "php_impl is not supported")
+        .to_compile_error()
+        .into()
 }
 
 #[proc_macro_attribute]
