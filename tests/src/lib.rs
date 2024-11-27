@@ -1,120 +1,120 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
-use std::collections::HashMap;
-
-#[php_function]
-pub fn test_str(a: &str) -> &str {
-    a
-}
-
-#[php_function]
-pub fn test_string(a: String) -> String {
-    a
-}
-
-#[php_function]
-pub fn test_bool(a: bool) -> bool {
-    a
-}
-
-#[php_function]
-pub fn test_number_signed(a: i32) -> i32 {
-    a
-}
-
-#[php_function]
-pub fn test_number_unsigned(a: u32) -> u32 {
-    a
-}
-
-#[php_function]
-pub fn test_number_float(a: f32) -> f32 {
-    a
-}
-
-#[php_function]
-pub fn test_array(a: Vec<String>) -> Vec<String> {
-    a
-}
-
-#[php_function]
-pub fn test_array_assoc(a: HashMap<String, String>) -> HashMap<String, String> {
-    a
-}
-
-#[php_function]
-pub fn test_binary(a: Binary<u32>) -> Binary<u32> {
-    a
-}
-
-#[php_function]
-pub fn test_nullable(a: Option<String>) -> Option<String> {
-    a
-}
-
-#[php_function]
-pub fn test_object(a: &mut ZendObject) -> &mut ZendObject {
-    a
-}
-
-#[php_function]
-pub fn test_closure() -> Closure {
-    Closure::wrap(Box::new(|a| a) as Box<dyn Fn(String) -> String>)
-}
-
-#[php_function]
-pub fn test_closure_once(a: String) -> Closure {
-    Closure::wrap_once(Box::new(move || a) as Box<dyn FnOnce() -> String>)
-}
-
-#[php_function]
-pub fn test_callable(call: ZendCallable, a: String) -> Zval {
-    call.try_call(vec![&a]).expect("Failed to call function")
-}
-
-#[php_class]
-pub struct TestClass {
-    string: String,
-    number: i32,
-    #[prop]
-    boolean: bool,
-}
-
-#[php_impl]
-impl TestClass {
-    #[getter]
-    pub fn get_string(&self) -> String {
-        self.string.to_string()
-    }
-
-    #[setter]
-    pub fn set_string(&mut self, string: String) {
-        self.string = string;
-    }
-
-    #[getter]
-    pub fn get_number(&self) -> i32 {
-        self.number
-    }
-
-    #[setter]
-    pub fn set_number(&mut self, number: i32) {
-        self.number = number;
-    }
-}
-
-#[php_function]
-pub fn test_class(string: String, number: i32) -> TestClass {
-    TestClass {
-        string,
-        number,
-        boolean: true,
-    }
-}
+use ext_php_rs::prelude::php_module;
 
 #[php_module]
-pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+mod module {
+    use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
+    use std::collections::HashMap;
+
+    #[php_function()]
+    pub fn test_str(a: &str) -> &str {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_string(a: String) -> String {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_bool(a: bool) -> bool {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_number_signed(a: i32) -> i32 {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_number_unsigned(a: u32) -> u32 {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_number_float(a: f32) -> f32 {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_array(a: Vec<String>) -> Vec<String> {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_array_assoc(a: HashMap<String, String>) -> HashMap<String, String> {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_binary(a: Binary<u32>) -> Binary<u32> {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_nullable(a: Option<String>) -> Option<String> {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_object(a: &mut ZendObject) -> &mut ZendObject {
+        a
+    }
+
+    #[php_function()]
+    pub fn test_closure() -> Closure {
+        Closure::wrap(Box::new(|a| a) as Box<dyn Fn(String) -> String>)
+    }
+
+    #[php_function()]
+    pub fn test_closure_once(a: String) -> Closure {
+        Closure::wrap_once(Box::new(move || a) as Box<dyn FnOnce() -> String>)
+    }
+
+    #[php_function()]
+    pub fn test_callable(call: ZendCallable, a: String) -> Zval {
+        call.try_call(vec![&a]).expect("Failed to call function")
+    }
+
+    #[php_class]
+    pub struct TestClass {
+        string: String,
+        number: i32,
+        #[prop]
+        boolean: bool,
+    }
+
+    #[php_impl]
+    impl TestClass {
+        #[getter]
+        pub fn get_string(&self) -> String {
+            self.string.to_string()
+        }
+
+        #[setter]
+        pub fn set_string(&mut self, string: String) {
+            self.string = string;
+        }
+
+        #[getter]
+        pub fn get_number(&self) -> i32 {
+            self.number
+        }
+
+        #[setter]
+        pub fn set_number(&mut self, number: i32) {
+            self.number = number;
+        }
+    }
+
+    #[php_function()]
+    pub fn test_class(string: String, number: i32) -> TestClass {
+        TestClass {
+            string,
+            number,
+            boolean: true,
+        }
+    }
 }
 
 #[cfg(test)]
