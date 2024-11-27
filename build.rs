@@ -16,7 +16,7 @@ use bindgen::RustTarget;
 use impl_::Provider;
 
 const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20230831;
+const MAX_PHP_API_VER: u32 = 20240924;
 
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
@@ -229,9 +229,13 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     const PHP_82_API_VER: u32 = 20220829;
 
     const PHP_83_API_VER: u32 = 20230831;
-
-    println!("cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php_zts, php_debug, docs)");
-
+  
+    const PHP_84_API_VER: u32 = 20240924;
+  
+    println!(
+        "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
+    );
+  
     if version < PHP_81_API_VER {
         println!("cargo:rustc-cfg=php80");
     }
@@ -244,8 +248,12 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
         println!("cargo:rustc-cfg=php82");
     }
 
-    if version >= PHP_83_API_VER {
+    if (PHP_83_API_VER..PHP_84_API_VER).contains(&version) {
         println!("cargo:rustc-cfg=php83");
+    }
+
+    if version >= PHP_84_API_VER {
+        println!("cargo:rustc-cfg=php84");
     }
 
     Ok(())
