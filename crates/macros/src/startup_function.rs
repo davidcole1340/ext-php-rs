@@ -18,7 +18,7 @@ pub fn parser(
     args: Option<StartupArgs>,
     input: &ItemFn,
     classes: &HashMap<String, Class>,
-    constants: &Vec<Constant>,
+    constants: &[Constant],
 ) -> Result<(TokenStream, Ident)> {
     let args = args.unwrap_or_default();
 
@@ -27,7 +27,7 @@ pub fn parser(
     let stmts = &block.stmts;
 
     let classes = build_classes(classes)?;
-    let constants = build_constants(&constants);
+    let constants = build_constants(constants);
     let (before, after) = if args.before {
         (Some(quote! { internal(ty, module_number); }), None)
     } else {
@@ -64,7 +64,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
         .iter()
         .map(|(name, class)| {
             let Class { class_name, .. } = &class;
-            let ident = Ident::new(&name, Span::call_site());
+            let ident = Ident::new(name, Span::call_site());
             let meta = Ident::new(&format!("_{}_META", ident), Span::call_site());
             let methods = class.methods.iter().map(|method| {
                 let builder = method.get_builder(&ident);

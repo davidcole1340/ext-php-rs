@@ -7,8 +7,8 @@ use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, Lit, PathArguments,
-    ReturnType, Signature, Token, Type, TypePath,
+    punctuated::Punctuated, FnArg, GenericArgument, ItemFn, Lit, PathArguments, ReturnType,
+    Signature, Token, Type, TypePath,
 };
 
 #[derive(Default, Debug, FromMeta)]

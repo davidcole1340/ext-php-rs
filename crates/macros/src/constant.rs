@@ -1,5 +1,5 @@
 use crate::helpers::get_docs;
-use anyhow::{bail, Result};
+use anyhow::Result;
 use darling::ToTokens;
 use proc_macro2::TokenStream;
 use quote::quote;

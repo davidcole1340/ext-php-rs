@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::Map};
+use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use darling::FromMeta;
@@ -12,9 +12,8 @@ use syn::{
 use crate::{
     class::{self, Class},
     constant::{self, Constant},
-    function::{self, Function},
-    impl_,
-    module::generate_registered_class_impl,
+    function, impl_,
+    module::{self, generate_registered_class_impl},
     startup_function,
 };
 
@@ -78,18 +77,18 @@ impl ModuleBuilder {
         let (startup_function, startup_ident) =
             self.build_startup_function(&classes, &constants).unwrap();
 
+        let describe_fn = module::generate_stubs(&functions, &classes, &constants);
+
         let functions = functions
             .iter()
             .map(|func| func.get_builder())
             .collect::<Vec<_>>();
         let registered_classes_impls = classes
-            .iter()
-            .map(|(_, class)| generate_registered_class_impl(class))
+            .values()
+            .map(generate_registered_class_impl)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         let unmapped = &self.unmapped;
-
-        // let describe_fn = generate_stubs(&state);
 
         quote! {
             mod module {
@@ -124,8 +123,9 @@ impl ModuleBuilder {
                         Err(e) => panic!("Failed to build PHP module: {:?}", e),
                     }
                 }
+
+                #describe_fn
             }
-            // #describe_fn
         }
     }
 
@@ -194,7 +194,7 @@ impl ModuleBuilder {
     fn build_startup_function(
         &self,
         classes: &HashMap<String, Class>,
-        constants: &Vec<Constant>,
+        constants: &[Constant],
     ) -> Result<(TokenStream, Ident)> {
         self.startup_function
             .as_ref()
@@ -224,22 +224,21 @@ where
 
 fn parse_metadata(attr: &Attribute) -> Vec<NestedMeta> {
     if let Ok(args) = attr.parse_args::<TokenStream>().map(|args| args.into()) {
-        syn::parse_macro_input::parse::<AttributeArgs>(args).unwrap_or(vec![])
+        syn::parse_macro_input::parse::<AttributeArgs>(args).unwrap_or_default()
     } else {
         vec![]
     }
 }
 
-fn parse_from_meta<T>(meta: &Vec<NestedMeta>, call_site: Option<Span>) -> Result<T, TokenStream>
+fn parse_from_meta<T>(meta: &[NestedMeta], call_site: Option<Span>) -> Result<T, TokenStream>
 where
     T: FromMeta,
 {
-    T::from_list(&meta).map_err(|e| {
+    T::from_list(meta).map_err(|e| {
         syn::Error::new(
             call_site.unwrap_or_else(Span::call_site),
             format!("Unable to parse attribute arguments: {:?}", e),
         )
         .to_compile_error()
-        .into()
     })
 }
