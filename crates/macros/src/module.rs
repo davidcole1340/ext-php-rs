@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -5,9 +7,9 @@ use syn::{Item, ItemMod, Type};
 
 use crate::{
     class::{Class, Property},
+    constant::Constant,
     function::{Arg, Function},
     module_builder::ModuleBuilder,
-    State,
 };
 
 pub fn parser(input: ItemMod) -> Result<TokenStream> {
@@ -25,19 +27,10 @@ pub fn parser(input: ItemMod) -> Result<TokenStream> {
     for item in content {
         match item {
             Item::Fn(f) => {
-                if f.attrs
-                    .iter()
-                    .find(|a| a.path.is_ident("php_startup"))
-                    .is_some()
-                {
+                if f.attrs.iter().any(|a| a.path.is_ident("php_startup")) {
                     builder.set_startup_function(f.clone());
                     continue;
-                } else if f
-                    .attrs
-                    .iter()
-                    .find(|a| a.path.is_ident("php_function"))
-                    .is_some()
-                {
+                } else if f.attrs.iter().any(|a| a.path.is_ident("php_function")) {
                     builder.add_function(f.clone());
                     continue;
                 }
@@ -47,21 +40,13 @@ pub fn parser(input: ItemMod) -> Result<TokenStream> {
                 continue;
             }
             Item::Struct(s) => {
-                if s.attrs
-                    .iter()
-                    .find(|a| a.path.is_ident("php_class"))
-                    .is_some()
-                {
+                if s.attrs.iter().any(|a| a.path.is_ident("php_class")) {
                     builder.add_class(s.clone());
                     continue;
                 }
             }
             Item::Impl(i) => {
-                if i.attrs
-                    .iter()
-                    .find(|a| a.path.is_ident("php_impl"))
-                    .is_some()
-                {
+                if i.attrs.iter().any(|a| a.path.is_ident("php_impl")) {
                     builder.add_implementation(i.clone());
                     continue;
                 }
@@ -142,8 +127,12 @@ pub trait Describe {
     fn describe(&self) -> TokenStream;
 }
 
-fn generate_stubs(state: &State) -> TokenStream {
-    let module = state.describe();
+pub(crate) fn generate_stubs(
+    functions: &[Function],
+    classes: &HashMap<String, Class>,
+    constants: &[Constant],
+) -> TokenStream {
+    let module = (functions, classes, constants).describe();
 
     quote! {
         #[cfg(debug_assertions)]
@@ -354,11 +343,11 @@ impl Describe for crate::constant::Constant {
     }
 }
 
-impl Describe for State {
+impl Describe for (&[Function], &HashMap<String, Class>, &[Constant]) {
     fn describe(&self) -> TokenStream {
-        let functs = self.functions.iter().map(Describe::describe);
-        let classes = self.classes.values().map(|class| class.describe());
-        let constants = self.constants.iter().map(Describe::describe);
+        let functs = self.0.iter().map(Describe::describe);
+        let classes = self.1.values().map(|class| class.describe());
+        let constants = self.2.iter().map(Describe::describe);
 
         quote! {
             Module {
