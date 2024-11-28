@@ -82,6 +82,7 @@ where
 }
 pub const ZEND_DEBUG: u32 = 1;
 pub const _ZEND_TYPE_NAME_BIT: u32 = 16777216;
+pub const _ZEND_TYPE_LITERAL_NAME_BIT: u32 = 8388608;
 pub const _ZEND_TYPE_NULLABLE_BIT: u32 = 2;
 pub const HT_MIN_SIZE: u32 = 8;
 pub const IS_UNDEF: u32 = 0;
@@ -269,7 +270,7 @@ pub struct _IO_FILE {
     pub _wide_data: *mut _IO_wide_data,
     pub _freeres_list: *mut _IO_FILE,
     pub _freeres_buf: *mut ::std::os::raw::c_void,
-    pub __pad5: usize,
+    pub _prevchain: *mut *mut _IO_FILE,
     pub _mode: ::std::os::raw::c_int,
     pub _unused2: [::std::os::raw::c_char; 20usize],
 }
@@ -538,6 +539,83 @@ extern "C" {
     pub static mut zend_string_init_interned: zend_string_init_interned_func_t;
 }
 extern "C" {
+    pub static mut zend_known_strings: *mut *mut zend_string;
+}
+pub const _zend_known_string_id_ZEND_STR_FILE: _zend_known_string_id = 0;
+pub const _zend_known_string_id_ZEND_STR_LINE: _zend_known_string_id = 1;
+pub const _zend_known_string_id_ZEND_STR_FUNCTION: _zend_known_string_id = 2;
+pub const _zend_known_string_id_ZEND_STR_CLASS: _zend_known_string_id = 3;
+pub const _zend_known_string_id_ZEND_STR_OBJECT: _zend_known_string_id = 4;
+pub const _zend_known_string_id_ZEND_STR_TYPE: _zend_known_string_id = 5;
+pub const _zend_known_string_id_ZEND_STR_OBJECT_OPERATOR: _zend_known_string_id = 6;
+pub const _zend_known_string_id_ZEND_STR_PAAMAYIM_NEKUDOTAYIM: _zend_known_string_id = 7;
+pub const _zend_known_string_id_ZEND_STR_ARGS: _zend_known_string_id = 8;
+pub const _zend_known_string_id_ZEND_STR_UNKNOWN: _zend_known_string_id = 9;
+pub const _zend_known_string_id_ZEND_STR_UNKNOWN_CAPITALIZED: _zend_known_string_id = 10;
+pub const _zend_known_string_id_ZEND_STR_EVAL: _zend_known_string_id = 11;
+pub const _zend_known_string_id_ZEND_STR_INCLUDE: _zend_known_string_id = 12;
+pub const _zend_known_string_id_ZEND_STR_REQUIRE: _zend_known_string_id = 13;
+pub const _zend_known_string_id_ZEND_STR_INCLUDE_ONCE: _zend_known_string_id = 14;
+pub const _zend_known_string_id_ZEND_STR_REQUIRE_ONCE: _zend_known_string_id = 15;
+pub const _zend_known_string_id_ZEND_STR_SCALAR: _zend_known_string_id = 16;
+pub const _zend_known_string_id_ZEND_STR_ERROR_REPORTING: _zend_known_string_id = 17;
+pub const _zend_known_string_id_ZEND_STR_STATIC: _zend_known_string_id = 18;
+pub const _zend_known_string_id_ZEND_STR_THIS: _zend_known_string_id = 19;
+pub const _zend_known_string_id_ZEND_STR_VALUE: _zend_known_string_id = 20;
+pub const _zend_known_string_id_ZEND_STR_KEY: _zend_known_string_id = 21;
+pub const _zend_known_string_id_ZEND_STR_MAGIC_INVOKE: _zend_known_string_id = 22;
+pub const _zend_known_string_id_ZEND_STR_PREVIOUS: _zend_known_string_id = 23;
+pub const _zend_known_string_id_ZEND_STR_CODE: _zend_known_string_id = 24;
+pub const _zend_known_string_id_ZEND_STR_MESSAGE: _zend_known_string_id = 25;
+pub const _zend_known_string_id_ZEND_STR_SEVERITY: _zend_known_string_id = 26;
+pub const _zend_known_string_id_ZEND_STR_STRING: _zend_known_string_id = 27;
+pub const _zend_known_string_id_ZEND_STR_TRACE: _zend_known_string_id = 28;
+pub const _zend_known_string_id_ZEND_STR_SCHEME: _zend_known_string_id = 29;
+pub const _zend_known_string_id_ZEND_STR_HOST: _zend_known_string_id = 30;
+pub const _zend_known_string_id_ZEND_STR_PORT: _zend_known_string_id = 31;
+pub const _zend_known_string_id_ZEND_STR_USER: _zend_known_string_id = 32;
+pub const _zend_known_string_id_ZEND_STR_PASS: _zend_known_string_id = 33;
+pub const _zend_known_string_id_ZEND_STR_PATH: _zend_known_string_id = 34;
+pub const _zend_known_string_id_ZEND_STR_QUERY: _zend_known_string_id = 35;
+pub const _zend_known_string_id_ZEND_STR_FRAGMENT: _zend_known_string_id = 36;
+pub const _zend_known_string_id_ZEND_STR_NULL: _zend_known_string_id = 37;
+pub const _zend_known_string_id_ZEND_STR_BOOLEAN: _zend_known_string_id = 38;
+pub const _zend_known_string_id_ZEND_STR_INTEGER: _zend_known_string_id = 39;
+pub const _zend_known_string_id_ZEND_STR_DOUBLE: _zend_known_string_id = 40;
+pub const _zend_known_string_id_ZEND_STR_ARRAY: _zend_known_string_id = 41;
+pub const _zend_known_string_id_ZEND_STR_RESOURCE: _zend_known_string_id = 42;
+pub const _zend_known_string_id_ZEND_STR_CLOSED_RESOURCE: _zend_known_string_id = 43;
+pub const _zend_known_string_id_ZEND_STR_NAME: _zend_known_string_id = 44;
+pub const _zend_known_string_id_ZEND_STR_ARGV: _zend_known_string_id = 45;
+pub const _zend_known_string_id_ZEND_STR_ARGC: _zend_known_string_id = 46;
+pub const _zend_known_string_id_ZEND_STR_ARRAY_CAPITALIZED: _zend_known_string_id = 47;
+pub const _zend_known_string_id_ZEND_STR_BOOL: _zend_known_string_id = 48;
+pub const _zend_known_string_id_ZEND_STR_INT: _zend_known_string_id = 49;
+pub const _zend_known_string_id_ZEND_STR_FLOAT: _zend_known_string_id = 50;
+pub const _zend_known_string_id_ZEND_STR_CALLABLE: _zend_known_string_id = 51;
+pub const _zend_known_string_id_ZEND_STR_ITERABLE: _zend_known_string_id = 52;
+pub const _zend_known_string_id_ZEND_STR_VOID: _zend_known_string_id = 53;
+pub const _zend_known_string_id_ZEND_STR_NEVER: _zend_known_string_id = 54;
+pub const _zend_known_string_id_ZEND_STR_FALSE: _zend_known_string_id = 55;
+pub const _zend_known_string_id_ZEND_STR_TRUE: _zend_known_string_id = 56;
+pub const _zend_known_string_id_ZEND_STR_NULL_LOWERCASE: _zend_known_string_id = 57;
+pub const _zend_known_string_id_ZEND_STR_MIXED: _zend_known_string_id = 58;
+pub const _zend_known_string_id_ZEND_STR_TRAVERSABLE: _zend_known_string_id = 59;
+pub const _zend_known_string_id_ZEND_STR_SLEEP: _zend_known_string_id = 60;
+pub const _zend_known_string_id_ZEND_STR_WAKEUP: _zend_known_string_id = 61;
+pub const _zend_known_string_id_ZEND_STR_CASES: _zend_known_string_id = 62;
+pub const _zend_known_string_id_ZEND_STR_FROM: _zend_known_string_id = 63;
+pub const _zend_known_string_id_ZEND_STR_TRYFROM: _zend_known_string_id = 64;
+pub const _zend_known_string_id_ZEND_STR_TRYFROM_LOWERCASE: _zend_known_string_id = 65;
+pub const _zend_known_string_id_ZEND_STR_AUTOGLOBAL_SERVER: _zend_known_string_id = 66;
+pub const _zend_known_string_id_ZEND_STR_AUTOGLOBAL_ENV: _zend_known_string_id = 67;
+pub const _zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST: _zend_known_string_id = 68;
+pub const _zend_known_string_id_ZEND_STR_COUNT: _zend_known_string_id = 69;
+pub const _zend_known_string_id_ZEND_STR_SENSITIVEPARAMETER: _zend_known_string_id = 70;
+pub const _zend_known_string_id_ZEND_STR_CONST_EXPR_PLACEHOLDER: _zend_known_string_id = 71;
+pub const _zend_known_string_id_ZEND_STR_LAST_KNOWN: _zend_known_string_id = 72;
+pub type _zend_known_string_id = ::std::os::raw::c_uint;
+extern "C" {
     pub fn zend_hash_clean(ht: *mut HashTable);
 }
 extern "C" {
@@ -574,6 +652,9 @@ extern "C" {
 }
 extern "C" {
     pub fn zend_hash_index_find(ht: *const HashTable, h: zend_ulong) -> *mut zval;
+}
+extern "C" {
+    pub fn zend_hash_find_known_hash(ht: *const HashTable, key: *const zend_string) -> *mut zval;
 }
 extern "C" {
     pub fn zend_hash_move_forward_ex(ht: *mut HashTable, pos: *mut HashPosition) -> zend_result;
@@ -1992,7 +2073,7 @@ pub struct _php_stream {
     pub wrapperthis: *mut ::std::os::raw::c_void,
     pub wrapperdata: zval,
     pub _bitfield_align_1: [u8; 0],
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 2usize]>,
     pub mode: [::std::os::raw::c_char; 16usize],
     pub flags: u32,
     pub res: *mut zend_resource,
@@ -2011,104 +2092,121 @@ pub struct _php_stream {
 }
 impl _php_stream {
     #[inline]
-    pub fn is_persistent(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u8) }
+    pub fn is_persistent(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_is_persistent(&mut self, val: u8) {
+    pub fn set_is_persistent(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(0usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn in_free(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u8) }
+    pub fn in_free(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u16) }
     }
     #[inline]
-    pub fn set_in_free(&mut self, val: u8) {
+    pub fn set_in_free(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(1usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn eof(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u8) }
+    pub fn eof(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_eof(&mut self, val: u8) {
+    pub fn set_eof(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(3usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn __exposed(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u8) }
+    pub fn __exposed(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set___exposed(&mut self, val: u8) {
+    pub fn set___exposed(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(4usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn fclose_stdiocast(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u8) }
+    pub fn fclose_stdiocast(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u16) }
     }
     #[inline]
-    pub fn set_fclose_stdiocast(&mut self, val: u8) {
+    pub fn set_fclose_stdiocast(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(5usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn has_buffered_data(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u8) }
+    pub fn has_buffered_data(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_has_buffered_data(&mut self, val: u8) {
+    pub fn set_has_buffered_data(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(7usize, 1u8, val as u64)
         }
     }
     #[inline]
+    pub fn fclose_stdiocast_flush_in_progress(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u16) }
+    }
+    #[inline]
+    pub fn set_fclose_stdiocast_flush_in_progress(&mut self, val: u16) {
+        unsafe {
+            let val: u16 = ::std::mem::transmute(val);
+            self._bitfield_1.set(8usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
     pub fn new_bitfield_1(
-        is_persistent: u8,
-        in_free: u8,
-        eof: u8,
-        __exposed: u8,
-        fclose_stdiocast: u8,
-        has_buffered_data: u8,
-    ) -> __BindgenBitfieldUnit<[u8; 1usize]> {
-        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 1usize]> = Default::default();
+        is_persistent: u16,
+        in_free: u16,
+        eof: u16,
+        __exposed: u16,
+        fclose_stdiocast: u16,
+        has_buffered_data: u16,
+        fclose_stdiocast_flush_in_progress: u16,
+    ) -> __BindgenBitfieldUnit<[u8; 2usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 2usize]> = Default::default();
         __bindgen_bitfield_unit.set(0usize, 1u8, {
-            let is_persistent: u8 = unsafe { ::std::mem::transmute(is_persistent) };
+            let is_persistent: u16 = unsafe { ::std::mem::transmute(is_persistent) };
             is_persistent as u64
         });
         __bindgen_bitfield_unit.set(1usize, 2u8, {
-            let in_free: u8 = unsafe { ::std::mem::transmute(in_free) };
+            let in_free: u16 = unsafe { ::std::mem::transmute(in_free) };
             in_free as u64
         });
         __bindgen_bitfield_unit.set(3usize, 1u8, {
-            let eof: u8 = unsafe { ::std::mem::transmute(eof) };
+            let eof: u16 = unsafe { ::std::mem::transmute(eof) };
             eof as u64
         });
         __bindgen_bitfield_unit.set(4usize, 1u8, {
-            let __exposed: u8 = unsafe { ::std::mem::transmute(__exposed) };
+            let __exposed: u16 = unsafe { ::std::mem::transmute(__exposed) };
             __exposed as u64
         });
         __bindgen_bitfield_unit.set(5usize, 2u8, {
-            let fclose_stdiocast: u8 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
+            let fclose_stdiocast: u16 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
             fclose_stdiocast as u64
         });
         __bindgen_bitfield_unit.set(7usize, 1u8, {
-            let has_buffered_data: u8 = unsafe { ::std::mem::transmute(has_buffered_data) };
+            let has_buffered_data: u16 = unsafe { ::std::mem::transmute(has_buffered_data) };
             has_buffered_data as u64
+        });
+        __bindgen_bitfield_unit.set(8usize, 1u8, {
+            let fclose_stdiocast_flush_in_progress: u16 =
+                unsafe { ::std::mem::transmute(fclose_stdiocast_flush_in_progress) };
+            fclose_stdiocast_flush_in_progress as u64
         });
         __bindgen_bitfield_unit
     }
