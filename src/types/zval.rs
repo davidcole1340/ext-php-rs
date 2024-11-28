@@ -53,7 +53,7 @@ impl Zval {
 
     /// Dereference the zval, if it is a reference.
     pub fn dereference(&self) -> &Self {
-        return self.reference().or_else(|| self.indirect()).unwrap_or(self);
+        self.reference().or_else(|| self.indirect()).unwrap_or(self)
     }
 
     /// Dereference the zval mutable, if it is a reference.

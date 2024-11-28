@@ -12,7 +12,7 @@ pub enum Iterable<'a> {
     Traversable(&'a mut ZendIterator),
 }
 
-impl<'a> Iterable<'a> {
+impl Iterable<'_> {
     /// Creates a new rust iterator from a PHP iterable.
     /// May return None if a Traversable cannot be rewound.
     pub fn iter(&mut self) -> Option<Iter> {
