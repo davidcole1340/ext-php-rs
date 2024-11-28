@@ -142,7 +142,7 @@ impl<'a> FromZval<'a> for ZendCallable<'a> {
     }
 }
 
-impl<'a> TryFrom<Zval> for ZendCallable<'a> {
+impl TryFrom<Zval> for ZendCallable<'_> {
     type Error = Error;
 
     fn try_from(value: Zval) -> Result<Self> {
@@ -158,7 +158,7 @@ enum OwnedZval<'a> {
     Owned(Zval),
 }
 
-impl<'a> OwnedZval<'a> {
+impl OwnedZval<'_> {
     fn as_ref(&self) -> &Zval {
         match self {
             OwnedZval::Reference(zv) => zv,
@@ -167,7 +167,7 @@ impl<'a> OwnedZval<'a> {
     }
 }
 
-impl<'a> Deref for OwnedZval<'a> {
+impl Deref for OwnedZval<'_> {
     type Target = Zval;
 
     fn deref(&self) -> &Self::Target {

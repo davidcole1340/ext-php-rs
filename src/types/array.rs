@@ -678,13 +678,13 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for Iter<'a> {
+impl ExactSizeIterator for Iter<'_> {
     fn len(&self) -> usize {
         self.ht.len()
     }
 }
 
-impl<'a> DoubleEndedIterator for Iter<'a> {
+impl DoubleEndedIterator for Iter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let key_type = unsafe {
             zend_hash_get_current_key_type_ex(
@@ -730,8 +730,8 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
     }
 }
 
-impl<'a, 'b> Iter<'a> {
-    pub fn next_zval(&'b mut self) -> Option<(Zval, &'a Zval)> {
+impl<'a> Iter<'a> {
+    pub fn next_zval(&mut self) -> Option<(Zval, &'a Zval)> {
         let key_type = unsafe {
             zend_hash_get_current_key_type_ex(
                 self.ht as *const ZendHashTable as *mut ZendHashTable,
@@ -805,13 +805,13 @@ impl<'a> Iterator for Values<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for Values<'a> {
+impl ExactSizeIterator for Values<'_> {
     fn len(&self) -> usize {
         self.0.len()
     }
 }
 
-impl<'a> DoubleEndedIterator for Values<'a> {
+impl DoubleEndedIterator for Values<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|(_, zval)| zval)
     }
@@ -847,7 +847,7 @@ impl<'a> FromZval<'a> for &'a ZendHashTable {
 }
 
 ///////////////////////////////////////////
-/// HashMap
+// HashMap
 ///////////////////////////////////////////
 
 impl<'a, V> TryFrom<&'a ZendHashTable> for HashMap<String, V>
@@ -916,7 +916,7 @@ where
 }
 
 ///////////////////////////////////////////
-/// Vec
+// Vec
 ///////////////////////////////////////////
 
 impl<'a, T> TryFrom<&'a ZendHashTable> for Vec<T>

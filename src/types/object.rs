@@ -365,7 +365,7 @@ impl IntoZval for ZBox<ZendObject> {
     }
 }
 
-impl<'a> IntoZval for &'a mut ZendObject {
+impl IntoZval for &mut ZendObject {
     const TYPE: DataType = DataType::Object(None);
 
     #[inline]
