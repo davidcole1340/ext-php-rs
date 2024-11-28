@@ -10,7 +10,7 @@ use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::boxed::ZBox;
 use crate::exception::PhpResult;
-#[cfg(php82)]
+#[cfg(not(any(php80, php81)))]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
     _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
@@ -154,7 +154,7 @@ impl ExecutorGlobals {
     /// set with [`crate::ffi::zend_interrupt_function`].
     pub fn request_interrupt(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(php82)] {
+            if #[cfg(not(any(php80, php81)))] {
                 unsafe {
                     zend_atomic_bool_store(&mut self.vm_interrupt, true);
                 }
@@ -167,7 +167,7 @@ impl ExecutorGlobals {
     /// Cancel a requested an interrupt of the PHP VM.
     pub fn cancel_interrupt(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(php82)] {
+            if #[cfg(not(any(php80, php81)))] {
                 unsafe {
                     zend_atomic_bool_store(&mut self.vm_interrupt, false);
                 }

@@ -2,7 +2,7 @@
 
 use bitflags::bitflags;
 
-#[cfg(not(php82))]
+#[cfg(any(php80, php81))]
 use crate::ffi::ZEND_ACC_REUSE_GET_ITERATOR;
 use crate::ffi::{
     CONST_CS, CONST_DEPRECATED, CONST_NO_FILE_CACHE, CONST_PERSISTENT, E_COMPILE_ERROR,
@@ -84,14 +84,14 @@ bitflags! {
         const ConstantsUpdated = ZEND_ACC_CONSTANTS_UPDATED;
         const NoDynamicProperties = ZEND_ACC_NO_DYNAMIC_PROPERTIES;
         const HasStaticInMethods = ZEND_HAS_STATIC_IN_METHODS;
-        #[cfg(not(php82))]
+        #[cfg(any(php80, php81))]
         const ReuseGetIterator = ZEND_ACC_REUSE_GET_ITERATOR;
         const ResolvedParent = ZEND_ACC_RESOLVED_PARENT;
         const ResolvedInterfaces = ZEND_ACC_RESOLVED_INTERFACES;
         const UnresolvedVariance = ZEND_ACC_UNRESOLVED_VARIANCE;
         const NearlyLinked = ZEND_ACC_NEARLY_LINKED;
 
-        #[cfg(any(php81,php82))]
+        #[cfg(not(php80))]
         const NotSerializable = crate::ffi::ZEND_ACC_NOT_SERIALIZABLE;
     }
 }

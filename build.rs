@@ -221,9 +221,6 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     // introduced in PHP 8.1).
     //
     // PHP 8.0 is the baseline - no feature flags will be introduced here.
-    //
-    // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
-    // should get both the `php81` and `php82` flags.
     const PHP_81_API_VER: u32 = 20210902;
 
     const PHP_82_API_VER: u32 = 20220829;
@@ -235,17 +232,20 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     println!(
         "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
     );
-    println!("cargo:rustc-cfg=php80");
+
+    if version < PHP_81_API_VER {
+        println!("cargo:rustc-cfg=php80");
+    }
 
     if (PHP_81_API_VER..PHP_82_API_VER).contains(&version) {
         println!("cargo:rustc-cfg=php81");
     }
 
-    if version >= PHP_82_API_VER {
+    if (PHP_82_API_VER..PHP_83_API_VER).contains(&version) {
         println!("cargo:rustc-cfg=php82");
     }
 
-    if version >= PHP_83_API_VER {
+    if (PHP_83_API_VER..PHP_84_API_VER).contains(&version) {
         println!("cargo:rustc-cfg=php83");
     }
 
