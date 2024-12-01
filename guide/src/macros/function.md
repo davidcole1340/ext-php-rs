@@ -99,7 +99,7 @@ pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> Str
 ## Variadic Functions
 
 Variadic functions can be implemented by specifying the last argument in the Rust
-function to the type `&[&Zval]`. This is the equivelant of a PHP function using
+function to the type `&[&Zval]`. This is the equivalent of a PHP function using
 the `...$args` syntax.
 
 ```rust,no_run

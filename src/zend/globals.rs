@@ -286,7 +286,7 @@ impl ProcessGlobals {
     ///
     /// # Panics
     /// There is an outstanding issue with the implementation of this function.
-    /// Untill resolved, this function will allways panic.
+    /// Until resolved, this function will always panic.
     ///
     /// - <https://github.com/davidcole1340/ext-php-rs/issues/331>
     /// - <https://github.com/php/php-src/issues/16541>
