@@ -1,0 +1,52 @@
+[workspace]
+release_always = false
+publish_all_features = true
+git_release_body = """
+{{ changelog }}
+{% if remote.contributors %}
+### Thanks to the contributors for this release:
+{% for contributor in remote.contributors %}
+* @{{ contributor.username }}
+{% endfor %}
+{% endif %}
+"""
+
+[changelog]
+header = "# Changelog"
+body = """
+{%- macro username(commit) -%}
+  {% if commit.remote.username %} (by @{{ commit.remote.username }}){% endif -%}
+{% endmacro -%}
+{% macro commit_message(commit) %}
+  - {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
+    {% if commit.breaking %}[**breaking**] {% endif %}\
+    {{ commit.message | upper_first }}\
+    {{ self::username(commit=commit) }} \
+    {%- if commit.links %} \
+      {% for link in commit.links | unique(attribute="href") %}\
+        [[{{link.text}}]({{link.href}})] \
+      {% endfor %}\
+    {% endif %}
+  {%- if commit.breaking and commit.breaking_description and not commit.breaking_description == commit.message%}
+    > {{ commit.breaking_description -}}
+  {% endif -%}
+{% endmacro %}
+## [{{ version | trim_start_matches(pat="v") }}]{%- if release_link -%}({{ release_link }}){% endif %} - {{ timestamp | date(format="%Y-%m-%d") -}}
+{%- for group, commits in commits | group_by(attribute="group") %}
+
+  ### {{ group | upper_first -}}
+  {% for commit in commits
+  | filter(attribute="scope")
+  | sort(attribute="scope") -%}
+    {{- self::commit_message(commit=commit) -}}
+  {% endfor -%}
+  {%- for commit in commits -%}
+    {% if not commit.scope -%}
+      {{- self::commit_message(commit=commit) -}}
+    {% endif -%}
+  {% endfor -%}
+{% endfor %}
+"""
+link_parsers = [
+  { pattern = "#(\\d+)", href = "https://github.com/davidcole1340/ext-php-rs/issues/$1" },
+]
