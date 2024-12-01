@@ -7,8 +7,75 @@ on:
     branches:
       - master
   pull_request:
+env:
+  # increment this manually to force cache eviction
+  RUST_CACHE_PREFIX: "v0-rust"
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      clang: "17"
+      php_version: "8.2"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check typos
+        uses: crate-ci/typos@master
+      - name: Validate commit messages
+        run: |
+          git show-ref
+          curl -sSfL https://github.com/convco/convco/releases/latest/download/convco-ubuntu.zip | zcat > convco
+          chmod +x convco
+          ./convco check refs/remotes/origin/master..HEAD
+          rm convco
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.php_version }}
+        env:
+          debug: true
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          components: rustfmt, clippy
+          toolchain: stable
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.RUST_CACHE_PREFIX }}
+      - name: Cache LLVM and Clang
+        id: cache-llvm
+        uses: actions/cache@v3
+        with:
+          path: ${{ runner.temp }}/llvm-${{ env.clang }}
+          key: ubuntu-latest-llvm-${{ env.clang }}
+      - name: Setup LLVM & Clang
+        id: clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: ${{ env.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ env.clang }}
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+      - name: Configure Clang
+        run: |
+          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/lib" >> $GITHUB_ENV
+          echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
+          echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/bin/llvm-config" >> $GITHUB_ENV
+      - name: Run rustfmt
+        run: cargo fmt --all -- --check
+      - name: Run clippy
+        run: cargo clippy --all -- -D warnings
+      # Docs
+      - name: Run rustdoc
+        run: cargo rustdoc -- -D warnings
+      - name: Build with docs stub
+        env:
+          DOCS_RS: ""
+        run: cargo clean && cargo build
   build:
     name: Build and Test
     runs-on: ${{ matrix.os }}
@@ -59,7 +126,7 @@ jobs:
         # if: matrix.rust == 'stable'
         with:
           # increment this manually to force cache eviction
-          prefix-key: "v0-rust"
+          prefix-key: ${{ env.RUST_CACHE_PREFIX }}
       # LLVM & Clang
       - name: Cache LLVM and Clang
         id: cache-llvm
@@ -77,6 +144,7 @@ jobs:
         with:
           version: ${{ matrix.clang }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Configure Clang
         # Macos build doesn't work with clang < 18. As a build for version 18 is not available, we skip the setup
         if: "!contains(matrix.os, 'windows') && !contains(matrix.os, 'macos')"
@@ -89,24 +157,9 @@ jobs:
         env:
           EXT_PHP_RS_TEST: ""
         run: cargo build --release --features closure,anyhow --all
-      # Test & lint
+      # Test
       - name: Test inline examples
         run: cargo test --release --all --features closure,anyhow --no-fail-fast
-      - name: Run rustfmt
-        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.2'
-        run: cargo fmt --all -- --check
-      - name: Run clippy
-        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.2'
-        run: cargo clippy --all -- -D warnings
-      # Docs
-      - name: Run rustdoc
-        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.2'
-        run: cargo rustdoc -- -D warnings
-      - name: Build with docs stub
-        if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest' && matrix.php == '8.2'
-        env:
-          DOCS_RS: ""
-        run: cargo clean && cargo build
   build-zts:
     name: Build with ZTS
     runs-on: ubuntu-latest
