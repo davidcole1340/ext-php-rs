@@ -54,7 +54,7 @@ impl Embed {
     /// # Returns
     ///
     /// * `Ok(())` - The script was executed successfully
-    /// * `Err(EmbedError)` - An error occured during the execution of the
+    /// * `Err(EmbedError)` - An error occurred during the execution of the
     ///   script
     ///
     /// # Example
@@ -154,7 +154,7 @@ impl Embed {
         match unsafe { *Box::from_raw(panic as *mut std::thread::Result<R>) } {
             Ok(r) => r,
             Err(err) => {
-                // we resume the panic here so it can be catched correctly by the test framework
+                // we resume the panic here so it can be caught correctly by the test framework
                 resume_unwind(err);
             }
         }
@@ -168,7 +168,7 @@ impl Embed {
     /// # Returns
     ///
     /// * `Ok(Zval)` - The result of the evaluation
-    /// * `Err(EmbedError)` - An error occured during the evaluation
+    /// * `Err(EmbedError)` - An error occurred during the evaluation
     ///
     /// # Example
     ///

@@ -91,7 +91,7 @@ impl ZendHashTable {
     /// Panics if memory for the hashtable could not be allocated.
     pub fn with_capacity(size: u32) -> ZBox<Self> {
         unsafe {
-            // SAFETY: PHP allocater handles the creation of the array.
+            // SAFETY: PHP allocator handles the creation of the array.
             let ptr = _zend_new_array(size);
 
             // SAFETY: `as_mut()` checks if the pointer is null, and panics if it is not.

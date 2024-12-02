@@ -79,7 +79,7 @@ fn do_try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F, first: bool) -> Res
     match unsafe { *Box::from_raw(panic as *mut std::thread::Result<R>) } {
         Ok(r) => Ok(r),
         Err(err) => {
-            // we resume the panic here so it can be catched correctly by the test framework
+            // we resume the panic here so it can be caught correctly by the test framework
             resume_unwind(err);
         }
     }
