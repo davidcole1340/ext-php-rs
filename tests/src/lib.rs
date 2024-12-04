@@ -3,7 +3,7 @@ use ext_php_rs::prelude::php_module;
 
 #[php_module]
 mod module {
-    use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
+    use ext_php_rs::{binary::Binary, types::ZendObject, types::Zval};
     use std::collections::HashMap;
 
     #[php_function()]

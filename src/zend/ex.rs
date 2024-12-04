@@ -107,31 +107,31 @@ impl ExecuteData {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::{types::Zval, zend::ExecuteData, args::Arg, flags::DataType, prelude::*};
-    ///
-    /// #[php_class]
-    /// #[derive(Debug)]
-    /// struct Example;
-    ///
-    /// #[no_mangle]
-    /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
-    ///     let mut a = Arg::new("a", DataType::Long);
-    ///
-    ///     let (parser, this) = ex.parser_method::<Example>();
-    ///     let parser = parser
-    ///         .arg(&mut a)
-    ///         .parse();
-    ///
-    ///     if parser.is_err() {
-    ///         return;
-    ///     }
-    ///
-    ///     dbg!(a, this);
-    /// }
+    /// use ext_php_rs::php_module;
     ///
     /// #[php_module]
-    /// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    ///     module
+    /// mod module {
+    ///     use ext_php_rs::{types::Zval, zend::ExecuteData, args::Arg, flags::DataType};
+    ///
+    ///     #[php_class]
+    ///     #[derive(Debug)]
+    ///     struct Example;
+    ///
+    ///     #[no_mangle]
+    ///     pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
+    ///         let mut a = Arg::new("a", DataType::Long);
+    ///
+    ///         let (parser, this) = ex.parser_method::<Example>();
+    ///         let parser = parser
+    ///             .arg(&mut a)
+    ///             .parse();
+    ///
+    ///         if parser.is_err() {
+    ///             return;
+    ///         }
+    ///
+    ///         dbg!(a, this);
+    ///     }
     /// }
     /// ```
     ///
@@ -155,21 +155,21 @@ impl ExecuteData {
     /// # Example
     ///
     /// ```no_run
-    /// use ext_php_rs::{types::Zval, zend::ExecuteData, prelude::*};
-    ///
-    /// #[php_class]
-    /// #[derive(Debug)]
-    /// struct Example;
-    ///
-    /// #[no_mangle]
-    /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
-    ///     let this = ex.get_object::<Example>();
-    ///     dbg!(this);
-    /// }
+    /// use ext_php_rs::php_module;
     ///
     /// #[php_module]
-    /// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    ///     module
+    /// mod module {
+    ///     use ext_php_rs::{types::Zval, zend::ExecuteData};
+    ///
+    ///     #[php_class]
+    ///     #[derive(Debug)]
+    ///     struct Example;
+    ///
+    ///     #[no_mangle]
+    ///     pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
+    ///         let this = ex.get_object::<Example>();
+    ///         dbg!(this);
+    ///     }
     /// }
     /// ```
     pub fn get_object<T: RegisteredClass>(&mut self) -> Option<&mut ZendClassObject<T>> {

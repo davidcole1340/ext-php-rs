@@ -25,20 +25,24 @@ pub struct ExampleClass<'a> {
     c: &'a str
 }
 
-#[php_function]
-pub fn take_object(obj: ExampleClass) {
-    dbg!(obj.a, obj.b, obj.c);
-}
+#[php_module]
+mod module {
+    use super::ExampleClass;
 
-#[php_function]
-pub fn give_object() -> ExampleClass<'static> {
-    ExampleClass {
-        a: 5,
-        b: "String".to_string(),
-        c: "Borrowed",
+    #[php_function]
+    pub fn take_object(obj: ExampleClass) {
+        dbg!(obj.a, obj.b, obj.c);
+    }
+
+    #[php_function]
+    pub fn give_object() -> ExampleClass<'static> {
+        ExampleClass {
+            a: 5,
+            b: "String".to_string(),
+            c: "Borrowed",
+        }
     }
 }
-# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
 # fn main() {}
 ```
 
@@ -70,11 +74,15 @@ pub struct CompareVals<T: PartialEq<i32>> {
     b: T
 }
 
-#[php_function]
-pub fn take_object(obj: CompareVals<i32>) {
-    dbg!(obj);
+#[php_module]
+mod module {
+    use super::CompareVals;
+
+    #[php_function]
+    pub fn take_object(obj: CompareVals<i32>) {
+        dbg!(obj);
+    }
 }
-# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
 # fn main() {}
 ```
 
@@ -111,16 +119,20 @@ pub enum UnionExample<'a> {
     None // Zval did not contain anything that could be parsed above
 }
 
-#[php_function]
-pub fn test_union(val: UnionExample) {
-    dbg!(val);
-}
+#[php_module]
+mod module {
+    use super::UnionExample;
 
-#[php_function]
-pub fn give_union() -> UnionExample<'static> {
-    UnionExample::Long(5)
+    #[php_function]
+    pub fn test_union(val: UnionExample) {
+        dbg!(val);
+    }
+
+    #[php_function]
+    pub fn give_union() -> UnionExample<'static> {
+        UnionExample::Long(5)
+    }
 }
-# #[php_module] pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
 # fn main() {}
 ```
 

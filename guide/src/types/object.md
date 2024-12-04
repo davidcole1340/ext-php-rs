@@ -20,17 +20,18 @@ object.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-use ext_php_rs::{prelude::*, types::ZendObject};
+use ext_php_rs::php_module;
 
-// Take an object reference and also return it.
-#[php_function]
-pub fn take_obj(obj: &mut ZendObject) -> () {
-    let _ = obj.try_call_method("hello", vec![&"arg1", &"arg2"]);
+#[php_module]
+mod module {
+    use ext_php_rs::types::ZendObject;
+
+    // Take an object reference and also return it.
+    #[php_function]
+    pub fn take_obj(obj: &mut ZendObject) -> () {
+        let _ = obj.try_call_method("hello", vec![&"arg1", &"arg2"]);
+    }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
 # fn main() {}
 ```
 
@@ -39,18 +40,19 @@ pub fn take_obj(obj: &mut ZendObject) -> () {
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-use ext_php_rs::{prelude::*, types::ZendObject};
+use ext_php_rs::php_module;
 
-// Take an object reference and also return it.
-#[php_function]
-pub fn take_obj(obj: &mut ZendObject) -> &mut ZendObject {
-    let _ = obj.set_property("hello", 5);
-    dbg!(obj)
+#[php_module]
+mod module {
+    use ext_php_rs::types::ZendObject;
+
+    // Take an object reference and also return it.
+    #[php_function]
+    pub fn take_obj(obj: &mut ZendObject) -> &mut ZendObject {
+        let _ = obj.set_property("hello", 5);
+        dbg!(obj)
+    }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
 # fn main() {}
 ```
 
@@ -59,19 +61,20 @@ pub fn take_obj(obj: &mut ZendObject) -> &mut ZendObject {
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-use ext_php_rs::{prelude::*, types::ZendObject, boxed::ZBox};
+use ext_php_rs::php_module;
 
-// Create a new `stdClass` and return it.
-#[php_function]
-pub fn make_object() -> ZBox<ZendObject> {
-    let mut obj = ZendObject::new_stdclass();
-    let _ = obj.set_property("hello", 5);
-    obj
+#[php_module]
+mod module {
+    use ext_php_rs::{types::ZendObject, boxed::ZBox};
+
+    // Create a new `stdClass` and return it.
+    #[php_function]
+    pub fn make_object() -> ZBox<ZendObject> {
+        let mut obj = ZendObject::new_stdclass();
+        let _ = obj.set_property("hello", 5);
+        obj
+    }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
 # fn main() {}
 ```
 

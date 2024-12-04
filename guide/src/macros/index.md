@@ -12,21 +12,11 @@ used from PHP without fiddling around with zvals.
 - [`php_impl`] - Used to export a Rust `impl` block to PHP, including all
   methods and constants.
 - [`php_const`] - Used to export a Rust constant to PHP as a global constant.
+- [`php_extern`] - Attribute used to annotate `extern` blocks which are deemed as
+  PHP functions.
 
-These macros do abuse the fact that (at the moment) proc macro expansion _seems_
-to happen orderly, on one single thread. It has been stated many times that this
-order is undefined behaviour ([see here]), so these macros _could_ break at any
-time with a `rustc` update (let's just keep our fingers crossed).
-
-The macros abuse this fact by storing a global state, which stores information
-about all the constants, functions, methods and classes you have registered
-throughout your crate. It is then read out of the state in the function tagged
-with the `#[php_module]` attribute. This is why this function **must** be the
-last function in your crate.
-
-In the case the ordering does change (or we find out that it already was not in
-order), the most likely solution will be having to register your PHP exports
-manually inside the `#[php_module]` function.
+All macros, except for `php_extern`, must be placed inside a module annotaded with
+the `#[php_module]` macro. Currently only one `#[php_module]` module is allowed.
 
 [`php_module`]: ./module.md
 [`php_startup`]: ./module_startup.md
@@ -34,4 +24,5 @@ manually inside the `#[php_module]` function.
 [`php_class`]: ./classes.md
 [`php_impl`]: ./impl.md
 [`php_const`]: ./constant.md
+[`php_extern`]: ./extern.md
 [see here]: https://github.com/rust-lang/reference/issues/578

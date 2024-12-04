@@ -92,6 +92,7 @@ impl ModuleBuilder {
 
         quote! {
             mod module {
+                use ::ext_php_rs::prelude::*;
                 #class_stream
                 #(#impl_stream)*
                 #(#registered_classes_impls)*
