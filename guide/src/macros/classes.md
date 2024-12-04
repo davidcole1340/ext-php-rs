@@ -2,7 +2,8 @@
 
 Structs can be exported to PHP as classes with the `#[php_class]` attribute
 macro. This attribute derives the `RegisteredClass` trait on your struct, as
-well as registering the class to be registered with the `#[php_module]` macro.
+well as registering the class to be registered with the `#[php_module]` containing
+the class.
 
 ## Options
 
@@ -12,8 +13,7 @@ The attribute takes some options to modify the output of the class:
   name is kept the same. If no name is given, the name of the struct is used.
   Useful for namespacing classes.
 
-There are also additional macros that modify the class. These macros **must** be
-placed underneath the `#[php_class]` attribute.
+There are also additional macros that modify the class.
 
 - `#[extends(ce)]` - Sets the parent class of the class. Can only be used once.
   `ce` must be a valid Rust expression when it is called inside the
@@ -23,7 +23,7 @@ placed underneath the `#[php_class]` attribute.
   the `#[php_module]` function.
 
 You may also use the `#[prop]` attribute on a struct field to use the field as a
-PHP property. By default, the field will be accessible from PHP publicly with
+PHP property. By default, the field will then be accessible from PHP publicly with
 the same name as the field. Property types must implement `IntoZval` and
 `FromZval`.
 
@@ -68,17 +68,16 @@ This example creates a PHP class `Human`, adding a PHP property `address`.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_class]
-pub struct Human {
-    name: String,
-    age: i32,
-    #[prop]
-    address: String,
+#[php_module]
+mod module {
+    #[php_class]
+    pub struct Human {
+        name: String,
+        age: i32,
+        #[prop]
+        address: String,
+    }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
 # fn main() {}
 ```
 
@@ -89,22 +88,22 @@ it in the `Redis\Exception` namespace:
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
-use ext_php_rs::{exception::PhpException, zend::ce};
 
-#[php_class(name = "Redis\\Exception\\RedisException")]
-#[extends(ce::exception())]
-#[derive(Default)]
-pub struct RedisException;
+#[php_module]
+pub mod module {
+    use ext_php_rs::{exception::PhpException, zend::ce};
 
-// Throw our newly created exception
-#[php_function]
-pub fn throw_exception() -> PhpResult<i32> {
-    Err(PhpException::from_class::<RedisException>("Not good!".into()))
+    #[php_class(name = "Redis\\Exception\\RedisException")]
+    #[extends(ce::exception())]
+    #[derive(Default)]
+    pub struct RedisException;
+
+    // Throw our newly created exception
+    #[php_function]
+    pub fn throw_exception() -> PhpResult<i32> {
+        Err(PhpException::from_class::<RedisException>("Not good!".into()))
+    }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
 # fn main() {}
 ```
 
@@ -116,47 +115,47 @@ The following example implements [`ArrayAccess`](https://www.php.net/manual/en/c
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
-use ext_php_rs::{exception::PhpResult, types::Zval, zend::ce};
 
-#[php_class]
-#[implements(ce::arrayaccess())]
-#[derive(Default)]
-pub struct EvenNumbersArray;
+#[php_module]
+mod module {
+    use ext_php_rs::{exception::PhpResult, types::Zval, zend::ce};
 
-/// Returns `true` if the array offset is an even number.
-/// Usage:
-/// ```php
-/// $arr = new EvenNumbersArray();
-/// var_dump($arr[0]); // true
-/// var_dump($arr[1]); // false
-/// var_dump($arr[2]); // true
-/// var_dump($arr[3]); // false
-/// var_dump($arr[4]); // true
-/// var_dump($arr[5] = true); // Fatal error:  Uncaught Exception: Setting values is not supported
-/// ```
-#[php_impl]
-impl EvenNumbersArray {
-    pub fn __construct() -> EvenNumbersArray {
-        EvenNumbersArray {}
-    }
-    // We need to use `Zval` because ArrayAccess needs $offset to be a `mixed`
-    pub fn offset_exists(&self, offset: &'_ Zval) -> bool {
-        offset.is_long()
-    }
-    pub fn offset_get(&self, offset: &'_ Zval) -> PhpResult<bool> {
-        let integer_offset = offset.long().ok_or("Expected integer offset")?;
-        Ok(integer_offset % 2 == 0)
-    }
-    pub fn offset_set(&mut self, _offset: &'_ Zval, _value: &'_ Zval) -> PhpResult {
-        Err("Setting values is not supported".into())
-    }
-    pub fn offset_unset(&mut self, _offset: &'_ Zval) -> PhpResult {
-        Err("Setting values is not supported".into())
+    #[php_class]
+    #[implements(ce::arrayaccess())]
+    #[derive(Default)]
+    pub struct EvenNumbersArray;
+
+    /// Returns `true` if the array offset is an even number.
+    /// Usage:
+    /// ```php
+    /// $arr = new EvenNumbersArray();
+    /// var_dump($arr[0]); // true
+    /// var_dump($arr[1]); // false
+    /// var_dump($arr[2]); // true
+    /// var_dump($arr[3]); // false
+    /// var_dump($arr[4]); // true
+    /// var_dump($arr[5] = true); // Fatal error:  Uncaught Exception: Setting values is not supported
+    /// ```
+    #[php_impl]
+    impl EvenNumbersArray {
+        pub fn __construct() -> EvenNumbersArray {
+            EvenNumbersArray {}
+        }
+        // We need to use `Zval` because ArrayAccess needs $offset to be a `mixed`
+        pub fn offset_exists(&self, offset: &'_ Zval) -> bool {
+            offset.is_long()
+        }
+        pub fn offset_get(&self, offset: &'_ Zval) -> PhpResult<bool> {
+            let integer_offset = offset.long().ok_or("Expected integer offset")?;
+            Ok(integer_offset % 2 == 0)
+        }
+        pub fn offset_set(&mut self, _offset: &'_ Zval, _value: &'_ Zval) -> PhpResult {
+            Err("Setting values is not supported".into())
+        }
+        pub fn offset_unset(&mut self, _offset: &'_ Zval) -> PhpResult {
+            Err("Setting values is not supported".into())
+        }
     }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
 # fn main() {}
 ```

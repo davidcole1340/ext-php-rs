@@ -26,12 +26,15 @@ enum Zval {
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function]
-pub fn test_bool(input: bool) -> String {
-    if input {
-        "Yes!".into()
-    } else {
-        "No!".into()
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn test_bool(input: bool) -> String {
+        if input {
+            "Yes!".into()
+        } else {
+            "No!".into()
+        }
     }
 }
 # fn main() {}
@@ -52,10 +55,14 @@ var_dump(test_bool(false)); // string(3) "No!"
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-# use ext_php_rs::types;
-#[php_function]
-pub fn test_bool(input: &mut types::Zval) {
-    input.reference_mut().unwrap().set_bool(false);
+#[php_module]
+mod module {
+    # use ext_php_rs::types;
+
+    #[php_function]
+    pub fn test_bool(input: &mut types::Zval) {
+        input.reference_mut().unwrap().set_bool(false);
+    }
 }
 # fn main() {}
 ```

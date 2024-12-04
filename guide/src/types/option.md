@@ -22,9 +22,12 @@ null to PHP.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function]
-pub fn test_option_null(input: Option<String>) -> Option<String> {
-    input.map(|input| format!("Hello {}", input).into())
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn test_option_null(input: Option<String>) -> Option<String> {
+        input.map(|input| format!("Hello {}", input).into())
+    }
 }
 # fn main() {}
 ```
