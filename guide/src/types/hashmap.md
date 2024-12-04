@@ -20,16 +20,19 @@ Converting from a `HashMap` to a zval is valid when the key implements
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-# use std::collections::HashMap;
-#[php_function]
-pub fn test_hashmap(hm: HashMap<String, String>) -> Vec<String> {
-    for (k, v) in hm.iter() {
-        println!("k: {} v: {}", k, v);
-    }
+#[php_module]
+mod module {
+    # use std::collections::HashMap;
+    #[php_function]
+    pub fn test_hashmap(hm: HashMap<String, String>) -> Vec<String> {
+        for (k, v) in hm.iter() {
+            println!("k: {} v: {}", k, v);
+        }
 
-    hm.into_iter()
-        .map(|(_, v)| v)
-        .collect::<Vec<_>>()
+        hm.into_iter()
+            .map(|(_, v)| v)
+            .collect::<Vec<_>>()
+    }
 }
 # fn main() {}
 ```

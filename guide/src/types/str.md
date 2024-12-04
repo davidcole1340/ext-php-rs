@@ -21,14 +21,17 @@ PHP strings.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function]
-pub fn str_example(input: &str) -> String {
-    format!("Hello {}", input)
-}
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn str_example(input: &str) -> String {
+        format!("Hello {}", input)
+    }
 
-#[php_function]
-pub fn str_return_example() -> &'static str {
-    "Hello from Rust"
+    #[php_function]
+    pub fn str_return_example() -> &'static str {
+        "Hello from Rust"
+    }
 }
 # fn main() {}
 ```

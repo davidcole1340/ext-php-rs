@@ -5,7 +5,6 @@ mod module {
     use ext_php_rs::{
         binary::Binary,
         boxed::ZBox,
-        prelude::*,
         types::{ArrayKey, ZendHashTable, ZendObject, Zval},
         zend::ProcessGlobals,
     };

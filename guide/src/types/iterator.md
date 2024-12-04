@@ -6,12 +6,12 @@
 |---------------| -------------- |-----------------| ---------------- | ------------------ |
 | No            | Yes            | No              | No               | `ZendIterator`    |
 
-Converting from a zval to a `ZendIterator` is valid when there is an associated iterator to 
-the variable. This means that any value, at the exception of an `array`, that can be used in 
+Converting from a zval to a `ZendIterator` is valid when there is an associated iterator to
+the variable. This means that any value, at the exception of an `array`, that can be used in
 a `foreach` loop can be converted into a `ZendIterator`. As an example, a `Generator` can be
 used but also a the result of a `query` call with `PDO`.
 
-If you want a more universal `iterable` type that also supports arrays, see [Iterable](./iterable.md).  
+If you want a more universal `iterable` type that also supports arrays, see [Iterable](./iterable.md).
 
 ## Rust example
 
@@ -19,13 +19,16 @@ If you want a more universal `iterable` type that also supports arrays, see [Ite
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-# use ext_php_rs::types::ZendIterator;
-#[php_function]
-pub fn test_iterator(iterator: &mut ZendIterator) {
-    for (k, v) in iterator.iter().expect("cannot rewind iterator") {
-        // Note that the key can be anything, even an object
-        // when iterating over Traversables!
-        println!("k: {} v: {}", k.string().unwrap(), v.string().unwrap());
+#[php_module]
+mod module {
+    # use ext_php_rs::types::ZendIterator;
+    #[php_function]
+    pub fn test_iterator(iterator: &mut ZendIterator) {
+        for (k, v) in iterator.iter().expect("cannot rewind iterator") {
+            // Note that the key can be anything, even an object
+            // when iterating over Traversables!
+            println!("k: {} v: {}", k.string().unwrap(), v.string().unwrap());
+        }
     }
 }
 # fn main() {}

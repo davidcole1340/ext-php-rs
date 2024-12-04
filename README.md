@@ -19,22 +19,19 @@ Export a simple function `function hello_world(string $name): string` to PHP:
 ```rust
 #![cfg_attr(windows, feature(abi_vectorcall))]
 
-use ext_php_rs::prelude::*;
+use ext_php_rs::php_module;
 
-/// Gives you a nice greeting!
-///
-/// @param string $name Your name.
-///
-/// @return string Nice greeting!
-#[php_function]
-pub fn hello_world(name: String) -> String {
-    format!("Hello, {}!", name)
-}
-
-// Required to register the extension with PHP.
 #[php_module]
-pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+mod module {
+    /// Gives you a nice greeting!
+    ///
+    /// @param string $name Your name.
+    ///
+    /// @return string Nice greeting!
+    #[php_function]
+    pub fn hello_world(name: String) -> String {
+        format!("Hello, {}!", name)
+    }
 }
 ```
 
@@ -148,7 +145,7 @@ best resource at the moment. This can be viewed at [docs.rs].
   functionality to be cross-platform is on the roadmap.
 - To build the application in `DEBUG` mode on Windows,
   you must have a `PHP SDK` built with the `DEBUG` option enabled
-  and specify the `PHP_LIB` to the folder containing the lib files. 
+  and specify the `PHP_LIB` to the folder containing the lib files.
   For example: set `PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS`.
 
 [vectorcall]: https://docs.microsoft.com/en-us/cpp/cpp/vectorcall?view=msvc-170

@@ -9,13 +9,14 @@ that implements `IntoConst`.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_const]
-const TEST_CONSTANT: i32 = 100;
+#[php_module]
+mod module {
+    #[php_const]
+    const TEST_CONSTANT: i32 = 100;
 
-#[php_const]
-const ANOTHER_STRING_CONST: &'static str = "Hello world!";
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder { module }
+    #[php_const]
+    const ANOTHER_STRING_CONST: &'static str = "Hello world!";
+}
 # fn main() {}
 ```
 

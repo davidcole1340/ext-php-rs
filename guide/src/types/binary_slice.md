@@ -25,16 +25,20 @@ isize, usize, f32, f64).
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
-use ext_php_rs::binary_slice::BinarySlice;
 
-#[php_function]
-pub fn test_binary_slice(input: BinarySlice<u8>) -> u8 {
-    let mut sum = 0;
-    for i in input.iter() {
-        sum += i;
+#[php_module]
+mod module {
+    use ext_php_rs::binary_slice::BinarySlice;
+
+    #[php_function]
+    pub fn test_binary_slice(input: BinarySlice<u8>) -> u8 {
+        let mut sum = 0;
+        for i in input.iter() {
+            sum += i;
+        }
+
+        sum
     }
-
-    sum
 }
 # fn main() {}
 ```

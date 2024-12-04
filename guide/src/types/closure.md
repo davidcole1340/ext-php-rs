@@ -47,24 +47,27 @@ fact that it can modify variables in its scope.
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
-#[php_function]
-pub fn closure_get_string() -> Closure {
-    // Return a closure which takes two integers and returns a string
-    Closure::wrap(Box::new(|a, b| {
-        format!("A: {} B: {}", a, b)
-    }) as Box<dyn Fn(i32, i32) -> String>)
-}
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn closure_get_string() -> Closure {
+        // Return a closure which takes two integers and returns a string
+        Closure::wrap(Box::new(|a, b| {
+            format!("A: {} B: {}", a, b)
+        }) as Box<dyn Fn(i32, i32) -> String>)
+    }
 
-#[php_function]
-pub fn closure_count() -> Closure {
-    let mut count = 0i32;
+    #[php_function]
+    pub fn closure_count() -> Closure {
+        let mut count = 0i32;
 
-    // Return a closure which takes an integer, adds it to a persistent integer,
-    // and returns the updated value.
-    Closure::wrap(Box::new(move |a: i32| {
-        count += a;
-        count
-    }) as Box<dyn FnMut(i32) -> i32>)
+        // Return a closure which takes an integer, adds it to a persistent integer,
+        // and returns the updated value.
+        Closure::wrap(Box::new(move |a: i32| {
+            count += a;
+            count
+        }) as Box<dyn FnMut(i32) -> i32>)
+    }
 }
 # fn main() {}
 ```
@@ -88,14 +91,17 @@ will be thrown.
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
-#[php_function]
-pub fn closure_return_string() -> Closure {
-    let example: String = "Hello, world!".into();
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn closure_return_string() -> Closure {
+        let example: String = "Hello, world!".into();
 
-    // This closure consumes `example` and therefore cannot be called more than once.
-    Closure::wrap_once(Box::new(move || {
-        example
-    }) as Box<dyn FnOnce() -> String>)
+        // This closure consumes `example` and therefore cannot be called more than once.
+        Closure::wrap_once(Box::new(move || {
+            example
+        }) as Box<dyn FnOnce() -> String>)
+    }
 }
 # fn main() {}
 ```
@@ -116,10 +122,13 @@ function by its name, or as a parameter. They can be called through the
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
-#[php_function]
-pub fn callable_parameter(call: ZendCallable) {
-    let val = call.try_call(vec![&0, &1, &"Hello"]).expect("Failed to call function");
-    dbg!(val);
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn callable_parameter(call: ZendCallable) {
+        let val = call.try_call(vec![&0, &1, &"Hello"]).expect("Failed to call function");
+        dbg!(val);
+    }
 }
 # fn main() {}
 ```
