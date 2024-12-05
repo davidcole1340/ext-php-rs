@@ -25,3 +25,17 @@ assert_exception_thrown('test_variadic_args');
 // } catch (ArgumentCountError $e) {
 //     var_dump($e->getMessage());
 // }
+
+// Values directly passed
+test_variadic_add_optional(1, 2, 3); // 1
+
+$count = test_variadic_add_optional(11); // 11
+assert($count === 11, 'Allow only one argument');
+
+$numbers = test_variadic_add_required(1, 2, 3, 4);
+assert($numbers === [1, 2, 3, 4], 'Must return a array of numbers');
+
+$types = test_variadic_all_types('a', 1, ['abc', 'def', 0.01], true, new stdClass);
+assert(gettype(end($types[2])) === 'double', 'Type of argument 2 and its last element should be a float of 0.01');
+assert($types[3], 'Arg 4 should be boolean true');
+assert($types[4] instanceof stdClass, 'Last argument is an instance of an StdClass');
