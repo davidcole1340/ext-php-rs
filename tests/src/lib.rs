@@ -1,5 +1,9 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
+use ext_php_rs::{
+    binary::Binary,
+    prelude::*,
+    types::{ZendObject, Zval},
+};
 use std::collections::HashMap;
 
 #[php_function]
@@ -71,6 +75,28 @@ pub fn test_closure_once(a: String) -> Closure {
 pub fn test_callable(call: ZendCallable, a: String) -> Zval {
     call.try_call(vec![&a]).expect("Failed to call function")
 }
+
+// Rust type &[&Zval] must be converted because to Vec<Zval> because of
+// lifetime hell.
+#[php_function(optional = "params")]
+pub fn test_variadic_optional_args(params: &[&Zval]) -> Vec<Zval> {
+    params.iter().map(|x| x.shallow_clone()).collect()
+}
+
+#[php_function]
+pub fn test_variadic_args(params: &[&Zval]) -> Vec<Zval> {
+    params.iter().map(|x| x.shallow_clone()).collect()
+}
+
+// Rust type &[&Zval] must be converted because to Vec<Zval> because
+// of lifetime hell...  #[php_function] does not support lifetime.
+// error1: error[E0261]: use of undeclared lifetime name `'a`
+// error2: lifetime `'a` is missing in item created through this procedural
+// macro #[php_function]
+// pub fn test_variadic_optional2_args<'a>(params: &'a [&'a Zval]) -> &'a [&'a
+// Zval] {     println!("Hiero: {:#?}", params);
+//     params
+// }
 
 #[php_class]
 pub struct TestClass {
@@ -184,4 +210,5 @@ mod integration {
     mod object;
     mod string;
     mod types;
+    mod variadic_args;
 }
