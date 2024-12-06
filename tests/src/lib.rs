@@ -89,14 +89,14 @@ pub fn test_variadic_args(params: &[&Zval]) -> Vec<Zval> {
 }
 
 #[php_function(optional = "numbers")]
-pub fn test_variadic_add_optional(number: u32, numbers:&[&Zval]) -> u32 {
+pub fn test_variadic_add_optional(number: u32, numbers: &[&Zval]) -> u32 {
     println!("Optional numbers: {:?}", numbers);
     // numbers is a slice of 4 Zvals all of type long
     number
 }
 
 #[php_function]
-pub fn test_variadic_add_required(numbers:&[&Zval]) -> Vec<Zval> {
+pub fn test_variadic_add_required(numbers: &[&Zval]) -> Vec<Zval> {
     // numbers is a slice of 4 Zvals all of type long
     // *numbers[0].as_number()
     numbers.iter().map(|x| x.shallow_clone()).collect()
