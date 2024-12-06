@@ -119,7 +119,7 @@ pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
 /// Having optional numbers can be done like:
 /// This can be called from PHP as `add(1)`, with no addional numbers given
 #[php_function(optional = "numbers")]
-pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
+pub fn add_optional(number: u32, numbers:&[&Zval]) -> u32 {
     println!("Optional numbers: {:?}", numbers);
     // numbers is a slice of 4 Zvals all of type long
     number
