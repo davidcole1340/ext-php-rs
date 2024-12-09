@@ -20,11 +20,6 @@ assert($args[2] === $c, 'Expected third argument to have a value of \$c aka "c"'
 
 // Must have arguments.. so catch ArgumentCountError errors!
 assert_exception_thrown('test_variadic_args');
-// try {
-//     $args = test_variadic_args();
-// } catch (ArgumentCountError $e) {
-//     var_dump($e->getMessage());
-// }
 
 // Values directly passed
 test_variadic_add_optional(1, 2, 3); // 1

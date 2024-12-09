@@ -90,15 +90,11 @@ pub fn test_variadic_args(params: &[&Zval]) -> Vec<Zval> {
 
 #[php_function(optional = "numbers")]
 pub fn test_variadic_add_optional(number: u32, numbers: &[&Zval]) -> u32 {
-    println!("Optional numbers: {:?}", numbers);
-    // numbers is a slice of 4 Zvals all of type long
     number
 }
 
 #[php_function]
 pub fn test_variadic_add_required(numbers: &[&Zval]) -> Vec<Zval> {
-    // numbers is a slice of 4 Zvals all of type long
-    // *numbers[0].as_number()
     numbers.iter().map(|x| x.shallow_clone()).collect()
 }
 
@@ -106,17 +102,6 @@ pub fn test_variadic_add_required(numbers: &[&Zval]) -> Vec<Zval> {
 pub fn test_variadic_all_types(everything: &[&Zval]) -> Vec<Zval> {
     everything.iter().map(|x| x.shallow_clone()).collect()
 }
-
-// Rust type &[&Zval] must be converted because to Vec<Zval> because
-// of lifetime hell...  #[php_function] does not support lifetime.
-// error1: error[E0261]: use of undeclared lifetime name `'a`
-// error2: lifetime `'a` is missing in item created through this procedural
-// macro #[php_function]
-// pub fn test_variadic_optional_args<'a>(params: &'a [&'a Zval]) -> &'a [&'a
-// Zval] {
-//     println!("Params: {:#?}", params);
-//     params
-// }
 
 #[php_class]
 pub struct TestClass {
