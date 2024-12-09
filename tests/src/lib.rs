@@ -1,5 +1,9 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
+use ext_php_rs::{
+    binary::Binary,
+    prelude::*,
+    types::{ZendObject, Zval},
+};
 use std::collections::HashMap;
 
 #[php_function]
@@ -70,6 +74,33 @@ pub fn test_closure_once(a: String) -> Closure {
 #[php_function]
 pub fn test_callable(call: ZendCallable, a: String) -> Zval {
     call.try_call(vec![&a]).expect("Failed to call function")
+}
+
+// Rust type &[&Zval] must be converted because to Vec<Zval> because of
+// lifetime hell.
+#[php_function(optional = "params")]
+pub fn test_variadic_optional_args(params: &[&Zval]) -> Vec<Zval> {
+    params.iter().map(|x| x.shallow_clone()).collect()
+}
+
+#[php_function]
+pub fn test_variadic_args(params: &[&Zval]) -> Vec<Zval> {
+    params.iter().map(|x| x.shallow_clone()).collect()
+}
+
+#[php_function(optional = "numbers")]
+pub fn test_variadic_add_optional(number: u32, numbers: &[&Zval]) -> u32 {
+    number
+}
+
+#[php_function]
+pub fn test_variadic_add_required(numbers: &[&Zval]) -> Vec<Zval> {
+    numbers.iter().map(|x| x.shallow_clone()).collect()
+}
+
+#[php_function(optional = "everything")]
+pub fn test_variadic_all_types(everything: &[&Zval]) -> Vec<Zval> {
+    everything.iter().map(|x| x.shallow_clone()).collect()
 }
 
 #[php_class]
@@ -184,4 +215,5 @@ mod integration {
     mod object;
     mod string;
     mod types;
+    mod variadic_args;
 }
