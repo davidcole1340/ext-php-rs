@@ -108,13 +108,26 @@ the `...$args` syntax.
 # use ext_php_rs::prelude::*;
 # use ext_php_rs::types::Zval;
 /// This can be called from PHP as `add(1, 2, 3, 4, 5)`
+/// note: it requires to set numbers with one or arguments
 #[php_function]
 pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
+    println!("Extra numbers: {:?}", numbers);
+    // numbers is a slice of 4 Zvals all of type long
+    number
+}
+
+/// Having optional numbers can be done like:
+/// This can be called from PHP as `add(1)`, with no addional numbers given
+#[php_function(optional = "numbers")]
+pub fn add_optional(number: u32, numbers:&[&Zval]) -> u32 {
+    println!("Optional numbers: {:?}", numbers);
     // numbers is a slice of 4 Zvals all of type long
     number
 }
 # fn main() {}
 ```
+
+Checkout more example in our [tests](https://github.com/davidcole1340/ext-php-rs/tree/master/tests/src/integration/variadic_args.php) location.
 
 ## Returning `Result<T, E>`
 
