@@ -89,7 +89,7 @@ pub fn test_variadic_args(params: &[&Zval]) -> Vec<Zval> {
 }
 
 #[php_function(optional = "numbers")]
-pub fn test_variadic_add_optional(number: u32, numbers: &[&Zval]) -> u32 {
+pub fn test_variadic_add_optional(number: u32, _numbers: &[&Zval]) -> u32 {
     number
 }
 
