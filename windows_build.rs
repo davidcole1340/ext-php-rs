@@ -23,7 +23,7 @@ impl<'a> Provider<'a> {
     fn get_php_lib_name(&self) -> Result<String> {
         Ok(self
             .devel
-            .php_lib()
+            .php_lib(self.info.debug()?)
             .file_stem()
             .context("Failed to get PHP library name")?
             .to_string_lossy()
@@ -85,7 +85,7 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         let php_lib_name = self.get_php_lib_name()?;
         let php_lib_search = self
             .devel
-            .php_lib()
+            .php_lib(self.info.debug()?)
             .parent()
             .context("Failed to get PHP library parent folder")?
             .to_string_lossy()
@@ -233,12 +233,36 @@ impl DevelPack {
     }
 
     /// Returns the path of the PHP library containing symbols for linking.
-    pub fn php_lib(&self) -> PathBuf {
-        let php_nts = self.0.join("lib").join("php8.lib");
+    pub fn php_lib(&self, is_debug: bool) -> PathBuf {
+
+        let lib_name = match is_debug {
+            true => "php8ts_debug.lib",
+            false => "php8.lib",
+        };
+
+        let php_nts = if let Ok(php_lib_path) = std::env::var("PHP_LIB") {
+            let custom_path = PathBuf::from(php_lib_path);
+            if custom_path.exists() {
+                custom_path.join(lib_name)
+            } else {
+                eprintln!("Warning: PHP_LIB is set to {}, but the file does not exist", custom_path.display());
+                self.0.join("lib").join(lib_name)
+            }
+        } else {
+            if is_debug {
+                panic!(r#"To build the application in DEBUG mode on Windows,
+you must have a PHP SDK builded with the DEBUG option enabled
+and specify the PHP_LIB to the folder containing the lib files.
+For example: set PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS."#);
+            }
+
+            self.0.join("lib").join(lib_name)
+        };
+
         if php_nts.exists() {
             php_nts
         } else {
-            self.0.join("lib").join("php8ts.lib")
+            self.0.join("lib").join(lib_name)
         }
     }
 
