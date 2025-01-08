@@ -235,35 +235,40 @@ impl DevelPack {
     /// Returns the path of the PHP library containing symbols for linking.
     pub fn php_lib(&self, is_debug: bool) -> PathBuf {
 
-        let lib_name = match is_debug {
-            true => "php8ts_debug.lib",
-            false => "php8.lib",
-        };
+        let php_lib_path = std::env::var("PHP_LIB")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| self.0.join("lib"));
 
-        let php_nts = if let Ok(php_lib_path) = std::env::var("PHP_LIB") {
-            let custom_path = PathBuf::from(php_lib_path);
-            if custom_path.exists() {
-                custom_path.join(lib_name)
-            } else {
-                eprintln!("Warning: PHP_LIB is set to {}, but the file does not exist", custom_path.display());
-                self.0.join("lib").join(lib_name)
-            }
-        } else {
-            if is_debug {
-                panic!(r#"To build the application in DEBUG mode on Windows,
-you must have a PHP SDK builded with the DEBUG option enabled
-and specify the PHP_LIB to the folder containing the lib files.
-For example: set PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS."#);
-            }
-
-            self.0.join("lib").join(lib_name)
-        };
-
-        if php_nts.exists() {
-            php_nts
-        } else {
-            self.0.join("lib").join(lib_name)
+        if !php_lib_path.exists() {
+            panic!("Error: Specified PHP library path '{}' does not exist.", php_lib_path.display());
         }
+
+        let candidates = if is_debug {
+            ["php8_debug.lib", "php8ts_debug.lib"]
+        } else {
+            ["php8.lib", "php8ts.lib"]
+        };
+
+        candidates
+            .iter()
+            .map(|lib| php_lib_path.join(lib))
+            .find(|path| path.exists())
+            .unwrap_or_else(||
+                panic!(
+                    "{}",
+                    if is_debug {
+                        format!(
+                            r#"Error: No suitable PHP library found in '{}'.
+To build the application in DEBUG mode on Windows,
+you must have a PHP SDK built with the DEBUG option enabled
+and specify the PHP_LIB to the folder containing the lib files.
+For example: set PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS."#,
+                            php_lib_path.display()
+                        )
+                    } else {
+                        format!("Error: No suitable PHP library found in '{}'.", php_lib_path.display())
+                    }
+                ))
     }
 
     /// Returns a list of include paths to pass to the compiler.
