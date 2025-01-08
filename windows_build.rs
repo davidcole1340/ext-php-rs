@@ -253,22 +253,21 @@ impl DevelPack {
             .iter()
             .map(|lib| php_lib_path.join(lib))
             .find(|path| path.exists())
-            .unwrap_or_else(||
-                panic!(
-                    "{}",
-                    if is_debug {
-                        format!(
-                            r#"Error: No suitable PHP library found in '{}'.
+            .expect(&format!(
+                "{}",
+                if is_debug {
+                    format!(
+                        r#"Error: No suitable PHP library found in '{}'.
 To build the application in DEBUG mode on Windows,
 you must have a PHP SDK built with the DEBUG option enabled
 and specify the PHP_LIB to the folder containing the lib files.
 For example: set PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS."#,
-                            php_lib_path.display()
-                        )
-                    } else {
-                        format!("Error: No suitable PHP library found in '{}'.", php_lib_path.display())
-                    }
-                ))
+                        php_lib_path.display()
+                    )
+                } else {
+                    format!("Error: No suitable PHP library found in '{}'.", php_lib_path.display())
+                }
+            ))
     }
 
     /// Returns a list of include paths to pass to the compiler.
