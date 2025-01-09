@@ -573,7 +573,9 @@ impl ToOwned for ZendHashTable {
 pub struct Iter<'a> {
     ht: &'a ZendHashTable,
     current_num: i64,
+    end_num: i64,
     pos: HashPosition,
+    end_pos: HashPosition,
 }
 
 #[derive(Debug, PartialEq)]
@@ -627,10 +629,22 @@ impl<'a> Iter<'a> {
     ///
     /// * `ht` - The hashtable to iterate.
     pub fn new(ht: &'a ZendHashTable) -> Self {
+        let end_num: i64 = ht
+            .len()
+            .try_into()
+            .expect("Integer overflow in hashtable length");
+        let end_pos = if ht.nNumOfElements > 0 {
+            ht.nNumOfElements - 1
+        } else {
+            0
+        };
+
         Self {
             ht,
             current_num: 0,
+            end_num,
             pos: 0,
+            end_pos,
         }
     }
 }
@@ -686,6 +700,10 @@ impl ExactSizeIterator for Iter<'_> {
 
 impl DoubleEndedIterator for Iter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
+        if self.end_num <= self.current_num {
+            return None;
+        }
+
         let key_type = unsafe {
             zend_hash_get_current_key_type_ex(
                 self.ht as *const ZendHashTable as *mut ZendHashTable,
@@ -703,28 +721,28 @@ impl DoubleEndedIterator for Iter<'_> {
             zend_hash_get_current_key_zval_ex(
                 self.ht as *const ZendHashTable as *mut ZendHashTable,
                 &key as *const Zval as *mut Zval,
-                &mut self.pos as *mut HashPosition,
+                &mut self.end_pos as *mut HashPosition,
             );
         }
         let value = unsafe {
             &*zend_hash_get_current_data_ex(
                 self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.pos as *mut HashPosition,
+                &mut self.end_pos as *mut HashPosition,
             )
         };
 
         let key = match ArrayKey::from_zval(&key) {
             Some(key) => key,
-            None => ArrayKey::Long(self.current_num),
+            None => ArrayKey::Long(self.end_num),
         };
 
         unsafe {
             zend_hash_move_backwards_ex(
                 self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.pos as *mut HashPosition,
+                &mut self.end_pos as *mut HashPosition,
             )
         };
-        self.current_num -= 1;
+        self.end_num -= 1;
 
         Some((key, value))
     }
@@ -732,6 +750,10 @@ impl DoubleEndedIterator for Iter<'_> {
 
 impl<'a> Iter<'a> {
     pub fn next_zval(&mut self) -> Option<(Zval, &'a Zval)> {
+        if self.current_num >= self.end_num {
+            return None;
+        }
+
         let key_type = unsafe {
             zend_hash_get_current_key_type_ex(
                 self.ht as *const ZendHashTable as *mut ZendHashTable,
