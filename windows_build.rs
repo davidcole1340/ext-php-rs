@@ -234,13 +234,15 @@ impl DevelPack {
 
     /// Returns the path of the PHP library containing symbols for linking.
     pub fn php_lib(&self, is_debug: bool) -> PathBuf {
-
         let php_lib_path = std::env::var("PHP_LIB")
             .map(PathBuf::from)
             .unwrap_or_else(|_| self.0.join("lib"));
 
         if !php_lib_path.exists() {
-            panic!("Error: Specified PHP library path '{}' does not exist.", php_lib_path.display());
+            panic!(
+                "Error: Specified PHP library path '{}' does not exist.",
+                php_lib_path.display()
+            );
         }
 
         let candidates = if is_debug {
@@ -265,7 +267,10 @@ For example: set PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS
                         php_lib_path.display()
                     )
                 } else {
-                    format!("Error: No suitable PHP library found in '{}'.", php_lib_path.display())
+                    format!(
+                        "Error: No suitable PHP library found in '{}'.",
+                        php_lib_path.display()
+                    )
                 }
             ))
     }
