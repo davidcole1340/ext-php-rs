@@ -142,6 +142,10 @@ best resource at the moment. This can be viewed at [docs.rs].
   bundled with Microsoft Visual Studio.
 - `cargo-php`'s stub generation feature does not work on Windows. Rewriting this
   functionality to be cross-platform is on the roadmap.
+- To build the application in `DEBUG` mode on Windows,
+  you must have a `PHP SDK` built with the `DEBUG` option enabled
+  and specify the `PHP_LIB` to the folder containing the lib files. 
+  For example: set `PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS`.
 
 [vectorcall]: https://docs.microsoft.com/en-us/cpp/cpp/vectorcall?view=msvc-170
 
