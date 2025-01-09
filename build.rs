@@ -237,6 +237,10 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     );
     println!("cargo:rustc-cfg=php80");
 
+    if (MIN_PHP_API_VER..PHP_81_API_VER).contains(&version) {
+        println!("cargo:warning=PHP version 8.0 is EOL and will be removed in a future release. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines. Once a version is no longer supported we will drop it, as it is no longer receiving security updates.");
+    }
+
     if (PHP_81_API_VER..PHP_82_API_VER).contains(&version) {
         println!("cargo:rustc-cfg=php81");
     }
