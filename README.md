@@ -189,6 +189,11 @@ Contributions welcome include:
 - Bug fixes and features.
 - Feature requests.
 
+When contributing, please keep in mind the following:
+- Create tests if possible.
+- Update the documentation if necessary.
+- Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/). We use these to automatically generate changelogs.
+
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
