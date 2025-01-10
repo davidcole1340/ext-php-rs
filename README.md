@@ -22,9 +22,9 @@ Export a simple function `function hello_world(string $name): string` to PHP:
 use ext_php_rs::prelude::*;
 
 /// Gives you a nice greeting!
-/// 
+///
 /// @param string $name Your name.
-/// 
+///
 /// @return string Nice greeting!
 #[php_function]
 pub fn hello_world(name: String) -> String {
@@ -114,8 +114,12 @@ best resource at the moment. This can be viewed at [docs.rs].
 ## Requirements
 
 - Linux, macOS or Windows-based operating system.
-- PHP 8.0 or later.
+- PHP 8.1 or later.
   - No support is planned for earlier versions of PHP.
+  - PHP versions, that no longer receive security updates, will no longer be
+    supported. They might still work, but no guarantees are made.
+  - See <https://www.php.net/supported-versions.php> for information on PHP
+    supported versions and their end of life dates.
 - Rust.
   - Currently, we maintain no guarantee of a MSRV, however lib.rs suggests Rust
     1.57 at the time of writing.
