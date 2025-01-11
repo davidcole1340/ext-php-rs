@@ -188,7 +188,7 @@ pub fn build_arg_parser<'a>(
                 None
             });
 
-            if rest_optional && !arg.nullable && arg.default.is_none() {
+            if rest_optional && !arg.nullable && arg.default.is_none() && !arg.variadic {
                 bail!(
                     "Parameter `{}` must be a variant of `Option` or have a default value as it is optional.",
                     arg.name
