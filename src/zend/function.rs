@@ -38,6 +38,10 @@ impl FunctionEntry {
             arg_info: ptr::null(),
             num_args: 0,
             flags: 0,
+            frameless_function_infos: ptr::null(),
+            doc_comment: "".as_ptr() as *const c_char,
+            // pub frameless_function_infos: *const zend_frameless_function_info,
+            // pub doc_comment: *const ::std::os::raw::c_char,
         }
     }
 
