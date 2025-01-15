@@ -239,7 +239,7 @@ impl ZendObjectHandlers {
                         val.get(self_, &mut zv)?;
 
                         #[allow(clippy::unnecessary_mut_passed)]
-                        if zend_is_true(&mut zv) == 1 {
+                        if zend_is_true(&mut zv) {
                             return Ok(1);
                         }
                     }
