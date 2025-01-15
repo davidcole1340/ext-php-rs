@@ -58,7 +58,9 @@ impl<'a> FunctionBuilder<'a> {
                 arg_info: ptr::null(),
                 num_args: 0,
                 flags: 0,
+                #[cfg(php84)]
                 frameless_function_infos: ptr::null(),
+                #[cfg(php84)]
                 doc_comment: "".as_ptr() as *const c_char,
             },
             args: vec![],
@@ -84,7 +86,9 @@ impl<'a> FunctionBuilder<'a> {
                 arg_info: ptr::null(),
                 num_args: 0,
                 flags: MethodFlags::Abstract.bits(),
+                #[cfg(php84)]
                 frameless_function_infos: ptr::null(),
+                #[cfg(php84)]
                 doc_comment: "".as_ptr() as *const c_char,
             },
             args: vec![],

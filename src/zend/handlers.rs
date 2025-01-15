@@ -238,8 +238,14 @@ impl ZendObjectHandlers {
                         let mut zv = Zval::new();
                         val.get(self_, &mut zv)?;
 
+                        #[cfg(php84)]
                         #[allow(clippy::unnecessary_mut_passed)]
                         if zend_is_true(&mut zv) {
+                            return Ok(1);
+                        }
+
+                        #[cfg(not(php84))]
+                        if zend_is_true(&mut zv) == 1 {
                             return Ok(1);
                         }
                     }
