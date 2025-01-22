@@ -39,9 +39,9 @@ impl FunctionEntry {
             num_args: 0,
             flags: 0,
             #[cfg(php84)]
-            frameless_function_infos: ptr::null(),
+            doc_comment: ptr::null(),
             #[cfg(php84)]
-            doc_comment: "".as_ptr() as *const c_char,
+            frameless_function_infos: ptr::null(),
         }
     }
 
