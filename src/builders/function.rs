@@ -5,10 +5,7 @@ use crate::{
     types::Zval,
     zend::{ExecuteData, FunctionEntry, ZendType},
 };
-use std::{
-    ffi::{c_char, CString},
-    mem, ptr,
-};
+use std::{ffi::CString, mem, ptr};
 
 /// Function representation in Rust.
 #[cfg(not(windows))]
@@ -57,11 +54,11 @@ impl<'a> FunctionBuilder<'a> {
                 }),
                 arg_info: ptr::null(),
                 num_args: 0,
-                flags: 0,
+                flags: 0, // TBD?
+                #[cfg(php84)]
+                doc_comment: ptr::null(),
                 #[cfg(php84)]
                 frameless_function_infos: ptr::null(),
-                #[cfg(php84)]
-                doc_comment: "".as_ptr() as *const c_char,
             },
             args: vec![],
             n_req: None,
@@ -87,9 +84,9 @@ impl<'a> FunctionBuilder<'a> {
                 num_args: 0,
                 flags: MethodFlags::Abstract.bits(),
                 #[cfg(php84)]
-                frameless_function_infos: ptr::null(),
+                doc_comment: ptr::null(),
                 #[cfg(php84)]
-                doc_comment: "".as_ptr() as *const c_char,
+                frameless_function_infos: ptr::null(),
             },
             args: vec![],
             n_req: None,
