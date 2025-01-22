@@ -88,7 +88,7 @@ pub fn test_variadic_args(params: &[&Zval]) -> Vec<Zval> {
     params.iter().map(|x| x.shallow_clone()).collect()
 }
 
-#[php_function(optional = "numbers")]
+#[php_function(optional = "_numbers")]
 pub fn test_variadic_add_optional(number: u32, _numbers: &[&Zval]) -> u32 {
     number
 }
