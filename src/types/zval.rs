@@ -563,7 +563,14 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_hashtable(&mut self, val: ZBox<ZendHashTable>) {
-        self.change_type(ZvalTypeFlags::ArrayEx);
+        // Handle immutable shared arrays akin to ZVAL_EMPTY_ARRAY.
+        let type_info = if val.is_immutable() {
+            ZvalTypeFlags::Array
+        } else {
+            ZvalTypeFlags::ArrayEx
+        };
+
+        self.change_type(type_info);
         self.value.arr = val.into_raw();
     }
 

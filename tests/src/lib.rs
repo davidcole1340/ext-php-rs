@@ -1,5 +1,8 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::{binary::Binary, prelude::*, types::ZendObject, types::Zval};
+use ext_php_rs::{
+    binary::Binary, convert::IntoZval, prelude::*, types::ZendHashTable, types::ZendObject,
+    types::Zval,
+};
 use std::collections::HashMap;
 
 #[php_function]
@@ -40,6 +43,32 @@ pub fn test_array(a: Vec<String>) -> Vec<String> {
 #[php_function]
 pub fn test_array_assoc(a: HashMap<String, String>) -> HashMap<String, String> {
     a
+}
+
+#[php_function]
+pub fn test_zend_hashtable() -> bool {
+    // Also tests dropping the hashtable at the end of this function
+    let mut ht = ZendHashTable::new();
+    ht.insert("key", "value").unwrap();
+
+    ht.is_immutable()
+}
+
+#[php_function]
+pub fn test_immutable_zend_hashtable() -> bool {
+    // Also tests dropping the hashtable at the end of this function
+    let ht = ZendHashTable::new_empty_immutable();
+
+    ht.is_immutable()
+}
+
+#[php_function]
+pub fn test_immutable_zend_hashtable_ret() -> Zval {
+    let mut zv = Zval::new();
+    ZendHashTable::new_empty_immutable()
+        .set_zval(&mut zv, false)
+        .unwrap();
+    zv
 }
 
 #[php_function]

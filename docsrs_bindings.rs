@@ -82,6 +82,7 @@ where
 }
 pub const ZEND_DEBUG: u32 = 1;
 pub const _ZEND_TYPE_NAME_BIT: u32 = 16777216;
+pub const _ZEND_TYPE_LITERAL_NAME_BIT: u32 = 8388608;
 pub const _ZEND_TYPE_NULLABLE_BIT: u32 = 2;
 pub const HT_MIN_SIZE: u32 = 8;
 pub const IS_UNDEF: u32 = 0;
@@ -104,6 +105,9 @@ pub const IS_INDIRECT: u32 = 12;
 pub const IS_PTR: u32 = 13;
 pub const _IS_BOOL: u32 = 18;
 pub const Z_TYPE_FLAGS_SHIFT: u32 = 8;
+pub const GC_FLAGS_MASK: u32 = 1008;
+pub const GC_FLAGS_SHIFT: u32 = 0;
+pub const GC_IMMUTABLE: u32 = 64;
 pub const IS_TYPE_REFCOUNTED: u32 = 1;
 pub const IS_TYPE_COLLECTABLE: u32 = 2;
 pub const IS_INTERNED_STRING_EX: u32 = 6;
@@ -269,7 +273,7 @@ pub struct _IO_FILE {
     pub _wide_data: *mut _IO_wide_data,
     pub _freeres_list: *mut _IO_FILE,
     pub _freeres_buf: *mut ::std::os::raw::c_void,
-    pub __pad5: usize,
+    pub _prevchain: *mut *mut _IO_FILE,
     pub _mode: ::std::os::raw::c_int,
     pub _unused2: [::std::os::raw::c_char; 20usize],
 }
@@ -536,6 +540,9 @@ pub type zend_string_init_interned_func_t = ::std::option::Option<
 >;
 extern "C" {
     pub static mut zend_string_init_interned: zend_string_init_interned_func_t;
+}
+extern "C" {
+    pub static zend_empty_array: HashTable;
 }
 extern "C" {
     pub fn zend_hash_clean(ht: *mut HashTable);
@@ -1992,7 +1999,7 @@ pub struct _php_stream {
     pub wrapperthis: *mut ::std::os::raw::c_void,
     pub wrapperdata: zval,
     pub _bitfield_align_1: [u8; 0],
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 2usize]>,
     pub mode: [::std::os::raw::c_char; 16usize],
     pub flags: u32,
     pub res: *mut zend_resource,
@@ -2011,104 +2018,121 @@ pub struct _php_stream {
 }
 impl _php_stream {
     #[inline]
-    pub fn is_persistent(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u8) }
+    pub fn is_persistent(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_is_persistent(&mut self, val: u8) {
+    pub fn set_is_persistent(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(0usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn in_free(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u8) }
+    pub fn in_free(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 2u8) as u16) }
     }
     #[inline]
-    pub fn set_in_free(&mut self, val: u8) {
+    pub fn set_in_free(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(1usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn eof(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u8) }
+    pub fn eof(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(3usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_eof(&mut self, val: u8) {
+    pub fn set_eof(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(3usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn __exposed(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u8) }
+    pub fn __exposed(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(4usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set___exposed(&mut self, val: u8) {
+    pub fn set___exposed(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(4usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub fn fclose_stdiocast(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u8) }
+    pub fn fclose_stdiocast(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(5usize, 2u8) as u16) }
     }
     #[inline]
-    pub fn set_fclose_stdiocast(&mut self, val: u8) {
+    pub fn set_fclose_stdiocast(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(5usize, 2u8, val as u64)
         }
     }
     #[inline]
-    pub fn has_buffered_data(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u8) }
+    pub fn has_buffered_data(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 1u8) as u16) }
     }
     #[inline]
-    pub fn set_has_buffered_data(&mut self, val: u8) {
+    pub fn set_has_buffered_data(&mut self, val: u16) {
         unsafe {
-            let val: u8 = ::std::mem::transmute(val);
+            let val: u16 = ::std::mem::transmute(val);
             self._bitfield_1.set(7usize, 1u8, val as u64)
         }
     }
     #[inline]
+    pub fn fclose_stdiocast_flush_in_progress(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u16) }
+    }
+    #[inline]
+    pub fn set_fclose_stdiocast_flush_in_progress(&mut self, val: u16) {
+        unsafe {
+            let val: u16 = ::std::mem::transmute(val);
+            self._bitfield_1.set(8usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
     pub fn new_bitfield_1(
-        is_persistent: u8,
-        in_free: u8,
-        eof: u8,
-        __exposed: u8,
-        fclose_stdiocast: u8,
-        has_buffered_data: u8,
-    ) -> __BindgenBitfieldUnit<[u8; 1usize]> {
-        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 1usize]> = Default::default();
+        is_persistent: u16,
+        in_free: u16,
+        eof: u16,
+        __exposed: u16,
+        fclose_stdiocast: u16,
+        has_buffered_data: u16,
+        fclose_stdiocast_flush_in_progress: u16,
+    ) -> __BindgenBitfieldUnit<[u8; 2usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 2usize]> = Default::default();
         __bindgen_bitfield_unit.set(0usize, 1u8, {
-            let is_persistent: u8 = unsafe { ::std::mem::transmute(is_persistent) };
+            let is_persistent: u16 = unsafe { ::std::mem::transmute(is_persistent) };
             is_persistent as u64
         });
         __bindgen_bitfield_unit.set(1usize, 2u8, {
-            let in_free: u8 = unsafe { ::std::mem::transmute(in_free) };
+            let in_free: u16 = unsafe { ::std::mem::transmute(in_free) };
             in_free as u64
         });
         __bindgen_bitfield_unit.set(3usize, 1u8, {
-            let eof: u8 = unsafe { ::std::mem::transmute(eof) };
+            let eof: u16 = unsafe { ::std::mem::transmute(eof) };
             eof as u64
         });
         __bindgen_bitfield_unit.set(4usize, 1u8, {
-            let __exposed: u8 = unsafe { ::std::mem::transmute(__exposed) };
+            let __exposed: u16 = unsafe { ::std::mem::transmute(__exposed) };
             __exposed as u64
         });
         __bindgen_bitfield_unit.set(5usize, 2u8, {
-            let fclose_stdiocast: u8 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
+            let fclose_stdiocast: u16 = unsafe { ::std::mem::transmute(fclose_stdiocast) };
             fclose_stdiocast as u64
         });
         __bindgen_bitfield_unit.set(7usize, 1u8, {
-            let has_buffered_data: u8 = unsafe { ::std::mem::transmute(has_buffered_data) };
+            let has_buffered_data: u16 = unsafe { ::std::mem::transmute(has_buffered_data) };
             has_buffered_data as u64
+        });
+        __bindgen_bitfield_unit.set(8usize, 1u8, {
+            let fclose_stdiocast_flush_in_progress: u16 =
+                unsafe { ::std::mem::transmute(fclose_stdiocast_flush_in_progress) };
+            fclose_stdiocast_flush_in_progress as u64
         });
         __bindgen_bitfield_unit
     }
