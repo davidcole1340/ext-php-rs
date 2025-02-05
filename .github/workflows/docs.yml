@@ -18,6 +18,8 @@ jobs:
         php: ["8.2"]
         clang: ["17"]
         mdbook: ["latest"]
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
