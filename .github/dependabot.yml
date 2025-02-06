@@ -5,3 +5,6 @@ updates:
     # Check for updates every Monday
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "chore(deps): "
+      prefix-development: "chore(deps-dev): "
