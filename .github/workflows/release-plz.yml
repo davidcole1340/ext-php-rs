@@ -33,7 +33,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Cache LLVM and Clang
         id: cache-llvm
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/llvm-${{ env.clang }}
           key: ubuntu-latest-llvm-${{ env.clang }}
