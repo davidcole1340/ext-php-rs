@@ -42,7 +42,7 @@ jobs:
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
           cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Install mdbook
-        uses: peaceiris/actions-mdbook@v1
+        uses: peaceiris/actions-mdbook@v2
         with:
           mdbook-version: ${{ matrix.mdbook }}
       - name: Build guide
