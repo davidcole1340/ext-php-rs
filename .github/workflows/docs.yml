@@ -36,7 +36,7 @@ jobs:
           path: ${{ runner.temp }}/llvm-${{ matrix.clang }}
           key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
       - name: Setup LLVM & Clang
-        uses: KyleMayes/install-llvm-action@v1
+        uses: KyleMayes/install-llvm-action@v2
         with:
           version: ${{ matrix.clang }}
           directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
