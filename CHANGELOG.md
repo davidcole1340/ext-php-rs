@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.13.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.12.0...ext-php-rs-v0.13.0) - 2025-02-06
+
+### Fixed
+- *(array)* Fix null dereference in iterator (#358) (by @Xenira) [[#358](https://github.com/davidcole1340/ext-php-rs/issues/358)] [[#357](https://github.com/davidcole1340/ext-php-rs/issues/357)] 
+- *(globals)* [**breaking**] Disabled `$_REQUEST` super global function (#332) (by @Xenira) [[#332](https://github.com/davidcole1340/ext-php-rs/issues/332)] [[#331](https://github.com/davidcole1340/ext-php-rs/issues/331)] 
+> If you used `http_request_vars()` before it will now panic until a proper implementation is found.
+
+### Other
+- *(clippy)* Fix new clippy checks (#352) (by @Xenira) [[#352](https://github.com/davidcole1340/ext-php-rs/issues/352)] 
+- *(clippy)* Fix new clippy errors (by @Xenira)
+- *(php)* Add deprecation warning for php 8.0 (#353) (by @Xenira) [[#353](https://github.com/davidcole1340/ext-php-rs/issues/353)] [[#343](https://github.com/davidcole1340/ext-php-rs/issues/343)] 
+- *(release)* Add release bot (#346) (by @Xenira) [[#346](https://github.com/davidcole1340/ext-php-rs/issues/346)] [[#340](https://github.com/davidcole1340/ext-php-rs/issues/340)] 
+- *(windows)* Add a debug build with debugging symbols (#350) (by @EdmondDantes) [[#350](https://github.com/davidcole1340/ext-php-rs/issues/350)] 
+- Fix typos (by @Xenira)
+- Windows build should try archives (by @joehoyle)
+- Fmt (by @joehoyle)
+- Use vs17 on php 8.4+ (by @joehoyle)
+- Don't use archive for 8.4.1 (by @joehoyle)
+- Fmt (by @joehoyle)
+- Support php 8.4 internal api changes (by @joehoyle)
+- PHP 8.4 (by @joehoyle)
+- Fix pipeline (#320) (by @Xenira) [[#320](https://github.com/davidcole1340/ext-php-rs/issues/320)] 
+- Update README.md ([#317](https://github.com/davidcole1340/ext-php-rs/pull/317)) (by @s00d) [[#317](https://github.com/davidcole1340/ext-php-rs/issues/317)] 
+
 ## 0.10.1
 - chore: Bitflags upgrade to v2 by @ptondereau [#221]
 - chore: Update to bindgen 0.65.1 @ptondereau [#220]
