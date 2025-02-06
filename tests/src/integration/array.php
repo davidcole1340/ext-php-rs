@@ -3,13 +3,14 @@
 require('_utils.php');
 
 // Tests sequential arrays
-$array = test_array(['a', 'b', 'c']);
+$array = test_array(['a', 'b', 'c', 'd']);
+unset($array[2]);
 
 assert(is_array($array));
 assert(count($array) === 3);
 assert(in_array('a', $array));
 assert(in_array('b', $array));
-assert(in_array('c', $array));
+assert(in_array('d', $array));
 
 // Tests associative arrays
 $assoc = test_array_assoc([

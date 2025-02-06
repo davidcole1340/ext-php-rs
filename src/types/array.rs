@@ -739,7 +739,11 @@ impl<'a> Iter<'a> {
             )
         };
 
-        if key_type == -1 {
+        // Key type `-1` is ???
+        // Key type `1` is string
+        // Key type `2` is long
+        // Key type `3` is null meaning the end of the array
+        if key_type == -1 || key_type == 3 {
             return None;
         }
 
@@ -753,10 +757,16 @@ impl<'a> Iter<'a> {
             );
         }
         let value = unsafe {
-            &*zend_hash_get_current_data_ex(
+            let val_ptr = zend_hash_get_current_data_ex(
                 self.ht as *const ZendHashTable as *mut ZendHashTable,
                 &mut self.pos as *mut HashPosition,
-            )
+            );
+
+            if val_ptr.is_null() {
+                return None;
+            }
+
+            &*val_ptr
         };
 
         if !key.is_long() && !key.is_string() {
