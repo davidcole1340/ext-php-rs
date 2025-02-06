@@ -11,7 +11,7 @@ edition = "2018"
 categories = ["api-bindings", "command-line-interface"]
 
 [dependencies]
-ext-php-rs = { version = ">=0.7.1", path = "../../" }
+ext-php-rs = { version = "0.12", path = "../../" }
 
 clap = { version = "4.0", features = ["derive"] }
 anyhow = "1"
