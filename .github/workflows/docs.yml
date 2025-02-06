@@ -31,7 +31,7 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
       - name: Cache LLVM and Clang
         id: cache-llvm
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/llvm-${{ matrix.clang }}
           key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
