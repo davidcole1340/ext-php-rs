@@ -14,14 +14,14 @@ use crate::{
     convert::{FromZval, IntoZval},
     error::{Error, Result},
     ffi::{
-        _zend_new_array, zend_array_count, zend_array_destroy, zend_array_dup, zend_hash_clean,
-        zend_hash_get_current_data_ex, zend_hash_get_current_key_type_ex,
+        _zend_new_array, zend_array_count, zend_array_destroy, zend_array_dup, zend_empty_array,
+        zend_hash_clean, zend_hash_get_current_data_ex, zend_hash_get_current_key_type_ex,
         zend_hash_get_current_key_zval_ex, zend_hash_index_del, zend_hash_index_find,
         zend_hash_index_update, zend_hash_move_backwards_ex, zend_hash_move_forward_ex,
         zend_hash_next_index_insert, zend_hash_str_del, zend_hash_str_find, zend_hash_str_update,
-        HashPosition, HT_MIN_SIZE,
+        HashPosition, GC_FLAGS_MASK, GC_FLAGS_SHIFT, HT_MIN_SIZE,
     },
-    flags::DataType,
+    flags::{DataType, ZvalTypeFlags},
     types::Zval,
 };
 
@@ -71,6 +71,27 @@ impl ZendHashTable {
         Self::with_capacity(HT_MIN_SIZE)
     }
 
+    /// Returns a shared immutable empty hashtable.
+    /// This is useful to avoid redundant allocations when returning
+    /// an empty collection from Rust code back to the PHP userland.
+    /// Do not use this if you intend to modify the hashtable.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let ht = ZendHashTable::new_empty_immutable();
+    /// ```
+    pub fn new_empty_immutable() -> ZBox<Self> {
+        unsafe {
+            // SAFETY: zend_empty_array is a static global.
+            let ptr = (&zend_empty_array as *const ZendHashTable) as *mut ZendHashTable;
+
+            // SAFETY: `as_mut()` panics if the pointer is null.
+            ZBox::from_raw(ptr.as_mut().expect("zend_empty_array inconsistent"))
+        }
+    }
+
     /// Creates a new, empty, PHP hashtable with an initial size, returned
     /// inside a [`ZBox`].
     ///
@@ -100,6 +121,27 @@ impl ZendHashTable {
                     .expect("Failed to allocate memory for hashtable"),
             )
         }
+    }
+
+    /// Determine whether this hashtable is immutable.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ext_php_rs::types::ZendHashTable;
+    ///
+    /// let ht = ZendHashTable::new();
+    /// assert!(!ht.is_immutable());
+    ///
+    /// let immutable_ht = ZendHashTable::new_empty_immutable();
+    /// assert!(immutable_ht.is_immutable());
+    /// ```
+    pub fn is_immutable(&self) -> bool {
+        // SAFETY: Type info is initialized by Zend on array init.
+        let gc_type_info = unsafe { self.gc.u.type_info };
+        let gc_flags = (gc_type_info >> GC_FLAGS_SHIFT) & (GC_FLAGS_MASK >> GC_FLAGS_SHIFT);
+
+        gc_flags & ZvalTypeFlags::Immutable.bits() != 0
     }
 
     /// Returns the current number of elements in the array.
@@ -539,8 +581,10 @@ impl ZendHashTable {
 
 unsafe impl ZBoxable for ZendHashTable {
     fn free(&mut self) {
-        // SAFETY: ZBox has immutable access to `self`.
-        unsafe { zend_array_destroy(self) }
+        if !self.is_immutable() {
+            // SAFETY: ZBox has immutable access to `self`.
+            unsafe { zend_array_destroy(self) }
+        }
     }
 }
 
