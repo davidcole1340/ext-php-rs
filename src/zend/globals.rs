@@ -20,6 +20,13 @@ use crate::ffi::{
     zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
     TRACK_VARS_POST, TRACK_VARS_SERVER,
 };
+#[cfg(not(php81))]
+use crate::ffi::{_zend_hash_find_known_hash, _zend_string};
+#[cfg(php81)]
+use crate::ffi::{
+    _zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST, zend_hash_find_known_hash,
+    zend_known_strings,
+};
 
 use crate::types::{ZendHashTable, ZendObject, ZendStr};
 
@@ -285,16 +292,39 @@ impl ProcessGlobals {
     /// Get the HTTP Request variables. Equivalent of $_REQUEST.
     ///
     /// # Panics
-    /// There is an outstanding issue with the implementation of this function.
-    /// Until resolved, this function will always panic.
-    ///
-    /// - <https://github.com/davidcole1340/ext-php-rs/issues/331>
-    /// - <https://github.com/php/php-src/issues/16541>
-    pub fn http_request_vars(&self) -> &ZendHashTable {
-        todo!("$_REQUEST super global was erroneously fetched from http_globals which resulted in an out-of-bounds access. A new implementation is needed.");
-        // self.http_globals[TRACK_VARS_REQUEST as usize]
-        //     .array()
-        //     .expect("Type is not a ZendArray")
+    /// - If the request global is not found or fails to be populated.
+    /// - If the request global is not a ZendArray.
+    pub fn http_request_vars(&self) -> Option<&ZendHashTable> {
+        cfg_if::cfg_if! {
+            if #[cfg(php81)] {
+                let key = unsafe {
+                    *zend_known_strings.add(_zend_known_string_id_ZEND_STR_AUTOGLOBAL_REQUEST as usize)
+                };
+            } else {
+                let key = _zend_string::new("_REQUEST", false).as_mut_ptr();
+            }
+        };
+
+        // `$_REQUEST` is lazy-initted, we need to call `zend_is_auto_global` to make
+        // sure it's populated.
+        if !unsafe { zend_is_auto_global(key) } {
+            panic!("Failed to get request global");
+        }
+
+        let symbol_table = &ExecutorGlobals::get().symbol_table;
+        cfg_if::cfg_if! {
+            if #[cfg(php81)] {
+                let request = unsafe { zend_hash_find_known_hash(symbol_table, key) };
+            } else {
+                let request = unsafe { _zend_hash_find_known_hash(symbol_table, key) };
+            }
+        };
+
+        if request.is_null() {
+            return None;
+        }
+
+        Some(unsafe { (*request).array() }.expect("Type is not a ZendArray"))
     }
 
     /// Get the HTTP Environment variables. Equivalent of $_ENV.
