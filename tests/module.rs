@@ -10,7 +10,7 @@ use ext_php_rs::prelude::*;
 fn test_module() {
     Embed::run(|| {
         // Allow to load the module
-        unsafe { zend_register_module_ex(get_module()) };
+        unsafe { zend_register_module_ex(module::get_module()) };
 
         let result = Embed::eval("$foo = hello_world('foo');");
 
@@ -26,17 +26,15 @@ fn test_module() {
     });
 }
 
-/// Gives you a nice greeting!
-///
-/// @param string $name Your name.
-///
-/// @return string Nice greeting!
-#[php_function]
-pub fn hello_world(name: String) -> String {
-    format!("Hello, {}!", name)
-}
-
 #[php_module]
-pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+mod module {
+    /// Gives you a nice greeting!
+    ///
+    /// @param string $name Your name.
+    ///
+    /// @return string Nice greeting!
+    #[php_function]
+    pub fn hello_world(name: String) -> String {
+        format!("Hello, {}!", name)
+    }
 }
