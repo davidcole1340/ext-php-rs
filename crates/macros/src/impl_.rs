@@ -5,6 +5,7 @@ use quote::quote;
 use std::collections::HashMap;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
+use crate::class::Class;
 use crate::helpers::get_docs;
 use crate::{
     class::{Property, PropertyAttr},
@@ -94,30 +95,13 @@ pub enum PropAttrTy {
     Setter,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
-    let args = AttrArgs::from_list(&args)
-        .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
-
+// note: this takes a mutable argument as it mutates a class
+fn prepare(args: AttrArgs, input: ItemImpl, class: &mut Class) -> Result<TokenStream> {
     let ItemImpl { self_ty, items, .. } = input;
-    let class_name = self_ty.to_token_stream().to_string();
 
     if input.trait_.is_some() {
         bail!("This macro cannot be used on trait implementations.");
     }
-
-    let mut state = crate::STATE.lock();
-
-    if state.startup_function.is_some() {
-        bail!(
-            "Impls must be declared before you declare your startup function and module function."
-        );
-    }
-
-    let class = state.classes.get_mut(&class_name).ok_or_else(|| {
-        anyhow!(
-            "You must use `#[php_class]` on the struct before using this attribute on the impl."
-        )
-    })?;
 
     let tokens = items
         .into_iter()
@@ -176,6 +160,29 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
     };
 
     Ok(output)
+}
+
+pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
+    let args = AttrArgs::from_list(&args)
+        .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
+
+    let mut state = crate::STATE.lock();
+
+    if state.startup_function.is_some() {
+        bail!(
+            "Impls must be declared before you declare your startup function and module function."
+        );
+    }
+
+    let class_name = input.self_ty.to_token_stream().to_string();
+
+    let class = state.classes.get_mut(&class_name).ok_or_else(|| {
+        anyhow!(
+            "You must use `#[php_class]` on the struct before using this attribute on the impl."
+        )
+    })?;
+
+    prepare(args, input, class)
 }
 
 pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
