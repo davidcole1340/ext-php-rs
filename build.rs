@@ -241,7 +241,7 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
         println!("cargo:warning=PHP version 8.0 is EOL and will no longer be supported in a future release. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines.");
     }
 
-    if (PHP_81_API_VER..PHP_82_API_VER).contains(&version) {
+    if version >= PHP_81_API_VER {
         println!("cargo:rustc-cfg=php81");
     }
 
@@ -285,6 +285,7 @@ fn main() -> Result<()> {
     if env::var("DOCS_RS").is_ok() {
         println!("cargo:warning=docs.rs detected - using stub bindings");
         println!("cargo:rustc-cfg=php_debug");
+        println!("cargo:rustc-cfg=php81");
         println!("cargo:rustc-cfg=php82");
         std::fs::copy("docsrs_bindings.rs", out_path)
             .expect("failed to copy docs.rs stub bindings to out directory");
