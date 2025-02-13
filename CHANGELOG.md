@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.0...ext-php-rs-v0.13.1) - 2025-02-13
+
+### Fixed
+- *(array)* Fix double ended iterator implementation (#351) (by @Xenira) [[#351](https://github.com/davidcole1340/ext-php-rs/issues/351)] [[#316](https://github.com/davidcole1340/ext-php-rs/issues/316)] 
+- *(globals)* Correctly fetch `$_REQUEST` super global (#334) (by @Xenira) [[#334](https://github.com/davidcole1340/ext-php-rs/issues/334)] [[#331](https://github.com/davidcole1340/ext-php-rs/issues/331)] 
+
+### Other
+- *(cfg)* Change php81 cfg to 8.1+ (#365) (by @Xenira) [[#365](https://github.com/davidcole1340/ext-php-rs/issues/365)] 
+
 ## [0.13.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.12.0...ext-php-rs-v0.13.0) - 2025-02-06
 
 ### Fixed
