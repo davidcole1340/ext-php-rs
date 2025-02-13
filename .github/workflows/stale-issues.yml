@@ -16,5 +16,5 @@ jobs:
           days-before-issue-close: 7
           days-before-pr-stale: -1
           days-before-pr-close: -1
-          stale-issue-lable: 'waiting for feedback'
+          stale-issue-label: 'waiting for feedback'
           close-issue-message: 'This issue has been automatically closed due to inactivity. Please feel free to reopen it if you are still experiencing the problem.'
