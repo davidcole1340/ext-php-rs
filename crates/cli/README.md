@@ -7,7 +7,7 @@ Installs extensions and generates stub files for PHP extensions generated with
 
 ## Installation
 
-Install with Cargo: `cargo install cargo-php`.
+Install with Cargo: `cargo install cargo-php --locked`.
 
 ## Usage
 

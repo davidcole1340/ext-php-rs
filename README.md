@@ -41,7 +41,7 @@ pub fn module(module: ModuleBuilder) -> ModuleBuilder {
 Use [`cargo-php`] to build IDE stubs and install the extension:
 
 ```text
-$ cargo install cargo-php
+$ cargo install cargo-php --locked
   Installing cargo-php v0.1.0
 $ cargo php stubs --stdout
   Compiling example-ext v0.1.0
@@ -148,7 +148,7 @@ best resource at the moment. This can be viewed at [docs.rs].
   functionality to be cross-platform is on the roadmap.
 - To build the application in `DEBUG` mode on Windows,
   you must have a `PHP SDK` built with the `DEBUG` option enabled
-  and specify the `PHP_LIB` to the folder containing the lib files. 
+  and specify the `PHP_LIB` to the folder containing the lib files.
   For example: set `PHP_LIB=C:\php-sdk\php-dev\vc16\x64\php-8.3.13-src\x64\Debug_TS`.
 
 [vectorcall]: https://docs.microsoft.com/en-us/cpp/cpp/vectorcall?view=msvc-170

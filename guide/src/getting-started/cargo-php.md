@@ -31,7 +31,7 @@ The subcommand is installed through composer like any other Rust CLI
 application:
 
 ```text
-$ cargo install cargo-php
+$ cargo install cargo-php --locked
 ```
 
 You can then call the application via `cargo php` (assuming the cargo
