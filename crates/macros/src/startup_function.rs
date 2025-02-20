@@ -4,33 +4,30 @@ use anyhow::{anyhow, Result};
 use darling::FromMeta;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use syn::{AttributeArgs, Expr, ItemFn, Signature};
+use syn::{Expr, ItemFn, Signature};
 
-use crate::{class::Class, constant::Constant, STATE};
+use crate::{class::Class, constant::Constant};
 
 #[derive(Default, Debug, FromMeta)]
 #[darling(default)]
-struct StartupArgs {
+pub(crate) struct StartupArgs {
     before: bool,
 }
 
-pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream> {
-    let args = if let Some(args) = args {
-        StartupArgs::from_list(&args)
-            .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?
-    } else {
-        StartupArgs::default()
-    };
+pub fn parser(
+    args: Option<StartupArgs>,
+    input: &ItemFn,
+    classes: &HashMap<String, Class>,
+    constants: &[Constant],
+) -> Result<(TokenStream, Ident)> {
+    let args = args.unwrap_or_default();
 
     let ItemFn { sig, block, .. } = input;
     let Signature { ident, .. } = sig;
     let stmts = &block.stmts;
 
-    let mut state = STATE.lock();
-    state.startup_function = Some(ident.to_string());
-
-    let classes = build_classes(&state.classes)?;
-    let constants = build_constants(&state.constants);
+    let classes = build_classes(classes)?;
+    let constants = build_constants(constants);
     let (before, after) = if args.before {
         (Some(quote! { internal(ty, module_number); }), None)
     } else {
@@ -58,7 +55,7 @@ pub fn parser(args: Option<AttributeArgs>, input: ItemFn) -> Result<TokenStream>
         }
     };
 
-    Ok(func)
+    Ok((func, ident.clone()))
 }
 
 /// Returns a vector of `ClassBuilder`s for each class.
@@ -68,7 +65,7 @@ fn build_classes(classes: &HashMap<String, Class>) -> Result<Vec<TokenStream>> {
         .map(|(name, class)| {
             let Class { class_name, .. } = &class;
             let ident = Ident::new(name, Span::call_site());
-            let meta = Ident::new(&format!("_{name}_META"), Span::call_site());
+            let meta = Ident::new(&format!("_{}_META", ident), Span::call_site());
             let methods = class.methods.iter().map(|method| {
                 let builder = method.get_builder(&ident);
                 let flags = method.get_flags();
