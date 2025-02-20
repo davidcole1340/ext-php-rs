@@ -696,6 +696,7 @@ impl Default for Zval {
 
 impl IntoZval for Zval {
     const TYPE: DataType = DataType::Mixed;
+    const NULLABLE: bool = true;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         *zv = self;

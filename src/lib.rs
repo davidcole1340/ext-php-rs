@@ -44,16 +44,16 @@ pub mod prelude {
     pub use crate::closure::Closure;
     pub use crate::exception::{PhpException, PhpResult};
     pub use crate::php_class;
-    pub use crate::php_const;
     pub use crate::php_extern;
     pub use crate::php_function;
     pub use crate::php_impl;
     pub use crate::php_module;
     pub use crate::php_print;
     pub use crate::php_println;
-    pub use crate::php_startup;
     pub use crate::types::ZendCallable;
+    pub use crate::wrap_constant;
     pub use crate::ZvalConvert;
+    pub use ext_php_rs_derive::wrap_function;
 }
 
 /// `ext-php-rs` version.
@@ -64,33 +64,6 @@ pub const PHP_DEBUG: bool = cfg!(php_debug);
 
 /// Whether the extension is compiled for PHP thread-safe mode.
 pub const PHP_ZTS: bool = cfg!(php_zts);
-
-/// Attribute used to annotate constants to be exported to PHP.
-///
-/// The declared constant is left intact (apart from the addition of the
-/// `#[allow(dead_code)]` attribute in the case that you do not use the Rust
-/// constant).
-///
-/// These declarations must happen before you declare your [`macro@php_startup`]
-/// function (or [`macro@php_module`] function if you do not have a startup
-/// function).
-///
-/// # Example
-///
-/// ```
-/// # #![cfg_attr(windows, feature(abi_vectorcall))]
-/// # use ext_php_rs::prelude::*;
-/// #[php_const]
-/// const TEST_CONSTANT: i32 = 100;
-///
-/// #[php_const]
-/// const ANOTHER_CONST: &str = "Hello, world!";
-/// # #[php_module]
-/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-/// #     module
-/// # }
-/// ```
-pub use ext_php_rs_derive::php_const;
 
 /// Attribute used to annotate `extern` blocks which are deemed as PHP
 /// functions.
@@ -152,8 +125,7 @@ pub use ext_php_rs_derive::php_extern;
 /// types. These include but are not limited to the following:
 ///
 /// - Most primitive integers ([`i8`], [`i16`], [`i32`], [`i64`], [`u8`],
-///   [`u16`], [`u32`], [`u64`],
-///   [`usize`], [`isize`])
+///   [`u16`], [`u32`], [`u64`], [`usize`], [`isize`])
 /// - Double-precision floating point numbers ([`f64`])
 /// - [`bool`]
 /// - [`String`]
@@ -163,10 +135,9 @@ pub use ext_php_rs_derive::php_extern;
 /// - [`ZendCallable`] for receiving PHP callables, not applicable for return
 ///   values.
 /// - [`Option<T>`] where `T: FromZval`. When used as a parameter, the parameter
-///   will be
-///   deemed nullable, and will contain [`None`] when `null` is passed. When used
-///   as a return type, if [`None`] is returned the [`Zval`] will be set to null.
-///   Optional parameters *must* be of the type [`Option<T>`].
+///   will be deemed nullable, and will contain [`None`] when `null` is passed.
+///   When used as a return type, if [`None`] is returned the [`Zval`] will be
+///   set to null. Optional parameters *must* be of the type [`Option<T>`].
 ///
 /// Additionally, you are able to return a variant of [`Result<T, E>`]. `T` must
 /// implement [`IntoZval`] and `E` must implement `Into<PhpException>`. If an
@@ -323,15 +294,13 @@ pub use ext_php_rs_derive::php_function;
 /// default arguments for methods. These are done through separate macros:
 ///
 /// - `#[defaults(key = value, ...)]` for setting defaults of method variables,
-///   similar to the
-///   function macro. Arguments with defaults need to be optional.
+///   similar to the function macro. Arguments with defaults need to be
+///   optional.
 /// - `#[optional(key)]` for setting `key` as an optional argument (and
-///   therefore the rest of the
-///   arguments).
+///   therefore the rest of the arguments).
 /// - `#[public]`, `#[protected]` and `#[private]` for setting the visibility of
-///   the method,
-///   defaulting to public. The Rust visibility has no effect on the PHP
-///   visibility.
+///   the method, defaulting to public. The Rust visibility has no effect on the
+///   PHP visibility.
 ///
 /// Methods can take a immutable or a mutable reference to `self`, but cannot
 /// consume `self`. They can also take no reference to `self` which indicates a
@@ -506,41 +475,6 @@ pub use ext_php_rs_derive::php_module;
 /// }
 /// ```
 pub use ext_php_rs_derive::php_class;
-
-/// Annotates a function that will be called by PHP when the module starts up.
-/// Generally used to register classes and constants.
-///
-/// As well as annotating the function, any classes and constants that had been
-/// declared using the [`macro@php_class`], [`macro@php_const`] and
-/// [`macro@php_impl`] attributes will be registered inside this function.
-///
-/// This function *must* be declared before the [`macro@php_module`] function,
-/// as this function needs to be declared when building the module.
-///
-/// This function will automatically be generated if not already declared with
-/// this macro if you have registered any classes or constants when using the
-/// [`macro@php_module`] macro.
-///
-/// The attribute accepts one optional flag -- `#[php_startup(before)]` --
-/// which forces the annotated function to be called _before_ the other classes
-/// and constants are registered. By default the annotated function is called
-/// after these classes and constants are registered.
-///
-/// # Example
-///
-/// ```
-/// # #![cfg_attr(windows, feature(abi_vectorcall))]
-/// # use ext_php_rs::prelude::*;
-/// #[php_startup]
-/// pub fn startup_function() {
-///     // do whatever you need to do...
-/// }
-/// # #[php_module]
-/// # pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-/// #     module
-/// # }
-/// ```
-pub use ext_php_rs_derive::php_startup;
 
 /// Derives the traits required to convert a struct or enum to and from a
 /// [`Zval`]. Both [`FromZval`] and [`IntoZval`] are implemented on types which

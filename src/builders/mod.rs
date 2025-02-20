@@ -9,6 +9,6 @@ mod sapi;
 
 pub use class::ClassBuilder;
 pub use function::FunctionBuilder;
-pub use module::ModuleBuilder;
+pub use module::{ModuleBuilder, ModuleStartup};
 #[cfg(feature = "embed")]
 pub use sapi::SapiBuilder;

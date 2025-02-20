@@ -11,7 +11,7 @@ use crate::{
     flags::{DataType, MethodFlags},
     props::Property,
     types::Zval,
-    zend::ExecuteData,
+    zend::{ClassEntry, ExecuteData},
     zend_fastcall,
 };
 
@@ -32,7 +32,7 @@ static CLOSURE_META: ClassMetadata<Closure> = ClassMetadata::new();
 ///
 /// class RustClosure {
 ///     public function __invoke(...$args): mixed {
-///         // ...    
+///         // ...
 ///     }
 /// }
 /// ```
@@ -152,12 +152,28 @@ impl Closure {
 impl RegisteredClass for Closure {
     const CLASS_NAME: &'static str = "RustClosure";
 
+    const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
+    const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
+    const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] = &[];
+
     fn get_metadata() -> &'static ClassMetadata<Self> {
         &CLOSURE_META
     }
 
     fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>> {
         HashMap::new()
+    }
+
+    fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)> {
+        unimplemented!()
+    }
+
+    fn constructor() -> Option<crate::class::ConstructorMeta<Self>> {
+        None
+    }
+
+    fn constants() -> &'static [(&'static str, &'static dyn crate::convert::IntoZvalDyn)] {
+        unimplemented!()
     }
 }
 
