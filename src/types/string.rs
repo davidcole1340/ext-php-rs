@@ -434,6 +434,7 @@ macro_rules! try_into_zval_str {
 
         impl IntoZval for $type {
             const TYPE: DataType = DataType::String;
+            const NULLABLE: bool = false;
 
             fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
                 zv.set_string(&self, persistent)

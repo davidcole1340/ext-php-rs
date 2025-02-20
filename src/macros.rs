@@ -200,7 +200,7 @@ macro_rules! throw {
 /// # Examples
 ///
 /// ```
-/// # use ext_php_rs::{convert::{IntoZval, FromZval}, types::{Zval, ZendObject}, class::{RegisteredClass}};
+/// # use ext_php_rs::{convert::{IntoZval, FromZval, IntoZvalDyn}, types::{Zval, ZendObject}, class::{RegisteredClass, ConstructorMeta}, builders::{ClassBuilder, FunctionBuilder}, zend::ClassEntry, flags::MethodFlags};
 /// use ext_php_rs::class_derives;
 ///
 /// struct Test {
@@ -211,6 +211,10 @@ macro_rules! throw {
 /// impl RegisteredClass for Test {
 ///     const CLASS_NAME: &'static str = "Test";
 ///
+///     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
+///     const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
+///     const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] =  &[];
+///
 ///     const CONSTRUCTOR: Option<ext_php_rs::class::ConstructorMeta<Self>> = None;
 ///
 ///     fn get_metadata() -> &'static ext_php_rs::class::ClassMetadata<Self> {
@@ -220,6 +224,18 @@ macro_rules! throw {
 ///     fn get_properties<'a>(
 ///     ) -> std::collections::HashMap<&'static str, ext_php_rs::props::Property<'a, Self>>
 ///     {
+///         todo!()
+///     }
+///
+///     fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)> {
+///         todo!()
+///     }
+///
+///     fn constructor() -> Option<ConstructorMeta<Self>> {
+///         todo!()
+///     }
+///
+///     fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn)] {
 ///         todo!()
 ///     }
 /// }
@@ -301,6 +317,7 @@ macro_rules! class_derives {
             const TYPE: $crate::flags::DataType = $crate::flags::DataType::Object(Some(
                 <$type as $crate::class::RegisteredClass>::CLASS_NAME,
             ));
+            const NULLABLE: bool = false;
 
             #[inline]
             fn set_zval(
@@ -329,6 +346,7 @@ macro_rules! into_zval {
 
         impl $crate::convert::IntoZval for $type {
             const TYPE: $crate::flags::DataType = $crate::flags::DataType::$dt;
+            const NULLABLE: bool = false;
 
             fn set_zval(self, zv: &mut $crate::types::Zval, _: bool) -> $crate::error::Result<()> {
                 zv.$fn(self);
@@ -405,6 +423,40 @@ macro_rules! php_println {
 
     ($fmt: tt, $($arg: tt) *) => {
         $crate::php_print!(concat!($fmt, "\n"), $($arg)*);
+    };
+}
+
+/// Wraps a constant into the form expected by [`ModuleBuilder`].
+///
+/// All this does is return a tuple containg two values:
+///
+/// * The name of the constant
+/// * The value of the constant
+///
+/// # Example
+///
+/// ```
+/// use ext_php_rs::wrap_constant;
+///
+/// const HELLO_WORLD: i32 = 150;
+///
+/// assert_eq!(wrap_constant!(HELLO_WORLD), ("HELLO_WORLD", HELLO_WORLD));
+/// ```
+///
+/// ```no_run
+/// use ext_php_rs::prelude::*;
+///
+/// const HELLO_WORLD: i32 = 150;
+///
+/// ModuleBuilder::new("ext-php-rs", "0.1.0")
+///     .constant(wrap_constant!(HELLO_WORLD));
+/// ```
+///
+/// [`ModuleBuilder`]: crate::builders::ModuleBuilder
+#[macro_export]
+macro_rules! wrap_constant {
+    ($name:ident) => {
+        (stringify!($name), $name)
     };
 }
 

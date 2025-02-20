@@ -4,7 +4,7 @@
 pub mod abi;
 mod stub;
 
-use crate::flags::DataType;
+use crate::{flags::DataType, prelude::ModuleBuilder};
 use abi::*;
 
 pub use stub::ToStub;
@@ -12,7 +12,7 @@ pub use stub::ToStub;
 #[repr(C)]
 pub struct Description {
     /// Extension description.
-    pub module: Module,
+    pub module: ModuleBuilder,
     /// ext-php-rs version.
     pub version: &'static str,
 }
@@ -23,7 +23,7 @@ impl Description {
     /// # Parameters
     ///
     /// * `module` - The extension module representation.
-    pub fn new(module: Module) -> Self {
+    pub fn new(module: ModuleBuilder) -> Self {
         Self {
             module,
             version: crate::VERSION,
