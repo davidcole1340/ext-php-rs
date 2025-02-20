@@ -3,7 +3,7 @@ use std::{ffi::CString, mem::MaybeUninit};
 use crate::{
     builders::FunctionBuilder,
     class::{ConstructorMeta, ConstructorResult, RegisteredClass},
-    convert::IntoZval,
+    convert::{IntoZval, IntoZvalDyn},
     error::{Error, Result},
     exception::PhpException,
     ffi::{
@@ -136,6 +136,27 @@ impl ClassBuilder {
         Ok(self)
     }
 
+    /// Adds a constant to the class from a `dyn` object. The type of the
+    /// constant is defined by the type of the value.
+    ///
+    /// Returns a result containing the class builder if the constant was
+    /// successfully added.
+    ///
+    /// # Parameters
+    ///
+    /// * `name` - The name of the constant to add to the class.
+    /// * `value` - The value of the constant.
+    pub fn dyn_constant<T: Into<String>>(
+        mut self,
+        name: T,
+        value: &dyn IntoZvalDyn,
+    ) -> Result<Self> {
+        let value = value.as_zval(true)?;
+
+        self.constants.push((name.into(), value));
+        Ok(self)
+    }
+
     /// Sets the flags for the class.
     ///
     /// # Parameters
@@ -152,9 +173,8 @@ impl ClassBuilder {
     /// # Parameters
     ///
     /// * `T` - The type which will override the Zend object. Must implement
-    ///   [`RegisteredClass`]
-    ///   which can be derived using the [`php_class`](crate::php_class) attribute
-    ///   macro.
+    ///   [`RegisteredClass`] which can be derived using the
+    ///   [`php_class`](crate::php_class) attribute macro.
     ///
     /// # Panics
     ///
@@ -170,7 +190,7 @@ impl ClassBuilder {
 
         zend_fastcall! {
             extern fn constructor<T: RegisteredClass>(ex: &mut ExecuteData, _: &mut Zval) {
-                let ConstructorMeta { constructor, .. } = match T::CONSTRUCTOR {
+                let ConstructorMeta { constructor, .. } = match T::constructor() {
                     Some(c) => c,
                     None => {
                         PhpException::default("You cannot instantiate this class from PHP.".into())
@@ -211,7 +231,7 @@ impl ClassBuilder {
         self.method(
             {
                 let mut func = FunctionBuilder::new("__construct", constructor::<T>);
-                if let Some(ConstructorMeta { build_fn, .. }) = T::CONSTRUCTOR {
+                if let Some(ConstructorMeta { build_fn, .. }) = T::constructor() {
                     func = build_fn(func);
                 }
                 func.build().expect("Failed to build constructor function")
