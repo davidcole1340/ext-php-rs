@@ -206,8 +206,33 @@ pub fn test_class(string: String, number: i32) -> TestClass {
 }
 
 #[php_module]
-pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
     module
+        .class::<TestClass>()
+        .function(wrap_function!(test_str))
+        .function(wrap_function!(test_string))
+        .function(wrap_function!(test_bool))
+        .function(wrap_function!(test_number_signed))
+        .function(wrap_function!(test_number_unsigned))
+        .function(wrap_function!(test_number_float))
+        .function(wrap_function!(test_array))
+        .function(wrap_function!(test_array_assoc))
+        .function(wrap_function!(test_binary))
+        .function(wrap_function!(test_nullable))
+        .function(wrap_function!(test_object))
+        .function(wrap_function!(test_globals_http_get))
+        .function(wrap_function!(test_globals_http_post))
+        .function(wrap_function!(test_globals_http_cookie))
+        .function(wrap_function!(test_globals_http_server))
+        .function(wrap_function!(test_globals_http_request))
+        .function(wrap_function!(test_globals_http_files))
+        .function(wrap_function!(test_closure))
+        .function(wrap_function!(test_closure_once))
+        .function(wrap_function!(test_callable))
+        .function(wrap_function!(iter_next))
+        .function(wrap_function!(iter_back))
+        .function(wrap_function!(iter_next_back))
+        .function(wrap_function!(test_class))
 }
 
 #[cfg(test)]

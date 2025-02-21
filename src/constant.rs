@@ -1,6 +1,7 @@
 //! Types and traits for registering constants in PHP.
 
 use std::ffi::CString;
+use std::fmt::Debug;
 
 use super::flags::GlobalConstantFlags;
 use crate::error::Result;
@@ -10,7 +11,7 @@ use crate::ffi::{
 };
 
 /// Implemented on types which can be registered as a constant in PHP.
-pub trait IntoConst: Sized {
+pub trait IntoConst: Debug {
     /// Registers a global module constant in PHP, with the value as the content
     /// of self. This function _must_ be called in the module startup
     /// function, which is called after the module is initialized. The

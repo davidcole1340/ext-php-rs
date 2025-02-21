@@ -41,6 +41,7 @@ macro_rules! try_into_zval_int {
 
         impl IntoZval for $type {
             const TYPE: DataType = DataType::Long;
+            const NULLABLE: bool = false;
 
             fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
                 let val: ZendLong = self.try_into().map_err(|_| Error::IntegerOverflow)?;

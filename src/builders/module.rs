@@ -1,4 +1,6 @@
 use crate::{
+    class::RegisteredClass,
+    constant::IntoConst,
     error::Result,
     ffi::{ext_php_rs_php_build_id, ZEND_MODULE_API_NO},
     zend::{FunctionEntry, ModuleEntry},
@@ -6,6 +8,8 @@ use crate::{
 };
 
 use std::{ffi::CString, mem, ptr};
+
+use super::ClassBuilder;
 
 /// Builds a Zend module extension to be registered with PHP. Must be called
 /// from within an external function called `get_module`, returning a mutable
@@ -27,19 +31,22 @@ use std::{ffi::CString, mem, ptr};
 ///
 /// #[no_mangle]
 /// pub extern "C" fn get_module() -> *mut ModuleEntry {
-///     ModuleBuilder::new("ext-name", "ext-version")
+///     let (entry, _) = ModuleBuilder::new("ext-name", "ext-version")
 ///         .info_function(php_module_info)
 ///         .build()
 ///         .unwrap()
 ///         .into_raw()
+///     entry.into_raw()
 /// }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleBuilder {
     name: String,
     version: String,
     module: ModuleEntry,
     functions: Vec<FunctionEntry>,
+    constants: Vec<(String, Box<dyn IntoConst + Send>)>,
+    classes: Vec<fn()>,
 }
 
 impl ModuleBuilder {
@@ -83,6 +90,8 @@ impl ModuleBuilder {
                 build_id: unsafe { ext_php_rs_php_build_id() },
             },
             functions: vec![],
+            constants: vec![],
+            classes: vec![],
         }
     }
 
@@ -161,17 +170,86 @@ impl ModuleBuilder {
         self
     }
 
+    /// Adds a constant to the extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `const` - Tuple containing the name and value of the constant. This is
+    ///   a tuple to support the [`wrap_constant`] macro.
+    ///
+    /// [`wrap_constant`]: crate::wrap_constant
+    pub fn constant(mut self, r#const: (&str, impl IntoConst + Send + 'static)) -> Self {
+        let (name, val) = r#const;
+        self.constants
+            .push((name.into(), Box::new(val) as Box<dyn IntoConst + Send>));
+        self
+    }
+
+    pub fn class<T: RegisteredClass>(mut self) -> Self {
+        self.classes.push(|| {
+            let mut builder = ClassBuilder::new(T::CLASS_NAME);
+            for (method, flags) in T::method_builders() {
+                builder = builder.method(method.build().expect("Failed to build method"), flags);
+            }
+            if let Some(extends) = T::EXTENDS {
+                builder = builder.extends(extends());
+            }
+            for iface in T::IMPLEMENTS {
+                builder = builder.implements(iface());
+            }
+            for (name, value) in T::constants() {
+                builder = builder
+                    .dyn_constant(*name, *value)
+                    .expect("Failed to register constant");
+            }
+            if let Some(modifier) = T::BUILDER_MODIFIER {
+                builder = modifier(builder);
+            }
+            let ce = builder
+                .object_override::<T>()
+                .build()
+                .expect("Failed to build class");
+            T::get_metadata().set_ce(ce);
+        });
+        self
+    }
+
     /// Builds the extension and returns a `ModuleEntry`.
     ///
     /// Returns a result containing the module entry if successful.
-    pub fn build(mut self) -> Result<ModuleEntry> {
+    pub fn build(mut self) -> Result<(ModuleEntry, ModuleStartup)> {
         self.functions.push(FunctionEntry::end());
         self.module.functions =
             Box::into_raw(self.functions.into_boxed_slice()) as *const FunctionEntry;
         self.module.name = CString::new(self.name)?.into_raw();
         self.module.version = CString::new(self.version)?.into_raw();
 
-        Ok(self.module)
+        let startup = ModuleStartup {
+            constants: self.constants,
+            classes: self.classes,
+        };
+        Ok((self.module, startup))
+    }
+}
+
+/// Artifacts from the [`ModuleBuilder`] that should be revisited inside the
+/// extension startup function.
+pub struct ModuleStartup {
+    constants: Vec<(String, Box<dyn IntoConst + Send>)>,
+    classes: Vec<fn()>,
+}
+
+impl ModuleStartup {
+    /// Completes startup of the module. Should only be called inside the module
+    /// startup function.
+    pub fn startup(self, _ty: i32, mod_num: i32) -> Result<()> {
+        for (name, val) in self.constants {
+            val.register_constant(&name, mod_num)?;
+        }
+        for class in self.classes {
+            class()
+        }
+        Ok(())
     }
 }
 

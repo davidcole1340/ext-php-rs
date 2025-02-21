@@ -70,6 +70,7 @@ impl<T: Pack> TryFrom<Zval> for Binary<T> {
 
 impl<T: Pack> IntoZval for Binary<T> {
     const TYPE: DataType = DataType::String;
+    const NULLABLE: bool = false;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         zv.set_binary(self.0);
