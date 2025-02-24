@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.1...ext-php-rs-v0.13.2) - 2025-02-24
+
+### Other
+- *(cargo-php)* Add locked option to install guide (#370) (by @Xenira) [[#370](https://github.com/davidcole1340/ext-php-rs/issues/370)] [[#314](https://github.com/davidcole1340/ext-php-rs/issues/314)] 
+
 ## [0.13.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.0...ext-php-rs-v0.13.1) - 2025-02-13
 
 ### Fixed
