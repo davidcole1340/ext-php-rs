@@ -16,11 +16,9 @@ pub fn wrap(input: syn::Path) -> Result<TokenStream> {
         bail!(input => "Pass a PHP function name into `wrap_function!()`.");
     };
     let builder_func = format_ident!("_internal_{func_name}");
-    let err = format!("Failed to build function `{}`.", func_name);
 
     Ok(quote! {{
         (<#builder_func as ::ext_php_rs::internal::function::PhpFunction>::FUNCTION_ENTRY)()
-            .expect(#err)
     }})
 }
 
@@ -165,7 +163,7 @@ impl<'a> Function<'a> {
                 .variadic()
             }
         });
-        let output = self.output.as_ref().map(|output| {
+        let returns = self.output.as_ref().map(|output| {
             quote! {
                 .returns(
                     <#output as ::ext_php_rs::convert::IntoZval>::TYPE,
@@ -232,6 +230,15 @@ impl<'a> Function<'a> {
             }
         };
 
+        let docs = if !self.docs.is_empty() {
+            let docs = &self.docs;
+            quote! {
+                .docs(&[#(#docs),*])
+            }
+        } else {
+            quote! {}
+        };
+
         Ok(quote! {
             ::ext_php_rs::builders::FunctionBuilder::new(#name, {
                 ::ext_php_rs::zend_fastcall! {
@@ -258,7 +265,8 @@ impl<'a> Function<'a> {
             .not_required()
             #(.arg(#not_required_args))*
             #variadic
-            #output
+            #returns
+            #docs
         })
     }
 
@@ -273,13 +281,10 @@ impl<'a> Function<'a> {
             struct #internal_ident;
 
             impl ::ext_php_rs::internal::function::PhpFunction for #internal_ident {
-                const FUNCTION_ENTRY: fn() -> ::ext_php_rs::error::Result<
-                    ::ext_php_rs::zend::FunctionEntry
-                > = {
-                    fn entry() -> ::ext_php_rs::error::Result<
-                        ::ext_php_rs::zend::FunctionEntry
-                    > {
-                        #builder.build()
+                const FUNCTION_ENTRY: fn() -> ::ext_php_rs::builders::FunctionBuilder<'static> = {
+                    fn entry() -> ::ext_php_rs::builders::FunctionBuilder<'static>
+                    {
+                        #builder
                     }
                     entry
                 };
@@ -355,14 +360,14 @@ impl<'a> Function<'a> {
 
 #[derive(Debug)]
 pub struct ReceiverArg {
-    pub mutable: bool,
+    pub _mutable: bool,
     pub span: Span,
 }
 
 #[derive(Debug)]
 pub struct TypedArg<'a> {
     pub name: &'a Ident,
-    pub ty: Box<Type>,
+    pub ty: Type,
     pub nullable: bool,
     pub default: Option<Lit>,
     pub as_ref: bool,
@@ -393,7 +398,7 @@ impl<'a> Args<'a> {
                         bail!(receiver => "Too many receivers specified.")
                     }
                     result.receiver.replace(ReceiverArg {
-                        mutable: receiver.mutability.is_some(),
+                        _mutable: receiver.mutability.is_some(),
                         span: receiver.span(),
                     });
                 }
@@ -421,8 +426,8 @@ impl<'a> Args<'a> {
         Ok(result)
     }
 
-    fn parse_typed(ty: &Box<Type>) -> (bool, bool, Box<Type>) {
-        match ty.as_ref() {
+    fn parse_typed(ty: &Type) -> (bool, bool, Type) {
+        match ty {
             Type::Reference(ref_) => {
                 let as_ref = ref_.mutability.is_some();
                 match ref_.elem.as_ref() {
@@ -448,7 +453,7 @@ impl<'a> Args<'a> {
                             args.args
                                 .iter()
                                 .find(|arg| matches!(arg, GenericArgument::Type(_)))
-                                .map(|ga| match ga {
+                                .and_then(|ga| match ga {
                                     GenericArgument::Type(ty) => Some(match ty {
                                         Type::Reference(r) => {
                                             let mut new_ref = r.clone();
@@ -460,11 +465,9 @@ impl<'a> Args<'a> {
                                     }),
                                     _ => None,
                                 })
-                                .flatten()
                         } else {
                             None
                         }
-                        .map(|ty| Box::new(ty))
                     })
                     .unwrap_or_else(|| ty.clone());
                 (false, as_ref, ty.clone())
@@ -503,10 +506,10 @@ impl<'a> Args<'a> {
     }
 }
 
-impl<'a> TypedArg<'a> {
+impl TypedArg<'_> {
     /// Returns a 'clean type' with the lifetimes removed. This allows the type
     /// to be used outside of the original function context.
-    fn clean_ty(&self) -> Box<Type> {
+    fn clean_ty(&self) -> Type {
         let mut ty = self.ty.clone();
         ty.drop_lifetimes();
         ty
@@ -532,9 +535,10 @@ impl<'a> TypedArg<'a> {
         } else {
             None
         };
-        let default = self.default.as_ref().map(|_| {
+        let default = self.default.as_ref().map(|val| {
+            let val = val.to_token_stream().to_string();
             quote! {
-                .default()
+                .default(#val)
             }
         });
         let as_ref = if self.as_ref {
@@ -542,7 +546,7 @@ impl<'a> TypedArg<'a> {
         } else {
             None
         };
-        let variadic = self.variadic.then(|| quote! { .ir_variadic() });
+        let variadic = self.variadic.then(|| quote! { .is_variadic() });
         Ok(quote! {
             ::ext_php_rs::args::Arg::new(#name, <#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE)
                 #null
@@ -595,7 +599,7 @@ pub fn type_is_nullable(ty: &Type, has_default: bool) -> Result<bool> {
                     .path
                     .segments
                     .iter()
-                    .last()
+                    .next_back()
                     .map(|seg| seg.ident == "Option")
                     .unwrap_or(false)
         }

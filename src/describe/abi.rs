@@ -85,9 +85,59 @@ impl Display for Str {
     }
 }
 
+/// An ABI-stable String
+#[repr(C)]
+pub struct RString {
+    inner: Vec<u8>,
+}
+
+impl RString {
+    /// Returns the string as a string slice.
+    pub fn as_str(&self) -> &str {
+        std::str::from_utf8(&self.inner).expect("RString value is not valid UTF-8")
+    }
+}
+
+impl From<&str> for RString {
+    fn from(s: &str) -> Self {
+        Self {
+            inner: s.as_bytes().to_vec().into(),
+        }
+    }
+}
+
+impl From<String> for RString {
+    fn from(s: String) -> Self {
+        Self {
+            inner: s.into_bytes().into(),
+        }
+    }
+}
+
+impl AsRef<str> for RString {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl Display for RString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_str().fmt(f)
+    }
+}
+
 /// An ABI-stable [`Option`][std::option::Option].
 #[repr(C, u8)]
 pub enum Option<T> {
     Some(T),
     None,
+}
+
+impl<T> From<std::option::Option<T>> for Option<T> {
+    fn from(opt: std::option::Option<T>) -> Self {
+        match opt {
+            Some(val) => Self::Some(val),
+            None => Self::None,
+        }
+    }
 }

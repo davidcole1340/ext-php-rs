@@ -11,9 +11,10 @@ use once_cell::sync::OnceCell;
 use crate::{
     builders::{ClassBuilder, FunctionBuilder},
     convert::IntoZvalDyn,
+    describe::DocComments,
     exception::PhpException,
     flags::{ClassFlags, MethodFlags},
-    props::Property,
+    internal::property::PropertyInfo,
     zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
 };
 
@@ -36,6 +37,9 @@ pub trait RegisteredClass: Sized + 'static {
     /// PHP flags applied to the class.
     const FLAGS: ClassFlags = ClassFlags::empty();
 
+    /// Doc comments for the class.
+    const DOC_COMMENTS: DocComments = &[];
+
     /// Returns a reference to the class metadata, which stores the class entry
     /// and handlers.
     ///
@@ -54,7 +58,7 @@ pub trait RegisteredClass: Sized + 'static {
     /// Instead of using this method directly, you should access the properties
     /// through the [`ClassMetadata::get_properties`] function, which builds the
     /// hashmap one and stores it in memory.
-    fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>>;
+    fn get_properties<'a>() -> HashMap<&'static str, PropertyInfo<'a, Self>>;
 
     /// Returns the method builders required to build the class.
     fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)>;
@@ -63,7 +67,7 @@ pub trait RegisteredClass: Sized + 'static {
     fn constructor() -> Option<ConstructorMeta<Self>>;
 
     /// Returns the constants provided by the class.
-    fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn)];
+    fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn, DocComments)];
 }
 
 /// Stores metadata about a classes Rust constructor, including the function
@@ -108,7 +112,7 @@ impl<T> From<T> for ConstructorResult<T> {
 /// to PHP. Usually allocated statically.
 pub struct ClassMetadata<T> {
     handlers: OnceCell<ZendObjectHandlers>,
-    properties: OnceCell<HashMap<&'static str, Property<'static, T>>>,
+    properties: OnceCell<HashMap<&'static str, PropertyInfo<'static, T>>>,
     ce: AtomicPtr<ClassEntry>,
 
     // `AtomicPtr` is used here because it is `Send + Sync`.
@@ -187,7 +191,7 @@ impl<T: RegisteredClass> ClassMetadata<T> {
     /// # Returns
     ///
     /// Immutable reference to the properties hashmap.
-    pub fn get_properties(&self) -> &HashMap<&'static str, Property<'static, T>> {
+    pub fn get_properties(&self) -> &HashMap<&'static str, PropertyInfo<'static, T>> {
         self.properties.get_or_init(T::get_properties)
     }
 }

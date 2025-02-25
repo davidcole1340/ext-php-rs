@@ -4,6 +4,7 @@ use quote::quote;
 use syn::parse::ParseStream;
 use syn::{Attribute, AttributeArgs, Expr, Fields, ItemStruct, LitStr, Token};
 
+use crate::helpers::get_docs;
 use crate::prelude::*;
 
 #[derive(Debug, Default, FromMeta)]
@@ -25,7 +26,7 @@ pub struct StructArgs {
 struct ClassAttrs {
     extends: Option<syn::Expr>,
     implements: Vec<syn::Expr>,
-    comments: Vec<String>,
+    docs: Vec<String>,
 }
 
 impl ClassAttrs {
@@ -48,16 +49,11 @@ impl ClassAttrs {
                     Err(_) => bail!(attr => "Invalid arguments passed to implements attribute."),
                 };
                 self.implements.push(implements);
-            } else if attr.path.is_ident("doc") {
-                let comment: LitStr = match attr.parse_args() {
-                    Ok(comment) => comment,
-                    Err(_) => bail!(attr => "Invalid arguments passed to doc attribute."),
-                };
-                self.comments.push(comment.value());
             } else {
                 attrs.push(attr);
             }
         }
+        self.docs = get_docs(attrs);
         Ok(())
     }
 }
@@ -85,6 +81,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         &class_attrs.implements,
         &fields,
         args.flags.as_ref(),
+        &class_attrs.docs,
     );
 
     Ok(quote! {
@@ -225,6 +222,7 @@ pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
 }
 
 /// Generates an implementation of `RegisteredClass` for struct `ident`.
+#[allow(clippy::too_many_arguments)]
 fn generate_registered_class_impl(
     ident: &syn::Ident,
     class_name: Option<&str>,
@@ -233,6 +231,7 @@ fn generate_registered_class_impl(
     implements: &[syn::Expr],
     fields: &[Property],
     flags: Option<&syn::Expr>,
+    docs: &[String],
 ) -> TokenStream {
     let ident_str = ident.to_string();
     let class_name = match class_name {
@@ -241,17 +240,36 @@ fn generate_registered_class_impl(
     };
     let modifier = modifier.option_tokens();
     let extends = extends.option_tokens();
+
     let fields = fields.iter().map(|prop| {
         let name = prop.name();
         let ident = prop.ident;
+        let flags = prop
+            .attr
+            .flags
+            .as_ref()
+            .map(|flags| flags.to_token_stream())
+            .unwrap_or(quote! { ::ext_php_rs::flags::PropertyFlags::Public });
+        let docs = &prop.docs;
+
         quote! {
-            (#name, ::ext_php_rs::props::Property::field(|this: &mut Self| &mut this.#ident))
+            (#name, ::ext_php_rs::internal::property::PropertyInfo {
+                prop: ::ext_php_rs::props::Property::field(|this: &mut Self| &mut this.#ident),
+                flags: #flags,
+                docs: &[#(#docs,)*]
+            })
         }
     });
+
     let flags = match flags {
         Some(flags) => flags.to_token_stream(),
         None => quote! { ::ext_php_rs::flags::ClassFlags::empty() }.to_token_stream(),
     };
+
+    let docs = quote! {
+        #(#docs)*
+    };
+
     quote! {
         impl ::ext_php_rs::class::RegisteredClass for #ident {
             const CLASS_NAME: &'static str = #class_name;
@@ -265,6 +283,9 @@ fn generate_registered_class_impl(
                 #(#implements,)*
             ];
             const FLAGS: ::ext_php_rs::flags::ClassFlags = #flags;
+            const DOC_COMMENTS: &'static [&'static str] = &[
+                #docs
+            ];
 
             #[inline]
             fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
@@ -274,7 +295,7 @@ fn generate_registered_class_impl(
             }
 
             fn get_properties<'a>() -> ::std::collections::HashMap<
-                &'static str, ::ext_php_rs::props::Property<'a, Self>
+                &'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>
             > {
                 use ::std::iter::FromIterator;
                 ::std::collections::HashMap::from_iter([
@@ -297,7 +318,7 @@ fn generate_registered_class_impl(
             }
 
             #[inline]
-            fn constants() -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn)] {
+            fn constants() -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn, &'static [&'static str])] {
                 use ::ext_php_rs::internal::class::PhpClassImpl;
                 ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
             }

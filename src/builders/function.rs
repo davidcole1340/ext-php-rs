@@ -1,5 +1,6 @@
 use crate::{
     args::{Arg, ArgInfo},
+    describe::DocComments,
     error::{Error, Result},
     flags::{DataType, MethodFlags},
     types::Zval,
@@ -24,13 +25,14 @@ type FunctionPointerHandler =
 /// Builder for registering a function in PHP.
 #[derive(Debug)]
 pub struct FunctionBuilder<'a> {
-    name: String,
+    pub(crate) name: String,
     function: FunctionEntry,
-    args: Vec<Arg<'a>>,
+    pub(crate) args: Vec<Arg<'a>>,
     n_req: Option<usize>,
-    retval: Option<DataType>,
+    pub(crate) retval: Option<DataType>,
     ret_as_ref: bool,
-    ret_as_null: bool,
+    pub(crate) ret_as_null: bool,
+    pub(crate) docs: DocComments,
 }
 
 impl<'a> FunctionBuilder<'a> {
@@ -65,6 +67,7 @@ impl<'a> FunctionBuilder<'a> {
             retval: None,
             ret_as_ref: false,
             ret_as_null: false,
+            docs: &[],
         }
     }
 
@@ -93,6 +96,7 @@ impl<'a> FunctionBuilder<'a> {
             retval: None,
             ret_as_ref: false,
             ret_as_null: false,
+            docs: &[],
         }
     }
 
@@ -123,6 +127,7 @@ impl<'a> FunctionBuilder<'a> {
         self
     }
 
+    /// Sets the function to be variadic
     pub fn variadic(mut self) -> Self {
         self.function.flags |= MethodFlags::Variadic.bits();
         self
@@ -139,6 +144,17 @@ impl<'a> FunctionBuilder<'a> {
         self.retval = Some(type_);
         self.ret_as_ref = as_ref;
         self.ret_as_null = allow_null;
+        self
+    }
+
+    /// Sets the documentation for the function.
+    /// This is used to generate the PHP stubs for the function.
+    ///
+    /// # Parameters
+    ///
+    /// * `docs` - The documentation for the function.
+    pub fn docs(mut self, docs: DocComments) -> Self {
+        self.docs = docs;
         self
     }
 

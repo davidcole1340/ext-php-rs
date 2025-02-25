@@ -4,6 +4,7 @@ use std::{ffi::CString, ptr};
 
 use crate::{
     convert::{FromZvalMut, IntoZvalDyn},
+    describe::{abi, Parameter},
     error::{Error, Result},
     ffi::{
         _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY,
@@ -180,6 +181,17 @@ impl From<Arg<'_>> for _zend_expected_type {
             err + 1
         } else {
             err
+        }
+    }
+}
+
+impl From<Arg<'_>> for Parameter {
+    fn from(val: Arg<'_>) -> Self {
+        Parameter {
+            name: val.name.into(),
+            ty: Some(val._type).into(),
+            nullable: val.allow_null,
+            default: val.default_value.map(abi::RString::from).into(),
         }
     }
 }
