@@ -342,8 +342,9 @@ impl<'a> ParsedImpl<'a> {
         let constants = self.constants.iter().map(|c| {
             let name = &c.name;
             let ident = c.ident;
+            let docs = &c.docs;
             quote! {
-                (#name, &#path::#ident)
+                (#name, &#path::#ident, &[#(#docs),*])
             }
         });
 
@@ -365,7 +366,7 @@ impl<'a> ParsedImpl<'a> {
                     #constructor
                 }
 
-                fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn)] {
+                fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn, &'static [&'static str])] {
                     &[#(#constants),*]
                 }
             }

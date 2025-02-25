@@ -136,11 +136,17 @@ bitflags! {
     /// Flags for building properties.
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct PropertyFlags: u32 {
+        /// Visibility public
         const Public = ZEND_ACC_PUBLIC;
+        /// Visibility protected
         const Protected = ZEND_ACC_PROTECTED;
+        /// Visibility private
         const Private = ZEND_ACC_PRIVATE;
+        /// Property or method overrides private one
         const Changed = ZEND_ACC_CHANGED;
+        /// Static property
         const Static = ZEND_ACC_STATIC;
+        /// Promoted property
         const Promoted = ZEND_ACC_PROMOTED;
     }
 }

@@ -12,6 +12,8 @@ used from PHP without fiddling around with zvals.
 - [`php_impl`] - Used to export a Rust `impl` block to PHP, including all
   methods and constants.
 - [`php_const`] - Used to export a Rust constant to PHP as a global constant.
+- [`php_extern`] - Attribute used to annotate `extern` blocks which are deemed as
+  PHP functions.
 
 These macros do abuse the fact that (at the moment) proc macro expansion _seems_
 to happen orderly, on one single thread. It has been stated many times that this
@@ -34,4 +36,5 @@ manually inside the `#[php_module]` function.
 [`php_class`]: ./classes.md
 [`php_impl`]: ./impl.md
 [`php_const`]: ./constant.md
+[`php_extern`]: ./extern.md
 [see here]: https://github.com/rust-lang/reference/issues/578

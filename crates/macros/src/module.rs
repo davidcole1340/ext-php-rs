@@ -56,7 +56,7 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
             ))
             .startup_function(ext_php_rs_startup);
 
-            match builder.build() {
+            match builder.try_into() {
                 Ok((entry, startup)) => {
                     __EXT_PHP_RS_MODULE_STARTUP.lock().replace(startup);
                     entry.into_raw()
@@ -65,22 +65,22 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
             }
         }
 
-        // #[cfg(debug_assertions)]
-        // #[no_mangle]
-        // pub extern "C" fn ext_php_rs_describe_module() -> ::ext_php_rs::describe::Description {
-        //     use ::ext_php_rs::describe::*;
-        //
-        //     #[inline]
-        //     fn internal(#inputs) #output {
-        //         #(#stmts)*
-        //     }
-        //
-        //     let builder = internal(::ext_php_rs::builders::ModuleBuilder::new(
-        //         env!("CARGO_PKG_NAME"),
-        //         env!("CARGO_PKG_VERSION")
-        //     ));
-        //
-        //     Description::new(builder)
-        // }
+        #[cfg(debug_assertions)]
+        #[no_mangle]
+        pub extern "C" fn ext_php_rs_describe_module() -> ::ext_php_rs::describe::Description {
+            use ::ext_php_rs::describe::*;
+
+            #[inline]
+            fn internal(#inputs) #output {
+                #(#stmts)*
+            }
+
+            let builder = internal(::ext_php_rs::builders::ModuleBuilder::new(
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            ));
+
+            Description::new(builder.into())
+        }
     })
 }

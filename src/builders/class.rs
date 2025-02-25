@@ -1,9 +1,10 @@
-use std::{ffi::CString, mem::MaybeUninit};
+use std::{ffi::CString, mem::MaybeUninit, rc::Rc};
 
 use crate::{
     builders::FunctionBuilder,
     class::{ConstructorMeta, ConstructorResult, RegisteredClass},
     convert::{IntoZval, IntoZvalDyn},
+    describe::DocComments,
     error::{Error, Result},
     exception::PhpException,
     ffi::{
@@ -16,16 +17,20 @@ use crate::{
     zend_fastcall,
 };
 
+type ConstantEntry = (String, Box<dyn FnOnce() -> Result<Zval>>, DocComments);
+
 /// Builder for registering a class in PHP.
 pub struct ClassBuilder {
-    name: String,
+    pub(crate) name: String,
     ce: ClassEntry,
     extends: Option<&'static ClassEntry>,
     interfaces: Vec<&'static ClassEntry>,
-    methods: Vec<FunctionEntry>,
+    pub(crate) methods: Vec<(FunctionBuilder<'static>, MethodFlags)>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
-    properties: Vec<(String, Zval, PropertyFlags)>,
-    constants: Vec<(String, Zval)>,
+    pub(crate) properties: Vec<(String, PropertyFlags, DocComments)>,
+    pub(crate) constants: Vec<ConstantEntry>,
+    register: Option<fn(&'static mut ClassEntry)>,
+    pub(crate) docs: DocComments,
 }
 
 impl ClassBuilder {
@@ -47,6 +52,8 @@ impl ClassBuilder {
             object_override: None,
             properties: vec![],
             constants: vec![],
+            register: None,
+            docs: &[],
         }
     }
 
@@ -82,11 +89,10 @@ impl ClassBuilder {
     ///
     /// # Parameters
     ///
-    /// * `func` - The function entry to add to the class.
+    /// * `func` - The function builder to add to the class.
     /// * `flags` - Flags relating to the function. See [`MethodFlags`].
-    pub fn method(mut self, mut func: FunctionEntry, flags: MethodFlags) -> Self {
-        func.flags |= flags.bits();
-        self.methods.push(func);
+    pub fn method(mut self, func: FunctionBuilder<'static>, flags: MethodFlags) -> Self {
+        self.methods.push((func, flags));
         self
     }
 
@@ -99,6 +105,7 @@ impl ClassBuilder {
     /// * `name` - The name of the property to add to the class.
     /// * `default` - The default value of the property.
     /// * `flags` - Flags relating to the property. See [`PropertyFlags`].
+    /// * `docs` - Documentation comments for the property.
     ///
     /// # Panics
     ///
@@ -107,15 +114,10 @@ impl ClassBuilder {
     pub fn property<T: Into<String>>(
         mut self,
         name: T,
-        default: impl IntoZval,
         flags: PropertyFlags,
+        docs: DocComments,
     ) -> Self {
-        let default = match default.into_zval(true) {
-            Ok(default) => default,
-            Err(_) => panic!("Invalid default value for property `{}`.", name.into()),
-        };
-
-        self.properties.push((name.into(), default, flags));
+        self.properties.push((name.into(), flags, docs));
         self
     }
 
@@ -129,10 +131,15 @@ impl ClassBuilder {
     ///
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
-    pub fn constant<T: Into<String>>(mut self, name: T, value: impl IntoZval) -> Result<Self> {
-        let value = value.into_zval(true)?;
-
-        self.constants.push((name.into(), value));
+    /// * `docs` - Documentation comments for the constant.
+    pub fn constant<T: Into<String>>(
+        mut self,
+        name: T,
+        value: impl IntoZval + 'static,
+        docs: DocComments,
+    ) -> Result<Self> {
+        self.constants
+            .push((name.into(), Box::new(|| value.into_zval(true)), docs));
         Ok(self)
     }
 
@@ -146,14 +153,16 @@ impl ClassBuilder {
     ///
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
+    /// * `docs` - Documentation comments for the constant.
     pub fn dyn_constant<T: Into<String>>(
         mut self,
         name: T,
-        value: &dyn IntoZvalDyn,
+        value: &'static dyn IntoZvalDyn,
+        docs: DocComments,
     ) -> Result<Self> {
-        let value = value.as_zval(true)?;
-
-        self.constants.push((name.into(), value));
+        let value = Rc::new(value);
+        self.constants
+            .push((name.into(), Box::new(move || value.as_zval(true)), docs));
         Ok(self)
     }
 
@@ -234,22 +243,54 @@ impl ClassBuilder {
                 if let Some(ConstructorMeta { build_fn, .. }) = T::constructor() {
                     func = build_fn(func);
                 }
-                func.build().expect("Failed to build constructor function")
+                func
             },
             MethodFlags::Public,
         )
     }
 
-    /// Builds the class, returning a reference to the class entry.
+    /// Function to register the class with PHP. This function is called after
+    /// the class is built.
+    ///
+    /// # Parameters
+    ///
+    /// * `register` - The function to call to register the class.
+    pub fn registration(mut self, register: fn(&'static mut ClassEntry)) -> Self {
+        self.register = Some(register);
+        self
+    }
+
+    /// Sets the documentation for the class.
+    ///
+    /// # Parameters
+    ///
+    /// * `docs` - The documentation comments for the class.
+    pub fn docs(mut self, docs: DocComments) -> Self {
+        self.docs = docs;
+        self
+    }
+
+    /// Builds and registers the class.
     ///
     /// # Errors
     ///
     /// Returns an [`Error`] variant if the class could not be registered.
-    pub fn build(mut self) -> Result<&'static mut ClassEntry> {
+    pub fn register(mut self) -> Result<()> {
         self.ce.name = ZendStr::new_interned(&self.name, true).into_raw();
 
-        self.methods.push(FunctionEntry::end());
-        let func = Box::into_raw(self.methods.into_boxed_slice()) as *const FunctionEntry;
+        let mut methods = self
+            .methods
+            .into_iter()
+            .map(|(method, flags)| {
+                method.build().map(|mut method| {
+                    method.flags |= flags.bits();
+                    method
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        methods.push(FunctionEntry::end());
+        let func = Box::into_raw(methods.into_boxed_slice()) as *const FunctionEntry;
         self.ce.info.internal.builtin_functions = func;
 
         let class = unsafe {
@@ -286,20 +327,20 @@ impl ClassBuilder {
             };
         }
 
-        for (name, mut default, flags) in self.properties {
+        for (name, flags, _) in self.properties {
             unsafe {
                 zend_declare_property(
                     class,
                     CString::new(name.as_str())?.as_ptr(),
                     name.len() as _,
-                    &mut default,
+                    &mut Zval::new(),
                     flags.bits() as _,
                 );
             }
         }
 
-        for (name, value) in self.constants {
-            let value = Box::into_raw(Box::new(value));
+        for (name, value, _) in self.constants {
+            let value = Box::into_raw(Box::new(value()?));
             unsafe {
                 zend_declare_class_constant(
                     class,
@@ -314,6 +355,12 @@ impl ClassBuilder {
             class.__bindgen_anon_2.create_object = Some(object_override);
         }
 
-        Ok(class)
+        if let Some(register) = self.register {
+            register(class);
+        } else {
+            panic!("Class {} was not registered.", self.name);
+        }
+
+        Ok(())
     }
 }

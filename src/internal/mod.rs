@@ -5,6 +5,7 @@ use crate::builders::ModuleStartup;
 
 pub mod class;
 pub mod function;
+pub mod property;
 
 /// A mutex type that contains a [`ModuleStartup`] instance.
 pub type ModuleStartupMutex = Mutex<Option<ModuleStartup>>;

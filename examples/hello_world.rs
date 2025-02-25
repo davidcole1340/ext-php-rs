@@ -50,6 +50,7 @@ pub fn hello_world() -> &'static str {
     "Hello, world!"
 }
 
+#[php_const]
 pub const HELLO_WORLD: i32 = 100;
 
 #[php_extern]
@@ -83,5 +84,5 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(new_class))
         .function(wrap_function!(get_zval_convert))
         .constant(wrap_constant!(HELLO_WORLD))
-        .constant(("CONST_NAME", HELLO_WORLD))
+        .constant(("CONST_NAME", HELLO_WORLD, &[]))
 }

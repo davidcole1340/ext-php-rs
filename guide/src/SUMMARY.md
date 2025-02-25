@@ -33,6 +33,7 @@
     - [`impl`s](./macros/impl.md)
     - [async `impl`s](./macros/async_impl.md)
   - [Constants](./macros/constant.md)
+  - [PHP Functions](./macros/extern.md)
   - [`ZvalConvert`](./macros/zval_convert.md)
 - [Exceptions](./exceptions.md)
 - [INI Settings](./ini-settings.md)
