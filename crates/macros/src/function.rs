@@ -134,11 +134,11 @@ impl<'a> Function<'a> {
         // `handler` impl
         let required_arg_names: Vec<_> = required.iter().map(|arg| arg.name).collect();
         let not_required_arg_names: Vec<_> = not_required.iter().map(|arg| arg.name).collect();
-        let arg_declerations = self
+        let arg_declarations = self
             .args
             .typed
             .iter()
-            .map(TypedArg::arg_decleration)
+            .map(TypedArg::arg_declaration)
             .collect::<Result<Vec<_>>>()?;
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(|e| {
@@ -248,7 +248,7 @@ impl<'a> Function<'a> {
                     ) {
                         use ::ext_php_rs::convert::IntoZval;
 
-                        #(#arg_declerations)*
+                        #(#arg_declarations)*
                         let result = {
                             #result
                         };
@@ -308,11 +308,11 @@ impl<'a> Function<'a> {
 
         let required_arg_names: Vec<_> = required.iter().map(|arg| arg.name).collect();
         let not_required_arg_names: Vec<_> = not_required.iter().map(|arg| arg.name).collect();
-        let arg_declerations = self
+        let arg_declarations = self
             .args
             .typed
             .iter()
-            .map(TypedArg::arg_decleration)
+            .map(TypedArg::arg_declaration)
             .collect::<Result<Vec<_>>>()?;
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(
@@ -329,7 +329,7 @@ impl<'a> Function<'a> {
             ::ext_php_rs::class::ConstructorMeta {
                 constructor: {
                     fn inner(ex: &mut ::ext_php_rs::zend::ExecuteData) -> ::ext_php_rs::class::ConstructorResult<#class> {
-                        #(#arg_declerations)*
+                        #(#arg_declarations)*
                         let parse = ex.parser()
                             #(.arg(&mut #required_arg_names))*
                             .not_required()
@@ -515,9 +515,9 @@ impl TypedArg<'_> {
         ty
     }
 
-    /// Returns a token stream containing an argument decleration, where the
+    /// Returns a token stream containing an argument declaration, where the
     /// name of the variable holding the arg is the name of the argument.
-    fn arg_decleration(&self) -> Result<TokenStream> {
+    fn arg_declaration(&self) -> Result<TokenStream> {
         let name = self.name;
         let val = self.arg_builder()?;
         Ok(quote! {

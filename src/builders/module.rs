@@ -15,7 +15,7 @@ use crate::{
 /// from within an external function called `get_module`, returning a mutable
 /// pointer to a `ModuleEntry`.
 ///
-/// ```
+/// ```rust,no_run
 /// use ext_php_rs::{
 ///     builders::ModuleBuilder,
 ///     zend::ModuleEntry,
@@ -33,9 +33,8 @@ use crate::{
 /// pub extern "C" fn get_module() -> *mut ModuleEntry {
 ///     let (entry, _) = ModuleBuilder::new("ext-name", "ext-version")
 ///         .info_function(php_module_info)
-///         .build()
-///         .unwrap()
-///         .into_raw()
+///         .try_into()
+///         .unwrap();
 ///     entry.into_raw()
 /// }
 /// ```
@@ -151,7 +150,7 @@ impl ModuleBuilder<'_> {
     ///
     /// # Arguments
     ///
-    /// * `const` - Tuple containing the name and value of the constant. This is
+    /// * `const` - Tuple containing the name, value and doc comments for the constant. This is
     ///   a tuple to support the [`wrap_constant`] macro.
     ///
     /// [`wrap_constant`]: crate::wrap_constant

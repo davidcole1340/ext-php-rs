@@ -1,4 +1,4 @@
-# `#[php_function]`
+# `#[php_function]` Attribute
 
 Used to annotate functions which should be exported to PHP. Note that this
 should not be used on class methods - see the `#[php_impl]` macro for that.
@@ -16,7 +16,8 @@ default value.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
+use ext_php_rs::prelude::*;
+
 #[php_function]
 pub fn greet(name: String, age: Option<i32>) -> String {
     let mut greeting = format!("Hello, {}!", name);
@@ -26,6 +27,11 @@ pub fn greet(name: String, age: Option<i32>) -> String {
     }
 
     greeting
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(greet))
 }
 # fn main() {}
 ```
@@ -37,11 +43,17 @@ default, it does not need to be a variant of `Option`:
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
+use ext_php_rs::prelude::*;
+
 #[php_function(defaults(offset = 0))]
 pub fn rusty_strpos(haystack: &str, needle: &str, offset: i64) -> Option<usize> {
     let haystack: String = haystack.chars().skip(offset as usize).collect();
     haystack.find(needle)
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(rusty_strpos))
 }
 # fn main() {}
 ```
@@ -53,7 +65,8 @@ argument rather than an optional argument.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
+use ext_php_rs::prelude::*;
+
 /// `age` will be deemed required and nullable rather than optional.
 #[php_function]
 pub fn greet(name: String, age: Option<i32>, description: String) -> String {
@@ -66,6 +79,11 @@ pub fn greet(name: String, age: Option<i32>, description: String) -> String {
     greeting += &format!(" {}.", description);
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 # fn main() {}
 ```
 
@@ -76,7 +94,8 @@ parameter:
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
+use ext_php_rs::prelude::*;
+
 /// `age` will be deemed required and nullable rather than optional,
 /// while description will be optional.
 #[php_function(optional = "description")]
@@ -93,6 +112,11 @@ pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> Str
 
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 # fn main() {}
 ```
 
@@ -105,13 +129,18 @@ the `...$args` syntax.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
-# use ext_php_rs::types::Zval;
+use ext_php_rs::{prelude::*, types::Zval};
+
 /// This can be called from PHP as `add(1, 2, 3, 4, 5)`
 #[php_function]
 pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
     // numbers is a slice of 4 Zvals all of type long
     number
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.function(wrap_function!(add))
 }
 # fn main() {}
 ```
