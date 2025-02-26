@@ -13,7 +13,7 @@ pub enum RenameRule {
     /// Methods won't be renamed.
     #[darling(rename = "none")]
     None,
-    /// Methods will be conveted to camelCase.
+    /// Methods will be converted to camelCase.
     #[darling(rename = "camelCase")]
     #[default]
     Camel,

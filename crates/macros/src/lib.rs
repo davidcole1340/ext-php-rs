@@ -19,6 +19,9 @@ use syn::{
 
 extern crate proc_macro;
 
+// Not included in the doc tests, as they depend on `ext-php-rs` being available.
+// The guide tests will cover these macros.
+#[cfg(not(doctest))]
 #[lsp_doc("guide/src/macros/classes.md")]
 #[proc_macro_attribute]
 pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -30,6 +33,9 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// Not included in the doc tests, as they depend on `ext-php-rs` being available.
+// The guide tests will cover these macros.
+#[cfg(not(doctest))]
 #[lsp_doc("guide/src/macros/function.md")]
 #[proc_macro_attribute]
 pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -41,6 +47,9 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// Not included in the doc tests, as they depend on `ext-php-rs` being available.
+// The guide tests will cover these macros.
+#[cfg(not(doctest))]
 #[lsp_doc("guide/src/macros/constant.md")]
 #[proc_macro_attribute]
 pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
@@ -49,6 +58,9 @@ pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
     constant::parser(input).into()
 }
 
+// Not included in the doc tests, as they depend on `ext-php-rs` being available.
+// The guide tests will cover these macros.
+#[cfg(not(doctest))]
 #[lsp_doc("guide/src/macros/module.md")]
 #[proc_macro_attribute]
 pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -60,6 +72,9 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// Not included in the doc tests, as they depend on `ext-php-rs` being available.
+// The guide tests will cover these macros.
+#[cfg(not(doctest))]
 #[lsp_doc("guide/src/macros/impl.md")]
 #[proc_macro_attribute]
 pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -71,6 +86,9 @@ pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// Not included in the doc tests, as they depend on `ext-php-rs` being available.
+// The guide tests will cover these macros.
+#[cfg(not(doctest))]
 #[lsp_doc("guide/src/macros/extern.md")]
 #[proc_macro_attribute]
 pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
@@ -81,6 +99,9 @@ pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// Not included in the doc tests, as they depend on `ext-php-rs` being available.
+// The guide tests will cover these macros.
+#[cfg(not(doctest))]
 #[lsp_doc("guide/src/macros/zval_convert.md")]
 #[proc_macro_derive(ZvalConvert)]
 pub fn zval_convert_derive(input: TokenStream) -> TokenStream {
@@ -91,6 +112,7 @@ pub fn zval_convert_derive(input: TokenStream) -> TokenStream {
         .into()
 }
 
+#[cfg(not(doctest))]
 /// Defines an `extern` function with the Zend fastcall convention based on
 /// operating system.
 ///

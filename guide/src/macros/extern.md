@@ -1,4 +1,4 @@
-# `#[php_extern]`
+# `#[php_extern]` Attribute
 
 Attribute used to annotate `extern` blocks which are deemed as PHP
 functions.
@@ -36,8 +36,11 @@ as the return type is an integer-boolean union.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::prelude::*;
-# use ext_php_rs::types::Zval;
+use ext_php_rs::{
+    prelude::*,
+    types::Zval,
+};
+
 #[php_extern]
 extern "C" {
     fn strpos(haystack: &str, needle: &str, offset: Option<i64>) -> Zval;
@@ -50,9 +53,8 @@ pub fn my_strpos() {
 
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module.add_function(wrap_function!(my_strpos))
+    module.function(wrap_function!(my_strpos))
 }
-
 # fn main() {}
 ```
 

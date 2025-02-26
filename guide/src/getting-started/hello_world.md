@@ -57,16 +57,16 @@ Let's actually write the extension code now. We start by importing the
 basic extension. We will then write our basic `hello_world` function, which will
 take a string argument for the callers name, and we will return another string.
 Finally, we write a `get_module` function which is used by PHP to find out about
-your module. The `#[php_module]` attribute automatically registers your new
-function so we don't need to do anything except return the `ModuleBuilder` that
-we were given.
+your module. We must provide the defined function to the given `ModuleBuilder`
+and then return the same object.
 
-We also need to enable the `abi_vectorcall` feature when compiling for Windows.
-This is a nightly-only feature so it is recommended to use the `#[cfg_attr]`
-macro to not enable the feature on other operating systems.
+We also need to enable the `abi_vectorcall` feature when compiling for Windows
+(the first line). This is a nightly-only feature so it is recommended to use
+the `#[cfg_attr]` macro to not enable the feature on other operating systems.
 
-```rust,ignore
+```rust,no_run
 #![cfg_attr(windows, feature(abi_vectorcall))]
+# extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
 #[php_function]
@@ -76,8 +76,9 @@ pub fn hello_world(name: &str) -> String {
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+    module.function(wrap_function!(hello_world))
 }
+# fn main() {}
 ```
 
 ## Building the extension

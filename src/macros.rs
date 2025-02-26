@@ -200,7 +200,7 @@ macro_rules! throw {
 /// # Examples
 ///
 /// ```
-/// # use ext_php_rs::{convert::{IntoZval, FromZval, IntoZvalDyn}, types::{Zval, ZendObject}, class::{RegisteredClass, ConstructorMeta}, builders::{ClassBuilder, FunctionBuilder}, zend::ClassEntry, flags::MethodFlags};
+/// # use ext_php_rs::{convert::{IntoZval, FromZval, IntoZvalDyn}, types::{Zval, ZendObject}, class::{RegisteredClass, ConstructorMeta}, builders::{ClassBuilder, FunctionBuilder}, zend::ClassEntry, flags::{ClassFlags, MethodFlags}, internal::property::PropertyInfo, describe::DocComments};
 /// use ext_php_rs::class_derives;
 ///
 /// struct Test {
@@ -214,15 +214,15 @@ macro_rules! throw {
 ///     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
 ///     const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
 ///     const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] =  &[];
-///
-///     const CONSTRUCTOR: Option<ext_php_rs::class::ConstructorMeta<Self>> = None;
+///     const FLAGS: ClassFlags = ClassFlags::empty();
+///     const DOC_COMMENTS: DocComments = &[];
 ///
 ///     fn get_metadata() -> &'static ext_php_rs::class::ClassMetadata<Self> {
 ///         todo!()
 ///     }
 ///
 ///     fn get_properties<'a>(
-///     ) -> std::collections::HashMap<&'static str, ext_php_rs::props::Property<'a, Self>>
+///     ) -> std::collections::HashMap<&'static str, PropertyInfo<'a, Self>>
 ///     {
 ///         todo!()
 ///     }
@@ -235,7 +235,7 @@ macro_rules! throw {
 ///         todo!()
 ///     }
 ///
-///     fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn)] {
+///     fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn, DocComments)] {
 ///         todo!()
 ///     }
 /// }
