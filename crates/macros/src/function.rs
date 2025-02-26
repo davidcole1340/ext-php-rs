@@ -158,11 +158,6 @@ impl<'a> Function<'a> {
             .iter()
             .map(TypedArg::arg_builder)
             .collect::<Result<Vec<_>>>()?;
-        let variadic = self.args.typed.iter().any(|arg| arg.variadic).then(|| {
-            quote! {
-                .variadic()
-            }
-        });
         let returns = self.output.as_ref().map(|output| {
             quote! {
                 .returns(
@@ -219,7 +214,6 @@ impl<'a> Function<'a> {
                         #(.arg(&mut #required_arg_names))*
                         .not_required()
                         #(.arg(&mut #not_required_arg_names))*
-                        #variadic
                         .parse();
                     if parse_result.is_err() {
                         return;
@@ -264,7 +258,6 @@ impl<'a> Function<'a> {
             #(.arg(#required_args))*
             .not_required()
             #(.arg(#not_required_args))*
-            #variadic
             #returns
             #docs
         })
@@ -432,6 +425,7 @@ impl<'a> Args<'a> {
                 let as_ref = ref_.mutability.is_some();
                 match ref_.elem.as_ref() {
                     Type::Slice(slice) => (
+                        // TODO: Allow specifying the variadic type.
                         slice.elem.to_token_stream().to_string() == "& Zval",
                         as_ref,
                         ty.clone(),
@@ -512,6 +506,21 @@ impl TypedArg<'_> {
     fn clean_ty(&self) -> Type {
         let mut ty = self.ty.clone();
         ty.drop_lifetimes();
+
+        // Variadic arguments are passed as slices, so we need to extract the
+        // inner type.
+        if self.variadic {
+            let reference = if let Type::Reference(r) = &ty {
+                r
+            } else {
+                return ty;
+            };
+
+            if let Type::Slice(inner) = &*reference.elem {
+                return *inner.elem.clone();
+            }
+        }
+
         ty
     }
 
@@ -562,6 +571,10 @@ impl TypedArg<'_> {
         if let Some(default) = &self.default {
             quote! {
                 #name.val().unwrap_or(#default.into())
+            }
+        } else if self.variadic {
+            quote! {
+                &#name.variadic_vals()
             }
         } else if self.nullable {
             // Originally I thought we could just use the below case for `null` options, as

@@ -127,12 +127,6 @@ impl<'a> FunctionBuilder<'a> {
         self
     }
 
-    /// Sets the function to be variadic
-    pub fn variadic(mut self) -> Self {
-        self.function.flags |= MethodFlags::Variadic.bits();
-        self
-    }
-
     /// Sets the return value of the function.
     ///
     /// # Parameters
@@ -163,10 +157,21 @@ impl<'a> FunctionBuilder<'a> {
     /// Returns a result containing the function entry if successful.
     pub fn build(mut self) -> Result<FunctionEntry> {
         let mut args = Vec::with_capacity(self.args.len() + 1);
+        let mut n_req = self.n_req.unwrap_or(self.args.len());
+        let variadic = self.args.last().is_some_and(|arg| arg.variadic);
+
+        if variadic {
+            self.function.flags |= MethodFlags::Variadic.bits();
+            n_req = n_req.saturating_sub(1);
+        }
 
         // argument header, retval etc
+        // The first argument is used as `zend_internal_function_info` for the function.
+        // That struct shares the same memory as `zend_internal_arg_info` which is used
+        // for the arguments.
         args.push(ArgInfo {
-            name: self.n_req.unwrap_or(self.args.len()) as *const _,
+            // required_num_args
+            name: n_req as *const _,
             type_: match self.retval {
                 Some(retval) => {
                     ZendType::empty_from_type(retval, self.ret_as_ref, false, self.ret_as_null)

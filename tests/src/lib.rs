@@ -165,6 +165,22 @@ fn key_to_zval(key: ArrayKey) -> Zval {
     }
 }
 
+// Rust type &[&Zval] must be converted because to Vec<Zval> because of
+// lifetime hell.
+#[php_function]
+pub fn test_variadic_args(params: &[&Zval]) -> Vec<Zval> {
+    params.iter().map(|x| x.shallow_clone()).collect()
+}
+
+#[php_function]
+pub fn test_variadic_add_required(number: u32, numbers: &[&Zval]) -> u32 {
+    number
+        + numbers
+            .iter()
+            .map(|x| x.long().unwrap() as u32)
+            .sum::<u32>()
+}
+
 #[php_class]
 pub struct TestClass {
     string: String,
@@ -233,6 +249,8 @@ pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(iter_back))
         .function(wrap_function!(iter_next_back))
         .function(wrap_function!(test_class))
+        .function(wrap_function!(test_variadic_args))
+        .function(wrap_function!(test_variadic_add_required))
 }
 
 #[cfg(test)]
@@ -304,4 +322,5 @@ mod integration {
     mod object;
     mod string;
     mod types;
+    mod variadic_args;
 }
