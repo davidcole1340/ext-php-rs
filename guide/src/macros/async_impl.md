@@ -1,10 +1,10 @@
-# `#[php_async_impl]`
+# `#[php_async_impl]` Attribute
 
-Using `#[php_async_impl]` instead of `#[php_impl]` allows us to expose any async Rust library to PHP, using [PHP fibers](https://www.php.net/manual/en/language.fibers.php), [php-tokio](https://github.com/danog/php-tokio) and the [PHP Revolt event loop](https://revolt.run) under the hood to handle async interoperability.  
+Using `#[php_async_impl]` instead of `#[php_impl]` allows us to expose any async Rust library to PHP, using [PHP fibers](https://www.php.net/manual/en/language.fibers.php), [php-tokio](https://github.com/danog/php-tokio) and the [PHP Revolt event loop](https://revolt.run) under the hood to handle async interoperability.
 
 This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).
 
-Traits annotated with `#[php_async_impl]` can freely expose any async function, using `await` and any async Rust library.  
+Traits annotated with `#[php_async_impl]` can freely expose any async function, using `await` and any async Rust library.
 
 Make sure to also expose the `php_tokio::EventLoop::init` and `php_tokio::EventLoop::wakeup` functions to PHP in order to initialize the event loop, as specified in the full example [here &raquo;](#async-example).
 
@@ -12,9 +12,9 @@ Also, make sure to invoke `EventLoop::shutdown` in the request shutdown handler 
 
 ## Async example
 
-In this example, we're exposing an async Rust HTTP client library called [reqwest](https://docs.rs/reqwest/latest/reqwest/) to PHP, using [PHP fibers](https://www.php.net/manual/en/language.fibers.php), [php-tokio](https://github.com/danog/php-tokio) and the [PHP Revolt event loop](https://revolt.run) under the hood to handle async interoperability.  
+In this example, we're exposing an async Rust HTTP client library called [reqwest](https://docs.rs/reqwest/latest/reqwest/) to PHP, using [PHP fibers](https://www.php.net/manual/en/language.fibers.php), [php-tokio](https://github.com/danog/php-tokio) and the [PHP Revolt event loop](https://revolt.run) under the hood to handle async interoperability.
 
-This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).  
+This allows full compatibility with [amphp](https://amphp.org), [PSL](https://github.com/azjezz/psl), [reactphp](https://reactphp.org) and any other async PHP library based on [Revolt](https://revolt.run).
 
 Make sure to require [php-tokio](https://github.com/danog/php-tokio) as a dependency before proceeding.
 
@@ -49,11 +49,11 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 }
 ```
 
-Here's the async PHP code we use to interact with the Rust class we just exposed.  
+Here's the async PHP code we use to interact with the Rust class we just exposed.
 
 The `Client::init` method needs to be called only once in order to initialize the Revolt event loop and link it to the Tokio event loop, as shown by the following code.
 
-See [here &raquo;](https://amphp.org) for more info on async PHP using [amphp](https://amphp.org) + [revolt](https://revolt.run).  
+See [here &raquo;](https://amphp.org) for more info on async PHP using [amphp](https://amphp.org) + [revolt](https://revolt.run).
 
 ```php
 <?php declare(strict_types=1);

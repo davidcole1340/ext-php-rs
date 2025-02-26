@@ -1,9 +1,10 @@
-# `#[php_impl]`
+# `#[php_impl]` Attribute
 
 You can export an entire `impl` block to PHP. This exports all methods as well
 as constants to PHP on the class that it is implemented on. This requires the
 `#[php_class]` macro to already be used on the underlying struct. Trait
-implementations cannot be exported to PHP.
+implementations cannot be exported to PHP. Only one `impl` block can be exported
+per class.
 
 If you do not want a function exported to PHP, you should place it in a separate
 `impl` block.
@@ -20,9 +21,8 @@ Class methods can take a `&self` or `&mut self` parameter. They cannot take a
 consuming `self` parameter. Static methods can omit this `self` parameter.
 
 To access the underlying Zend object, you can take a reference to a
-`ZendClassObject<T>` in place of the self parameter, where the parameter is
-annotated with the `#[this]` attribute. This can also be used to return a
-reference to `$this`.
+`ZendClassObject<T>` in place of the self parameter, where the parameter must
+be named `self_`. This can also be used to return a reference to `$this`.
 
 By default, all methods are renamed in PHP to the camel-case variant of the Rust
 method name. This can be changed on the `#[php_impl]` attribute, by passing one
@@ -100,22 +100,28 @@ constant for the maximum age of a `Human`.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::{prelude::*, types::ZendClassObject};
-# #[php_class]
-# #[derive(Debug, Default)]
-# pub struct Human {
-#     name: String,
-#     age: i32,
-#     #[prop]
-#     address: String,
-# }
+use ext_php_rs::{prelude::*, types::ZendClassObject};
+
+#[php_class]
+#[derive(Debug, Default)]
+pub struct Human {
+    name: String,
+    age: i32,
+    #[prop]
+    address: String,
+}
+
 #[php_impl]
 impl Human {
     const MAX_AGE: i32 = 100;
 
     // No `#[constructor]` attribute required here - the name is `__construct`.
     pub fn __construct(name: String, age: i32) -> Self {
-        Self { name, age, address: String::new() }
+        Self {
+            name,
+            age,
+            address: String::new()
+        }
     }
 
     #[getter]
@@ -137,18 +143,18 @@ impl Human {
         println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
     }
 
-    pub fn get_raw_obj(#[this] this: &mut ZendClassObject<Human>) {
-        dbg!(this);   
+    pub fn get_raw_obj(self_: &mut ZendClassObject<Human>) -> &mut ZendClassObject<Human> {
+        dbg!(self_)
     }
 
     pub fn get_max_age() -> i32 {
         Self::MAX_AGE
     }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.class::<Human>()
+}
 # fn main() {}
 ```
 

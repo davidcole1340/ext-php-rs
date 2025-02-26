@@ -27,7 +27,6 @@
   - [Async futures](./macros/async_impl.md)
 - [Macros](./macros/index.md)
   - [Module](./macros/module.md)
-  - [Module Startup Function](./macros/module_startup.md)
   - [Function](./macros/function.md)
   - [Classes](./macros/classes.md)
     - [`impl`s](./macros/impl.md)
@@ -37,3 +36,7 @@
   - [`ZvalConvert`](./macros/zval_convert.md)
 - [Exceptions](./exceptions.md)
 - [INI Settings](./ini-settings.md)
+
+# Migration Guides
+---
+[v0.14](./migration-guides/v0.14.md)

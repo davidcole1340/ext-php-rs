@@ -53,7 +53,7 @@ pub trait RegisteredClass: Sized + 'static {
     ///
     /// The key should be the name of the property and the value should be a
     /// reference to the property with reference to `self`. The value is a
-    /// [`Property`].
+    /// [`PropertyInfo`].
     ///
     /// Instead of using this method directly, you should access the properties
     /// through the [`ClassMetadata::get_properties`] function, which builds the
