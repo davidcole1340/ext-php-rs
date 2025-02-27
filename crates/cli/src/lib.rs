@@ -4,7 +4,7 @@
 mod ext;
 
 use anyhow::{bail, Context, Result as AResult};
-use cargo_metadata::{camino::Utf8PathBuf, Target};
+use cargo_metadata::{camino::Utf8PathBuf, CrateType, Target};
 use clap::Parser;
 use dialoguer::{Confirm, Select};
 
@@ -432,7 +432,7 @@ fn find_ext(manifest: &Option<PathBuf>) -> AResult<cargo_metadata::Target> {
             target
                 .crate_types
                 .iter()
-                .any(|ty| ty == "dylib" || ty == "cdylib")
+                .any(|ty| *ty == CrateType::DyLib || *ty == CrateType::CDyLib)
         })
         .collect();
 
