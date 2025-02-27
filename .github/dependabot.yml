@@ -9,11 +9,7 @@ updates:
       prefix: "chore(deps): "
       prefix-development: "chore(deps-dev): "
   - package-ecosystem: "cargo"
-    directories:
-      - "/"
-      - "/crates/cli"
-      - "/crates/macros"
-      - "/tests"
+    directory: "/"
     schedule:
       interval: "weekly"
     commit-message:
