@@ -1,4 +1,3 @@
-use anyhow::{bail, Context, Result};
 use darling::ToTokens;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
@@ -6,6 +5,8 @@ use syn::{
     token::Where, DataEnum, DataStruct, DeriveInput, GenericParam, Generics, Ident, ImplGenerics,
     Lifetime, LifetimeDef, TypeGenerics, Variant, WhereClause,
 };
+
+use crate::prelude::*;
 
 pub fn parser(input: DeriveInput) -> Result<TokenStream> {
     let DeriveInput {
@@ -83,7 +84,9 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
             from_where_clause,
             ty_generics,
         ),
-        _ => bail!("Only structs and enums are supported by the `#[derive(ZvalConvert)]` macro."),
+        _ => {
+            bail!(ident.span() => "Only structs and enums are supported by the `#[derive(ZvalConvert)]` macro.")
+        }
     }
 }
 
@@ -100,8 +103,8 @@ fn parse_struct(
         .fields
         .iter()
         .map(|field| {
-            let ident = field.ident.as_ref().with_context(|| {
-                "Fields require names when using the `#[derive(ZvalConvert)]` macro on a struct."
+            let ident = field.ident.as_ref().ok_or_else(|| {
+                err!(field => "Fields require names when using the `#[derive(ZvalConvert)]` macro on a struct.")
             })?;
             let field_name = ident.to_string();
 
@@ -115,8 +118,8 @@ fn parse_struct(
         .fields
         .iter()
         .map(|field| {
-            let ident = field.ident.as_ref().with_context(|| {
-                "Fields require names when using the `#[derive(ZvalConvert)]` macro on a struct."
+            let ident = field.ident.as_ref().ok_or_else(|| {
+                err!(field => "Fields require names when using the `#[derive(ZvalConvert)]` macro on a struct.")
             })?;
             let field_name = ident.to_string();
 
@@ -143,6 +146,7 @@ fn parse_struct(
 
         impl #into_impl_generics ::ext_php_rs::convert::IntoZval for #ident #ty_generics #into_where_clause {
             const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Object(None);
+            const NULLABLE: bool = false;
 
             fn set_zval(self, zv: &mut ::ext_php_rs::types::Zval, persistent: bool) -> ::ext_php_rs::error::Result<()> {
                 use ::ext_php_rs::convert::{IntoZval, IntoZendObject};
@@ -203,7 +207,7 @@ fn parse_enum(
         match fields {
             syn::Fields::Unnamed(fields) => {
                 if fields.unnamed.len() != 1 {
-                    bail!("Enum variant must only have one field when using `#[derive(ZvalConvert)]`.");
+                    bail!(fields => "Enum variant must only have one field when using `#[derive(ZvalConvert)]`.");
                 }
 
                 let ty = &fields.unnamed.first().unwrap().ty;
@@ -216,7 +220,7 @@ fn parse_enum(
             },
             syn::Fields::Unit => {
                 if default.is_some() {
-                    bail!("Only one enum unit type is valid as a default when using `#[derive(ZvalConvert)]`.");
+                    bail!(fields => "Only one enum unit type is valid as a default when using `#[derive(ZvalConvert)]`.");
                 }
 
                 default.replace(quote! {
@@ -224,7 +228,7 @@ fn parse_enum(
                 });
                 Ok(None)
             }
-            _ => bail!("Enum variants must be unnamed and have only one field inside the variant when using `#[derive(ZvalConvert)]`.")
+            _ => bail!(fields => "Enum variants must be unnamed and have only one field inside the variant when using `#[derive(ZvalConvert)]`.")
         }
     }).collect::<Result<Vec<_>>>()?;
     let default = default.unwrap_or_else(|| quote! { None });
@@ -232,6 +236,7 @@ fn parse_enum(
     Ok(quote! {
         impl #into_impl_generics ::ext_php_rs::convert::IntoZval for #ident #ty_generics #into_where_clause {
             const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Mixed;
+            const NULLABLE: bool = false;
 
             fn set_zval(
                 self,

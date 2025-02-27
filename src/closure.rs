@@ -7,11 +7,12 @@ use crate::{
     builders::{ClassBuilder, FunctionBuilder},
     class::{ClassMetadata, RegisteredClass},
     convert::{FromZval, IntoZval},
+    describe::DocComments,
     exception::PhpException,
     flags::{DataType, MethodFlags},
-    props::Property,
+    internal::property::PropertyInfo,
     types::Zval,
-    zend::ExecuteData,
+    zend::{ClassEntry, ExecuteData},
     zend_fastcall,
 };
 
@@ -32,7 +33,7 @@ static CLOSURE_META: ClassMetadata<Closure> = ClassMetadata::new();
 ///
 /// class RustClosure {
 ///     public function __invoke(...$args): mixed {
-///         // ...    
+///         // ...
 ///     }
 /// }
 /// ```
@@ -122,20 +123,18 @@ impl Closure {
             panic!("Closure has already been built.");
         }
 
-        let ce = ClassBuilder::new("RustClosure")
+        ClassBuilder::new("RustClosure")
             .method(
                 FunctionBuilder::new("__invoke", Self::invoke)
                     .not_required()
                     .arg(Arg::new("args", DataType::Mixed).is_variadic())
-                    .returns(DataType::Mixed, false, true)
-                    .build()
-                    .expect("Failed to build `RustClosure` PHP class."),
+                    .returns(DataType::Mixed, false, true),
                 MethodFlags::Public,
             )
             .object_override::<Self>()
-            .build()
+            .registration(|ce| CLOSURE_META.set_ce(ce))
+            .register()
             .expect("Failed to build `RustClosure` PHP class.");
-        CLOSURE_META.set_ce(ce);
     }
 
     zend_fastcall! {
@@ -152,12 +151,32 @@ impl Closure {
 impl RegisteredClass for Closure {
     const CLASS_NAME: &'static str = "RustClosure";
 
+    const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
+    const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
+    const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] = &[];
+
     fn get_metadata() -> &'static ClassMetadata<Self> {
         &CLOSURE_META
     }
 
-    fn get_properties<'a>() -> HashMap<&'static str, Property<'a, Self>> {
+    fn get_properties<'a>() -> HashMap<&'static str, PropertyInfo<'a, Self>> {
         HashMap::new()
+    }
+
+    fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)> {
+        unimplemented!()
+    }
+
+    fn constructor() -> Option<crate::class::ConstructorMeta<Self>> {
+        None
+    }
+
+    fn constants() -> &'static [(
+        &'static str,
+        &'static dyn crate::convert::IntoZvalDyn,
+        DocComments,
+    )] {
+        unimplemented!()
     }
 }
 

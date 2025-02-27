@@ -94,8 +94,8 @@ impl ZendObjectHandlers {
             rv_mut.u1.type_info = ZvalTypeFlags::Null.bits();
 
             Ok(match prop {
-                Some(prop) => {
-                    prop.get(self_, rv_mut)?;
+                Some(prop_info) => {
+                    prop_info.prop.get(self_, rv_mut)?;
                     rv
                 }
                 None => zend_std_read_property(object, member, type_, cache_slot, rv),
@@ -138,8 +138,8 @@ impl ZendObjectHandlers {
             let value_mut = value.as_mut().ok_or("Invalid return zval given")?;
 
             Ok(match prop {
-                Some(prop) => {
-                    prop.set(self_, value_mut)?;
+                Some(prop_info) => {
+                    prop_info.prop.set(self_, value_mut)?;
                     value
                 }
                 None => zend_std_write_property(object, member, value, cache_slot),
@@ -172,7 +172,7 @@ impl ZendObjectHandlers {
 
             for (name, val) in struct_props {
                 let mut zv = Zval::new();
-                if val.get(self_, &mut zv).is_err() {
+                if val.prop.get(self_, &mut zv).is_err() {
                     continue;
                 }
                 props.insert(name, zv).map_err(|e| {
@@ -225,7 +225,7 @@ impl ZendObjectHandlers {
                 0 => {
                     if let Some(val) = prop {
                         let mut zv = Zval::new();
-                        val.get(self_, &mut zv)?;
+                        val.prop.get(self_, &mut zv)?;
                         if !zv.is_null() {
                             return Ok(1);
                         }
@@ -236,7 +236,7 @@ impl ZendObjectHandlers {
                 1 => {
                     if let Some(val) = prop {
                         let mut zv = Zval::new();
-                        val.get(self_, &mut zv)?;
+                        val.prop.get(self_, &mut zv)?;
 
                         cfg_if::cfg_if! {
                             if #[cfg(php84)] {

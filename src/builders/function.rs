@@ -1,5 +1,6 @@
 use crate::{
     args::{Arg, ArgInfo},
+    describe::DocComments,
     error::{Error, Result},
     flags::{DataType, MethodFlags},
     types::Zval,
@@ -24,13 +25,14 @@ type FunctionPointerHandler =
 /// Builder for registering a function in PHP.
 #[derive(Debug)]
 pub struct FunctionBuilder<'a> {
-    name: String,
+    pub(crate) name: String,
     function: FunctionEntry,
-    args: Vec<Arg<'a>>,
+    pub(crate) args: Vec<Arg<'a>>,
     n_req: Option<usize>,
-    retval: Option<DataType>,
+    pub(crate) retval: Option<DataType>,
     ret_as_ref: bool,
-    ret_as_null: bool,
+    pub(crate) ret_as_null: bool,
+    pub(crate) docs: DocComments,
 }
 
 impl<'a> FunctionBuilder<'a> {
@@ -65,6 +67,7 @@ impl<'a> FunctionBuilder<'a> {
             retval: None,
             ret_as_ref: false,
             ret_as_null: false,
+            docs: &[],
         }
     }
 
@@ -93,6 +96,7 @@ impl<'a> FunctionBuilder<'a> {
             retval: None,
             ret_as_ref: false,
             ret_as_null: false,
+            docs: &[],
         }
     }
 
@@ -123,11 +127,6 @@ impl<'a> FunctionBuilder<'a> {
         self
     }
 
-    pub fn variadic(mut self) -> Self {
-        self.function.flags |= MethodFlags::Variadic.bits();
-        self
-    }
-
     /// Sets the return value of the function.
     ///
     /// # Parameters
@@ -142,15 +141,37 @@ impl<'a> FunctionBuilder<'a> {
         self
     }
 
+    /// Sets the documentation for the function.
+    /// This is used to generate the PHP stubs for the function.
+    ///
+    /// # Parameters
+    ///
+    /// * `docs` - The documentation for the function.
+    pub fn docs(mut self, docs: DocComments) -> Self {
+        self.docs = docs;
+        self
+    }
+
     /// Builds the function converting it into a Zend function entry.
     ///
     /// Returns a result containing the function entry if successful.
     pub fn build(mut self) -> Result<FunctionEntry> {
         let mut args = Vec::with_capacity(self.args.len() + 1);
+        let mut n_req = self.n_req.unwrap_or(self.args.len());
+        let variadic = self.args.last().is_some_and(|arg| arg.variadic);
+
+        if variadic {
+            self.function.flags |= MethodFlags::Variadic.bits();
+            n_req = n_req.saturating_sub(1);
+        }
 
         // argument header, retval etc
+        // The first argument is used as `zend_internal_function_info` for the function.
+        // That struct shares the same memory as `zend_internal_arg_info` which is used
+        // for the arguments.
         args.push(ArgInfo {
-            name: self.n_req.unwrap_or(self.args.len()) as *const _,
+            // required_num_args
+            name: n_req as *const _,
             type_: match self.retval {
                 Some(retval) => {
                     ZendType::empty_from_type(retval, self.ret_as_ref, false, self.ret_as_null)

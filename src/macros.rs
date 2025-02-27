@@ -200,7 +200,7 @@ macro_rules! throw {
 /// # Examples
 ///
 /// ```
-/// # use ext_php_rs::{convert::{IntoZval, FromZval}, types::{Zval, ZendObject}, class::{RegisteredClass}};
+/// # use ext_php_rs::{convert::{IntoZval, FromZval, IntoZvalDyn}, types::{Zval, ZendObject}, class::{RegisteredClass, ConstructorMeta}, builders::{ClassBuilder, FunctionBuilder}, zend::ClassEntry, flags::{ClassFlags, MethodFlags}, internal::property::PropertyInfo, describe::DocComments};
 /// use ext_php_rs::class_derives;
 ///
 /// struct Test {
@@ -211,15 +211,31 @@ macro_rules! throw {
 /// impl RegisteredClass for Test {
 ///     const CLASS_NAME: &'static str = "Test";
 ///
-///     const CONSTRUCTOR: Option<ext_php_rs::class::ConstructorMeta<Self>> = None;
+///     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
+///     const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
+///     const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] =  &[];
+///     const FLAGS: ClassFlags = ClassFlags::empty();
+///     const DOC_COMMENTS: DocComments = &[];
 ///
 ///     fn get_metadata() -> &'static ext_php_rs::class::ClassMetadata<Self> {
 ///         todo!()
 ///     }
 ///
 ///     fn get_properties<'a>(
-///     ) -> std::collections::HashMap<&'static str, ext_php_rs::props::Property<'a, Self>>
+///     ) -> std::collections::HashMap<&'static str, PropertyInfo<'a, Self>>
 ///     {
+///         todo!()
+///     }
+///
+///     fn method_builders() -> Vec<(FunctionBuilder<'static>, MethodFlags)> {
+///         todo!()
+///     }
+///
+///     fn constructor() -> Option<ConstructorMeta<Self>> {
+///         todo!()
+///     }
+///
+///     fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn, DocComments)] {
 ///         todo!()
 ///     }
 /// }
@@ -301,6 +317,7 @@ macro_rules! class_derives {
             const TYPE: $crate::flags::DataType = $crate::flags::DataType::Object(Some(
                 <$type as $crate::class::RegisteredClass>::CLASS_NAME,
             ));
+            const NULLABLE: bool = false;
 
             #[inline]
             fn set_zval(
@@ -329,6 +346,7 @@ macro_rules! into_zval {
 
         impl $crate::convert::IntoZval for $type {
             const TYPE: $crate::flags::DataType = $crate::flags::DataType::$dt;
+            const NULLABLE: bool = false;
 
             fn set_zval(self, zv: &mut $crate::types::Zval, _: bool) -> $crate::error::Result<()> {
                 zv.$fn(self);

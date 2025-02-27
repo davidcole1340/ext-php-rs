@@ -1,3 +1,7 @@
+//! The build script for ext-php-rs.
+//! This script is responsible for generating the bindings to the PHP Zend API.
+//! It also checks the PHP version for compatibility with ext-php-rs and sets
+//! configuration flags accordingly.
 #[cfg_attr(windows, path = "windows_build.rs")]
 #[cfg_attr(not(windows), path = "unix_build.rs")]
 mod impl_;
@@ -18,6 +22,7 @@ use impl_::Provider;
 const MIN_PHP_API_VER: u32 = 20200930;
 const MAX_PHP_API_VER: u32 = 20240924;
 
+/// Provides information about the PHP installation.
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
     fn new(info: &'a PHPInfo) -> Result<Self>;
@@ -75,9 +80,11 @@ fn find_php() -> Result<PathBuf> {
     })
 }
 
+/// Output of `php -i`.
 pub struct PHPInfo(String);
 
 impl PHPInfo {
+    /// Get the PHP info.
     pub fn get(php: &Path) -> Result<Self> {
         let cmd = Command::new(php)
             .arg("-i")
@@ -100,6 +107,7 @@ impl PHPInfo {
             .try_into()
     }
 
+    /// Checks if thread safety is enabled.
     pub fn thread_safety(&self) -> Result<bool> {
         Ok(self
             .get_key("Thread Safety")
@@ -107,6 +115,7 @@ impl PHPInfo {
             == "enabled")
     }
 
+    /// Checks if PHP was built with debug.
     pub fn debug(&self) -> Result<bool> {
         Ok(self
             .get_key("Debug Build")
@@ -114,11 +123,13 @@ impl PHPInfo {
             == "yes")
     }
 
+    /// Get the php version.
     pub fn version(&self) -> Result<&str> {
         self.get_key("PHP Version")
             .context("Failed to get PHP version")
     }
 
+    /// Get the zend version.
     pub fn zend_version(&self) -> Result<u32> {
         self.get_key("PHP API")
             .context("Failed to get Zend version")

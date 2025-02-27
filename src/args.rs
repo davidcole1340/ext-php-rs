@@ -4,6 +4,7 @@ use std::{ffi::CString, ptr};
 
 use crate::{
     convert::{FromZvalMut, IntoZvalDyn},
+    describe::{abi, Parameter},
     error::{Error, Result},
     ffi::{
         _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY,
@@ -24,7 +25,7 @@ pub struct Arg<'a> {
     _type: DataType,
     as_ref: bool,
     allow_null: bool,
-    variadic: bool,
+    pub(crate) variadic: bool,
     default_value: Option<String>,
     zval: Option<&'a mut Zval>,
     variadic_zvals: Vec<Option<&'a mut Zval>>,
@@ -184,6 +185,17 @@ impl From<Arg<'_>> for _zend_expected_type {
     }
 }
 
+impl From<Arg<'_>> for Parameter {
+    fn from(val: Arg<'_>) -> Self {
+        Parameter {
+            name: val.name.into(),
+            ty: Some(val._type).into(),
+            nullable: val.allow_null,
+            default: val.default_value.map(abi::RString::from).into(),
+        }
+    }
+}
+
 /// Internal argument information used by Zend.
 pub type ArgInfo = zend_internal_arg_info;
 
@@ -238,9 +250,12 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     /// should break execution after seeing an error type.
     pub fn parse(mut self) -> Result<()> {
         let max_num_args = self.args.len();
-        let min_num_args = self.min_num_args.unwrap_or(max_num_args);
+        let mut min_num_args = self.min_num_args.unwrap_or(max_num_args);
         let num_args = self.arg_zvals.len();
         let has_variadic = self.args.last().is_some_and(|arg| arg.variadic);
+        if has_variadic {
+            min_num_args = min_num_args.saturating_sub(1);
+        }
 
         if num_args < min_num_args || (!has_variadic && num_args > max_num_args) {
             // SAFETY: Exported C function is safe, return value is unused and parameters

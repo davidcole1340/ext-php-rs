@@ -1,53 +1,31 @@
-use crate::helpers::get_docs;
-use anyhow::{bail, Result};
-use darling::ToTokens;
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{Expr, ItemConst};
+use quote::{format_ident, quote};
+use syn::ItemConst;
 
-use crate::STATE;
+use crate::helpers::get_docs;
+use crate::prelude::*;
 
-#[derive(Debug)]
-pub struct Constant {
-    pub name: String,
-    // pub visibility: Visibility,
-    pub docs: Vec<String>,
-    pub value: String,
+const INTERNAL_CONST_DOC_PREFIX: &str = "_internal_const_docs_";
+
+pub fn parser(item: ItemConst) -> TokenStream {
+    let docs = get_docs(&item.attrs);
+    let docs_ident = format_ident!("{INTERNAL_CONST_DOC_PREFIX}{}", item.ident);
+
+    quote! {
+        #item
+        #[allow(non_upper_case_globals)]
+        const #docs_ident: &[&str] = &[#(#docs),*];
+    }
 }
 
-pub fn parser(input: ItemConst) -> Result<TokenStream> {
-    let mut state = STATE.lock();
-
-    if state.startup_function.is_some() {
-        bail!("Constants must be declared before you declare your startup function and module function.");
-    }
-
-    state.constants.push(Constant {
-        name: input.ident.to_string(),
-        docs: get_docs(&input.attrs),
-        value: input.expr.to_token_stream().to_string(),
-    });
+pub fn wrap(input: syn::Path) -> Result<TokenStream> {
+    let Some(const_name) = input.get_ident().map(|i| i.to_string()) else {
+        bail!(input => "Pass a PHP const into `wrap_constant!()`.");
+    };
+    let doc_const = format_ident!("{INTERNAL_CONST_DOC_PREFIX}{const_name}");
 
     Ok(quote! {
-        #[allow(dead_code)]
-        #input
+        (#const_name, #input, #doc_const)
+
     })
-}
-
-impl Constant {
-    pub fn val_tokens(&self) -> TokenStream {
-        let expr: Expr =
-            syn::parse_str(&self.value).expect("failed to parse previously parsed expr");
-        expr.to_token_stream()
-    }
-
-    // pub fn get_flags(&self) -> TokenStream {
-    //     let flag = match self.visibility {
-    //         Visibility::Public => quote! { Public },
-    //         Visibility::Protected => quote! { Protected },
-    //         Visibility::Private => quote! { Private },
-    //     };
-
-    //     quote! { ::ext_php_rs::flags::ConstantFlags}
-    // }
 }

@@ -272,6 +272,7 @@ impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
 
 impl<T: RegisteredClass> IntoZval for ZBox<ZendClassObject<T>> {
     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
+    const NULLABLE: bool = false;
 
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
         let obj = self.into_raw();
@@ -282,6 +283,7 @@ impl<T: RegisteredClass> IntoZval for ZBox<ZendClassObject<T>> {
 
 impl<T: RegisteredClass> IntoZval for &mut ZendClassObject<T> {
     const TYPE: DataType = DataType::Object(Some(T::CLASS_NAME));
+    const NULLABLE: bool = false;
 
     #[inline]
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
