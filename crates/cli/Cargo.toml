@@ -15,7 +15,7 @@ ext-php-rs = { version = "0.13", path = "../../" }
 
 clap = { version = "4.0", features = ["derive"] }
 anyhow = "1"
-dialoguer = "0.10"
+dialoguer = "0.11"
 libloading = "0.7"
 cargo_metadata = "0.15"
 semver = "1.0"
