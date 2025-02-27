@@ -38,5 +38,5 @@ pub fn hello_world(name: String) -> String {
 
 #[php_module]
 pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+    module.function(wrap_function!(hello_world))
 }
