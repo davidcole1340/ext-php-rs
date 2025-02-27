@@ -17,5 +17,5 @@ clap = { version = "4.0", features = ["derive"] }
 anyhow = "1"
 dialoguer = "0.10"
 libloading = "0.7"
-cargo_metadata = "0.15"
+cargo_metadata = "0.19"
 semver = "1.0"
