@@ -1,13 +1,12 @@
+use anyhow::{bail, Context, Result};
 use std::{
     convert::TryFrom,
     fmt::Display,
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
     process::Command,
-    sync::Arc,
 };
-
-use anyhow::{bail, Context, Result};
+use ureq::tls::{TlsConfig, TlsProvider};
 
 use crate::{PHPInfo, PHPProvider};
 
@@ -194,15 +193,21 @@ impl DevelPack {
                 if archive { "/archives" } else { "" },
                 zip_name
             );
-            let response = ureq::AgentBuilder::new()
-                .tls_connector(Arc::new(native_tls::TlsConnector::new().unwrap()))
+            let response = ureq::Agent::config_builder()
+                .tls_config(
+                    TlsConfig::builder()
+                        .provider(TlsProvider::NativeTls)
+                        .build(),
+                )
                 .build()
+                .new_agent()
                 .get(&url)
-                .set("User-Agent", USER_AGENT)
+                .header("User-Agent", USER_AGENT)
                 .call()
                 .context("Failed to download development pack")?;
             let mut content = vec![];
             response
+                .into_body()
                 .into_reader()
                 .read_to_end(&mut content)
                 .context("Failed to read development pack")?;
