@@ -41,10 +41,7 @@ pub struct AttrArgs {
     flags: Option<Expr>,
 }
 
-pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream> {
-    let args = AttrArgs::from_list(&args)
-        .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
-
+fn prepare(args: AttrArgs, mut input: ItemStruct) -> Result<(TokenStream, Class)> {
     let mut parent = None;
     let mut interfaces = vec![];
     let mut properties = HashMap::new();
@@ -132,6 +129,23 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         ..Default::default()
     };
 
+    Ok((
+        quote! {
+            #input
+
+            ::ext_php_rs::class_derives!(#ident);
+        },
+        class,
+    ))
+}
+
+pub fn parser(args: AttributeArgs, input: ItemStruct) -> Result<TokenStream> {
+    let args = AttrArgs::from_list(&args)
+        .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
+
+    let ident = &input.ident.clone();
+    let (tokens, class) = prepare(args, input)?;
+
     let mut state = STATE.lock();
 
     if state.built_module {
@@ -144,11 +158,7 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     state.classes.insert(ident.to_string(), class);
 
-    Ok(quote! {
-        #input
-
-        ::ext_php_rs::class_derives!(#ident);
-    })
+    Ok(tokens)
 }
 
 #[derive(Debug)]
