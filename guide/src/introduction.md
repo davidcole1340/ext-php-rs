@@ -32,6 +32,9 @@ Our main goal is to **make extension development easier.**
 guaranteed while we are at major version `0`, which is for the foreseeable
 future. It's recommended to lock the version at the patch level.
 
+When introducing breaking changes a migration guide will be provided in this
+guide.
+
 ## Documentation
 
 - This guide!

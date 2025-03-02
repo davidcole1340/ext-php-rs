@@ -119,6 +119,9 @@ pub trait IntoZval: Sized {
     /// The corresponding type of the implemented value in PHP.
     const TYPE: DataType;
 
+    /// Whether converting into a [`Zval`] may result in null.
+    const NULLABLE: bool;
+
     /// Converts a Rust primitive type into a Zval. Returns a result containing
     /// the Zval if successful.
     ///
@@ -145,6 +148,7 @@ pub trait IntoZval: Sized {
 
 impl IntoZval for () {
     const TYPE: DataType = DataType::Void;
+    const NULLABLE: bool = true;
 
     #[inline]
     fn set_zval(self, zv: &mut Zval, _: bool) -> Result<()> {
@@ -158,6 +162,7 @@ where
     T: IntoZval,
 {
     const TYPE: DataType = T::TYPE;
+    const NULLABLE: bool = true;
 
     #[inline]
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
@@ -177,6 +182,7 @@ where
     E: Into<PhpException>,
 {
     const TYPE: DataType = T::TYPE;
+    const NULLABLE: bool = T::NULLABLE;
 
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
         match self {

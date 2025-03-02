@@ -42,7 +42,7 @@ impl ToStub for Module {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
         writeln!(buf, "<?php")?;
         writeln!(buf)?;
-        writeln!(buf, "// Stubs for {}", self.name)?;
+        writeln!(buf, "// Stubs for {}", self.name.as_ref())?;
         writeln!(buf)?;
 
         // To account for namespaces we need to group by them. [`None`] as the key
@@ -209,7 +209,7 @@ impl ToStub for Class {
                 "implements {} ",
                 self.implements
                     .iter()
-                    .map(|s| s.str())
+                    .map(|s| s.as_str())
                     .collect::<StdVec<_>>()
                     .join(", ")
             )?;

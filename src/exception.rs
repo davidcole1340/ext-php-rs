@@ -187,7 +187,7 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 /// use crate::ext_php_rs::convert::IntoZval;
 ///
 /// #[php_class]
-/// #[extends(ext_php_rs::zend::ce::exception())]
+/// #[extends(ext_php_rs::zend::ce::exception)]
 /// pub struct JsException {
 ///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
 ///     message: String,
