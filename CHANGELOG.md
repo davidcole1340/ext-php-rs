@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.1...ext-php-rs-v0.13.2) - 2025-03-03
+
+### Other
+- *(cargo-php)* Add locked option to install guide ([#370](https://github.com/davidcole1340/ext-php-rs/pull/370)) (by @Xenira) [[#370](https://github.com/davidcole1340/ext-php-rs/issues/370)] [[#314](https://github.com/davidcole1340/ext-php-rs/issues/314)] 
+- *(deps)* Update zip requirement from 0.6 to 2.2 ([#381](https://github.com/davidcole1340/ext-php-rs/pull/381)) (by @dependabot[bot]) [[#381](https://github.com/davidcole1340/ext-php-rs/issues/381)] 
+- *(release-plz)* Move breaking changes to section on top of changelog ([#393](https://github.com/davidcole1340/ext-php-rs/pull/393)) (by @Xenira) [[#393](https://github.com/davidcole1340/ext-php-rs/issues/393)] 
+
 ## [0.13.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.0...ext-php-rs-v0.13.1) - 2025-02-13
 
 ### Fixed
