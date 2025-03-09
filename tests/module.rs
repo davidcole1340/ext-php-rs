@@ -10,7 +10,13 @@ use ext_php_rs::prelude::*;
 fn test_module() {
     Embed::run(|| {
         // Allow to load the module
-        unsafe { zend_register_module_ex(get_module()) };
+        cfg_if::cfg_if! {
+            if #[cfg(php84)] {
+                unsafe { zend_register_module_ex(get_module(), 2) };
+            } else {
+                unsafe { zend_register_module_ex(get_module()) };
+            }
+        }
 
         let result = Embed::eval("$foo = hello_world('foo');");
 
