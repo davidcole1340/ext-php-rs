@@ -255,7 +255,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_panic() {
-        Embed::run(|| {
+        Embed::run::<(), _>(|| {
             panic!("test panic");
         });
     }
