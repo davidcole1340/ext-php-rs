@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::STATE;
 use anyhow::{anyhow, bail, Context, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
@@ -41,7 +40,7 @@ pub struct AttrArgs {
     flags: Option<Expr>,
 }
 
-pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream> {
+pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<(TokenStream, String, Class)> {
     let args = AttrArgs::from_list(&args)
         .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
 
@@ -52,7 +51,11 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
 
     input.attrs = {
         let mut unused = vec![];
-        for attr in input.attrs.into_iter() {
+        for attr in input
+            .attrs
+            .into_iter()
+            .filter(|a| !a.path.is_ident("php_class"))
+        {
             match parse_attribute(&attr)? {
                 Some(parsed) => match parsed {
                     ParsedAttribute::Extends(class) => {
@@ -132,23 +135,15 @@ pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream>
         ..Default::default()
     };
 
-    let mut state = STATE.lock();
+    Ok((
+        quote! {
+            #input
 
-    if state.built_module {
-        bail!("The `#[php_module]` macro must be called last to ensure functions and classes are registered.");
-    }
-
-    if state.startup_function.is_some() {
-        bail!("The `#[php_startup]` macro must be called after all the classes have been defined.");
-    }
-
-    state.classes.insert(ident.to_string(), class);
-
-    Ok(quote! {
-        #input
-
-        ::ext_php_rs::class_derives!(#ident);
-    })
+            ::ext_php_rs::class_derives!(#ident);
+        },
+        ident.to_string(),
+        class,
+    ))
 }
 
 #[derive(Debug)]

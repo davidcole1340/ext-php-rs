@@ -183,27 +183,30 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 ///
 /// ```no_run
 /// use ext_php_rs::prelude::*;
-/// use ext_php_rs::exception::throw_object;
 /// use crate::ext_php_rs::convert::IntoZval;
 ///
-/// #[php_class]
-/// #[extends(ext_php_rs::zend::ce::exception())]
-/// pub struct JsException {
-///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
-///     message: String,
-///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
-///     code: i32,
-///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
-///     file: String,
-/// }
-///
 /// #[php_module]
-/// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-///     module
+/// mod module {
+///     use crate::ext_php_rs::convert::IntoZval;
+///     use ext_php_rs::exception::throw_object;
+///
+///     #[php_class]
+///     #[extends(ext_php_rs::zend::ce::exception())]
+///     pub struct JsException {
+///         #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///         message: String,
+///         #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///         code: i32,
+///         #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///         file: String,
+///     }
+///
+///     fn trow() {
+///         let error = JsException { message: "A JS error occurred.".to_string(), code: 100, file: "index.js".to_string() };
+///         throw_object( error.into_zval(true).unwrap() );
+///     }
 /// }
 ///
-/// let error = JsException { message: "A JS error occurred.".to_string(), code: 100, file: "index.js".to_string() };
-/// throw_object( error.into_zval(true).unwrap() );
 /// ```
 pub fn throw_object(zval: Zval) -> Result<()> {
     let mut zv = core::mem::ManuallyDrop::new(zval);

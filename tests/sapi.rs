@@ -8,8 +8,8 @@ use ext_php_rs::ffi::{
     php_module_shutdown, php_module_startup, php_request_shutdown, php_request_startup,
     sapi_shutdown, sapi_startup, ZEND_RESULT_CODE_SUCCESS,
 };
-use ext_php_rs::prelude::*;
 use ext_php_rs::zend::try_catch_first;
+use ext_php_rs::{php_module, prelude::*};
 use std::ffi::c_char;
 
 static mut LAST_OUTPUT: String = String::new();
@@ -33,7 +33,7 @@ fn test_sapi() {
     builder = builder.ub_write_function(output_tester);
 
     let sapi = builder.build().unwrap().into_raw();
-    let module = get_module();
+    let module = module::get_module();
 
     unsafe {
         ext_php_rs_sapi_startup();
@@ -82,17 +82,15 @@ fn test_sapi() {
     }
 }
 
-/// Gives you a nice greeting!
-///
-/// @param string $name Your name.
-///
-/// @return string Nice greeting!
-#[php_function]
-pub fn hello_world(name: String) -> String {
-    format!("Hello, {}!", name)
-}
-
 #[php_module]
-pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+mod module {
+    /// Gives you a nice greeting!
+    ///
+    /// @param string $name Your name.
+    ///
+    /// @return string Nice greeting!
+    #[php_function]
+    pub fn hello_world(name: String) -> String {
+        format!("Hello, {}!", name)
+    }
 }

@@ -100,55 +100,57 @@ constant for the maximum age of a `Human`.
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
-# use ext_php_rs::{prelude::*, types::ZendClassObject};
-# #[php_class]
-# #[derive(Debug, Default)]
-# pub struct Human {
-#     name: String,
-#     age: i32,
-#     #[prop]
-#     address: String,
-# }
-#[php_impl]
-impl Human {
-    const MAX_AGE: i32 = 100;
+# use ext_php_rs::php_module;
+#[php_module]
+mod module {
+    use ext_php_rs::types::ZendClassObject;
 
-    // No `#[constructor]` attribute required here - the name is `__construct`.
-    pub fn __construct(name: String, age: i32) -> Self {
-        Self { name, age, address: String::new() }
+    #[php_class]
+    #[derive(Debug, Default)]
+    pub struct Human {
+        name: String,
+        age: i32,
+        #[prop]
+        address: String,
     }
 
-    #[getter]
-    pub fn get_name(&self) -> String {
-        self.name.to_string()
-    }
+    #[php_impl]
+    impl Human {
+        const MAX_AGE: i32 = 100;
 
-    #[setter]
-    pub fn set_name(&mut self, name: String) {
-        self.name = name;
-    }
+        // No `#[constructor]` attribute required here - the name is `__construct`.
+        pub fn __construct(name: String, age: i32) -> Self {
+            Self { name, age, address: String::new() }
+        }
 
-    #[getter]
-    pub fn get_age(&self) -> i32 {
-        self.age
-    }
+        #[getter]
+        pub fn get_name(&self) -> String {
+            self.name.to_string()
+        }
 
-    pub fn introduce(&self) {
-        println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
-    }
+        #[setter]
+        pub fn set_name(&mut self, name: String) {
+            self.name = name;
+        }
 
-    pub fn get_raw_obj(#[this] this: &mut ZendClassObject<Human>) {
-        dbg!(this);   
-    }
+        #[getter]
+        pub fn get_age(&self) -> i32 {
+            self.age
+        }
 
-    pub fn get_max_age() -> i32 {
-        Self::MAX_AGE
+        pub fn introduce(&self) {
+            println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
+        }
+
+        pub fn get_raw_obj(#[this] this: &mut ZendClassObject<Human>) {
+            dbg!(this);
+        }
+
+        pub fn get_max_age() -> i32 {
+            Self::MAX_AGE
+        }
     }
 }
-# #[php_module]
-# pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-#     module
-# }
 # fn main() {}
 ```
 

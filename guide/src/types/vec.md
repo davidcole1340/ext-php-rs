@@ -22,9 +22,12 @@ fail.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function]
-pub fn test_vec(vec: Vec<String>) -> String {
-    vec.join(" ")
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn test_vec(vec: Vec<String>) -> String {
+        vec.join(" ")
+    }
 }
 # fn main() {}
 ```

@@ -30,19 +30,18 @@ the `#[php_function]` attribute.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
-use std::convert::TryInto;
-
-// Trivial example - PHP represents all integers as `u64` on 64-bit systems
-// so the `u32` would be converted back to `u64`, but that's okay for an example.
-#[php_function]
-pub fn something_fallible(n: u64) -> PhpResult<u32> {
-    let n: u32 = n.try_into().map_err(|_| "Could not convert into u32")?;
-    Ok(n)
-}
 
 #[php_module]
-pub fn module(module: ModuleBuilder) -> ModuleBuilder {
-    module
+mod module {
+    use std::convert::TryInto;
+
+    // Trivial example - PHP represents all integers as `u64` on 64-bit systems
+    // so the `u32` would be converted back to `u64`, but that's okay for an example.
+    #[php_function]
+    pub fn something_fallible(n: u64) -> PhpResult<u32> {
+        let n: u32 = n.try_into().map_err(|_| "Could not convert into u32")?;
+        Ok(n)
+    }
 }
 # fn main() {}
 ```

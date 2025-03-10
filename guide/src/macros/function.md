@@ -17,15 +17,18 @@ default value.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function]
-pub fn greet(name: String, age: Option<i32>) -> String {
-    let mut greeting = format!("Hello, {}!", name);
+#[php_module]
+mod module {
+    #[php_function]
+    pub fn greet(name: String, age: Option<i32>) -> String {
+        let mut greeting = format!("Hello, {}!", name);
 
-    if let Some(age) = age {
-        greeting += &format!(" You are {} years old.", age);
+        if let Some(age) = age {
+            greeting += &format!(" You are {} years old.", age);
+        }
+
+        greeting
     }
-
-    greeting
 }
 # fn main() {}
 ```
@@ -38,10 +41,13 @@ default, it does not need to be a variant of `Option`:
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-#[php_function(defaults(offset = 0))]
-pub fn rusty_strpos(haystack: &str, needle: &str, offset: i64) -> Option<usize> {
-    let haystack: String = haystack.chars().skip(offset as usize).collect();
-    haystack.find(needle)
+#[php_module]
+mod module {
+    #[php_function(defaults(offset = 0))]
+    pub fn rusty_strpos(haystack: &str, needle: &str, offset: i64) -> Option<usize> {
+        let haystack: String = haystack.chars().skip(offset as usize).collect();
+        haystack.find(needle)
+    }
 }
 # fn main() {}
 ```
@@ -54,17 +60,20 @@ argument rather than an optional argument.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-/// `age` will be deemed required and nullable rather than optional.
-#[php_function]
-pub fn greet(name: String, age: Option<i32>, description: String) -> String {
-    let mut greeting = format!("Hello, {}!", name);
+#[php_module]
+mod module {
+    /// `age` will be deemed required and nullable rather than optional.
+    #[php_function]
+    pub fn greet(name: String, age: Option<i32>, description: String) -> String {
+        let mut greeting = format!("Hello, {}!", name);
 
-    if let Some(age) = age {
-        greeting += &format!(" You are {} years old.", age);
+        if let Some(age) = age {
+            greeting += &format!(" You are {} years old.", age);
+        }
+
+        greeting += &format!(" {}.", description);
+        greeting
     }
-
-    greeting += &format!(" {}.", description);
-    greeting
 }
 # fn main() {}
 ```
@@ -77,21 +86,24 @@ parameter:
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-/// `age` will be deemed required and nullable rather than optional,
-/// while description will be optional.
-#[php_function(optional = "description")]
-pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> String {
-    let mut greeting = format!("Hello, {}!", name);
+#[php_module]
+mod module {
+    /// `age` will be deemed required and nullable rather than optional,
+    /// while description will be optional.
+    #[php_function(optional = "description")]
+    pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> String {
+        let mut greeting = format!("Hello, {}!", name);
 
-    if let Some(age) = age {
-        greeting += &format!(" You are {} years old.", age);
+        if let Some(age) = age {
+            greeting += &format!(" You are {} years old.", age);
+        }
+
+        if let Some(description) = description {
+            greeting += &format!(" {}.", description);
+        }
+
+        greeting
     }
-
-    if let Some(description) = description {
-        greeting += &format!(" {}.", description);
-    }
-
-    greeting
 }
 # fn main() {}
 ```
@@ -106,12 +118,15 @@ the `...$args` syntax.
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-# use ext_php_rs::types::Zval;
-/// This can be called from PHP as `add(1, 2, 3, 4, 5)`
-#[php_function]
-pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
-    // numbers is a slice of 4 Zvals all of type long
-    number
+#[php_module]
+mod module {
+    # use ext_php_rs::types::Zval;
+    /// This can be called from PHP as `add(1, 2, 3, 4, 5)`
+    #[php_function]
+    pub fn add(number: u32, numbers:&[&Zval]) -> u32 {
+        // numbers is a slice of 4 Zvals all of type long
+        number
+    }
 }
 # fn main() {}
 ```

@@ -5,6 +5,7 @@ use quote::quote;
 use std::collections::HashMap;
 use syn::{Attribute, AttributeArgs, ItemImpl, Lit, Meta, NestedMeta};
 
+use crate::class::Class;
 use crate::helpers::get_docs;
 use crate::{
     class::{Property, PropertyAttr},
@@ -94,7 +95,11 @@ pub enum PropAttrTy {
     Setter,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
+pub fn parser(
+    args: AttributeArgs,
+    input: ItemImpl,
+    classes: &mut HashMap<String, Class>,
+) -> Result<TokenStream> {
     let args = AttrArgs::from_list(&args)
         .map_err(|e| anyhow!("Unable to parse attribute arguments: {:?}", e))?;
 
@@ -105,15 +110,7 @@ pub fn parser(args: AttributeArgs, input: ItemImpl) -> Result<TokenStream> {
         bail!("This macro cannot be used on trait implementations.");
     }
 
-    let mut state = crate::STATE.lock();
-
-    if state.startup_function.is_some() {
-        bail!(
-            "Impls must be declared before you declare your startup function and module function."
-        );
-    }
-
-    let class = state.classes.get_mut(&class_name).ok_or_else(|| {
+    let class = classes.get_mut(&class_name).ok_or_else(|| {
         anyhow!(
             "You must use `#[php_class]` on the struct before using this attribute on the impl."
         )

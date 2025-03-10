@@ -6,7 +6,7 @@
 |---------------|----------------|-----------------| ---------------- |----------------------------------|
 | Yes           | No             | No              | No               | `ZendHashTable` or `ZendIterator` |
 
-Converting from a zval to a `Iterable` is valid when the value is either an array or an object 
+Converting from a zval to a `Iterable` is valid when the value is either an array or an object
 that implements the `Traversable` interface. This means that any value that can be used in a
 `foreach` loop can be converted into a `Iterable`.
 
@@ -16,11 +16,14 @@ that implements the `Traversable` interface. This means that any value that can 
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 # use ext_php_rs::prelude::*;
-# use ext_php_rs::types::Iterable;
-#[php_function]
-pub fn test_iterable(mut iterable: Iterable) {
-    for (k, v) in iterable.iter().expect("cannot rewind iterator") {
-        println!("k: {} v: {}", k.string().unwrap(), v.string().unwrap());
+#[php_module]
+mod module {
+    # use ext_php_rs::types::Iterable;
+    #[php_function]
+    pub fn test_iterable(mut iterable: Iterable) {
+        for (k, v) in iterable.iter().expect("cannot rewind iterator") {
+            println!("k: {} v: {}", k.string().unwrap(), v.string().unwrap());
+        }
     }
 }
 # fn main() {}

@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use crate::helpers::get_docs;
-use crate::{syn_ext::DropLifetimes, STATE};
+use crate::syn_ext::DropLifetimes;
 use anyhow::{anyhow, bail, Result};
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, AttributeArgs, FnArg, GenericArgument, ItemFn, Lit, PathArguments,
-    ReturnType, Signature, Token, Type, TypePath,
+    punctuated::Punctuated, FnArg, GenericArgument, ItemFn, Lit, PathArguments, ReturnType,
+    Signature, Token, Type, TypePath,
 };
 
 #[derive(Default, Debug, FromMeta)]
@@ -40,13 +40,8 @@ pub struct Function {
     pub output: Option<(String, bool)>,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Function)> {
-    let attr_args = match AttrArgs::from_list(&args) {
-        Ok(args) => args,
-        Err(e) => bail!("Unable to parse attribute arguments: {:?}", e),
-    };
-
-    let ItemFn { sig, .. } = &input;
+pub fn parser(attr_args: AttrArgs, input: &ItemFn) -> Result<(TokenStream, Function)> {
+    let ItemFn { sig, block, .. } = &input;
     let Signature {
         ident,
         output,
@@ -69,7 +64,8 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
     let return_type = get_return_type(output)?;
 
     let func = quote! {
-        #input
+        #sig
+        #block
 
         ::ext_php_rs::zend_fastcall! {
             #[doc(hidden)]
@@ -89,12 +85,6 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         }
     };
 
-    let mut state = STATE.lock();
-
-    if state.built_module && !attr_args.ignore_module {
-        bail!("The `#[php_module]` macro must be called last to ensure functions are registered. To ignore this error, pass the `ignore_module` option into this attribute invocation: `#[php_function(ignore_module)]`");
-    }
-
     let function = Function {
         name: attr_args.name.unwrap_or_else(|| ident.to_string()),
         docs: get_docs(&input.attrs),
@@ -103,8 +93,6 @@ pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<(TokenStream, Functi
         optional,
         output: return_type,
     };
-
-    state.functions.push(function.clone());
 
     Ok((func, function))
 }

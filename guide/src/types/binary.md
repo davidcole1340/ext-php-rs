@@ -25,17 +25,21 @@ f32, f64).
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
-use ext_php_rs::binary::Binary;
 
-#[php_function]
-pub fn test_binary(input: Binary<u32>) -> Binary<u32> {
-    for i in input.iter() {
-        println!("{}", i);
+#[php_module]
+mod module {
+    use ext_php_rs::binary::Binary;
+
+    #[php_function]
+    pub fn test_binary(input: Binary<u32>) -> Binary<u32> {
+        for i in input.iter() {
+            println!("{}", i);
+        }
+
+        vec![5, 4, 3, 2, 1]
+            .into_iter()
+            .collect::<Binary<_>>()
     }
-
-    vec![5, 4, 3, 2, 1]
-        .into_iter()
-        .collect::<Binary<_>>()
 }
 # fn main() {}
 ```
