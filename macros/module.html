@@ -152,24 +152,17 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="php_module"><a class="header" href="#php_module"><code>#[php_module]</code></a></h1>
+                        <h1 id="php_module-attribute"><a class="header" href="#php_module-attribute"><code>#[php_module]</code> Attribute</a></h1>
 <p>The module macro is used to annotate the <code>get_module</code> function, which is used by
 the PHP interpreter to retrieve information about your extension, including the
 name, version, functions and extra initialization functions. Regardless if you
 use this macro, your extension requires a <code>extern "C" fn get_module()</code> so that
 PHP can get this information.</p>
-<p>Using the macro, any functions annotated with the <code>php_function</code> macro will be
-automatically registered with the extension in this function. If you have
-defined any constants or classes with their corresponding macros, a 'module
-startup' function will also be generated if it has not already been defined.</p>
-<p>Automatically registering these functions requires you to define the module
-function <strong>after</strong> all other functions have been registered, as macros are
-expanded in-order, therefore this macro will not know that other functions have
-been used after.</p>
 <p>The function is renamed to <code>get_module</code> if you have used another name. The
 function is passed an instance of <code>ModuleBuilder</code> which allows you to register
 the following (if required):</p>
 <ul>
+<li>Functions, classes, and constants</li>
 <li>Extension and request startup and shutdown functions.
 <ul>
 <li>Read more about the PHP extension lifecycle
@@ -181,17 +174,34 @@ the following (if required):</p>
 <li>Used by the <code>phpinfo()</code> function to get information about your extension.</li>
 </ul>
 </li>
-<li>Functions not automatically registered</li>
 </ul>
-<p>Classes and constants are not registered in the <code>get_module</code> function. These are
+<p>Classes and constants are not registered with PHP in the <code>get_module</code> function. These are
 registered inside the extension startup function.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-rust ignore"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span><span class="boring">use ext_php_rs::{info_table_start, info_table_row, info_table_end};
-</span><span class="boring">use ext_php_rs::php::module::ModuleEntry;
-</span>/// Used by the `phpinfo()` function and when you run `php -i`.
+</span>use ext_php_rs::{
+    prelude::*,
+    zend::ModuleEntry,
+    info_table_start,
+    info_table_row,
+    info_table_end
+};
+
+#[php_const]
+pub const MY_CUSTOM_CONST: &amp;'static str = "Hello, world!";
+
+#[php_class]
+pub struct Test {
+    a: i32,
+    b: i32
+}
+#[php_function]
+pub fn hello_world() -&gt; &amp;'static str {
+    "Hello, world!"
+}
+
+/// Used by the `phpinfo()` function and when you run `php -i`.
 /// This will probably be simplified with another macro eventually!
 pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_start!();
@@ -201,8 +211,13 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-    module.info_function(php_module_info)
-}</code></pre>
+    module
+        .constant(wrap_constant!(MY_CUSTOM_CONST))
+        .class::&lt;Test&gt;()
+        .function(wrap_function!(hello_world))
+        .info_function(php_module_info)
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 
                     </main>
 
@@ -212,7 +227,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../macros/module_startup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../macros/function.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -226,7 +241,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../macros/module_startup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../macros/function.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

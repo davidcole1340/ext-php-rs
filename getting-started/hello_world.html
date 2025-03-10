@@ -202,14 +202,14 @@ linker = "rust-lld"
 basic extension. We will then write our basic <code>hello_world</code> function, which will
 take a string argument for the callers name, and we will return another string.
 Finally, we write a <code>get_module</code> function which is used by PHP to find out about
-your module. The <code>#[php_module]</code> attribute automatically registers your new
-function so we don't need to do anything except return the <code>ModuleBuilder</code> that
-we were given.</p>
-<p>We also need to enable the <code>abi_vectorcall</code> feature when compiling for Windows.
-This is a nightly-only feature so it is recommended to use the <code>#[cfg_attr]</code>
-macro to not enable the feature on other operating systems.</p>
-<pre><code class="language-rust ignore">#![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::prelude::*;
+your module. We must provide the defined function to the given <code>ModuleBuilder</code>
+and then return the same object.</p>
+<p>We also need to enable the <code>abi_vectorcall</code> feature when compiling for Windows
+(the first line). This is a nightly-only feature so it is recommended to use
+the <code>#[cfg_attr]</code> macro to not enable the feature on other operating systems.</p>
+<pre><pre class="playground"><code class="language-rust no_run">#![cfg_attr(windows, feature(abi_vectorcall))]
+<span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
 
 #[php_function]
 pub fn hello_world(name: &amp;str) -&gt; String {
@@ -218,8 +218,9 @@ pub fn hello_world(name: &amp;str) -&gt; String {
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-    module
-}</code></pre>
+    module.function(wrap_function!(hello_world))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="building-the-extension"><a class="header" href="#building-the-extension">Building the extension</a></h2>
 <p>Now let's build our extension.
 This is done through <code>cargo</code> like any other Rust crate.</p>

@@ -152,11 +152,12 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="php_impl"><a class="header" href="#php_impl"><code>#[php_impl]</code></a></h1>
+                        <h1 id="php_impl-attribute"><a class="header" href="#php_impl-attribute"><code>#[php_impl]</code> Attribute</a></h1>
 <p>You can export an entire <code>impl</code> block to PHP. This exports all methods as well
 as constants to PHP on the class that it is implemented on. This requires the
 <code>#[php_class]</code> macro to already be used on the underlying struct. Trait
-implementations cannot be exported to PHP.</p>
+implementations cannot be exported to PHP. Only one <code>impl</code> block can be exported
+per class.</p>
 <p>If you do not want a function exported to PHP, you should place it in a separate
 <code>impl</code> block.</p>
 <p>If you want to use async Rust, use <code>#[php_async_impl]</code>, instead: see <a href="./async_impl.html">here »</a> for more info.</p>
@@ -167,9 +168,8 @@ methods is they are bounded by their class object.</p>
 <p>Class methods can take a <code>&amp;self</code> or <code>&amp;mut self</code> parameter. They cannot take a
 consuming <code>self</code> parameter. Static methods can omit this <code>self</code> parameter.</p>
 <p>To access the underlying Zend object, you can take a reference to a
-<code>ZendClassObject&lt;T&gt;</code> in place of the self parameter, where the parameter is
-annotated with the <code>#[this]</code> attribute. This can also be used to return a
-reference to <code>$this</code>.</p>
+<code>ZendClassObject&lt;T&gt;</code> in place of the self parameter, where the parameter must
+be named <code>self_</code>. This can also be used to return a reference to <code>$this</code>.</p>
 <p>By default, all methods are renamed in PHP to the camel-case variant of the Rust
 method name. This can be changed on the <code>#[php_impl]</code> attribute, by passing one
 of the following as the <code>rename_methods</code> option:</p>
@@ -228,22 +228,28 @@ constructor, as well as getters for the properties. We will also define a
 constant for the maximum age of a <code>Human</code>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::{prelude::*, types::ZendClassObject};
-</span><span class="boring">#[php_class]
-</span><span class="boring">#[derive(Debug, Default)]
-</span><span class="boring">pub struct Human {
-</span><span class="boring">    name: String,
-</span><span class="boring">    age: i32,
-</span><span class="boring">    #[prop]
-</span><span class="boring">    address: String,
-</span><span class="boring">}
-</span>#[php_impl]
+</span>use ext_php_rs::{prelude::*, types::ZendClassObject};
+
+#[php_class]
+#[derive(Debug, Default)]
+pub struct Human {
+    name: String,
+    age: i32,
+    #[prop]
+    address: String,
+}
+
+#[php_impl]
 impl Human {
     const MAX_AGE: i32 = 100;
 
     // No `#[constructor]` attribute required here - the name is `__construct`.
     pub fn __construct(name: String, age: i32) -&gt; Self {
-        Self { name, age, address: String::new() }
+        Self {
+            name,
+            age,
+            address: String::new()
+        }
     }
 
     #[getter]
@@ -265,19 +271,19 @@ impl Human {
         println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
     }
 
-    pub fn get_raw_obj(#[this] this: &amp;mut ZendClassObject&lt;Human&gt;) {
-        dbg!(this);   
+    pub fn get_raw_obj(self_: &amp;mut ZendClassObject&lt;Human&gt;) -&gt; &amp;mut ZendClassObject&lt;Human&gt; {
+        dbg!(self_)
     }
 
     pub fn get_max_age() -&gt; i32 {
         Self::MAX_AGE
     }
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Human&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Using our newly created class in PHP:</p>
 <pre><code class="language-php">&lt;?php
 

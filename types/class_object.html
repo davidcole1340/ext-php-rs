@@ -174,18 +174,21 @@ pub struct Example {
 
 #[php_impl]
 impl Example {
-    // Even though this function doesn't have a `self` type, it is still treated as an associated method
-    // and not a static method.
-    pub fn builder_pattern(#[this] this: &amp;mut ZendClassObject&lt;Example&gt;) -&gt; &amp;mut ZendClassObject&lt;Example&gt; {
-        // do something with `this`
-        this
+    // ext-php-rs treats the method as associated due to the `self_` argument.
+    // The argument _must_ be called `self_`.
+    pub fn builder_pattern(
+        self_: &amp;mut ZendClassObject&lt;Example&gt;,
+    ) -&gt; &amp;mut ZendClassObject&lt;Example&gt; {
+        // do something with `self_`
+        self_
     }
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Example&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h3 id="creating-a-new-class-instance"><a class="header" href="#creating-a-new-class-instance">Creating a new class instance</a></h3>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -203,11 +206,12 @@ impl Example {
         Example { foo, bar }
     }
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Example&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 
                     </main>
 

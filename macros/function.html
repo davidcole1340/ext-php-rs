@@ -152,7 +152,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="php_function"><a class="header" href="#php_function"><code>#[php_function]</code></a></h1>
+                        <h1 id="php_function-attribute"><a class="header" href="#php_function-attribute"><code>#[php_function]</code> Attribute</a></h1>
 <p>Used to annotate functions which should be exported to PHP. Note that this
 should not be used on class methods - see the <code>#[php_impl]</code> macro for that.</p>
 <p>See the <a href="../types/index.html">list of types</a> that are valid as parameter and
@@ -164,8 +164,9 @@ using the last consecutive arguments that are a variant of <code>Option&lt;T&gt;
 default value.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_function]
+</span>use ext_php_rs::prelude::*;
+
+#[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
     let mut greeting = format!("Hello, {}!", name);
 
@@ -175,17 +176,28 @@ pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
 
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>Default parameter values can also be set for optional parameters. This is done
 through the <code>defaults</code> attribute option. When an optional parameter has a
 default, it does not need to be a variant of <code>Option</code>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_function(defaults(offset = 0))]
+</span>use ext_php_rs::prelude::*;
+
+#[php_function(defaults(offset = 0))]
 pub fn rusty_strpos(haystack: &amp;str, needle: &amp;str, offset: i64) -&gt; Option&lt;usize&gt; {
     let haystack: String = haystack.chars().skip(offset as usize).collect();
     haystack.find(needle)
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(rusty_strpos))
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>Note that if there is a non-optional argument after an argument that is a
@@ -193,8 +205,9 @@ variant of <code>Option&lt;T&gt;</code>, the <code>Option&lt;T&gt;</code> argume
 argument rather than an optional argument.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>/// `age` will be deemed required and nullable rather than optional.
+</span>use ext_php_rs::prelude::*;
+
+/// `age` will be deemed required and nullable rather than optional.
 #[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: String) -&gt; String {
     let mut greeting = format!("Hello, {}!", name);
@@ -206,14 +219,20 @@ pub fn greet(name: String, age: Option&lt;i32&gt;, description: String) -&gt; St
     greeting += &amp;format!(" {}.", description);
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>You can also specify the optional arguments if you want to have nullable
 arguments before optional arguments. This is done through an attribute
 parameter:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>/// `age` will be deemed required and nullable rather than optional,
+</span>use ext_php_rs::prelude::*;
+
+/// `age` will be deemed required and nullable rather than optional,
 /// while description will be optional.
 #[php_function(optional = "description")]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String&gt;) -&gt; String {
@@ -229,6 +248,11 @@ pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String
 
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="variadic-functions"><a class="header" href="#variadic-functions">Variadic Functions</a></h2>
 <p>Variadic functions can be implemented by specifying the last argument in the Rust
@@ -236,13 +260,18 @@ function to the type <code>&amp;[&amp;Zval]</code>. This is the equivalent of a 
 the <code>...$args</code> syntax.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span><span class="boring">use ext_php_rs::types::Zval;
-</span>/// This can be called from PHP as `add(1, 2, 3, 4, 5)`
+</span>use ext_php_rs::{prelude::*, types::Zval};
+
+/// This can be called from PHP as `add(1, 2, 3, 4, 5)`
 #[php_function]
 pub fn add(number: u32, numbers:&amp;[&amp;Zval]) -&gt; u32 {
     // numbers is a slice of 4 Zvals all of type long
     number
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(add))
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="returning-resultt-e"><a class="header" href="#returning-resultt-e">Returning <code>Result&lt;T, E&gt;</code></a></h2>
@@ -254,7 +283,7 @@ translated into an exception and thrown. See the section on
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../macros/module_startup.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../macros/module.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -268,7 +297,7 @@ translated into an exception and thrown. See the section on
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../macros/module_startup.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../macros/module.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 

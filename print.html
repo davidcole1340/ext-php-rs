@@ -182,6 +182,8 @@ of PHP without significant changes to extension code.</li>
 <p><code>ext-php-rs</code> follows semantic versioning, however, no backwards compatibility is
 guaranteed while we are at major version <code>0</code>, which is for the foreseeable
 future. It's recommended to lock the version at the patch level.</p>
+<p>When introducing breaking changes a migration guide will be provided in this
+guide.</p>
 <h2 id="documentation"><a class="header" href="#documentation">Documentation</a></h2>
 <ul>
 <li>This guide!</li>
@@ -288,14 +290,14 @@ linker = "rust-lld"
 basic extension. We will then write our basic <code>hello_world</code> function, which will
 take a string argument for the callers name, and we will return another string.
 Finally, we write a <code>get_module</code> function which is used by PHP to find out about
-your module. The <code>#[php_module]</code> attribute automatically registers your new
-function so we don't need to do anything except return the <code>ModuleBuilder</code> that
-we were given.</p>
-<p>We also need to enable the <code>abi_vectorcall</code> feature when compiling for Windows.
-This is a nightly-only feature so it is recommended to use the <code>#[cfg_attr]</code>
-macro to not enable the feature on other operating systems.</p>
-<pre><code class="language-rust ignore">#![cfg_attr(windows, feature(abi_vectorcall))]
-use ext_php_rs::prelude::*;
+your module. We must provide the defined function to the given <code>ModuleBuilder</code>
+and then return the same object.</p>
+<p>We also need to enable the <code>abi_vectorcall</code> feature when compiling for Windows
+(the first line). This is a nightly-only feature so it is recommended to use
+the <code>#[cfg_attr]</code> macro to not enable the feature on other operating systems.</p>
+<pre><pre class="playground"><code class="language-rust no_run">#![cfg_attr(windows, feature(abi_vectorcall))]
+<span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::prelude::*;
 
 #[php_function]
 pub fn hello_world(name: &amp;str) -&gt; String {
@@ -304,8 +306,9 @@ pub fn hello_world(name: &amp;str) -&gt; String {
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-    module
-}</code></pre>
+    module.function(wrap_function!(hello_world))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="building-the-extension"><a class="header" href="#building-the-extension">Building the extension</a></h2>
 <p>Now let's build our extension.
 This is done through <code>cargo</code> like any other Rust crate.</p>
@@ -922,11 +925,12 @@ object.</p>
 pub fn take_obj(obj: &amp;mut ZendObject) -&gt; () {
     let _ = obj.try_call_method("hello", vec![&amp;"arg1", &amp;"arg2"]);
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(take_obj))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h3 id="taking-an-object-reference"><a class="header" href="#taking-an-object-reference">Taking an object reference</a></h3>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -938,11 +942,12 @@ pub fn take_obj(obj: &amp;mut ZendObject) -&gt; &amp;mut ZendObject {
     let _ = obj.set_property("hello", 5);
     dbg!(obj)
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(take_obj))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h3 id="creating-a-new-object"><a class="header" href="#creating-a-new-object">Creating a new object</a></h3>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -955,11 +960,12 @@ pub fn make_object() -&gt; ZBox&lt;ZendObject&gt; {
     let _ = obj.set_property("hello", 5);
     obj
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(make_object))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="class-object"><a class="header" href="#class-object">Class Object</a></h1>
 <p>A class object is an instance of a Rust struct (which has been registered as a
 PHP class) that has been allocated alongside an object. You can think of a class
@@ -982,18 +988,21 @@ pub struct Example {
 
 #[php_impl]
 impl Example {
-    // Even though this function doesn't have a `self` type, it is still treated as an associated method
-    // and not a static method.
-    pub fn builder_pattern(#[this] this: &amp;mut ZendClassObject&lt;Example&gt;) -&gt; &amp;mut ZendClassObject&lt;Example&gt; {
-        // do something with `this`
-        this
+    // ext-php-rs treats the method as associated due to the `self_` argument.
+    // The argument _must_ be called `self_`.
+    pub fn builder_pattern(
+        self_: &amp;mut ZendClassObject&lt;Example&gt;,
+    ) -&gt; &amp;mut ZendClassObject&lt;Example&gt; {
+        // do something with `self_`
+        self_
     }
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Example&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h3 id="creating-a-new-class-instance"><a class="header" href="#creating-a-new-class-instance">Creating a new class instance</a></h3>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -1011,11 +1020,12 @@ impl Example {
         Example { foo, bar }
     }
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Example&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="closure"><a class="header" href="#closure">Closure</a></h1>
 <p>Rust closures can be passed to PHP through a wrapper class <code>PhpClosure</code>. The
 Rust closure must be static (i.e. can only reference things with a <code>'static</code>
@@ -1135,7 +1145,7 @@ pub fn test_method() -&gt; () {
 }
 
 <span class="boring">fn main() {}</span></code></pre></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="php_async_impl"><a class="header" href="#php_async_impl"><code>#[php_async_impl]</code></a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_async_impl-attribute"><a class="header" href="#php_async_impl-attribute"><code>#[php_async_impl]</code> Attribute</a></h1>
 <p>Using <code>#[php_async_impl]</code> instead of <code>#[php_impl]</code> allows us to expose any async Rust library to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
 <p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
 <p>Traits annotated with <code>#[php_async_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
@@ -1249,44 +1259,27 @@ are to be exported to PHP. This allows you to write Rust-like APIs that can be
 used from PHP without fiddling around with zvals.</p>
 <ul>
 <li><a href="macros/./module.html"><code>php_module</code></a> - Defines the function used by PHP to retrieve your extension.</li>
-<li><a href="macros/./module_startup.html"><code>php_startup</code></a> - Defines the extension startup function used by PHP to
+<li>[<code>php_startup</code>] - Defines the extension startup function used by PHP to
 initialize your extension.</li>
 <li><a href="macros/./function.html"><code>php_function</code></a> - Used to export a Rust function to PHP.</li>
 <li><a href="macros/./classes.html"><code>php_class</code></a> - Used to export a Rust struct or enum as a PHP class.</li>
 <li><a href="macros/./impl.html"><code>php_impl</code></a> - Used to export a Rust <code>impl</code> block to PHP, including all
 methods and constants.</li>
 <li><a href="macros/./constant.html"><code>php_const</code></a> - Used to export a Rust constant to PHP as a global constant.</li>
+<li><a href="macros/./extern.html"><code>php_extern</code></a> - Attribute used to annotate <code>extern</code> blocks which are deemed as
+PHP functions.</li>
 </ul>
-<p>These macros do abuse the fact that (at the moment) proc macro expansion <em>seems</em>
-to happen orderly, on one single thread. It has been stated many times that this
-order is undefined behaviour (<a href="https://github.com/rust-lang/reference/issues/578">see here</a>), so these macros <em>could</em> break at any
-time with a <code>rustc</code> update (let's just keep our fingers crossed).</p>
-<p>The macros abuse this fact by storing a global state, which stores information
-about all the constants, functions, methods and classes you have registered
-throughout your crate. It is then read out of the state in the function tagged
-with the <code>#[php_module]</code> attribute. This is why this function <strong>must</strong> be the
-last function in your crate.</p>
-<p>In the case the ordering does change (or we find out that it already was not in
-order), the most likely solution will be having to register your PHP exports
-manually inside the <code>#[php_module]</code> function.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="php_module"><a class="header" href="#php_module"><code>#[php_module]</code></a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_module-attribute"><a class="header" href="#php_module-attribute"><code>#[php_module]</code> Attribute</a></h1>
 <p>The module macro is used to annotate the <code>get_module</code> function, which is used by
 the PHP interpreter to retrieve information about your extension, including the
 name, version, functions and extra initialization functions. Regardless if you
 use this macro, your extension requires a <code>extern "C" fn get_module()</code> so that
 PHP can get this information.</p>
-<p>Using the macro, any functions annotated with the <code>php_function</code> macro will be
-automatically registered with the extension in this function. If you have
-defined any constants or classes with their corresponding macros, a 'module
-startup' function will also be generated if it has not already been defined.</p>
-<p>Automatically registering these functions requires you to define the module
-function <strong>after</strong> all other functions have been registered, as macros are
-expanded in-order, therefore this macro will not know that other functions have
-been used after.</p>
 <p>The function is renamed to <code>get_module</code> if you have used another name. The
 function is passed an instance of <code>ModuleBuilder</code> which allows you to register
 the following (if required):</p>
 <ul>
+<li>Functions, classes, and constants</li>
 <li>Extension and request startup and shutdown functions.
 <ul>
 <li>Read more about the PHP extension lifecycle
@@ -1298,17 +1291,34 @@ the following (if required):</p>
 <li>Used by the <code>phpinfo()</code> function to get information about your extension.</li>
 </ul>
 </li>
-<li>Functions not automatically registered</li>
 </ul>
-<p>Classes and constants are not registered in the <code>get_module</code> function. These are
+<p>Classes and constants are not registered with PHP in the <code>get_module</code> function. These are
 registered inside the extension startup function.</p>
 <h2 id="usage-3"><a class="header" href="#usage-3">Usage</a></h2>
-<pre><code class="language-rust ignore"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span><span class="boring">use ext_php_rs::{info_table_start, info_table_row, info_table_end};
-</span><span class="boring">use ext_php_rs::php::module::ModuleEntry;
-</span>/// Used by the `phpinfo()` function and when you run `php -i`.
+</span>use ext_php_rs::{
+    prelude::*,
+    zend::ModuleEntry,
+    info_table_start,
+    info_table_row,
+    info_table_end
+};
+
+#[php_const]
+pub const MY_CUSTOM_CONST: &amp;'static str = "Hello, world!";
+
+#[php_class]
+pub struct Test {
+    a: i32,
+    b: i32
+}
+#[php_function]
+pub fn hello_world() -&gt; &amp;'static str {
+    "Hello, world!"
+}
+
+/// Used by the `phpinfo()` function and when you run `php -i`.
 /// This will probably be simplified with another macro eventually!
 pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
     info_table_start!();
@@ -1318,29 +1328,14 @@ pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-    module.info_function(php_module_info)
-}</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="php_startup"><a class="header" href="#php_startup"><code>#[php_startup]</code></a></h1>
-<p>Used to define the PHP extension startup function. This function is used to
-register extension classes and constants with the PHP interpreter.</p>
-<p>This function is automatically generated if you have registered classes or
-constants and have not already used this macro. If you do use this macro, it
-will be automatically registered in the <code>get_module</code> function when you use the
-<code>#[php_module]</code> attribute.</p>
-<p>Most of the time you won't need to use this macro as the startup function will
-be automatically generated when required (if not already defined).</p>
-<p>Read more about what the module startup function is used for
-<a href="https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html#module-initialization-minit">here.</a></p>
-<h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
-<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
-</span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_startup]
-pub fn startup_function() {
-
+    module
+        .constant(wrap_constant!(MY_CUSTOM_CONST))
+        .class::&lt;Test&gt;()
+        .function(wrap_function!(hello_world))
+        .info_function(php_module_info)
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="php_function"><a class="header" href="#php_function"><code>#[php_function]</code></a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_function-attribute"><a class="header" href="#php_function-attribute"><code>#[php_function]</code> Attribute</a></h1>
 <p>Used to annotate functions which should be exported to PHP. Note that this
 should not be used on class methods - see the <code>#[php_impl]</code> macro for that.</p>
 <p>See the <a href="macros/../types/index.html">list of types</a> that are valid as parameter and
@@ -1352,8 +1347,9 @@ using the last consecutive arguments that are a variant of <code>Option&lt;T&gt;
 default value.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_function]
+</span>use ext_php_rs::prelude::*;
+
+#[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
     let mut greeting = format!("Hello, {}!", name);
 
@@ -1363,17 +1359,28 @@ pub fn greet(name: String, age: Option&lt;i32&gt;) -&gt; String {
 
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>Default parameter values can also be set for optional parameters. This is done
 through the <code>defaults</code> attribute option. When an optional parameter has a
 default, it does not need to be a variant of <code>Option</code>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_function(defaults(offset = 0))]
+</span>use ext_php_rs::prelude::*;
+
+#[php_function(defaults(offset = 0))]
 pub fn rusty_strpos(haystack: &amp;str, needle: &amp;str, offset: i64) -&gt; Option&lt;usize&gt; {
     let haystack: String = haystack.chars().skip(offset as usize).collect();
     haystack.find(needle)
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(rusty_strpos))
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>Note that if there is a non-optional argument after an argument that is a
@@ -1381,8 +1388,9 @@ variant of <code>Option&lt;T&gt;</code>, the <code>Option&lt;T&gt;</code> argume
 argument rather than an optional argument.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>/// `age` will be deemed required and nullable rather than optional.
+</span>use ext_php_rs::prelude::*;
+
+/// `age` will be deemed required and nullable rather than optional.
 #[php_function]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: String) -&gt; String {
     let mut greeting = format!("Hello, {}!", name);
@@ -1394,14 +1402,20 @@ pub fn greet(name: String, age: Option&lt;i32&gt;, description: String) -&gt; St
     greeting += &amp;format!(" {}.", description);
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>You can also specify the optional arguments if you want to have nullable
 arguments before optional arguments. This is done through an attribute
 parameter:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>/// `age` will be deemed required and nullable rather than optional,
+</span>use ext_php_rs::prelude::*;
+
+/// `age` will be deemed required and nullable rather than optional,
 /// while description will be optional.
 #[php_function(optional = "description")]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String&gt;) -&gt; String {
@@ -1417,6 +1431,11 @@ pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String
 
     greeting
 }
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(greet))
+}
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="variadic-functions"><a class="header" href="#variadic-functions">Variadic Functions</a></h2>
 <p>Variadic functions can be implemented by specifying the last argument in the Rust
@@ -1424,20 +1443,25 @@ function to the type <code>&amp;[&amp;Zval]</code>. This is the equivalent of a 
 the <code>...$args</code> syntax.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span><span class="boring">use ext_php_rs::types::Zval;
-</span>/// This can be called from PHP as `add(1, 2, 3, 4, 5)`
+</span>use ext_php_rs::{prelude::*, types::Zval};
+
+/// This can be called from PHP as `add(1, 2, 3, 4, 5)`
 #[php_function]
 pub fn add(number: u32, numbers:&amp;[&amp;Zval]) -&gt; u32 {
     // numbers is a slice of 4 Zvals all of type long
     number
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(add))
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="returning-resultt-e"><a class="header" href="#returning-resultt-e">Returning <code>Result&lt;T, E&gt;</code></a></h2>
 <p>You can also return a <code>Result</code> from the function. The error variant will be
 translated into an exception and thrown. See the section on
 <a href="macros/../exceptions.html">exceptions</a> for more details.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="classes"><a class="header" href="#classes">Classes</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_class-attribute"><a class="header" href="#php_class-attribute"><code>#[php_class]</code> Attribute</a></h1>
 <p>Structs can be exported to PHP as classes with the <code>#[php_class]</code> attribute
 macro. This attribute derives the <code>RegisteredClass</code> trait on your struct, as
 well as registering the class to be registered with the <code>#[php_module]</code> macro.</p>
@@ -1452,11 +1476,10 @@ Useful for namespacing classes.</li>
 placed underneath the <code>#[php_class]</code> attribute.</p>
 <ul>
 <li><code>#[extends(ce)]</code> - Sets the parent class of the class. Can only be used once.
-<code>ce</code> must be a valid Rust expression when it is called inside the
-<code>#[php_module]</code> function.</li>
+<code>ce</code> must be a function with the signature <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
 <li><code>#[implements(ce)]</code> - Implements the given interface on the class. Can be used
-multiple times. <code>ce</code> must be a valid Rust expression when it is called inside
-the <code>#[php_module]</code> function.</li>
+multiple times. <code>ce</code> must be a valid function with the signature
+<code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
 </ul>
 <p>You may also use the <code>#[prop]</code> attribute on a struct field to use the field as a
 PHP property. By default, the field will be accessible from PHP publicly with
@@ -1488,32 +1511,37 @@ each time it is used with a different concrete type for <code>T</code>.
 These new implementations are generated by the compiler at each usage site.
 This is incompatible with wrapping <code>Foo</code> in PHP,
 where there needs to be a single compiled implementation of <code>Foo</code> which is integrated with the PHP interpreter.</p>
-<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
+<h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
 <p>This example creates a PHP class <code>Human</code>, adding a PHP property <code>address</code>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_class]
+</span>use ext_php_rs::prelude::*;
+
+#[php_class]
 pub struct Human {
     name: String,
     age: i32,
     #[prop]
     address: String,
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Human&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Create a custom exception <code>RedisException</code>, which extends <code>Exception</code>, and put
 it in the <code>Redis\Exception</code> namespace:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span>use ext_php_rs::prelude::*;
-use ext_php_rs::{exception::PhpException, zend::ce};
+</span>use ext_php_rs::{
+    prelude::*,
+    exception::PhpException,
+    zend::ce
+};
 
 #[php_class(name = "Redis\\Exception\\RedisException")]
-#[extends(ce::exception())]
+#[extends(ce::exception)]
 #[derive(Default)]
 pub struct RedisException;
 
@@ -1522,21 +1550,28 @@ pub struct RedisException;
 pub fn throw_exception() -&gt; PhpResult&lt;i32&gt; {
     Err(PhpException::from_class::&lt;RedisException&gt;("Not good!".into()))
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .class::&lt;RedisException&gt;()
+        .function(wrap_function!(throw_exception))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="implementing-an-interface"><a class="header" href="#implementing-an-interface">Implementing an Interface</a></h2>
-<p>To implement an interface, use <code>#[implements(ce)]</code> where <code>ce</code> is an expression returning a <code>ClassEntry</code>.
+<p>To implement an interface, use <code>#[implements(ce)]</code> where <code>ce</code> is an function returning a <code>ClassEntry</code>.
 The following example implements <a href="https://www.php.net/manual/en/class.arrayaccess.php"><code>ArrayAccess</code></a>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span>use ext_php_rs::prelude::*;
-use ext_php_rs::{exception::PhpResult, types::Zval, zend::ce};
+</span>use ext_php_rs::{
+    prelude::*,
+    exception::PhpResult,
+    types::Zval,
+    zend::ce,
+};
 
 #[php_class]
-#[implements(ce::arrayaccess())]
+#[implements(ce::arrayaccess)]
 #[derive(Default)]
 pub struct EvenNumbersArray;
 
@@ -1571,16 +1606,18 @@ impl EvenNumbersArray {
         Err("Setting values is not supported".into())
     }
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="php_impl"><a class="header" href="#php_impl"><code>#[php_impl]</code></a></h1>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;EvenNumbersArray&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_impl-attribute"><a class="header" href="#php_impl-attribute"><code>#[php_impl]</code> Attribute</a></h1>
 <p>You can export an entire <code>impl</code> block to PHP. This exports all methods as well
 as constants to PHP on the class that it is implemented on. This requires the
 <code>#[php_class]</code> macro to already be used on the underlying struct. Trait
-implementations cannot be exported to PHP.</p>
+implementations cannot be exported to PHP. Only one <code>impl</code> block can be exported
+per class.</p>
 <p>If you do not want a function exported to PHP, you should place it in a separate
 <code>impl</code> block.</p>
 <p>If you want to use async Rust, use <code>#[php_async_impl]</code>, instead: see <a href="macros/./async_impl.html">here »</a> for more info.</p>
@@ -1591,9 +1628,8 @@ methods is they are bounded by their class object.</p>
 <p>Class methods can take a <code>&amp;self</code> or <code>&amp;mut self</code> parameter. They cannot take a
 consuming <code>self</code> parameter. Static methods can omit this <code>self</code> parameter.</p>
 <p>To access the underlying Zend object, you can take a reference to a
-<code>ZendClassObject&lt;T&gt;</code> in place of the self parameter, where the parameter is
-annotated with the <code>#[this]</code> attribute. This can also be used to return a
-reference to <code>$this</code>.</p>
+<code>ZendClassObject&lt;T&gt;</code> in place of the self parameter, where the parameter must
+be named <code>self_</code>. This can also be used to return a reference to <code>$this</code>.</p>
 <p>By default, all methods are renamed in PHP to the camel-case variant of the Rust
 method name. This can be changed on the <code>#[php_impl]</code> attribute, by passing one
 of the following as the <code>rename_methods</code> option:</p>
@@ -1646,28 +1682,34 @@ Properties cannot have multiple getters or setters, and the property name cannot
 conflict with field properties defined on the struct.</p>
 <p>As the same as field properties, method property types must implement both
 <code>IntoZval</code> and <code>FromZval</code>.</p>
-<h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
+<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
 <p>Continuing on from our <code>Human</code> example in the structs section, we will define a
 constructor, as well as getters for the properties. We will also define a
 constant for the maximum age of a <code>Human</code>.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::{prelude::*, types::ZendClassObject};
-</span><span class="boring">#[php_class]
-</span><span class="boring">#[derive(Debug, Default)]
-</span><span class="boring">pub struct Human {
-</span><span class="boring">    name: String,
-</span><span class="boring">    age: i32,
-</span><span class="boring">    #[prop]
-</span><span class="boring">    address: String,
-</span><span class="boring">}
-</span>#[php_impl]
+</span>use ext_php_rs::{prelude::*, types::ZendClassObject};
+
+#[php_class]
+#[derive(Debug, Default)]
+pub struct Human {
+    name: String,
+    age: i32,
+    #[prop]
+    address: String,
+}
+
+#[php_impl]
 impl Human {
     const MAX_AGE: i32 = 100;
 
     // No `#[constructor]` attribute required here - the name is `__construct`.
     pub fn __construct(name: String, age: i32) -&gt; Self {
-        Self { name, age, address: String::new() }
+        Self {
+            name,
+            age,
+            address: String::new()
+        }
     }
 
     #[getter]
@@ -1689,19 +1731,19 @@ impl Human {
         println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
     }
 
-    pub fn get_raw_obj(#[this] this: &amp;mut ZendClassObject&lt;Human&gt;) {
-        dbg!(this);   
+    pub fn get_raw_obj(self_: &amp;mut ZendClassObject&lt;Human&gt;) -&gt; &amp;mut ZendClassObject&lt;Human&gt; {
+        dbg!(self_)
     }
 
     pub fn get_max_age() -&gt; i32 {
         Self::MAX_AGE
     }
 }
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-</span><span class="boring">    module
-</span><span class="boring">}
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Human&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Using our newly created class in PHP:</p>
 <pre><code class="language-php">&lt;?php
 
@@ -1711,7 +1753,7 @@ $me-&gt;introduce(); // My name is David and I am 20 years old.
 var_dump(Human::get_max_age()); // int(100)
 var_dump(Human::MAX_AGE); // int(100)
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="php_async_impl-1"><a class="header" href="#php_async_impl-1"><code>#[php_async_impl]</code></a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_async_impl-attribute-1"><a class="header" href="#php_async_impl-attribute-1"><code>#[php_async_impl]</code> Attribute</a></h1>
 <p>Using <code>#[php_async_impl]</code> instead of <code>#[php_impl]</code> allows us to expose any async Rust library to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
 <p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
 <p>Traits annotated with <code>#[php_async_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
@@ -1819,28 +1861,85 @@ Got response from https://httpbin.org/delay/5 after ~5 seconds!
 Got response from https://httpbin.org/delay/5 after ~5 seconds!
 Got response from https://httpbin.org/delay/5 after ~5 seconds!
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="php_const"><a class="header" href="#php_const"><code>#[php_const]</code></a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_const-attribute"><a class="header" href="#php_const-attribute"><code>#[php_const]</code> Attribute</a></h1>
 <p>Exports a Rust constant as a global PHP constant. The constant can be any type
 that implements <code>IntoConst</code>.</p>
+<p>The <code>wrap_constant!()</code> macro can be used to simplify the registration of constants.
+It sets the name and doc comments for the constant.</p>
 <h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_const]
+</span>use ext_php_rs::prelude::*;
+
+#[php_const]
 const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
 const ANOTHER_STRING_CONST: &amp;'static str = "Hello world!";
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .constant(wrap_constant!(TEST_CONSTANT))
+        .constant(("MANUAL_CONSTANT", ANOTHER_STRING_CONST, &amp;[]))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-usage-2"><a class="header" href="#php-usage-2">PHP usage</a></h2>
 <pre><code class="language-php">&lt;?php
 
 var_dump(TEST_CONSTANT); // int(100)
-var_dump(ANOTHER_STRING_CONST); // string(12) "Hello world!"
+var_dump(MANUAL_CONSTANT); // string(12) "Hello world!"
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="zvalconvert"><a class="header" href="#zvalconvert"><code>ZvalConvert</code></a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php_extern-attribute"><a class="header" href="#php_extern-attribute"><code>#[php_extern]</code> Attribute</a></h1>
+<p>Attribute used to annotate <code>extern</code> blocks which are deemed as PHP
+functions.</p>
+<p>This allows you to 'import' PHP functions into Rust so that they can be
+called like regular Rust functions. Parameters can be any type that
+implements <a href="crate::convert::IntoZval"><code>IntoZval</code></a>, and the return type can be anything that implements
+[<code>From&lt;Zval&gt;</code>] (notice how <a href="crate::types::Zval"><code>Zval</code></a> is consumed rather than borrowed in this
+case).</p>
+<p>Unlike most other attributes, this does not need to be placed inside a
+<code>#[php_module]</code> block.</p>
+<h1 id="panics"><a class="header" href="#panics">Panics</a></h1>
+<p>The function can panic when called under a few circumstances:</p>
+<ul>
+<li>The function could not be found or was not callable.</li>
+<li>One of the parameters could not be converted into a <a href="crate::types::Zval"><code>Zval</code></a>.</li>
+<li>The actual function call failed internally.</li>
+<li>The output <a href="crate::types::Zval"><code>Zval</code></a> could not be parsed into the output type.</li>
+</ul>
+<p>The last point can be important when interacting with functions that return
+unions, such as <a href="https://www.php.net/manual/en/function.strpos.php"><code>strpos</code></a> which can return an integer or a boolean. In this
+case, a <a href="crate::types::Zval"><code>Zval</code></a> should be returned as parsing a boolean to an integer is
+invalid, and vice versa.</p>
+<h1 id="example-4"><a class="header" href="#example-4">Example</a></h1>
+<p>This <code>extern</code> block imports the <a href="https://www.php.net/manual/en/function.strpos.php"><code>strpos</code></a> function from PHP. Notice that
+the string parameters can take either [<code>String</code>] or [<code>&amp;str</code>], the optional
+parameter <code>offset</code> is an [<code>Option&lt;i64&gt;</code>], and the return value is a <a href="crate::types::Zval"><code>Zval</code></a>
+as the return type is an integer-boolean union.</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::{
+    prelude::*,
+    types::Zval,
+};
+
+#[php_extern]
+extern "C" {
+    fn strpos(haystack: &amp;str, needle: &amp;str, offset: Option&lt;i64&gt;) -&gt; Zval;
+}
+
+#[php_function]
+pub fn my_strpos() {
+    assert_eq!(unsafe { strpos("Hello", "e", None) }.long(), Some(1));
+}
+
+#[php_module]
+pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.function(wrap_function!(my_strpos))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="zvalconvert-derive-macro"><a class="header" href="#zvalconvert-derive-macro"><code>ZvalConvert</code> Derive Macro</a></h1>
 <p>The <code>#[derive(ZvalConvert)]</code> macro derives the <code>FromZval</code> and <code>IntoZval</code> traits
 on a struct or enum.</p>
 <h2 id="structs"><a class="header" href="#structs">Structs</a></h2>
@@ -1874,8 +1973,14 @@ pub fn give_object() -&gt; ExampleClass&lt;'static&gt; {
         c: "Borrowed",
     }
 }
-<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .function(wrap_function!(take_object))
+        .function(wrap_function!(give_object))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Calling from PHP:</p>
 <pre><code class="language-php">&lt;?php
 
@@ -1903,8 +2008,13 @@ pub struct CompareVals&lt;T: PartialEq&lt;i32&gt;&gt; {
 pub fn take_object(obj: CompareVals&lt;i32&gt;) {
     dbg!(obj);
 }
-<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .function(wrap_function!(take_object))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="enums"><a class="header" href="#enums">Enums</a></h2>
 <p>When used on an enum, the <code>FromZval</code> implementation will treat the enum as a
 tagged union with a mixed datatype. This allows you to accept multiple types in
@@ -1940,8 +2050,14 @@ pub fn test_union(val: UnionExample) {
 pub fn give_union() -&gt; UnionExample&lt;'static&gt; {
     UnionExample::Long(5)
 }
-<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .function(wrap_function!(test_union))
+        .function(wrap_function!(give_union))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Use in PHP:</p>
 <pre><code class="language-php">test_union(5); // UnionExample::Long(5)
 test_union("Hello, world!"); // UnionExample::ProperStr("Hello, world!")
@@ -1997,8 +2113,7 @@ pub fn module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </span><span class="boring">use ext_php_rs::zend::IniEntryDef;
 </span><span class="boring">use ext_php_rs::flags::IniEntryPermission;
 </span>
-#[php_startup]
-pub fn startup_function(ty: i32, module_number: i32) {
+pub fn startup(ty: i32, mod_num: i32) -&gt; i32 {
     let ini_entries: Vec&lt;IniEntryDef&gt; = vec![
         IniEntryDef::new(
             "my_extension.display_emoji".to_owned(),
@@ -2006,23 +2121,163 @@ pub fn startup_function(ty: i32, module_number: i32) {
             IniEntryPermission::All,
         ),
     ];
-    IniEntryDef::register(ini_entries, module_number);
+    IniEntryDef::register(ini_entries, mod_num);
+
+    0
+}
+
+#[php_module(startup = "startup")]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="getting-ini-settings"><a class="header" href="#getting-ini-settings">Getting INI Settings</a></h2>
 <p>The INI values are stored as part of the <code>GlobalExecutor</code>, and can be accessed via the <code>ini_values()</code> function. To retrieve the value for a registered INI setting</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span><span class="boring">use ext_php_rs::zend::ExecutorGlobals;
-</span>
-#[php_startup]
-pub fn startup_function(ty: i32, module_number: i32) {
+</span>use ext_php_rs::{
+    prelude::*,
+    zend::ExecutorGlobals,
+};
+
+pub fn startup(ty: i32, mod_num: i32) -&gt; i32 {
     // Get all INI values
     let ini_values = ExecutorGlobals::get().ini_values(); // HashMap&lt;String, Option&lt;String&gt;&gt;
     let my_ini_value = ini_values.get("my_extension.display_emoji"); // Option&lt;Option&lt;String&gt;&gt;
+
+    0
+}
+
+#[php_module(startup = "startup")]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="migrating-to-v014"><a class="header" href="#migrating-to-v014">Migrating to <code>v0.14</code></a></h1>
+<h2 id="new-macro-transition"><a class="header" href="#new-macro-transition">New Macro Transition</a></h2>
+<p>The old macro system used a global state to be able to automatically register
+functions and classes when the <code>#[php_module]</code> attribute is used. However,
+global state can cause problems with incremental compilation and is not
+recommended.</p>
+<p>To solve this, the macro system has been re-written but this will require
+changes to user code. This document summarises the changes.</p>
+<p>There is no real changes on existing macros, however you will now need to
+register functions, classes, constants and startup function when declaring
+the module.</p>
+<pre><code class="language-rs">#[php_module(startup = "startup_function")]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .class::&lt;TestClass&gt;()
+        .function(wrap_function!(hello_world))
+        .constant(wrap_constant!(SOME_CONSTANT))
+}
+</code></pre>
+<h3 id="functions"><a class="header" href="#functions">Functions</a></h3>
+<p>Mostly unchanged in terms of function definition, however you now need to
+register the function with the module builder:</p>
+<pre><code class="language-rs">use ext_php_rs::prelude::*;
+
+#[php_function]
+pub fn hello_world() -&gt; &amp;'static str {
+    "Hello, world!"
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .function(wrap_function!(hello_world))
+}
+</code></pre>
+<h3 id="classes"><a class="header" href="#classes">Classes</a></h3>
+<p>Mostly unchanged in terms of the class and impl definitions, however you now
+need to register the classes with the module builder:</p>
+<pre><code class="language-rs">use ext_php_rs::prelude::*;
+
+#[php_class]
+#[derive(Debug)]
+pub struct TestClass {
+    #[prop]
+    a: i32,
+    #[prop]
+    b: i32,
+}
+
+#[php_impl]
+impl TestClass {
+    #[rename("NEW_CONSTANT_NAME")]
+    pub const SOME_CONSTANT: i32 = 5;
+    pub const SOME_OTHER_STR: &amp;'static str = "Hello, world!";
+
+    pub fn __construct(a: i32, b: i32) -&gt; Self {
+        Self { a: a + 10, b: b + 10 }
+    }
+
+    #[optional(test)]
+    #[defaults(a = 5, test = 100)]
+    pub fn test_camel_case(&amp;self, a: i32, test: i32) {
+        println!("a: {} test: {}", a, test);
+    }
+
+    fn x(&amp;self) -&gt; i32 {
+        5
+    }
+
+    pub fn builder_pattern(
+        self_: &amp;mut ZendClassObject&lt;TestClass&gt;,
+    ) -&gt; &amp;mut ZendClassObject&lt;TestClass&gt; {
+        dbg!(self_)
+    }
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .class::&lt;TestClass&gt;()
+}
+</code></pre>
+<h3 id="constants-1"><a class="header" href="#constants-1">Constants</a></h3>
+<p>Mostly unchanged in terms of constant definition, however you now need to
+register the constant with the module builder:</p>
+<pre><code class="language-rs">use ext_php_rs::prelude::*;
+
+#[php_const]
+const SOME_CONSTANT: i32 = 100;
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .constant(wrap_constant!(SOME_CONSTANT)) // SOME_CONSTANT = 100
+        .constant(("CONST_NAME", SOME_CONSTANT, &amp;[])) // CONST_NAME = 100
+}
+</code></pre>
+<h3 id="extern"><a class="header" href="#extern">Extern</a></h3>
+<p>No changes.</p>
+<pre><code class="language-rs">use ext_php_rs::prelude::*;
+
+#[php_extern]
+extern "C" {
+    fn phpinfo() -&gt; bool;
+}
+
+fn some_rust_func() {
+    let x = unsafe { phpinfo() };
+    println!("phpinfo: {x}");
+}
+</code></pre>
+<h3 id="startup-function"><a class="header" href="#startup-function">Startup Function</a></h3>
+<p>The <code>#[php_startup]</code> macro has been deprecated. Instead, define a function with
+the signature <code>fn(ty: i32, mod_num: i32) -&gt; i32</code> and provide the function name</p>
+<pre><code class="language-rs">use ext_php_rs::prelude::*;
+
+fn startup_function(ty: i32, mod_num: i32) -&gt; i32 {
+    0
+}
+
+#[php_module(startup = "startup_function")]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+}
+</code></pre>
 
                     </main>
 

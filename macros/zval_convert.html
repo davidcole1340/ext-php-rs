@@ -152,7 +152,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="zvalconvert"><a class="header" href="#zvalconvert"><code>ZvalConvert</code></a></h1>
+                        <h1 id="zvalconvert-derive-macro"><a class="header" href="#zvalconvert-derive-macro"><code>ZvalConvert</code> Derive Macro</a></h1>
 <p>The <code>#[derive(ZvalConvert)]</code> macro derives the <code>FromZval</code> and <code>IntoZval</code> traits
 on a struct or enum.</p>
 <h2 id="structs"><a class="header" href="#structs">Structs</a></h2>
@@ -186,8 +186,14 @@ pub fn give_object() -&gt; ExampleClass&lt;'static&gt; {
         c: "Borrowed",
     }
 }
-<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .function(wrap_function!(take_object))
+        .function(wrap_function!(give_object))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Calling from PHP:</p>
 <pre><code class="language-php">&lt;?php
 
@@ -215,8 +221,13 @@ pub struct CompareVals&lt;T: PartialEq&lt;i32&gt;&gt; {
 pub fn take_object(obj: CompareVals&lt;i32&gt;) {
     dbg!(obj);
 }
-<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .function(wrap_function!(take_object))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="enums"><a class="header" href="#enums">Enums</a></h2>
 <p>When used on an enum, the <code>FromZval</code> implementation will treat the enum as a
 tagged union with a mixed datatype. This allows you to accept multiple types in
@@ -252,8 +263,14 @@ pub fn test_union(val: UnionExample) {
 pub fn give_union() -&gt; UnionExample&lt;'static&gt; {
     UnionExample::Long(5)
 }
-<span class="boring">#[php_module] pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .function(wrap_function!(test_union))
+        .function(wrap_function!(give_union))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <p>Use in PHP:</p>
 <pre><code class="language-php">test_union(5); // UnionExample::Long(5)
 test_union("Hello, world!"); // UnionExample::ProperStr("Hello, world!")
@@ -266,7 +283,7 @@ var_dump(give_union()); // int(5)
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../macros/constant.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../macros/extern.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
@@ -280,7 +297,7 @@ var_dump(give_union()); // int(5)
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../macros/constant.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../macros/extern.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 

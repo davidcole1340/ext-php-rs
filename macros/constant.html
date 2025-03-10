@@ -152,26 +152,34 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="php_const"><a class="header" href="#php_const"><code>#[php_const]</code></a></h1>
+                        <h1 id="php_const-attribute"><a class="header" href="#php_const-attribute"><code>#[php_const]</code> Attribute</a></h1>
 <p>Exports a Rust constant as a global PHP constant. The constant can be any type
 that implements <code>IntoConst</code>.</p>
+<p>The <code>wrap_constant!()</code> macro can be used to simplify the registration of constants.
+It sets the name and doc comments for the constant.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
-</span><span class="boring">use ext_php_rs::prelude::*;
-</span>#[php_const]
+</span>use ext_php_rs::prelude::*;
+
+#[php_const]
 const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
 const ANOTHER_STRING_CONST: &amp;'static str = "Hello world!";
-<span class="boring">#[php_module]
-</span><span class="boring">pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder { module }
-</span><span class="boring">fn main() {}</span></code></pre></pre>
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module
+        .constant(wrap_constant!(TEST_CONSTANT))
+        .constant(("MANUAL_CONSTANT", ANOTHER_STRING_CONST, &amp;[]))
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="php-usage"><a class="header" href="#php-usage">PHP usage</a></h2>
 <pre><code class="language-php">&lt;?php
 
 var_dump(TEST_CONSTANT); // int(100)
-var_dump(ANOTHER_STRING_CONST); // string(12) "Hello world!"
+var_dump(MANUAL_CONSTANT); // string(12) "Hello world!"
 </code></pre>
 
                     </main>
@@ -182,7 +190,7 @@ var_dump(ANOTHER_STRING_CONST); // string(12) "Hello world!"
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../macros/zval_convert.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../macros/extern.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -196,7 +204,7 @@ var_dump(ANOTHER_STRING_CONST); // string(12) "Hello world!"
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../macros/zval_convert.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../macros/extern.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

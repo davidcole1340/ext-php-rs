@@ -152,7 +152,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="php_async_impl"><a class="header" href="#php_async_impl"><code>#[php_async_impl]</code></a></h1>
+                        <h1 id="php_async_impl-attribute"><a class="header" href="#php_async_impl-attribute"><code>#[php_async_impl]</code> Attribute</a></h1>
 <p>Using <code>#[php_async_impl]</code> instead of <code>#[php_impl]</code> allows us to expose any async Rust library to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
 <p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
 <p>Traits annotated with <code>#[php_async_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
