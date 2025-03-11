@@ -24,7 +24,7 @@
   - [Class Object](./types/class_object.md)
   - [Closure](./types/closure.md)
   - [Functions & methods](./types/functions.md)
-  - [Async futures](./macros/async_impl.md)
+  - [Async futures](./types/async_impl.md)
 - [Macros](./macros/index.md)
   - [Module](./macros/module.md)
   - [Function](./macros/function.md)
