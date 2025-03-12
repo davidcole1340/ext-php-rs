@@ -1,8 +1,9 @@
+use darling::ast::NestedMeta;
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::parse::ParseStream;
-use syn::{Attribute, AttributeArgs, Expr, Fields, ItemStruct, LitStr, Token};
+use syn::{Attribute, Expr, Fields, ItemStruct, LitStr, Meta, Token};
 
 use crate::helpers::get_docs;
 use crate::prelude::*;
@@ -34,7 +35,9 @@ impl ClassAttrs {
         let mut unparsed = vec![];
         unparsed.append(attrs);
         for attr in unparsed {
-            if attr.path.is_ident("extends") {
+            let path = attr.path();
+
+            if path.is_ident("extends") {
                 if self.extends.is_some() {
                     bail!(attr => "Only one `#[extends]` attribute is valid per struct.");
                 }
@@ -43,7 +46,7 @@ impl ClassAttrs {
                     Err(_) => bail!(attr => "Invalid arguments passed to extends attribute."),
                 };
                 self.extends = Some(extends);
-            } else if attr.path.is_ident("implements") {
+            } else if path.is_ident("implements") {
                 let implements: syn::Expr = match attr.parse_args() {
                     Ok(extends) => extends,
                     Err(_) => bail!(attr => "Invalid arguments passed to implements attribute."),
@@ -58,9 +61,10 @@ impl ClassAttrs {
     }
 }
 
-pub fn parser(args: AttributeArgs, mut input: ItemStruct) -> Result<TokenStream> {
+pub fn parser(args: TokenStream, mut input: ItemStruct) -> Result<TokenStream> {
     let ident = &input.ident;
-    let args = match StructArgs::from_list(&args) {
+    let meta = NestedMeta::parse_meta_list(args)?;
+    let args = match StructArgs::from_list(&meta) {
         Ok(args) => args,
         Err(e) => bail!("Failed to parse struct arguments: {:?}", e),
     };
@@ -189,7 +193,7 @@ pub enum ParsedAttribute {
 }
 
 pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
-    let name = attr.path.to_token_stream().to_string();
+    let name = attr.path().to_token_stream().to_string();
 
     Ok(match name.as_ref() {
         "doc" => {
@@ -203,16 +207,19 @@ pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
                 }
             }
 
-            let comment: DocComment = syn::parse2(attr.tokens.clone())
+            let comment: DocComment = syn::parse2(attr.to_token_stream())
                 .map_err(|e| err!(attr => "Failed to parse doc comment {}", e))?;
             Some(ParsedAttribute::Comment(comment.0))
         }
         "prop" | "property" => {
-            let attr = if attr.tokens.is_empty() {
-                PropertyAttr::default()
-            } else {
-                attr.parse_args()
-                    .map_err(|e| err!(attr => "Unable to parse `#[{}]` attribute: {}", name, e))?
+            let attr = match attr.meta {
+                Meta::Path(_) => PropertyAttr::default(),
+                Meta::List(_) => attr
+                    .parse_args()
+                    .map_err(|e| err!(attr => "Unable to parse `#[{}]` attribute: {}", name, e))?,
+                _ => {
+                    bail!(attr => "Invalid attribute format for `#[{}]`", name);
+                }
             };
 
             Some(ParsedAttribute::Property(attr))

@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use darling::ast::NestedMeta;
 use darling::{FromMeta, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::spanned::Spanned as _;
 use syn::PatType;
-use syn::{AttributeArgs, FnArg, GenericArgument, ItemFn, Lit, PathArguments, Type, TypePath};
+use syn::{FnArg, GenericArgument, ItemFn, Lit, PathArguments, Type, TypePath};
 
 use crate::helpers::get_docs;
 use crate::prelude::*;
@@ -33,8 +34,9 @@ pub struct FnArgs {
     defaults: HashMap<Ident, Lit>,
 }
 
-pub fn parser(opts: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
-    let opts = match FnArgs::from_list(&opts) {
+pub fn parser(opts: TokenStream, input: ItemFn) -> Result<TokenStream> {
+    let meta = NestedMeta::parse_meta_list(opts)?;
+    let opts = match FnArgs::from_list(&meta) {
         Ok(opts) => opts,
         Err(e) => bail!("Failed to parse attribute options: {:?}", e),
     };

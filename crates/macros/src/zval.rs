@@ -3,7 +3,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     token::Where, DataEnum, DataStruct, DeriveInput, GenericParam, Generics, Ident, ImplGenerics,
-    Lifetime, LifetimeDef, TypeGenerics, Variant, WhereClause,
+    Lifetime, LifetimeParam, TypeGenerics, Variant, WhereClause,
 };
 
 use crate::prelude::*;
@@ -31,7 +31,7 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
         let mut parsed: Generics = syn::parse2(tokens).expect("couldn't reparse generics");
         parsed
             .params
-            .push(GenericParam::Lifetime(LifetimeDef::new(Lifetime::new(
+            .push(GenericParam::Lifetime(LifetimeParam::new(Lifetime::new(
                 "'_zval",
                 Span::call_site(),
             ))));
