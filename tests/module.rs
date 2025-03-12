@@ -2,6 +2,8 @@
 #![cfg(feature = "embed")]
 extern crate ext_php_rs;
 
+use cfg_if::cfg_if;
+
 use ext_php_rs::embed::Embed;
 use ext_php_rs::ffi::zend_register_module_ex;
 use ext_php_rs::prelude::*;
@@ -10,8 +12,9 @@ use ext_php_rs::prelude::*;
 fn test_module() {
     Embed::run(|| {
         // Allow to load the module
-        cfg_if::cfg_if! {
+        cfg_if! {
             if #[cfg(php84)] {
+                // Register as temporary (2) module
                 unsafe { zend_register_module_ex(get_module(), 2) };
             } else {
                 unsafe { zend_register_module_ex(get_module()) };
