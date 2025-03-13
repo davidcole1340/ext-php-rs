@@ -1,8 +1,9 @@
+use darling::ast::NestedMeta;
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::HashMap;
-use syn::{AttributeArgs, Ident, ItemImpl, Lit};
+use syn::{Ident, ItemImpl, Lit};
 
 use crate::function::{Args, CallType, Function, MethodReceiver};
 use crate::helpers::get_docs;
@@ -96,8 +97,9 @@ pub struct ImplArgs {
     rename_methods: RenameRule,
 }
 
-pub fn parser(args: AttributeArgs, mut input: ItemImpl) -> Result<TokenStream> {
-    let args = match ImplArgs::from_list(&args) {
+pub fn parser(args: TokenStream, mut input: ItemImpl) -> Result<TokenStream> {
+    let meta = NestedMeta::parse_meta_list(args)?;
+    let args = match ImplArgs::from_list(&meta) {
         Ok(args) => args,
         Err(e) => bail!(input => "Failed to parse impl attribute arguments: {:?}", e),
     };
@@ -153,49 +155,47 @@ impl MethodArgs {
         let mut unparsed = vec![];
         unparsed.append(attrs);
         for attr in unparsed {
-            if attr.path.is_ident("optional") {
+            let path = &attr.path();
+
+            if path.is_ident("optional") {
                 // x
                 if self.optional.is_some() {
                     bail!(attr => "Only one `#[optional]` attribute is valid per method.");
                 }
                 let optional = attr.parse_args().map_err(
-                    |e| err!(attr => "Invalid arguments passed to `#[optional]` attribute. {}", e),
+                    |e| err!(e.span() => "Invalid arguments passed to `#[optional]` attribute. {}", e),
                 )?;
                 self.optional = Some(optional);
-            } else if attr.path.is_ident("defaults") {
-                // x
-                let meta = attr
-                    .parse_meta()
-                    .map_err(|e| err!(attr => "Failed to parse metadata from attribute. {}", e))?;
-                let defaults = HashMap::from_meta(&meta).map_err(
-                    |e| err!(attr => "Invalid arguments passed to `#[defaults]` attribute. {}", e),
+            } else if path.is_ident("defaults") {
+                let defaults = HashMap::from_meta(&attr.meta).map_err(
+                    |e| err!(e.span() => "Invalid arguments passed to `#[defaults]` attribute. {}", e),
                 )?;
                 self.defaults = defaults;
-            } else if attr.path.is_ident("public") {
+            } else if path.is_ident("public") {
                 // x
                 self.vis = MethodVis::Public;
-            } else if attr.path.is_ident("protected") {
+            } else if path.is_ident("protected") {
                 // x
                 self.vis = MethodVis::Protected;
-            } else if attr.path.is_ident("private") {
+            } else if path.is_ident("private") {
                 // x
                 self.vis = MethodVis::Private;
-            } else if attr.path.is_ident("rename") {
+            } else if path.is_ident("rename") {
                 let lit: syn::Lit = attr.parse_args().map_err(|e| err!(attr => "Invalid arguments passed to the `#[rename]` attribute. {}", e))?;
                 match lit {
                     Lit::Str(name) => self.name = name.value(),
                     _ => bail!(attr => "Only strings are valid method names."),
                 };
-            } else if attr.path.is_ident("getter") {
+            } else if path.is_ident("getter") {
                 // x
                 self.ty = MethodTy::Getter;
-            } else if attr.path.is_ident("setter") {
+            } else if path.is_ident("setter") {
                 // x
                 self.ty = MethodTy::Setter;
-            } else if attr.path.is_ident("constructor") {
+            } else if path.is_ident("constructor") {
                 // x
                 self.ty = MethodTy::Constructor;
-            } else if attr.path.is_ident("abstract_method") {
+            } else if path.is_ident("abstract_method") {
                 // x
                 self.ty = MethodTy::Abstract;
             } else {
@@ -261,7 +261,7 @@ impl<'a> ParsedImpl<'a> {
                     let mut unparsed = vec![];
                     unparsed.append(&mut c.attrs);
                     for attr in unparsed {
-                        if attr.path.is_ident("rename") {
+                        if attr.path().is_ident("rename") {
                             let lit: syn::Lit = attr.parse_args().map_err(|e| err!(attr => "Invalid arguments passed to the `#[rename]` attribute. {}", e))?;
                             match lit {
                                 Lit::Str(str) => name = Some(str.value()),
@@ -279,7 +279,7 @@ impl<'a> ParsedImpl<'a> {
                         docs,
                     });
                 }
-                syn::ImplItem::Method(method) => {
+                syn::ImplItem::Fn(method) => {
                     let name = self.rename.rename(method.sig.ident.to_string());
                     let docs = get_docs(&method.attrs);
                     let mut opts = MethodArgs::new(name);

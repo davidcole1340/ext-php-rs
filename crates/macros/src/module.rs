@@ -1,7 +1,7 @@
-use darling::FromMeta;
+use darling::{ast::NestedMeta, FromMeta};
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{AttributeArgs, ItemFn, Signature};
+use syn::{ItemFn, Signature};
 
 use crate::prelude::*;
 
@@ -12,8 +12,9 @@ pub struct ModuleArgs {
     startup: Option<Ident>,
 }
 
-pub fn parser(args: AttributeArgs, input: ItemFn) -> Result<TokenStream> {
-    let opts = match ModuleArgs::from_list(&args) {
+pub fn parser(args: TokenStream, input: ItemFn) -> Result<TokenStream> {
+    let meta = NestedMeta::parse_meta_list(args)?;
+    let opts = match ModuleArgs::from_list(&meta) {
         Ok(opts) => opts,
         Err(e) => bail!(input => "Failed to parse attribute options: {:?}", e),
     };

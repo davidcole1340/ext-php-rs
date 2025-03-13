@@ -12,8 +12,7 @@ mod zval;
 
 use proc_macro::TokenStream;
 use syn::{
-    parse_macro_input, AttributeArgs, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl,
-    ItemStruct,
+    parse_macro_input, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
 };
 
 extern crate proc_macro;
@@ -195,10 +194,9 @@ extern crate proc_macro;
 /// ````
 #[proc_macro_attribute]
 pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
     let input = parse_macro_input!(input as ItemStruct);
 
-    class::parser(args, input)
+    class::parser(args.into(), input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
@@ -357,10 +355,9 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 /// [exceptions](../exceptions.md) for more details.
 #[proc_macro_attribute]
 pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
     let input = parse_macro_input!(input as ItemFn);
 
-    function::parser(args, input)
+    function::parser(args.into(), input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
@@ -478,10 +475,9 @@ pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro_attribute]
 pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
     let input = parse_macro_input!(input as ItemFn);
 
-    module::parser(args, input)
+    module::parser(args.into(), input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
@@ -661,10 +657,9 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 /// [`php_async_impl`]: ./async_impl.md
 #[proc_macro_attribute]
 pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
     let input = parse_macro_input!(input as ItemImpl);
 
-    impl_::parser(args, input)
+    impl_::parser(args.into(), input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }

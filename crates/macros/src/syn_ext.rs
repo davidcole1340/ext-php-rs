@@ -101,9 +101,10 @@ impl DropLifetimes for syn::PathSegment {
                 .filter_map(|mut i| {
                     match &mut i {
                         syn::GenericArgument::Type(t) => t.drop_lifetimes(),
-                        syn::GenericArgument::Binding(t) => t.drop_lifetimes(),
+                        syn::GenericArgument::AssocType(t) => t.drop_lifetimes(),
                         syn::GenericArgument::Constraint(t) => t.drop_lifetimes(),
                         syn::GenericArgument::Const(_) => {}
+                        syn::GenericArgument::AssocConst(_) => {}
                         _ => return None,
                     };
                     Some(i)
@@ -113,7 +114,7 @@ impl DropLifetimes for syn::PathSegment {
     }
 }
 
-impl DropLifetimes for syn::Binding {
+impl DropLifetimes for syn::AssocType {
     fn drop_lifetimes(&mut self) {
         self.ty.drop_lifetimes();
     }
