@@ -2,9 +2,11 @@ use std::marker::PhantomData;
 
 use crate::ffi::{zend_llist, zend_llist_element, zend_llist_get_next_ex};
 
+/// PHP linked list
 pub type ZendLinkedList = zend_llist;
 
 impl ZendLinkedList {
+    /// Create an iterator over the linked list
     pub fn iter<T>(&self) -> ZendLinkedListIterator<T> {
         ZendLinkedListIterator::new(self)
     }

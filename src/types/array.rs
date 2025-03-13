@@ -578,13 +578,15 @@ pub struct Iter<'a> {
     end_pos: HashPosition,
 }
 
+/// Represents the key of a PHP array, which can be either a long or a string.
 #[derive(Debug, PartialEq)]
 pub enum ArrayKey {
+    /// A numerical key.
     Long(i64),
+    /// A string key.
     String(String),
 }
 
-/// Represent the key of a PHP array, which can be either a long or a string.
 impl ArrayKey {
     /// Check if the key is an integer.
     ///

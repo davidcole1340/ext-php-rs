@@ -11,8 +11,10 @@ use crate::{
     types::ZendStr,
 };
 
+/// Wrapper for PHP streams
 pub type StreamWrapper = php_stream_wrapper;
 
+/// Stream opener function
 pub type StreamOpener = unsafe extern "C" fn(
     *mut StreamWrapper,
     *const std::ffi::c_char,
@@ -28,6 +30,7 @@ pub type StreamOpener = unsafe extern "C" fn(
 ) -> *mut Stream;
 
 impl StreamWrapper {
+    /// Get wrapped stream by name
     pub fn get(name: &str) -> Option<&Self> {
         unsafe {
             let result = php_stream_locate_url_wrapper(name.as_ptr().cast(), ptr::null_mut(), 0);
@@ -35,6 +38,7 @@ impl StreamWrapper {
         }
     }
 
+    /// Get mutable wrapped stream by name
     pub fn get_mut(name: &str) -> Option<&mut Self> {
         unsafe {
             let result = php_stream_locate_url_wrapper(name.as_ptr().cast(), ptr::null_mut(), 0);
@@ -42,6 +46,10 @@ impl StreamWrapper {
         }
     }
 
+    /// Register stream wrapper for name
+    ///
+    /// # Panics
+    /// - If the name cannot be converted to a C string
     pub fn register(self, name: &str) -> Result<Self, Error> {
         // We have to convert it to a static so owned streamwrapper doesn't get dropped.
         let copy = Box::new(self);
@@ -55,6 +63,7 @@ impl StreamWrapper {
         }
     }
 
+    /// Register volatile stream wrapper for name
     pub fn register_volatile(self, name: &str) -> Result<Self, Error> {
         // We have to convert it to a static so owned streamwrapper doesn't get dropped.
         let copy = Box::new(self);
@@ -69,6 +78,10 @@ impl StreamWrapper {
         }
     }
 
+    /// Unregister stream wrapper by name
+    ///
+    /// # Panics
+    /// - If the name cannot be converted to a C string
     pub fn unregister(name: &str) -> Result<(), Error> {
         let name = std::ffi::CString::new(name).expect("Could not create C string for name!");
         match unsafe { php_unregister_url_stream_wrapper(name.as_ptr()) } {
@@ -77,6 +90,7 @@ impl StreamWrapper {
         }
     }
 
+    /// Unregister volatile stream wrapper by name
     pub fn unregister_volatile(name: &str) -> Result<(), Error> {
         let name = ZendStr::new(name, false);
         match unsafe { php_unregister_url_stream_wrapper_volatile((*name).as_ptr() as _) } {
@@ -85,17 +99,21 @@ impl StreamWrapper {
         }
     }
 
+    /// Get the operations the stream wrapper can perform
     pub fn wops(&self) -> &php_stream_wrapper_ops {
         unsafe { &*self.wops }
     }
 
+    /// Get the mutable operations the stream can perform
     pub fn wops_mut(&mut self) -> &mut php_stream_wrapper_ops {
         unsafe { &mut *(self.wops as *mut php_stream_wrapper_ops) }
     }
 }
 
+/// A PHP stream
 pub type Stream = php_stream;
 
+/// Operations that can be performed with a stream wrapper
 pub type StreamWrapperOps = php_stream_wrapper_ops;
 
 impl StreamWrapperOps {}

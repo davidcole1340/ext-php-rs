@@ -50,6 +50,9 @@ members = [
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docs"]
 
+[lints.rust]
+missing_docs = "warn"
+
 [[example]]
 name = "hello_world"
 crate-type = ["cdylib"]

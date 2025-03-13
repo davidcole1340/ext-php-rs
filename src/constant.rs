@@ -40,11 +40,7 @@ pub trait IntoConst: Debug {
     /// }
     /// ```
     fn register_constant(&self, name: &str, module_number: i32) -> Result<()> {
-        self.register_constant_flags(
-            name,
-            module_number,
-            GlobalConstantFlags::CaseSensitive | GlobalConstantFlags::Persistent,
-        )
+        self.register_constant_flags(name, module_number, GlobalConstantFlags::Persistent)
     }
 
     /// Registers a global module constant in PHP, with the value as the content

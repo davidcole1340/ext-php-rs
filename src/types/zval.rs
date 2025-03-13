@@ -219,6 +219,7 @@ impl Zval {
         }
     }
 
+    /// Attempts to call a method on the object contained in the zval.
     #[inline(always)]
     pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.object()

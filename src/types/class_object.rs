@@ -27,7 +27,9 @@ use crate::{
 #[repr(C)]
 #[derive(Debug)]
 pub struct ZendClassObject<T> {
+    /// The object stored inside the class object.
     pub obj: Option<T>,
+    /// The standard zend object.
     pub std: ZendObject,
 }
 

@@ -52,13 +52,16 @@ impl FunctionEntry {
     }
 }
 
+/// PHP function.
 pub type Function = zend_function;
 
 impl Function {
+    /// Returns the function type.
     pub fn function_type(&self) -> FunctionType {
         FunctionType::from(unsafe { self.type_ })
     }
 
+    /// Attempts to fetch a [`Function`] from the function name.
     pub fn try_from_function(name: &str) -> Option<Self> {
         unsafe {
             let res = zend_fetch_function_str(name.as_ptr() as *const c_char, name.len());
@@ -68,6 +71,8 @@ impl Function {
             Some(*res)
         }
     }
+
+    /// Attempts to fetch a [`Function`] from the class and method name.
     pub fn try_from_method(class: &str, name: &str) -> Option<Self> {
         match ClassEntry::try_find(class) {
             None => None,
