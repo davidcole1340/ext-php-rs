@@ -26,6 +26,7 @@ macro_rules! stub_symbols {
     };
     (@INTERNAL; $s: ident) => {
         #[allow(non_upper_case_globals)]
+        #[allow(missing_docs)]
         #[no_mangle]
         pub static mut $s: *mut () = ::std::ptr::null_mut();
     };
