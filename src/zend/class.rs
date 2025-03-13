@@ -111,6 +111,7 @@ impl ClassEntry {
         unsafe { iterator.as_mut() }
     }
 
+    /// Gets the name of the class.
     pub fn name(&self) -> Option<&str> {
         unsafe { self.name.as_ref().and_then(|s| s.as_str().ok()) }
     }

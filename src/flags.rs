@@ -34,32 +34,57 @@ bitflags! {
     /// Flags used for setting the type of Zval.
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ZvalTypeFlags: u32 {
+        /// Undefined
         const Undef = IS_UNDEF;
+        /// Null
         const Null = IS_NULL;
+        /// `false`
         const False = IS_FALSE;
+        /// `true`
         const True = IS_TRUE;
+        /// Integer
         const Long = IS_LONG;
+        /// Floating point number
         const Double = IS_DOUBLE;
+        /// String
         const String = IS_STRING;
+        /// Array
         const Array = IS_ARRAY;
+        /// Object
         const Object = IS_OBJECT;
+        /// Resource
         const Resource = IS_RESOURCE;
+        /// Reference
         const Reference = IS_REFERENCE;
+        /// Callable
         const Callable = IS_CALLABLE;
+        /// Constant expression
         const ConstantExpression = IS_CONSTANT_AST;
+        /// Void
         const Void = IS_VOID;
+        /// Pointer
         const Ptr = IS_PTR;
+        /// Iterable
         const Iterable = IS_ITERABLE;
 
+        /// Interned string extended
         const InternedStringEx = Self::String.bits();
+        /// String extended
         const StringEx = Self::String.bits() | Self::RefCounted.bits();
+        /// Array extended
         const ArrayEx = Self::Array.bits() | Self::RefCounted.bits() | Self::Collectable.bits();
+        /// Object extended
         const ObjectEx = Self::Object.bits() | Self::RefCounted.bits() | Self::Collectable.bits();
+        /// Resource extended
         const ResourceEx = Self::Resource.bits() | Self::RefCounted.bits();
+        /// Reference extended
         const ReferenceEx = Self::Reference.bits() | Self::RefCounted.bits();
+        /// Constant ast extended
         const ConstantAstEx = Self::ConstantExpression.bits() | Self::RefCounted.bits();
 
+        /// Reference counted
         const RefCounted = (IS_TYPE_REFCOUNTED << Z_TYPE_FLAGS_SHIFT);
+        /// Collectable
         const Collectable = (IS_TYPE_COLLECTABLE << Z_TYPE_FLAGS_SHIFT);
     }
 }
@@ -68,29 +93,52 @@ bitflags! {
     /// Flags for building classes.
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ClassFlags: u32 {
+        /// Final class or method
         const Final = ZEND_ACC_FINAL;
+        /// Abstract method
         const Abstract = ZEND_ACC_ABSTRACT;
+        /// Immutable `op_array` and class_entries
+        /// (implemented only for lazy loading of `op_array`s)
         const Immutable = ZEND_ACC_IMMUTABLE;
+        /// Function has typed arguments / class has typed props
         const HasTypeHints = ZEND_ACC_HAS_TYPE_HINTS;
+        /// Top-level class or function declaration
         const TopLevel = ZEND_ACC_TOP_LEVEL;
+        /// op_array or class is preloaded
         const Preloaded = ZEND_ACC_PRELOADED;
 
+        /// Class entry is an interface
         const Interface = ZEND_ACC_INTERFACE;
+        /// Class entry is a trait
         const Trait = ZEND_ACC_TRAIT;
+        /// Anonymous class
         const AnonymousClass = ZEND_ACC_ANON_CLASS;
+        /// Class linked with parent, interfaces and traits
         const Linked = ZEND_ACC_LINKED;
+        /// Class is abstract, since it is set by any abstract method
         const ImplicitAbstractClass = ZEND_ACC_IMPLICIT_ABSTRACT_CLASS;
+        /// Class has magic methods `__get`/`__set`/`__unset`/`__isset` that use guards
         const UseGuards = ZEND_ACC_USE_GUARDS;
+
+        /// Class constants updated
         const ConstantsUpdated = ZEND_ACC_CONSTANTS_UPDATED;
+        /// Objects of this class may not have dynamic properties
         const NoDynamicProperties = ZEND_ACC_NO_DYNAMIC_PROPERTIES;
+        /// User class has methods with static variables
         const HasStaticInMethods = ZEND_HAS_STATIC_IN_METHODS;
+        /// Children must reuse parent `get_iterator()`
         #[cfg(not(php82))]
         const ReuseGetIterator = ZEND_ACC_REUSE_GET_ITERATOR;
+        /// Parent class is resolved (CE)
         const ResolvedParent = ZEND_ACC_RESOLVED_PARENT;
+        /// Interfaces are resolved (CE)
         const ResolvedInterfaces = ZEND_ACC_RESOLVED_INTERFACES;
+        /// Class has unresolved variance obligations
         const UnresolvedVariance = ZEND_ACC_UNRESOLVED_VARIANCE;
+        /// Class is linked apart from variance obligations
         const NearlyLinked = ZEND_ACC_NEARLY_LINKED;
 
+        /// Class cannot be serialized or unserialized
         #[cfg(php81)]
         const NotSerializable = crate::ffi::ZEND_ACC_NOT_SERIALIZABLE;
     }
@@ -100,34 +148,67 @@ bitflags! {
     /// Flags for building methods.
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct MethodFlags: u32 {
+        /// Visibility public
         const Public = ZEND_ACC_PUBLIC;
+        /// Visibility protected
         const Protected = ZEND_ACC_PROTECTED;
+        /// Visibility private
         const Private = ZEND_ACC_PRIVATE;
+        /// Method or property overrides private one
         const Changed = ZEND_ACC_CHANGED;
+        /// Static method
         const Static = ZEND_ACC_STATIC;
+        /// Final method
         const Final = ZEND_ACC_FINAL;
+        /// Abstract method
         const Abstract = ZEND_ACC_ABSTRACT;
+        /// Immutable `op_array` and class_entries
+        /// (implemented only for lazy loading of op_arrays)
         const Immutable = ZEND_ACC_IMMUTABLE;
+        /// Function has typed arguments / class has typed props
         const HasTypeHints = ZEND_ACC_HAS_TYPE_HINTS;
+        /// Top-level class or function declaration
         const TopLevel = ZEND_ACC_TOP_LEVEL;
+        /// `op_array` or class is preloaded
         const Preloaded = ZEND_ACC_PRELOADED;
 
+        /// Deprecation flag
         const Deprecated = ZEND_ACC_DEPRECATED;
+        /// Function returning by reference
         const ReturnReference = ZEND_ACC_RETURN_REFERENCE;
+        /// Function has a return type
         const HasReturnType = ZEND_ACC_HAS_RETURN_TYPE;
+        /// Function with variable number of arguments
         const Variadic = ZEND_ACC_VARIADIC;
+        /// `op_array` has finally blocks (user only)
         const HasFinallyBlock = ZEND_ACC_HAS_FINALLY_BLOCK;
+        /// "main" `op_array` with `ZEND_DECLARE_CLASS_DELAYED` opcodes
         const EarlyBinding = ZEND_ACC_EARLY_BINDING;
+        /// Closure uses `$this`
         const UsesThis = ZEND_ACC_USES_THIS;
+        /// Call through user function trampoline
+        ///
+        /// # Example
+        /// - `__call`
+        /// - `__callStatic`
         const CallViaTrampoline = ZEND_ACC_CALL_VIA_TRAMPOLINE;
+        /// Disable inline caching
         const NeverCache = ZEND_ACC_NEVER_CACHE;
+        /// `op_array` is a clone of trait method
         const TraitClone = ZEND_ACC_TRAIT_CLONE;
+        /// Function is a constructor
         const IsConstructor = ZEND_ACC_CTOR;
+        /// Function is a closure
         const Closure = ZEND_ACC_CLOSURE;
+        /// Function is a fake closure
         const FakeClosure = ZEND_ACC_FAKE_CLOSURE;
+        /// Function is a generator
         const Generator = ZEND_ACC_GENERATOR;
+        /// Function was processed by pass two (user only)
         const DonePassTwo = ZEND_ACC_DONE_PASS_TWO;
+        /// `run_time_cache` allocated on heap (user only)
         const HeapRTCache = ZEND_ACC_HEAP_RT_CACHE;
+        /// `op_array` uses strict mode types
         const StrictTypes = ZEND_ACC_STRICT_TYPES;
     }
 }
@@ -155,9 +236,13 @@ bitflags! {
     /// Flags for building constants.
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ConstantFlags: u32 {
+        /// Visibility public
         const Public = ZEND_ACC_PUBLIC;
+        /// Visibility protected
         const Protected = ZEND_ACC_PROTECTED;
+        /// Visibility private
         const Private = ZEND_ACC_PRIVATE;
+        /// Promoted constant
         const Promoted = ZEND_ACC_PROMOTED;
     }
 }
@@ -166,9 +251,14 @@ bitflags! {
     /// Flags for building module global constants.
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct GlobalConstantFlags: u32 {
+        /// No longer used -- always case-sensitive
+        #[deprecated(note = "No longer used -- always case-sensitive")]
         const CaseSensitive = CONST_CS;
+        /// Persistent
         const Persistent = CONST_PERSISTENT;
+        /// Can't be saved in file cache
         const NoFileCache = CONST_NO_FILE_CACHE;
+        /// Deprecated (this flag is not deprecated, it literally means the constant is deprecated)
         const Deprecated = CONST_DEPRECATED;
     }
 }
@@ -177,7 +267,9 @@ bitflags! {
     /// Represents the result of a function.
     #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
     pub struct ZendResult: i32 {
+        /// Function call was successful.
         const Success = 0;
+        /// Function call failed.
         const Failure = -1;
     }
 }
@@ -185,9 +277,13 @@ bitflags! {
 bitflags! {
     /// Represents permissions for where a configuration setting may be set.
     pub struct IniEntryPermission: u32 {
+        /// User
         const User = PHP_INI_USER;
+        /// Per directory
         const PerDir = PHP_INI_PERDIR;
+        /// System
         const System = PHP_INI_SYSTEM;
+        /// All
         const All = PHP_INI_ALL;
     }
 }
@@ -195,28 +291,47 @@ bitflags! {
 bitflags! {
     /// Represents error types when used via php_error_docref for example.
     pub struct ErrorType: u32 {
+        /// Error
         const Error = E_ERROR;
+        /// Warning
         const Warning = E_WARNING;
+        /// Parse
         const Parse = E_PARSE;
+        /// Notice
         const Notice = E_NOTICE;
+        /// Core error
         const CoreError = E_CORE_ERROR;
+        /// Core warning
         const CoreWarning = E_CORE_WARNING;
+        /// Compile error
         const CompileError = E_COMPILE_ERROR;
+        /// Compile warning
         const CompileWarning = E_COMPILE_WARNING;
+        /// User error
         const UserError = E_USER_ERROR;
+        /// User warning
         const UserWarning = E_USER_WARNING;
+        /// User notice
         const UserNotice = E_USER_NOTICE;
+        /// Strict
         const Strict = E_STRICT;
+        /// Recoverable error
         const RecoverableError = E_RECOVERABLE_ERROR;
+        /// Deprecated
         const Deprecated = E_DEPRECATED;
+        /// User deprecated
         const UserDeprecated = E_USER_DEPRECATED;
     }
 }
 
+/// Represents the type of a function.
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum FunctionType {
+    /// Internal function
     Internal,
+    /// User function
     User,
+    /// Eval code
     Eval,
 }
 
@@ -236,24 +351,43 @@ impl From<u8> for FunctionType {
 #[repr(C, u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DataType {
+    /// Undefined
     Undef,
+    /// `null`
     Null,
+    /// `false`
     False,
+    /// `true`
     True,
+    /// Integer (the irony)
     Long,
+    /// Floating point number
     Double,
+    /// String
     String,
+    /// Array
     Array,
+    /// Iterable
     Iterable,
+    /// Object
     Object(Option<&'static str>),
+    /// Resource
     Resource,
+    /// Reference
     Reference,
+    /// Callable
     Callable,
+    /// Constant expression
     ConstantExpression,
+    /// Void
     Void,
+    /// Mixed
     Mixed,
+    /// Boolean
     Bool,
+    /// Pointer
     Ptr,
+    /// Indirect (internal)
     Indirect,
 }
 

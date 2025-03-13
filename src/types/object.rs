@@ -142,6 +142,11 @@ impl ZendObject {
         self.instance_of(ce::traversable())
     }
 
+    /// Tries to call a method on the object.
+    ///
+    /// # Returns
+    /// Returns the return value of the method, or an error if the method
+    /// could not be found or called.
     #[inline(always)]
     pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         let mut retval = Zval::new();
@@ -174,6 +179,7 @@ impl ZendObject {
 
         Ok(retval)
     }
+
     /// Attempts to read a property from the Object. Returns a result containing
     /// the value of the property if it exists and can be read, and an
     /// [`Error`] otherwise.

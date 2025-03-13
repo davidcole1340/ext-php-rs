@@ -129,7 +129,9 @@ impl Display for RString {
 /// An ABI-stable [`Option`][std::option::Option].
 #[repr(C, u8)]
 pub enum Option<T> {
+    /// [`Option::Some`][std::option::Option::Some] variant.
     Some(T),
+    /// [`Option::None`][std::option::Option::None] variant.
     None,
 }
 

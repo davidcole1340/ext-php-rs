@@ -8,7 +8,9 @@ use crate::types::{ZendHashTable, ZendIterator, Zval};
 /// object implementing the Traversable interface.
 #[derive(Debug)]
 pub enum Iterable<'a> {
+    /// Iterable is an Array
     Array(&'a ZendHashTable),
+    /// Iterable is a Traversable
     Traversable(&'a mut ZendIterator),
 }
 

@@ -49,6 +49,7 @@ impl IniEntryDef {
         Box::into_raw(Box::new(self))
     }
 
+    /// Registers a list of ini entries.
     pub fn register(mut entries: Vec<Self>, module_number: i32) {
         entries.push(Self::end());
         let entries = Box::into_raw(entries.into_boxed_slice()) as *const Self;

@@ -59,20 +59,21 @@ impl<'a, T: Clone + IntoZval + FromZval<'a>> Prop<'a> for T {
     }
 }
 
+/// A getter for a property
 pub type PropertyGetter<'a, T> = Option<Box<dyn Fn(&T, &mut Zval) -> PhpResult + Send + Sync + 'a>>;
+/// A setter for a property
 pub type PropertySetter<'a, T> = Option<Box<dyn Fn(&mut T, &Zval) -> PhpResult + Send + Sync + 'a>>;
 
 /// Represents a property added to a PHP class.
-///
-/// There are two types of properties:
-///
-/// * Field properties, where the data is stored inside a struct field.
-/// * Method properties, where getter and/or setter functions are provided,
-///   which are used to get and set the value of the property.
 pub enum Property<'a, T> {
+    /// Field properties, where the data is stored inside a struct field.
     Field(Box<dyn (Fn(&mut T) -> &mut dyn Prop) + Send + Sync>),
+    /// Method properties, where getter and/or setter functions are provided,
+    /// which are used to get and set the value of the property.
     Method {
+        /// Getter function for the property.
         get: PropertyGetter<'a, T>,
+        /// Setter function for the property.
         set: PropertySetter<'a, T>,
     },
 }

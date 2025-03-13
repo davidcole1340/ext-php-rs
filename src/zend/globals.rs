@@ -375,11 +375,13 @@ impl SapiGlobals {
         let guard = SAPI_GLOBALS_LOCK.write();
         GlobalWriteGuard { globals, guard }
     }
-    // Get the request info for the Sapi.
+
+    /// Get the request info for the Sapi.
     pub fn request_info(&self) -> &SapiRequestInfo {
         &self.request_info
     }
 
+    /// Get the sapi headers for the Sapi.
     pub fn sapi_headers(&self) -> &SapiHeaders {
         &self.sapi_headers
     }
@@ -388,6 +390,7 @@ impl SapiGlobals {
 pub type SapiHeaders = sapi_headers_struct;
 
 impl<'a> SapiHeaders {
+    /// Create an iterator over the headers.
     pub fn headers(&'a mut self) -> ZendLinkedListIterator<'a, SapiHeader> {
         self.headers.iter()
     }
@@ -396,6 +399,10 @@ impl<'a> SapiHeaders {
 pub type SapiHeader = sapi_header_struct;
 
 impl<'a> SapiHeader {
+    /// Get the header as a string.
+    ///
+    /// # Panics
+    /// - If the header is not a valid UTF-8 string.
     pub fn as_str(&'a self) -> &'a str {
         unsafe {
             let slice = slice::from_raw_parts(self.header as *const u8, self.header_len);
@@ -403,10 +410,12 @@ impl<'a> SapiHeader {
         }
     }
 
+    /// Returns the header name (key).
     pub fn name(&'a self) -> &'a str {
         self.as_str().split(':').next().unwrap_or("").trim()
     }
 
+    /// Returns the header value.
     pub fn value(&'a self) -> Option<&'a str> {
         self.as_str().split(':').nth(1).map(|s| s.trim())
     }
@@ -415,6 +424,7 @@ impl<'a> SapiHeader {
 pub type SapiRequestInfo = sapi_request_info;
 
 impl SapiRequestInfo {
+    /// Get the request method.
     pub fn request_method(&self) -> Option<&str> {
         if self.request_method.is_null() {
             return None;
@@ -422,6 +432,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.request_method).to_str().ok() }
     }
 
+    /// Get the query string.
     pub fn query_string(&self) -> Option<&str> {
         if self.query_string.is_null() {
             return None;
@@ -429,6 +440,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.query_string).to_str().ok() }
     }
 
+    /// Get the cookie data.
     pub fn cookie_data(&self) -> Option<&str> {
         if self.cookie_data.is_null() {
             return None;
@@ -436,10 +448,12 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.cookie_data).to_str().ok() }
     }
 
+    /// Get the content length.
     pub fn content_length(&self) -> i64 {
         self.content_length
     }
 
+    /// Get the path info.
     pub fn path_translated(&self) -> Option<&str> {
         if self.path_translated.is_null() {
             return None;
@@ -447,6 +461,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.path_translated).to_str().ok() }
     }
 
+    /// Get the request uri.
     pub fn request_uri(&self) -> Option<&str> {
         if self.request_uri.is_null() {
             return None;
@@ -456,6 +471,7 @@ impl SapiRequestInfo {
 
     // Todo: request_body _php_stream
 
+    /// Get the content type.
     pub fn content_type(&self) -> Option<&str> {
         if self.content_type.is_null() {
             return None;
@@ -463,20 +479,24 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.content_type).to_str().ok() }
     }
 
+    /// Whether the request consists of headers only.
     pub fn headers_only(&self) -> bool {
         self.headers_only
     }
 
+    /// Whether the request has no headers.
     pub fn no_headers(&self) -> bool {
         self.no_headers
     }
 
+    /// Whether the request headers have been read.
     pub fn headers_read(&self) -> bool {
         self.headers_read
     }
 
     // Todo: post_entry sapi_post_entry
 
+    /// Get the auth user.
     pub fn auth_user(&self) -> Option<&str> {
         if self.auth_user.is_null() {
             return None;
@@ -484,6 +504,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.auth_user).to_str().ok() }
     }
 
+    /// Get the auth password.
     pub fn auth_password(&self) -> Option<&str> {
         if self.auth_password.is_null() {
             return None;
@@ -491,6 +512,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.auth_password).to_str().ok() }
     }
 
+    /// Get the auth digest.
     pub fn auth_digest(&self) -> Option<&str> {
         if self.auth_digest.is_null() {
             return None;
@@ -498,6 +520,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.auth_digest).to_str().ok() }
     }
 
+    /// Get argv0.
     pub fn argv0(&self) -> Option<&str> {
         if self.argv0.is_null() {
             return None;
@@ -505,6 +528,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.argv0).to_str().ok() }
     }
 
+    /// Get the current user.
     pub fn current_user(&self) -> Option<&str> {
         if self.current_user.is_null() {
             return None;
@@ -512,14 +536,17 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(self.current_user).to_str().ok() }
     }
 
+    /// Get the current user length.
     pub fn current_user_length(&self) -> i32 {
         self.current_user_length
     }
 
+    /// Get argvc.
     pub fn argvc(&self) -> i32 {
         self.argc
     }
 
+    /// Get argv.
     pub fn argv(&self) -> Option<&str> {
         if self.argv.is_null() {
             return None;
@@ -527,6 +554,7 @@ impl SapiRequestInfo {
         unsafe { CStr::from_ptr(*self.argv).to_str().ok() }
     }
 
+    /// Get the protocol number.
     pub fn proto_num(&self) -> i32 {
         self.proto_num
     }
@@ -567,6 +595,7 @@ impl FileGlobals {
         GlobalWriteGuard { globals, guard }
     }
 
+    /// Returns the stream wrappers
     pub fn stream_wrappers(&self) -> Option<&'static ZendHashTable> {
         unsafe { self.stream_wrappers.as_ref() }
     }
