@@ -24,18 +24,20 @@
   - [Class Object](./types/class_object.md)
   - [Closure](./types/closure.md)
   - [Functions & methods](./types/functions.md)
-  - [Async futures](./macros/async_impl.md)
 - [Macros](./macros/index.md)
   - [Module](./macros/module.md)
   - [Function](./macros/function.md)
   - [Classes](./macros/classes.md)
     - [`impl`s](./macros/impl.md)
-    - [async `impl`s](./macros/async_impl.md)
   - [Constants](./macros/constant.md)
   - [PHP Functions](./macros/extern.md)
   - [`ZvalConvert`](./macros/zval_convert.md)
 - [Exceptions](./exceptions.md)
 - [INI Settings](./ini-settings.md)
+
+# Advanced Topics
+
+- [Async](./advanced/async_impl.md)
 
 # Migration Guides
 ---
