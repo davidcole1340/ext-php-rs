@@ -16,12 +16,11 @@ use crate::ffi::{
 };
 use crate::types::{ZendObject, Zval};
 use crate::zend::{panic_wrapper, try_catch, ExecutorGlobals};
-use parking_lot::{const_rwlock, RwLock};
+use parking_lot::{const_mutex, Mutex};
 use std::ffi::{c_char, c_void, CString, NulError};
 use std::panic::{resume_unwind, RefUnwindSafe};
 use std::path::Path;
 use std::ptr::null_mut;
-
 pub use ffi::ext_php_rs_sapi_startup;
 pub use sapi::SapiModule;
 
@@ -42,8 +41,6 @@ impl EmbedError {
         matches!(self, EmbedError::CatchError)
     }
 }
-
-static RUN_FN_LOCK: RwLock<()> = const_rwlock(());
 
 impl Embed {
     /// Run a php script from a file
@@ -135,7 +132,11 @@ impl Embed {
         // This is to prevent multiple threads from running php at the same time
         // At some point we should detect if php is compiled with thread safety and
         // avoid doing that in this case
-        let _guard = RUN_FN_LOCK.write();
+        let _guard = {
+            static RUN_FN_LOCK: Mutex<()> = const_mutex(());
+
+            RUN_FN_LOCK.lock()
+        };
 
         let panic = unsafe {
             ext_php_rs_embed_callback(
@@ -206,6 +207,7 @@ impl Embed {
 
 #[cfg(test)]
 mod tests {
+    use crate::ffi::sapi_module;
     use super::Embed;
 
     #[test]
