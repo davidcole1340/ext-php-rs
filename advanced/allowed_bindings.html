@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Async - ext-php-rs</title>
+        <title>Allowed Bindings - ext-php-rs</title>
 
 
         <!-- Custom HTML head -->
@@ -152,124 +152,32 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="php_async_impl-attribute"><a class="header" href="#php_async_impl-attribute"><code>#[php_async_impl]</code> Attribute</a></h1>
-<p>Using <code>#[php_async_impl]</code> instead of <code>#[php_impl]</code> allows us to expose any async Rust library to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
-<p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
-<p>Traits annotated with <code>#[php_async_impl]</code> can freely expose any async function, using <code>await</code> and any async Rust library.</p>
-<p>Make sure to also expose the <code>php_tokio::EventLoop::init</code> and <code>php_tokio::EventLoop::wakeup</code> functions to PHP in order to initialize the event loop, as specified in the full example <a href="#async-example">here »</a>.</p>
-<p>Also, make sure to invoke <code>EventLoop::shutdown</code> in the request shutdown handler to clean up the tokio event loop before finishing the request.</p>
-<h2 id="async-example"><a class="header" href="#async-example">Async example</a></h2>
-<p>In this example, we're exposing an async Rust HTTP client library called <a href="https://docs.rs/reqwest/latest/reqwest/">reqwest</a> to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
-<p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
-<p>Make sure to require <a href="https://github.com/danog/php-tokio">php-tokio</a> as a dependency before proceeding.</p>
-<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
-use php_tokio::{php_async_impl, EventLoop};
-
-#[php_class]
-struct Client {}
-
-#[php_async_impl]
-impl Client {
-    pub fn init() -&gt; PhpResult&lt;u64&gt; {
-        EventLoop::init()
-    }
-    pub fn wakeup() -&gt; PhpResult&lt;()&gt; {
-        EventLoop::wakeup()
-    }
-    pub async fn get(url: &amp;str) -&gt; anyhow::Result&lt;String&gt; {
-        Ok(reqwest::get(url).await?.text().await?)
-    }
-}
-
-pub extern "C" fn request_shutdown(_type: i32, _module_number: i32) -&gt; i32 {
-    EventLoop::shutdown();
-    0
-}
-
-#[php_module]
-pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
-    module.request_shutdown_function(request_shutdown)
-}</code></pre>
-<p>Here's the async PHP code we use to interact with the Rust class we just exposed.</p>
-<p>The <code>Client::init</code> method needs to be called only once in order to initialize the Revolt event loop and link it to the Tokio event loop, as shown by the following code.</p>
-<p>See <a href="https://amphp.org">here »</a> for more info on async PHP using <a href="https://amphp.org">amphp</a> + <a href="https://revolt.run">revolt</a>.</p>
-<pre><code class="language-php">&lt;?php declare(strict_types=1);
-
-namespace Reqwest;
-
-use Revolt\EventLoop;
-
-use function Amp\async;
-use function Amp\Future\await;
-
-final class Client
-{
-    private static ?string $id = null;
-
-    public static function init(): void
-    {
-        if (self::$id !== null) {
-            return;
-        }
-
-        $f = \fopen("php://fd/".\Client::init(), 'r+');
-        \stream_set_blocking($f, false);
-        self::$id = EventLoop::onReadable($f, fn () =&gt; \Client::wakeup());
-    }
-
-    public static function reference(): void
-    {
-        EventLoop::reference(self::$id);
-    }
-    public static function unreference(): void
-    {
-        EventLoop::unreference(self::$id);
-    }
-
-    public static function __callStatic(string $name, array $args): mixed
-    {
-        return \Client::$name(...$args);
-    }
-}
-
-
-Client::init();
-
-function test(int $delay): void
-{
-    $url = "https://httpbin.org/delay/$delay";
-    $t = time();
-    echo "Making async reqwest to $url that will return after $delay seconds...".PHP_EOL;
-    Client::get($url);
-    $t = time() - $t;
-    echo "Got response from $url after ~".$t." seconds!".PHP_EOL;
-};
-
-$futures = [];
-$futures []= async(test(...), 5);
-$futures []= async(test(...), 5);
-$futures []= async(test(...), 5);
-
-await($futures);
+                        <h1 id="allowed-bindings"><a class="header" href="#allowed-bindings">Allowed Bindings</a></h1>
+<p>The extension limits the bindings that are generated by <code>bindgen</code> to a subset of the original bindings.
+Those bindings are defined in the <code>allowed_bindings.rs</code> file.</p>
+<p>Should you need to add more bindings, you can do so by defining them as a comma-separated list in the <code>EXT_PHP_RS_ALLOWED_BINDINGS</code> environment variable.</p>
+<p>This can be configured in your <code>.cargo/config.toml</code> file:</p>
+<pre><code class="language-toml">[env]
+EXT_PHP_RS_ALLOWED_BINDINGS = "php_foo,php_bar"
 </code></pre>
-<p>Result:</p>
-<pre><code>Making async reqwest to https://httpbin.org/delay/5 that will return after 5 seconds...
-Making async reqwest to https://httpbin.org/delay/5 that will return after 5 seconds...
-Making async reqwest to https://httpbin.org/delay/5 that will return after 5 seconds...
-Got response from https://httpbin.org/delay/5 after ~5 seconds!
-Got response from https://httpbin.org/delay/5 after ~5 seconds!
-Got response from https://httpbin.org/delay/5 after ~5 seconds!
-</code></pre>
+<p>Your bindings should now appear in the <code>ext_php_rs::ffi</code> module.</p>
+<div class="warning">
+Pay attention to the PHP version
+<p>Be aware, that bindings that do not exist in the PHP version you are targeting will not be available.</p>
+<p>Some bindings may also change between PHP versions, so make sure to test your extension with all PHP versions you are targeting.</p>
+</div>
+<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<p>If you think that a binding should be added to the allowed bindings, please open an issue or a pull request on the <a href="https://github.com/davidcole1340/ext-php-rs">GitHub repository</a> so that everyone can benefit from it.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../ini-settings.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../advanced/async_impl.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../advanced/allowed_bindings.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../migration-guides/v0.14.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -279,11 +187,11 @@ Got response from https://httpbin.org/delay/5 after ~5 seconds!
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../ini-settings.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../advanced/async_impl.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../advanced/allowed_bindings.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../migration-guides/v0.14.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
