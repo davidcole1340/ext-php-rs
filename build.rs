@@ -209,6 +209,16 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
             .allowlist_var(binding);
     }
 
+    let extension_allowed_bindings = env::var("EXT_PHP_RS_ALLOWED_BINDINGS").ok();
+    if let Some(extension_allowed_bindings) = extension_allowed_bindings {
+        for binding in extension_allowed_bindings.split(',') {
+            bindgen = bindgen
+                .allowlist_function(binding)
+                .allowlist_type(binding)
+                .allowlist_var(binding);
+        }
+    }
+
     let bindings = bindgen
         .generate()
         .map_err(|_| anyhow!("Unable to generate bindings for PHP"))?
@@ -286,7 +296,7 @@ fn main() -> Result<()> {
     ] {
         println!("cargo:rerun-if-changed={}", path.to_string_lossy());
     }
-    for env_var in ["PHP", "PHP_CONFIG", "PATH"] {
+    for env_var in ["PHP", "PHP_CONFIG", "PATH", "EXT_PHP_RS_ALLOWED_BINDINGS"] {
         println!("cargo:rerun-if-env-changed={env_var}");
     }
 

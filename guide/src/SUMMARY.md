@@ -38,6 +38,7 @@
 # Advanced Topics
 
 - [Async](./advanced/async_impl.md)
+- [Allowed Bindings](./advanced/allowed_bindings.md)
 
 # Migration Guides
 ---
