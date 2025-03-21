@@ -84,13 +84,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         php: ["8.0", "8.1", "8.2", "8.3", "8.4"]
-        rust: [stable, nightly]
+        rust: [stable]
         clang: ["15", "17"]
         phpts: [ts, nts]
+        include:
+          - os: ubuntu-latest
+            rust: nightly
+            clang: "15"
+            phpts: nts
+            php: "8.4"
         exclude:
-          # ext-php-rs requires nightly Rust when on Windows.
-          - os: windows-latest
-            rust: stable
           - os: macos-latest
             clang: "17"
           - os: ubuntu-latest
@@ -245,6 +248,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
         with:
