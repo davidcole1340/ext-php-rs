@@ -92,10 +92,6 @@ jobs:
             rust: stable
           # setup-php doesn't support thread safe PHP on Linux and macOS.
           - os: macos-latest
-            phpts: ts
-          - os: ubuntu-latest
-            phpts: ts
-          - os: macos-latest
             clang: "17"
           - os: ubuntu-latest
             clang: "15"
@@ -152,29 +148,12 @@ jobs:
           echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/lib" >> $GITHUB_ENV
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
           echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/bin/llvm-config" >> $GITHUB_ENV
-      # Build
-      - name: Build
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
+      # Test
+      - name: Test features matrix
         env:
           EXT_PHP_RS_TEST: ""
-        run: cargo build --release --features closure,anyhow --all
-      # Test
-      - name: Test inline examples
-        # Macos fails on unstable rust. We skip the inline examples test for now.
-        if: "!(contains(matrix.os, 'macos') && matrix.rust == 'nightly')"
-        run: cargo test --release --all --features closure,anyhow --no-fail-fast
-  build-zts:
-    name: Build with ZTS
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Build
-        uses: ./.github/actions/zts
-  test-embed:
-    name: Test with embed
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Test
-        uses: ./.github/actions/embed
+        run: cargo ci-test

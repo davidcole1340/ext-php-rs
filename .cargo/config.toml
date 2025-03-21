@@ -6,3 +6,6 @@ linker = "rust-lld"
 
 [target.i686-pc-windows-msvc]
 linker = "rust-lld"
+
+[alias]
+ci-test = "hack test --workspace --feature-powerset --clean-per-run"
