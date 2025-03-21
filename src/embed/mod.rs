@@ -101,7 +101,7 @@ impl Embed {
         match exec_result {
             Err(_) => Err(EmbedError::CatchError),
             #[cfg(not(php82))]
-            Ok(0) => Ok(()),
+            Ok(1) => Ok(()),
             #[cfg(php82)]
             Ok(true) => Ok(()),
             Ok(_) => Err(EmbedError::ExecuteScriptError),
