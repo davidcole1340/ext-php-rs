@@ -22,6 +22,11 @@ use impl_::Provider;
 const MIN_PHP_API_VER: u32 = 20200930;
 const MAX_PHP_API_VER: u32 = 20240924;
 
+const PHP_81_API_VER: u32 = 20210902;
+const PHP_82_API_VER: u32 = 20220829;
+const PHP_83_API_VER: u32 = 20230831;
+const PHP_84_API_VER: u32 = 20240924;
+
 /// Provides information about the PHP installation.
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
@@ -178,11 +183,15 @@ fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
 }
 
 /// Generates bindings to the Zend API.
-fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<String> {
+fn generate_bindings(
+    defines: &[(&str, &str)],
+    includes: &[PathBuf],
+    #[allow(unused)] info: &PHPInfo,
+) -> Result<String> {
     let mut bindgen = bindgen::Builder::default();
 
     #[cfg(feature = "embed")]
-    {
+    if !info.thread_safety()? || info.zend_version()? >= PHP_81_API_VER {
         bindgen = bindgen.header("src/embed/embed.h");
     }
 
@@ -245,13 +254,6 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     //
     // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
     // should get both the `php81` and `php82` flags.
-    const PHP_81_API_VER: u32 = 20210902;
-
-    const PHP_82_API_VER: u32 = 20220829;
-
-    const PHP_83_API_VER: u32 = 20230831;
-
-    const PHP_84_API_VER: u32 = 20240924;
 
     println!(
         "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
@@ -324,9 +326,11 @@ fn main() -> Result<()> {
     build_wrapper(&defines, &includes)?;
 
     #[cfg(feature = "embed")]
-    build_embed(&defines, &includes)?;
+    if !info.thread_safety()? || info.zend_version()? >= PHP_81_API_VER {
+        build_embed(&defines, &includes)?;
+    }
 
-    let bindings = generate_bindings(&defines, &includes)?;
+    let bindings = generate_bindings(&defines, &includes, &info)?;
 
     let out_file =
         File::create(&out_path).context("Failed to open output bindings file for writing")?;

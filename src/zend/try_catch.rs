@@ -102,7 +102,7 @@ pub unsafe fn bailout() -> ! {
     ext_php_rs_zend_bailout();
 }
 
-#[cfg(feature = "embed")]
+#[cfg(all(feature = "embed", any(php81, not(php_zts))))]
 #[cfg(test)]
 mod tests {
     use crate::embed::Embed;

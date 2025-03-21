@@ -4,11 +4,11 @@
 mod class;
 mod function;
 mod module;
-#[cfg(feature = "embed")]
+#[cfg(all(feature = "embed", any(php81, not(php_zts))))]
 mod sapi;
 
 pub use class::ClassBuilder;
 pub use function::FunctionBuilder;
 pub use module::{ModuleBuilder, ModuleStartup};
-#[cfg(feature = "embed")]
+#[cfg(all(feature = "embed", any(php81, not(php_zts))))]
 pub use sapi::SapiBuilder;
