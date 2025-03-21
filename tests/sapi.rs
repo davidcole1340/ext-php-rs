@@ -44,6 +44,9 @@ fn test_sapi() {
     }
 
     unsafe {
+        #[cfg(not(php82))]
+        php_module_startup(sapi, module, 1);
+        #[cfg(php82)]
         php_module_startup(sapi, module);
     }
 
