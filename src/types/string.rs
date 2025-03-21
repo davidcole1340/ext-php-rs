@@ -456,7 +456,7 @@ impl<'a> FromZval<'a> for &'a str {
 }
 
 #[cfg(test)]
-#[cfg(all(feature = "embed", any(php81, not(php_zts))))]
+#[cfg(php_embed)]
 mod tests {
     use crate::embed::Embed;
 

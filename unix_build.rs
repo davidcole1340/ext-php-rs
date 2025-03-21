@@ -52,13 +52,23 @@ impl<'a> PHPProvider<'a> for Provider {
             .collect())
     }
 
+    fn get_sapis(&self) -> Result<Vec<String>> {
+        Ok(self
+            .php_config("--php-sapis")?
+            .split(' ')
+            .map(|s| s.trim_start_matches("-I"))
+            .map(|v| v.to_string())
+            .collect())
+    }
+
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>> {
         Ok(vec![])
     }
 
-    fn print_extra_link_args(&self) -> Result<()> {
-        #[cfg(feature = "embed")]
-        println!("cargo:rustc-link-lib=php");
+    fn print_extra_link_args(&self, has_embed: bool) -> Result<()> {
+        if has_embed {
+            println!("cargo:rustc-link-lib=php");
+        }
 
         Ok(())
     }

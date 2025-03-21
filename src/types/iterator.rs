@@ -183,7 +183,7 @@ impl<'a> FromZvalMut<'a> for &'a mut ZendIterator {
 }
 
 #[cfg(test)]
-#[cfg(all(feature = "embed", any(php81, not(php_zts))))]
+#[cfg(php_embed)]
 mod tests {
     use crate::embed::Embed;
 

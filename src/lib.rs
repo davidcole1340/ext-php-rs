@@ -25,7 +25,7 @@ pub mod class;
 pub mod closure;
 pub mod constant;
 pub mod describe;
-#[cfg(all(feature = "embed", any(php81, not(php_zts))))]
+#[cfg(php_embed)]
 pub mod embed;
 #[doc(hidden)]
 pub mod internal;

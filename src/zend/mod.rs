@@ -34,7 +34,7 @@ pub use ini_entry_def::IniEntryDef;
 pub use linked_list::ZendLinkedList;
 pub use module::ModuleEntry;
 pub use streams::*;
-#[cfg(all(feature = "embed", any(php81, not(php_zts))))]
+#[cfg(php_embed)]
 pub(crate) use try_catch::panic_wrapper;
 pub use try_catch::{bailout, try_catch, try_catch_first};
 

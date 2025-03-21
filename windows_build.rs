@@ -49,6 +49,10 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         Ok(self.devel.include_paths())
     }
 
+    fn get_sapis(&self) -> Result<Vec<String>> {
+        Ok(vec!["embed".to_string()])
+    }
+
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>> {
         let mut defines = vec![
             ("ZEND_WIN32", "1"),
@@ -80,7 +84,7 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         Ok(())
     }
 
-    fn print_extra_link_args(&self) -> Result<()> {
+    fn print_extra_link_args(&self, _has_embed: bool) -> Result<()> {
         let php_lib_name = self.get_php_lib_name()?;
         let php_lib_search = self
             .devel

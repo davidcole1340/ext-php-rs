@@ -35,6 +35,9 @@ pub trait PHPProvider<'a>: Sized {
     /// Retrieve a list of absolute include paths.
     fn get_includes(&self) -> Result<Vec<PathBuf>>;
 
+    /// Retrieve a list of compiled sapis
+    fn get_sapis(&self) -> Result<Vec<String>>;
+
     /// Retrieve a list of macro definitions to pass to the compiler.
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>>;
 
@@ -47,7 +50,7 @@ pub trait PHPProvider<'a>: Sized {
     }
 
     /// Prints any extra link arguments.
-    fn print_extra_link_args(&self) -> Result<()> {
+    fn print_extra_link_args(&self, _has_embed: bool) -> Result<()> {
         Ok(())
     }
 }
@@ -167,7 +170,6 @@ fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "embed")]
 /// Builds the embed library.
 fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     let mut build = cc::Build::new();
@@ -186,12 +188,11 @@ fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
 fn generate_bindings(
     defines: &[(&str, &str)],
     includes: &[PathBuf],
-    #[allow(unused)] info: &PHPInfo,
+    has_embed: bool,
 ) -> Result<String> {
     let mut bindgen = bindgen::Builder::default();
 
-    #[cfg(feature = "embed")]
-    if !info.thread_safety()? || info.zend_version()? >= PHP_81_API_VER {
+    if has_embed {
         bindgen = bindgen.header("src/embed/embed.h");
     }
 
@@ -256,7 +257,7 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     // should get both the `php81` and `php82` flags.
 
     println!(
-        "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
+        "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, php_embed, docs)"
     );
     println!("cargo:rustc-cfg=php80");
 
@@ -319,18 +320,21 @@ fn main() -> Result<()> {
     let info = PHPInfo::get(&php)?;
     let provider = Provider::new(&info)?;
 
+    let sapis = provider.get_sapis()?;
     let includes = provider.get_includes()?;
     let defines = provider.get_defines()?;
+    let has_embed = sapis.contains(&"embed".to_string());
 
     check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
 
-    #[cfg(feature = "embed")]
-    if !info.thread_safety()? || info.zend_version()? >= PHP_81_API_VER {
+    if has_embed {
+        println!("cargo:rustc-cfg=php_embed");
+
         build_embed(&defines, &includes)?;
     }
 
-    let bindings = generate_bindings(&defines, &includes, &info)?;
+    let bindings = generate_bindings(&defines, &includes, has_embed)?;
 
     let out_file =
         File::create(&out_path).context("Failed to open output bindings file for writing")?;
@@ -343,7 +347,7 @@ fn main() -> Result<()> {
     if info.thread_safety()? {
         println!("cargo:rustc-cfg=php_zts");
     }
-    provider.print_extra_link_args()?;
+    provider.print_extra_link_args(has_embed)?;
 
     // Generate guide tests
     let test_md = skeptic::markdown_files_of_directory("guide");
