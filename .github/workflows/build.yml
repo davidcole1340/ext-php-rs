@@ -81,6 +81,7 @@ jobs:
     name: Build and test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         php: ["8.0", "8.1", "8.2", "8.3", "8.4"]
@@ -164,6 +165,7 @@ jobs:
     name: Test that requires linking php library
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         php: ["8.2", "8.3", "8.4"]
@@ -240,6 +242,7 @@ jobs:
     name: Test others crates not depen
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         rust: [stable, nightly]
