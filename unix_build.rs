@@ -65,10 +65,9 @@ impl<'a> PHPProvider<'a> for Provider {
         Ok(vec![])
     }
 
-    fn print_extra_link_args(&self, has_embed: bool) -> Result<()> {
-        if has_embed {
-            println!("cargo:rustc-link-lib=php");
-        }
+    fn print_extra_link_args(&self) -> Result<()> {
+        #[cfg(feature = "link-php")]
+        println!("cargo:rustc-link-lib=php");
 
         Ok(())
     }

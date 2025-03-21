@@ -38,6 +38,7 @@ zip = "2.2"
 
 [features]
 closure = []
+link-php = []
 
 [workspace]
 members = [

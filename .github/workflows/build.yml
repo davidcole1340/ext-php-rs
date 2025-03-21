@@ -76,8 +76,9 @@ jobs:
         env:
           DOCS_RS: ""
         run: cargo clean && cargo build
-  build:
-    name: Build and Test
+
+  test:
+    name: Build and test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -151,8 +152,111 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-hack
-      # Test
-      - name: Test features matrix
+      - name: Test
         env:
           EXT_PHP_RS_TEST: ""
         run: cargo ci-test
+
+  test-link:
+    name: Test that requires linking php library
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        php: ["8.2", "8.3", "8.4"]
+        clang: ["15", "17"]
+        phpts: [ts, nts]
+        exclude:
+          - os: macos-latest
+            clang: "17"
+          - os: ubuntu-latest
+            clang: "15"
+          - os: windows-latest
+            clang: "15"
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          phpts: ${{ matrix.phpts }}
+          debug: true
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - run: rustup show
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        # Uncomment the following if statement if caching nightly deps
+        # ends up causing too much cache invalidation.
+        # if: matrix.rust == 'stable'
+        with:
+          # increment this manually to force cache eviction
+          prefix-key: ${{ env.RUST_CACHE_PREFIX }}
+      # LLVM & Clang
+      - name: Cache LLVM and Clang
+        id: cache-llvm
+        uses: actions/cache@v4
+        # Macos build doesn't work with clang < 18. As a build for version 18 is not available, we skip the setup
+        if: "!contains(matrix.os, 'windows') && !contains(matrix.os, 'macos')"
+        with:
+          path: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          key: ${{ matrix.os }}-llvm-${{ matrix.clang }}
+      - name: Setup LLVM & Clang
+        id: clang
+        uses: KyleMayes/install-llvm-action@v2
+        # Macos build doesn't work with clang < 18. As a build for version 18 is not available, we skip the setup
+        if: "!contains(matrix.os, 'windows') && !contains(matrix.os, 'macos')"
+        with:
+          version: ${{ matrix.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ matrix.clang }}
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+      - name: Configure Clang
+        # Macos build doesn't work with clang < 18. As a build for version 18 is not available, we skip the setup
+        if: "!contains(matrix.os, 'windows') && !contains(matrix.os, 'macos')"
+        run: |
+          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/lib" >> $GITHUB_ENV
+          echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
+          echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ matrix.clang }}/bin/llvm-config" >> $GITHUB_ENV
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
+      - name: Test
+        env:
+          EXT_PHP_RS_TEST: ""
+        run: cargo ci-test-link
+
+  test-others:
+    name: Test others crates not depen
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, nightly]
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+      - run: rustup show
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
+      # Test
+      - name: Test
+        env:
+          EXT_PHP_RS_TEST: ""
+        run: cargo ci-test-other

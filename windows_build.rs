@@ -84,7 +84,7 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         Ok(())
     }
 
-    fn print_extra_link_args(&self, _has_embed: bool) -> Result<()> {
+    fn print_extra_link_args(&self) -> Result<()> {
         let php_lib_name = self.get_php_lib_name()?;
         let php_lib_search = self
             .devel

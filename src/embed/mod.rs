@@ -59,7 +59,7 @@ impl Embed {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use ext_php_rs::embed::Embed;
     ///
     /// Embed::run(|| {
@@ -123,7 +123,7 @@ impl Embed {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use ext_php_rs::embed::Embed;
     ///
     /// Embed::run(|| {
@@ -179,7 +179,7 @@ impl Embed {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use ext_php_rs::embed::Embed;
     ///
     /// Embed::run(|| {
@@ -211,7 +211,7 @@ impl Embed {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "link-php"))]
 mod tests {
     use super::Embed;
 

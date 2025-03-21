@@ -50,7 +50,7 @@ pub trait PHPProvider<'a>: Sized {
     }
 
     /// Prints any extra link arguments.
-    fn print_extra_link_args(&self, _has_embed: bool) -> Result<()> {
+    fn print_extra_link_args(&self) -> Result<()> {
         Ok(())
     }
 }
@@ -347,7 +347,7 @@ fn main() -> Result<()> {
     if info.thread_safety()? {
         println!("cargo:rustc-cfg=php_zts");
     }
-    provider.print_extra_link_args(has_embed)?;
+    provider.print_extra_link_args()?;
 
     // Generate guide tests
     let test_md = skeptic::markdown_files_of_directory("guide");

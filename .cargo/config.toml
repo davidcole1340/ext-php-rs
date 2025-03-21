@@ -8,4 +8,6 @@ linker = "rust-lld"
 linker = "rust-lld"
 
 [alias]
-ci-test = "hack test --workspace --feature-powerset --clean-per-run"
+ci-test = "hack test --package ext-php-rs --package tests --feature-powerset --clean-per-run --exclude-features=link-php"
+ci-test-link = "hack test --package ext-php-rs --feature-powerset --clean-per-run --features=link-php"
+ci-test-other = "hack test --workspace --exclude ext-php-rs --exclude tests --feature-powerset"

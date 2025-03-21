@@ -102,8 +102,7 @@ pub unsafe fn bailout() -> ! {
     ext_php_rs_zend_bailout();
 }
 
-#[cfg(php_embed)]
-#[cfg(test)]
+#[cfg(all(test, php_embed, feature = "link-php"))]
 mod tests {
     use crate::embed::Embed;
     use crate::zend::{bailout, try_catch};
