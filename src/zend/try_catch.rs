@@ -179,20 +179,22 @@ mod tests {
 
     #[test]
     fn test_memory_leak() {
-        let mut ptr = null_mut();
+        Embed::run(|| {
+            let mut ptr = null_mut();
 
-        let _ = try_catch(|| {
-            let mut result = "foo".to_string();
-            ptr = &mut result;
+            let _ = try_catch(|| {
+                let mut result = "foo".to_string();
+                ptr = &mut result;
 
-            unsafe {
-                bailout();
-            }
+                unsafe {
+                    bailout();
+                }
+            });
+
+            // Check that the string is never released
+            let result = unsafe { &*ptr as &str };
+
+            assert_eq!(result, "foo");
         });
-
-        // Check that the string is never released
-        let result = unsafe { &*ptr as &str };
-
-        assert_eq!(result, "foo");
     }
 }
