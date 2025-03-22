@@ -1,12 +1,12 @@
 //! Types related to the PHP executor, sapi and process globals.
 
+use parking_lot::{ArcRwLockReadGuard, ArcRwLockWriteGuard, RawRwLock, RwLock};
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::ops::{Deref, DerefMut};
 use std::slice;
 use std::str;
-
-use parking_lot::{const_rwlock, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, LazyLock};
 
 use crate::boxed::ZBox;
 use crate::exception::PhpResult;
@@ -51,7 +51,15 @@ impl ExecutorGlobals {
         // return an invalid pointer.
         let globals = unsafe { ext_php_rs_executor_globals().as_ref() }
             .expect("Static executor globals were invalid");
-        let guard = GLOBALS_LOCK.read();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::GLOBALS_LOCK.with(|l| l.read_arc());
+            } else {
+                let guard = lock::GLOBALS_LOCK.read_arc();
+            }
+        }
+
         GlobalReadGuard { globals, guard }
     }
 
@@ -67,7 +75,15 @@ impl ExecutorGlobals {
         // return an invalid pointer.
         let globals = unsafe { ext_php_rs_executor_globals().as_mut() }
             .expect("Static executor globals were invalid");
-        let guard = GLOBALS_LOCK.write();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::GLOBALS_LOCK.with(|l| l.write_arc());
+            } else {
+                let guard = lock::GLOBALS_LOCK.write_arc();
+            }
+        }
+
         GlobalWriteGuard { globals, guard }
     }
 
@@ -198,7 +214,7 @@ impl SapiModule {
         // return an invalid pointer.
         let globals = unsafe { ext_php_rs_sapi_module().as_ref() }
             .expect("Static executor globals were invalid");
-        let guard = SAPI_MODULE_LOCK.read();
+        let guard = SAPI_MODULE_LOCK.read_arc();
         GlobalReadGuard { globals, guard }
     }
 
@@ -214,7 +230,7 @@ impl SapiModule {
         // return an invalid pointer.
         let globals = unsafe { ext_php_rs_sapi_module().as_mut() }
             .expect("Static executor globals were invalid");
-        let guard = SAPI_MODULE_LOCK.write();
+        let guard = SAPI_MODULE_LOCK.write_arc();
         GlobalWriteGuard { globals, guard }
     }
 }
@@ -234,7 +250,15 @@ impl ProcessGlobals {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
         let globals = unsafe { &*ext_php_rs_process_globals() };
-        let guard = PROCESS_GLOBALS_LOCK.read();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::PROCESS_GLOBALS_LOCK.with(|l| l.read_arc());
+            } else {
+                let guard = lock::PROCESS_GLOBALS_LOCK.read_arc();
+            }
+        }
+
         GlobalReadGuard { globals, guard }
     }
 
@@ -249,7 +273,15 @@ impl ProcessGlobals {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
         let globals = unsafe { &mut *ext_php_rs_process_globals() };
-        let guard = PROCESS_GLOBALS_LOCK.write();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::PROCESS_GLOBALS_LOCK.with(|l| l.write_arc());
+            } else {
+                let guard = lock::PROCESS_GLOBALS_LOCK.write_arc();
+            }
+        }
+
         GlobalWriteGuard { globals, guard }
     }
 
@@ -357,7 +389,15 @@ impl SapiGlobals {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
         let globals = unsafe { &*ext_php_rs_sapi_globals() };
-        let guard = SAPI_GLOBALS_LOCK.read();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::SAPI_GLOBALS_LOCK.with(|l| l.read_arc());
+            } else {
+                let guard = lock::SAPI_GLOBALS_LOCK.read_arc();
+            }
+        }
+
         GlobalReadGuard { globals, guard }
     }
 
@@ -372,7 +412,15 @@ impl SapiGlobals {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
         let globals = unsafe { &mut *ext_php_rs_sapi_globals() };
-        let guard = SAPI_GLOBALS_LOCK.write();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::SAPI_GLOBALS_LOCK.with(|l| l.write_arc());
+            } else {
+                let guard = lock::SAPI_GLOBALS_LOCK.write_arc();
+            }
+        }
+
         GlobalWriteGuard { globals, guard }
     }
 
@@ -576,7 +624,15 @@ impl FileGlobals {
         // return an invalid pointer.
         let globals = unsafe { ext_php_rs_file_globals().as_ref() }
             .expect("Static file globals were invalid");
-        let guard = FILE_GLOBALS_LOCK.read();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::FILE_GLOBALS_LOCK.with(|l| l.read_arc());
+            } else {
+                let guard = lock::FILE_GLOBALS_LOCK.read_arc();
+            }
+        }
+
         GlobalReadGuard { globals, guard }
     }
 
@@ -591,7 +647,15 @@ impl FileGlobals {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
         let globals = unsafe { &mut *ext_php_rs_file_globals() };
-        let guard = SAPI_GLOBALS_LOCK.write();
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::FILE_GLOBALS_LOCK.with(|l| l.write_arc());
+            } else {
+                let guard = lock::FILE_GLOBALS_LOCK.write_arc();
+            }
+        }
+
         GlobalWriteGuard { globals, guard }
     }
 
@@ -605,23 +669,50 @@ impl FileGlobals {
 ///
 /// PHP provides no indication if the executor globals are being accessed so
 /// this is only effective on the Rust side.
-static GLOBALS_LOCK: RwLock<()> = const_rwlock(());
-static PROCESS_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
-static SAPI_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
-static FILE_GLOBALS_LOCK: RwLock<()> = const_rwlock(());
+#[cfg(not(php_zts))]
+pub(crate) mod lock {
+    use parking_lot::RwLock;
+    use std::sync::{Arc, LazyLock};
+
+    pub(crate) static GLOBALS_LOCK: LazyLock<Arc<RwLock<()>>> =
+        LazyLock::new(|| Arc::new(RwLock::new(())));
+    pub(crate) static PROCESS_GLOBALS_LOCK: LazyLock<Arc<RwLock<()>>> =
+        LazyLock::new(|| Arc::new(RwLock::new(())));
+    pub(crate) static SAPI_GLOBALS_LOCK: LazyLock<Arc<RwLock<()>>> =
+        LazyLock::new(|| Arc::new(RwLock::new(())));
+    pub(crate) static FILE_GLOBALS_LOCK: LazyLock<Arc<RwLock<()>>> =
+        LazyLock::new(|| Arc::new(RwLock::new(())));
+}
+
+/// Executor globals rwlock.
+///
+/// PHP provides no indication if the executor globals are being accessed so
+/// this is only effective on the Rust side.
+#[cfg(php_zts)]
+pub(crate) mod lock {
+    use parking_lot::{const_rwlock, RwLock};
+    use std::sync::Arc;
+
+    thread_local! {
+        pub(crate) static GLOBALS_LOCK: Arc<RwLock<()>> =  Arc::new(const_rwlock(()));
+        pub(crate) static PROCESS_GLOBALS_LOCK: Arc<RwLock<()>> = Arc::new( const_rwlock(()) );
+        pub(crate) static SAPI_GLOBALS_LOCK: Arc<RwLock<()>> = Arc::new( const_rwlock(()) );
+        pub(crate) static FILE_GLOBALS_LOCK: Arc<RwLock<()>> = Arc::new( const_rwlock(()) );
+    }
+}
 
 /// SAPI globals rwlock.
 ///
 /// PHP provides no indication if the executor globals are being accessed so
 /// this is only effective on the Rust side.
-static SAPI_MODULE_LOCK: RwLock<()> = const_rwlock(());
+static SAPI_MODULE_LOCK: LazyLock<Arc<RwLock<()>>> = LazyLock::new(|| Arc::new(RwLock::new(())));
 
 /// Wrapper guard that contains a reference to a given type `T`. Dropping a
 /// guard releases the lock on the relevant rwlock.
 pub struct GlobalReadGuard<T: 'static> {
     globals: &'static T,
     #[allow(dead_code)]
-    guard: RwLockReadGuard<'static, ()>,
+    guard: ArcRwLockReadGuard<RawRwLock, ()>,
 }
 
 impl<T> Deref for GlobalReadGuard<T> {
@@ -637,7 +728,7 @@ impl<T> Deref for GlobalReadGuard<T> {
 pub struct GlobalWriteGuard<T: 'static> {
     globals: &'static mut T,
     #[allow(dead_code)]
-    guard: RwLockWriteGuard<'static, ()>,
+    guard: ArcRwLockWriteGuard<RawRwLock, ()>,
 }
 
 impl<T> Deref for GlobalWriteGuard<T> {
