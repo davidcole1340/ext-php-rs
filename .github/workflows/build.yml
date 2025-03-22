@@ -78,7 +78,7 @@ jobs:
         run: cargo clean && cargo build
 
   test:
-    name: Build and test
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -86,19 +86,12 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         php: ["8.0", "8.1", "8.2", "8.3", "8.4"]
         rust: [stable, nightly]
-        clang: ["15", "17"]
         phpts: [ts, nts]
         exclude:
           - os: macos-latest
-            clang: "17"
-          - os: ubuntu-latest
-            clang: "15"
-          - os: macos-latest
             rust: nightly
           - os: ubuntu-latest
             rust: nightly
-          - os: windows-latest
-            clang: "15"
           - os: windows-latest
             rust: stable
         include:
@@ -128,28 +121,23 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-hack
+      # show clang version if on windows
+      - run: clang --version
+        if: "contains(matrix.os, 'windows')"
       - name: Test
         env:
           EXT_PHP_RS_TEST: ""
         run: cargo ci-test
 
   test-link:
-    name: Test that requires linking php library
+    name: Test link php
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         php: ["8.2", "8.3", "8.4"]
-        clang: ["15", "17"]
         phpts: [ts, nts]
-        exclude:
-          - os: macos-latest
-            clang: "17"
-          - os: ubuntu-latest
-            clang: "15"
-          - os: windows-latest
-            clang: "15"
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -178,7 +166,7 @@ jobs:
         run: cargo ci-test-link
 
   test-others:
-    name: Test others crates not depen
+    name: Test others
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
