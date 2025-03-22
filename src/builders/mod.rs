@@ -4,11 +4,11 @@
 mod class;
 mod function;
 mod module;
-#[cfg(feature = "embed")]
+#[cfg(php_embed)]
 mod sapi;
 
 pub use class::ClassBuilder;
 pub use function::FunctionBuilder;
 pub use module::{ModuleBuilder, ModuleStartup};
-#[cfg(feature = "embed")]
+#[cfg(php_embed)]
 pub use sapi::SapiBuilder;

@@ -22,6 +22,11 @@ use impl_::Provider;
 const MIN_PHP_API_VER: u32 = 20200930;
 const MAX_PHP_API_VER: u32 = 20240924;
 
+const PHP_81_API_VER: u32 = 20210902;
+const PHP_82_API_VER: u32 = 20220829;
+const PHP_83_API_VER: u32 = 20230831;
+const PHP_84_API_VER: u32 = 20240924;
+
 /// Provides information about the PHP installation.
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
@@ -29,6 +34,9 @@ pub trait PHPProvider<'a>: Sized {
 
     /// Retrieve a list of absolute include paths.
     fn get_includes(&self) -> Result<Vec<PathBuf>>;
+
+    /// Retrieve a list of compiled sapis
+    fn get_sapis(&self) -> Result<Vec<String>>;
 
     /// Retrieve a list of macro definitions to pass to the compiler.
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>>;
@@ -162,7 +170,6 @@ fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "embed")]
 /// Builds the embed library.
 fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     let mut build = cc::Build::new();
@@ -178,11 +185,14 @@ fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
 }
 
 /// Generates bindings to the Zend API.
-fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<String> {
+fn generate_bindings(
+    defines: &[(&str, &str)],
+    includes: &[PathBuf],
+    has_embed: bool,
+) -> Result<String> {
     let mut bindgen = bindgen::Builder::default();
 
-    #[cfg(feature = "embed")]
-    {
+    if has_embed {
         bindgen = bindgen.header("src/embed/embed.h");
     }
 
@@ -245,16 +255,9 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     //
     // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
     // should get both the `php81` and `php82` flags.
-    const PHP_81_API_VER: u32 = 20210902;
-
-    const PHP_82_API_VER: u32 = 20220829;
-
-    const PHP_83_API_VER: u32 = 20230831;
-
-    const PHP_84_API_VER: u32 = 20240924;
 
     println!(
-        "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
+        "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, php_embed, docs)"
     );
     println!("cargo:rustc-cfg=php80");
 
@@ -317,16 +320,21 @@ fn main() -> Result<()> {
     let info = PHPInfo::get(&php)?;
     let provider = Provider::new(&info)?;
 
+    let sapis = provider.get_sapis()?;
     let includes = provider.get_includes()?;
     let defines = provider.get_defines()?;
+    let has_embed = sapis.contains(&"embed".to_string());
 
     check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
 
-    #[cfg(feature = "embed")]
-    build_embed(&defines, &includes)?;
+    if has_embed {
+        println!("cargo:rustc-cfg=php_embed");
 
-    let bindings = generate_bindings(&defines, &includes)?;
+        build_embed(&defines, &includes)?;
+    }
+
+    let bindings = generate_bindings(&defines, &includes, has_embed)?;
 
     let out_file =
         File::create(&out_path).context("Failed to open output bindings file for writing")?;
