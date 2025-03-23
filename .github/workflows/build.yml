@@ -97,7 +97,6 @@ jobs:
         include:
           - os: ubuntu-latest
             rust: nightly
-            clang: "15"
             phpts: nts
             php: "8.4"
     env:
@@ -117,6 +116,11 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
+      - name: Install LLVM and Clang
+        uses: jhchundev/install-llvm-action@v1.0.0
+        if: "contains(matrix.os, 'windows')"
+        with:
+          version: "15.0"
       - name: Install cargo-hack
         uses: taiki-e/install-action@v2
         with:
