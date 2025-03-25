@@ -6,6 +6,7 @@ mod fastcall;
 mod function;
 mod helpers;
 mod impl_;
+mod interface;
 mod module;
 mod syn_ext;
 mod zval;
@@ -13,6 +14,7 @@ mod zval;
 use proc_macro::TokenStream;
 use syn::{
     parse_macro_input, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
+    TraitItem,
 };
 
 extern crate proc_macro;
@@ -197,6 +199,23 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
 
     class::parser(args.into(), input)
+        .unwrap_or_else(|e| e.to_compile_error())
+        .into()
+}
+
+///
+/// Declare trait as php interface class entry
+/// ```rust,no_run,ignore
+/// #[php_interface]
+/// trait SomeInterface {
+///
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn php_interface(args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as TraitItem);
+
+    interface::parser(args.into(), input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
