@@ -113,6 +113,7 @@ bind! {
     zend_register_internal_class_ex,
     zend_register_long_constant,
     zend_register_string_constant,
+    zend_register_internal_interface,
     zend_resource,
     zend_string,
     zend_string_init_interned,
