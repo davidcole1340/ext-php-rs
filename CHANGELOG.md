@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.14.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.1...ext-php-rs-v0.14.0) - 2025-03-26
+
+### BREAKING CHANGES
+
+- *(macro)* [**breaking**] Switch to builder pattern (by @Xenira) [[#99](https://github.com/davidcole1340/ext-php-rs/issues/99)] [[#131](https://github.com/davidcole1340/ext-php-rs/issues/131)] [[#327](https://github.com/davidcole1340/ext-php-rs/issues/327)] [[#174](https://github.com/davidcole1340/ext-php-rs/issues/174)] [[#335](https://github.com/davidcole1340/ext-php-rs/issues/335)] 
+> The old macros were dependent on execution order and have been causing trouble with language servers. They are replaced by a builder. See the migration guide at https://davidcole1340.github.io/ext-php-rs/migration-guides/v0.14.html for information on how to migrate.
+
+### Added
+- *(ffi)* Allow definging additional bindings (by @Xenira) [[#403](https://github.com/davidcole1340/ext-php-rs/issues/403)] 
+- *(zts)* Set lock per thread on zts build ([#408](https://github.com/davidcole1340/ext-php-rs/pull/408)) (by @joelwurtz) [[#408](https://github.com/davidcole1340/ext-php-rs/issues/408)] 
+
+### Fixed
+- *(args)* Fix variadic args (by @Xenira) [[#337](https://github.com/davidcole1340/ext-php-rs/issues/337)] 
+
+### Other
+- *(cargo-php)* Add locked option to install guide ([#370](https://github.com/davidcole1340/ext-php-rs/pull/370)) (by @Xenira) [[#370](https://github.com/davidcole1340/ext-php-rs/issues/370)] [[#314](https://github.com/davidcole1340/ext-php-rs/issues/314)] 
+- *(deps)* Update ureq requirement from 2.4 to 3.0 ([#379](https://github.com/davidcole1340/ext-php-rs/pull/379)) (by @dependabot[bot]) [[#379](https://github.com/davidcole1340/ext-php-rs/issues/379)] 
+- *(deps)* Update zip requirement from 0.6 to 2.2 ([#381](https://github.com/davidcole1340/ext-php-rs/pull/381)) (by @dependabot[bot]) [[#381](https://github.com/davidcole1340/ext-php-rs/issues/381)] 
+- *(guide)* Directly include doc comments (by @Xenira)
+- *(macro)* Update documentation for builder pattern (by @Xenira)
+- *(macro)* Add stubs for new builder pattern (by @Xenira) [[#183](https://github.com/davidcole1340/ext-php-rs/issues/183)] 
+- *(php-tokio)* Move documentation into separate section (by @Xenira) [[#322](https://github.com/davidcole1340/ext-php-rs/issues/322)] 
+- *(release-plz)* Move breaking changes to section on top of changelog ([#393](https://github.com/davidcole1340/ext-php-rs/pull/393)) (by @Xenira) [[#393](https://github.com/davidcole1340/ext-php-rs/issues/393)] 
+- *(test)* Fix embed test on php 8.4 ([#396](https://github.com/davidcole1340/ext-php-rs/pull/396)) (by @joelwurtz) [[#396](https://github.com/davidcole1340/ext-php-rs/issues/396)] 
+- Enforce doc comments for `ext-php-rs` (by @Xenira) [[#392](https://github.com/davidcole1340/ext-php-rs/issues/392)] 
+
 ## [0.13.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.0...ext-php-rs-v0.13.1) - 2025-02-13
 
 ### Fixed
