@@ -320,9 +320,9 @@ impl ToStub for Constant {
     }
 }
 
-#[cfg(windows)]
+#[cfg(target_family = "windows")]
 const NEW_LINE_SEPARATOR: &str = "\r\n";
-#[cfg(not(windows))]
+#[cfg(not(target_family = "windows"))]
 const NEW_LINE_SEPARATOR: &str = "\n";
 
 /// Takes a class name and splits the namespace off from the actual class name.

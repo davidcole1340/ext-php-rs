@@ -1,5 +1,6 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-#![cfg(feature = "embed")]
+#![cfg(all(php_embed, feature = "link-php"))]
+
 extern crate ext_php_rs;
 
 use cfg_if::cfg_if;

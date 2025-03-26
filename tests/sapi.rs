@@ -1,5 +1,6 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
-#![cfg(feature = "embed")]
+#![cfg(all(php_embed, feature = "link-php"))]
+
 extern crate ext_php_rs;
 
 use ext_php_rs::builders::SapiBuilder;
@@ -44,6 +45,9 @@ fn test_sapi() {
     }
 
     unsafe {
+        #[cfg(not(php82))]
+        php_module_startup(sapi, module, 1);
+        #[cfg(php82)]
         php_module_startup(sapi, module);
     }
 

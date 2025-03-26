@@ -102,8 +102,7 @@ pub unsafe fn bailout() -> ! {
     ext_php_rs_zend_bailout();
 }
 
-#[cfg(feature = "embed")]
-#[cfg(test)]
+#[cfg(all(test, php_embed, feature = "link-php"))]
 mod tests {
     use crate::embed::Embed;
     use crate::zend::{bailout, try_catch};
@@ -179,20 +178,22 @@ mod tests {
 
     #[test]
     fn test_memory_leak() {
-        let mut ptr = null_mut();
+        Embed::run(|| {
+            let mut ptr = null_mut();
 
-        let _ = try_catch(|| {
-            let mut result = "foo".to_string();
-            ptr = &mut result;
+            let _ = try_catch(|| {
+                let mut result = "foo".to_string();
+                ptr = &mut result;
 
-            unsafe {
-                bailout();
-            }
+                unsafe {
+                    bailout();
+                }
+            });
+
+            // Check that the string is never released
+            let result = unsafe { &*ptr as &str };
+
+            assert_eq!(result, "foo");
         });
-
-        // Check that the string is never released
-        let result = unsafe { &*ptr as &str };
-
-        assert_eq!(result, "foo");
     }
 }

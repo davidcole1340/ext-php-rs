@@ -49,6 +49,10 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         Ok(self.devel.include_paths())
     }
 
+    fn get_sapis(&self) -> Result<Vec<String>> {
+        Ok(vec!["embed".to_string()])
+    }
+
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>> {
         let mut defines = vec![
             ("ZEND_WIN32", "1"),
