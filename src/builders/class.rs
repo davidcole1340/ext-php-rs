@@ -442,7 +442,6 @@ impl InterfaceBuilder {
 
     pub fn builder(mut self) -> ClassBuilder {
         self.class_builder = self.class_builder.flags(ClassFlags::Interface);
-        dbg!(self.class_builder.ce.ce_flags);
         self.class_builder
     }
 }

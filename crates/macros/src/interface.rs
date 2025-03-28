@@ -69,7 +69,7 @@ impl<'a> ParsedTrait<'a> {
                         self.functions.push(FnBuilder {
                             builder,
                             vis: opts.vis,
-                            r#abstract: false,
+                            r#abstract: true,
                         });
                     }
                 }
