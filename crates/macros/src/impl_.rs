@@ -62,7 +62,7 @@ impl RenameRule {
 
 /// Method visibilities.
 #[derive(Debug)]
-pub enum MethodVis {
+enum MethodVis {
     Public,
     Private,
     Protected,
@@ -70,7 +70,7 @@ pub enum MethodVis {
 
 /// Method types.
 #[derive(Debug)]
-pub enum MethodTy {
+enum MethodTy {
     /// Regular PHP method.
     Normal,
     /// Constructor method.
@@ -122,21 +122,21 @@ pub fn parser(args: TokenStream, mut input: ItemImpl) -> Result<TokenStream> {
 
 /// Arguments applied to methods.
 #[derive(Debug)]
-pub struct MethodArgs {
+struct MethodArgs {
     /// Method name. Only applies to PHP (not the Rust method name).
-    pub name: String,
+    name: String,
     /// The first optional argument of the function signature.
-    pub optional: Option<Ident>,
+    optional: Option<Ident>,
     /// Default values for optional arguments.
-    pub defaults: HashMap<Ident, Lit>,
+    defaults: HashMap<Ident, Lit>,
     /// Visibility of the method (public, protected, private).
-    pub vis: MethodVis,
+    vis: MethodVis,
     /// Method type.
-    pub ty: MethodTy,
+    ty: MethodTy,
 }
 
 impl MethodArgs {
-    pub fn new(name: String) -> Self {
+    fn new(name: String) -> Self {
         let ty = if name == "__construct" {
             MethodTy::Constructor
         } else {
@@ -151,7 +151,7 @@ impl MethodArgs {
         }
     }
 
-    pub fn parse(&mut self, attrs: &mut Vec<syn::Attribute>) -> Result<()> {
+    fn parse(&mut self, attrs: &mut Vec<syn::Attribute>) -> Result<()> {
         let mut unparsed = vec![];
         unparsed.append(attrs);
         for attr in unparsed {
@@ -216,7 +216,7 @@ struct ParsedImpl<'a> {
 }
 
 #[derive(Debug)]
-pub struct FnBuilder {
+struct FnBuilder {
     /// Tokens which represent the FunctionBuilder for this function.
     pub builder: TokenStream,
     /// The visibility of this method.
@@ -226,7 +226,7 @@ pub struct FnBuilder {
 }
 
 #[derive(Debug)]
-pub struct Constant<'a> {
+struct Constant<'a> {
     /// Name of the constant in PHP land.
     name: String,
     /// Identifier of the constant in Rust land.
