@@ -13,6 +13,7 @@ mod zval;
 use proc_macro::TokenStream;
 use syn::{
     parse_macro_input, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
+    ItemTrait, TraitItem,
 };
 
 extern crate proc_macro;
