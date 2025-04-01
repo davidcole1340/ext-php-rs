@@ -388,7 +388,7 @@ impl quote::ToTokens for FnBuilder {
             flags.push(quote! { ::ext_php_rs::flags::MethodFlags::Abstract });
         }
         quote! {
-            (#builder, #(#flags)*)
+            (#builder, #(#flags)|*)
         }
         .to_tokens(tokens);
     }
