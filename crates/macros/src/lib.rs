@@ -6,6 +6,7 @@ mod fastcall;
 mod function;
 mod helpers;
 mod impl_;
+mod interface;
 mod module;
 mod syn_ext;
 mod zval;
@@ -661,6 +662,15 @@ pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemImpl);
 
     impl_::parser(args.into(), input)
+        .unwrap_or_else(|e| e.to_compile_error())
+        .into()
+}
+
+#[proc_macro_attribute]
+pub fn php_interface(args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemTrait);
+
+    interface::parser(args.into(), input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
