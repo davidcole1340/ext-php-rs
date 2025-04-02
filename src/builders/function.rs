@@ -9,16 +9,16 @@ use crate::{
 use std::{ffi::CString, mem, ptr};
 
 /// Function representation in Rust.
-#[cfg(not(windows))]
+#[cfg(not(target_family = "windows"))]
 pub type FunctionHandler = extern "C" fn(execute_data: &mut ExecuteData, retval: &mut Zval);
-#[cfg(windows)]
+#[cfg(target_family = "windows")]
 pub type FunctionHandler =
     extern "vectorcall" fn(execute_data: &mut ExecuteData, retval: &mut Zval);
 
 /// Function representation in Rust using pointers.
-#[cfg(not(windows))]
+#[cfg(not(target_family = "windows"))]
 type FunctionPointerHandler = extern "C" fn(execute_data: *mut ExecuteData, retval: *mut Zval);
-#[cfg(windows)]
+#[cfg(target_family = "windows")]
 type FunctionPointerHandler =
     extern "vectorcall" fn(execute_data: *mut ExecuteData, retval: *mut Zval);
 
