@@ -80,6 +80,7 @@ pub enum CallType<'a> {
         class: &'a syn::Path,
         receiver: MethodReceiver,
     },
+    MethodInterface,
 }
 
 /// Type of receiver on the method.
@@ -170,7 +171,7 @@ impl<'a> Function<'a> {
             }
         });
 
-        let result = match call_type {
+        let result = match &call_type {
             CallType::Function => quote! {
                 let parse = ex.parser()
                     #(.arg(&mut #required_arg_names))*
@@ -182,6 +183,16 @@ impl<'a> Function<'a> {
                 }
 
                 #ident(#({#arg_accessors}),*)
+            },
+            CallType::MethodInterface => quote! {
+                let parse = ex.parser()
+                    #(.arg(&mut #required_arg_names))*
+                    .not_required()
+                    #(.arg(&mut #not_required_arg_names))*
+                    .parse();
+                if parse.is_err() {
+                    return;
+                }
             },
             CallType::Method { class, receiver } => {
                 let this = match receiver {
@@ -235,34 +246,44 @@ impl<'a> Function<'a> {
             quote! {}
         };
 
-        Ok(quote! {
-            ::ext_php_rs::builders::FunctionBuilder::new(#name, {
-                ::ext_php_rs::zend_fastcall! {
-                    extern fn handler(
-                        ex: &mut ::ext_php_rs::zend::ExecuteData,
-                        retval: &mut ::ext_php_rs::types::Zval,
-                    ) {
-                        use ::ext_php_rs::convert::IntoZval;
+        match call_type {
+            CallType::MethodInterface => Ok(quote! {
+                ::ext_php_rs::builders::FunctionBuilder::new_abstract(#name)
+                    #(.arg(#required_args))*
+                    .not_required()
+                    #(.arg(#not_required_args))*
+                #returns
+                #docs
+            }),
+            _ => Ok(quote! {
+                ::ext_php_rs::builders::FunctionBuilder::new(#name, {
+                    ::ext_php_rs::zend_fastcall! {
+                        extern fn handler(
+                            ex: &mut ::ext_php_rs::zend::ExecuteData,
+                            retval: &mut ::ext_php_rs::types::Zval,
+                        ) {
+                            use ::ext_php_rs::convert::IntoZval;
 
-                        #(#arg_declarations)*
-                        let result = {
-                            #result
-                        };
+                            #(#arg_declarations)*
+                            let result = {
+                                #result
+                            };
 
-                        if let Err(e) = result.set_zval(retval, false) {
-                            let e: ::ext_php_rs::exception::PhpException = e.into();
-                            e.throw().expect("Failed to throw PHP exception.");
+                            if let Err(e) = result.set_zval(retval, false) {
+                                let e: ::ext_php_rs::exception::PhpException = e.into();
+                                e.throw().expect("Failed to throw PHP exception.");
+                            }
                         }
                     }
-                }
-                handler
-            })
-            #(.arg(#required_args))*
-            .not_required()
-            #(.arg(#not_required_args))*
-            #returns
-            #docs
-        })
+                    handler
+                })
+                    #(.arg(#required_args))*
+                    .not_required()
+                    #(.arg(#not_required_args))*
+                #returns
+                #docs
+            }),
+        }
     }
 
     /// Generates a struct and impl for the `PhpFunction` trait.
