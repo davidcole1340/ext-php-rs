@@ -1,5 +1,11 @@
 name: coverage
-on: ["push", "pull_request"]
+on:
+  push:
+    branches-ignore:
+      - 'release-plz-*'
+  pull_request:
+    branches-ignore:
+      - 'release-plz-*'
 env:
   # increment this manually to force cache eviction
   RUST_CACHE_PREFIX: "v0-rust"
