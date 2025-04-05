@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use darling::ast::NestedMeta;
-use darling::{FromMeta, ToTokens};
+use darling::{FromAttributes, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::spanned::Spanned as _;
@@ -9,10 +8,11 @@ use syn::PatType;
 use syn::{FnArg, GenericArgument, ItemFn, Lit, PathArguments, Type, TypePath};
 
 use crate::helpers::get_docs;
+use crate::parsing::{PhpRename, Visibility};
 use crate::prelude::*;
 use crate::syn_ext::DropLifetimes;
 
-pub fn wrap(input: syn::Path) -> Result<TokenStream> {
+pub fn wrap(input: &syn::Path) -> Result<TokenStream> {
     let Some(func_name) = input.get_ident() else {
         bail!(input => "Pass a PHP function name into `wrap_function!()`.");
     };
@@ -23,33 +23,36 @@ pub fn wrap(input: syn::Path) -> Result<TokenStream> {
     }})
 }
 
-#[derive(Default, Debug, FromMeta)]
-#[darling(default)]
-pub struct FnArgs {
-    /// The name of the function.
-    name: Option<String>,
-    /// The first optional argument of the function signature.
-    optional: Option<Ident>,
-    /// Default values for optional arguments.
+#[derive(FromAttributes, Default, Debug)]
+#[darling(default, attributes(php), forward_attrs(doc))]
+struct PhpFunctionAttribute {
+    #[darling(flatten)]
+    rename: PhpRename,
     defaults: HashMap<Ident, Lit>,
+    optional: Option<Ident>,
+    vis: Option<Visibility>,
+    attrs: Vec<syn::Attribute>,
 }
 
-pub fn parser(opts: TokenStream, input: ItemFn) -> Result<TokenStream> {
-    let meta = NestedMeta::parse_meta_list(opts)?;
-    let opts = match FnArgs::from_list(&meta) {
-        Ok(opts) => opts,
-        Err(e) => bail!("Failed to parse attribute options: {:?}", e),
-    };
+pub fn parser(mut input: ItemFn) -> Result<TokenStream> {
+    let php_attr = PhpFunctionAttribute::from_attributes(&input.attrs)?;
+    input.attrs.retain(|attr| !attr.path().is_ident("php"));
 
-    let args = Args::parse_from_fnargs(input.sig.inputs.iter(), opts.defaults)?;
+    let args = Args::parse_from_fnargs(input.sig.inputs.iter(), php_attr.defaults)?;
     if let Some(ReceiverArg { span, .. }) = args.receiver {
         bail!(span => "Receiver arguments are invalid on PHP functions. See `#[php_impl]`.");
     }
 
-    let docs = get_docs(&input.attrs);
+    let docs = get_docs(&php_attr.attrs)?;
 
-    let func = Function::new(&input.sig, opts.name, args, opts.optional, docs)?;
-    let function_impl = func.php_function_impl()?;
+    let func = Function::new(
+        &input.sig,
+        php_attr.rename.rename(input.sig.ident.to_string()),
+        args,
+        php_attr.optional,
+        docs,
+    );
+    let function_impl = func.php_function_impl();
 
     Ok(quote! {
         #input
@@ -104,14 +107,14 @@ impl<'a> Function<'a> {
     /// * `optional` - The ident of the first optional argument.
     pub fn new(
         sig: &'a syn::Signature,
-        name: Option<String>,
+        name: String,
         args: Args<'a>,
         optional: Option<Ident>,
         docs: Vec<String>,
-    ) -> Result<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             ident: &sig.ident,
-            name: name.unwrap_or_else(|| sig.ident.to_string()),
+            name,
             args,
             output: match &sig.output {
                 syn::ReturnType::Default => None,
@@ -119,7 +122,7 @@ impl<'a> Function<'a> {
             },
             optional,
             docs,
-        })
+        }
     }
 
     /// Generates an internal identifier for the function.
@@ -128,7 +131,7 @@ impl<'a> Function<'a> {
     }
 
     /// Generates the function builder for the function.
-    pub fn function_builder(&self, call_type: CallType) -> Result<TokenStream> {
+    pub fn function_builder(&self, call_type: CallType) -> TokenStream {
         let ident = self.ident;
         let name = &self.name;
         let (required, not_required) = self.args.split_args(self.optional.as_ref());
@@ -141,7 +144,7 @@ impl<'a> Function<'a> {
             .typed
             .iter()
             .map(TypedArg::arg_declaration)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(|e| {
                 quote! {
@@ -155,11 +158,11 @@ impl<'a> Function<'a> {
         let required_args = required
             .iter()
             .map(TypedArg::arg_builder)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
         let not_required_args = not_required
             .iter()
             .map(TypedArg::arg_builder)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
         let returns = self.output.as_ref().map(|output| {
             quote! {
                 .returns(
@@ -226,16 +229,16 @@ impl<'a> Function<'a> {
             }
         };
 
-        let docs = if !self.docs.is_empty() {
+        let docs = if self.docs.is_empty() {
+            quote! {}
+        } else {
             let docs = &self.docs;
             quote! {
                 .docs(&[#(#docs),*])
             }
-        } else {
-            quote! {}
         };
 
-        Ok(quote! {
+        quote! {
             ::ext_php_rs::builders::FunctionBuilder::new(#name, {
                 ::ext_php_rs::zend_fastcall! {
                     extern fn handler(
@@ -262,15 +265,15 @@ impl<'a> Function<'a> {
             #(.arg(#not_required_args))*
             #returns
             #docs
-        })
+        }
     }
 
     /// Generates a struct and impl for the `PhpFunction` trait.
-    pub fn php_function_impl(&self) -> Result<TokenStream> {
+    pub fn php_function_impl(&self) -> TokenStream {
         let internal_ident = self.internal_ident();
-        let builder = self.function_builder(CallType::Function)?;
+        let builder = self.function_builder(CallType::Function);
 
-        Ok(quote! {
+        quote! {
             #[doc(hidden)]
             #[allow(non_camel_case_types)]
             struct #internal_ident;
@@ -284,22 +287,22 @@ impl<'a> Function<'a> {
                     entry
                 };
             }
-        })
+        }
     }
 
     /// Returns a constructor metadata object for this function. This doesn't
     /// check if the function is a constructor, however.
-    pub fn constructor_meta(&self, class: &syn::Path) -> Result<TokenStream> {
+    pub fn constructor_meta(&self, class: &syn::Path) -> TokenStream {
         let ident = self.ident;
         let (required, not_required) = self.args.split_args(self.optional.as_ref());
         let required_args = required
             .iter()
             .map(TypedArg::arg_builder)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
         let not_required_args = not_required
             .iter()
             .map(TypedArg::arg_builder)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
 
         let required_arg_names: Vec<_> = required.iter().map(|arg| arg.name).collect();
         let not_required_arg_names: Vec<_> = not_required.iter().map(|arg| arg.name).collect();
@@ -308,7 +311,7 @@ impl<'a> Function<'a> {
             .typed
             .iter()
             .map(TypedArg::arg_declaration)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(
                 |e| quote! { return ::ext_php_rs::class::ConstructorResult::Exception(#e); },
@@ -320,7 +323,7 @@ impl<'a> Function<'a> {
             }
         });
 
-        Ok(quote! {
+        quote! {
             ::ext_php_rs::class::ConstructorMeta {
                 constructor: {
                     fn inner(ex: &mut ::ext_php_rs::zend::ExecuteData) -> ::ext_php_rs::class::ConstructorResult<#class> {
@@ -349,7 +352,7 @@ impl<'a> Function<'a> {
                     inner
                 }
             }
-        })
+        }
     }
 }
 
@@ -398,9 +401,8 @@ impl<'a> Args<'a> {
                     });
                 }
                 FnArg::Typed(PatType { pat, ty, .. }) => {
-                    let ident = match &**pat {
-                        syn::Pat::Ident(syn::PatIdent { ident, .. }) => ident,
-                        _ => bail!(pat => "Unsupported argument."),
+                    let syn::Pat::Ident(syn::PatIdent { ident, .. }) = &**pat else {
+                        bail!(pat => "Unsupported argument.");
                     };
 
                     // If the variable is `&[&Zval]` treat it as the variadic argument.
@@ -512,9 +514,7 @@ impl TypedArg<'_> {
         // Variadic arguments are passed as slices, so we need to extract the
         // inner type.
         if self.variadic {
-            let reference = if let Type::Reference(r) = &ty {
-                r
-            } else {
+            let Type::Reference(reference) = &ty else {
                 return ty;
             };
 
@@ -528,17 +528,17 @@ impl TypedArg<'_> {
 
     /// Returns a token stream containing an argument declaration, where the
     /// name of the variable holding the arg is the name of the argument.
-    fn arg_declaration(&self) -> Result<TokenStream> {
+    fn arg_declaration(&self) -> TokenStream {
         let name = self.name;
-        let val = self.arg_builder()?;
-        Ok(quote! {
+        let val = self.arg_builder();
+        quote! {
             let mut #name = #val;
-        })
+        }
     }
 
     /// Returns a token stream containing the `Arg` definition to be passed to
     /// `ext-php-rs`.
-    fn arg_builder(&self) -> Result<TokenStream> {
+    fn arg_builder(&self) -> TokenStream {
         let name = self.name.to_string();
         let ty = self.clean_ty();
         let null = if self.nullable {
@@ -558,13 +558,13 @@ impl TypedArg<'_> {
             None
         };
         let variadic = self.variadic.then(|| quote! { .is_variadic() });
-        Ok(quote! {
+        quote! {
             ::ext_php_rs::args::Arg::new(#name, <#ty as ::ext_php_rs::convert::FromZvalMut>::TYPE)
                 #null
                 #default
                 #as_ref
                 #variadic
-        })
+        }
     }
 
     /// Get the accessor used to access the value of the argument.
@@ -615,8 +615,7 @@ pub fn type_is_nullable(ty: &Type, has_default: bool) -> Result<bool> {
                     .segments
                     .iter()
                     .next_back()
-                    .map(|seg| seg.ident == "Option")
-                    .unwrap_or(false)
+                    .is_some_and(|seg| seg.ident == "Option")
         }
         syn::Type::Reference(_) => false, /* Reference cannot be nullable unless */
         // wrapped in `Option` (in that case it'd be a Path).
