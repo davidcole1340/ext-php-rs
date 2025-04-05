@@ -91,3 +91,86 @@ impl RenameRule {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{PhpRename, RenameRule};
+
+    #[test]
+    fn test_php_rename() {
+        let rename = PhpRename {
+            name: Some("test".to_string()),
+            rename: None,
+        };
+        assert_eq!(rename.rename("test"), "test");
+        assert_eq!(rename.rename("Test"), "test");
+        assert_eq!(rename.rename("TEST"), "test");
+
+        let rename = PhpRename {
+            name: None,
+            rename: Some(RenameRule::ScreamingSnakeCase),
+        };
+        assert_eq!(rename.rename("test"), "TEST");
+        assert_eq!(rename.rename("Test"), "TEST");
+        assert_eq!(rename.rename("TEST"), "TEST");
+
+        let rename = PhpRename {
+            name: Some("test".to_string()),
+            rename: Some(RenameRule::ScreamingSnakeCase),
+        };
+        assert_eq!(rename.rename("test"), "test");
+        assert_eq!(rename.rename("Test"), "test");
+        assert_eq!(rename.rename("TEST"), "test");
+
+        let rename = PhpRename {
+            name: None,
+            rename: None,
+        };
+        assert_eq!(rename.rename("test"), "test");
+        assert_eq!(rename.rename("Test"), "Test");
+        assert_eq!(rename.rename("TEST"), "TEST");
+    }
+
+    #[test]
+    fn test_rename_magic() {
+        for &(magic, expected) in &[
+            ("__construct", "__construct"),
+            ("__destruct", "__destruct"),
+            ("__call", "__call"),
+            ("__call_static", "__callStatic"),
+            ("__get", "__get"),
+            ("__set", "__set"),
+            ("__isset", "__isset"),
+            ("__unset", "__unset"),
+            ("__sleep", "__sleep"),
+            ("__wakeup", "__wakeup"),
+            ("__serialize", "__serialize"),
+            ("__unserialize", "__unserialize"),
+            ("__to_string", "__toString"),
+            ("__invoke", "__invoke"),
+            ("__set_state", "__set_state"),
+            ("__clone", "__clone"),
+            ("__debug_info", "__debugInfo"),
+        ] {
+            assert_eq!(magic, RenameRule::None.rename(magic));
+            assert_eq!(expected, RenameRule::Camel.rename(magic));
+            assert_eq!(expected, RenameRule::Pascal.rename(magic));
+            assert_eq!(expected, RenameRule::Snake.rename(magic));
+            assert_eq!(expected, RenameRule::ScreamingSnakeCase.rename(magic));
+        }
+    }
+
+    #[test]
+    fn test_rename_php_methods() {
+        let &(original, camel, snake, pascal, screaming_snake) =
+            &("get_name", "getName", "get_name", "GetName", "GET_NAME");
+        assert_eq!(original, RenameRule::None.rename(original));
+        assert_eq!(camel, RenameRule::Camel.rename(original));
+        assert_eq!(pascal, RenameRule::Pascal.rename(original));
+        assert_eq!(snake, RenameRule::Snake.rename(original));
+        assert_eq!(
+            screaming_snake,
+            RenameRule::ScreamingSnakeCase.rename(original)
+        );
+    }
+}
