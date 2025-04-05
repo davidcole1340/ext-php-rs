@@ -37,16 +37,16 @@ For example, to disable renaming, change the `#[php_impl]` attribute to
 
 The rest of the options are passed as separate attributes:
 
-- `#[defaults(i = 5, b = "hello")]` - Sets the default value for parameter(s).
-- `#[optional(i)]` - Sets the first optional parameter. Note that this also sets
+- `#[php(defaults(i = 5, b = "hello")]` - Sets the default value for parameter(s).
+- `#[php(optional = i)]` - Sets the first optional parameter. Note that this also sets
   the remaining parameters as optional, so all optional parameters must be a
   variant of `Option<T>`.
-- `#[public]`, `#[protected]` and `#[private]` - Sets the visibility of the
+- `#[php(public)]`, `#[php(protected)]` and `#[php(private)]` - Sets the visibility of the
   method.
-- `#[rename("method_name")]` - Renames the PHP method to a different identifier,
+- `#[php(name = "method_name")]` - Renames the PHP method to a different identifier,
   without renaming the Rust method name.
 
-The `#[defaults]` and `#[optional]` attributes operate the same as the
+The `#[php(defaults)]` and `#[php(optional)]` attributes operate the same as the
 equivalent function attribute parameters.
 
 ### Constructors
@@ -60,7 +60,7 @@ the error variant of `Result` is encountered, it is thrown as an exception and
 the class is not constructed.
 
 Constructors are designated by either naming the method `__construct` or by
-annotating a method with the `#[constructor]` attribute. Note that when using
+annotating a method with the `#[php(constructor)]` attribute. Note that when using
 the attribute, the function is not exported to PHP like a regular method.
 
 Constructors cannot use the visibility or rename attributes listed above.
@@ -74,7 +74,7 @@ the moment, and therefore no attributes are valid on constants.
 ## Property getters and setters
 
 You can add properties to classes which use Rust functions as getters and/or
-setters. This is done with the `#[getter]` and `#[setter]` attributes. By
+setters. This is done with the `#[php(getter)]` and `#[php(setter)]` attributes. By
 default, the `get_` or `set_` prefix is trimmed from the start of the function
 name, and the remainder is used as the property name.
 
@@ -84,7 +84,7 @@ option to the attribute which will change the property name.
 Properties do not necessarily have to have both a getter and a setter, if the
 property is immutable the setter can be omitted, and vice versa for getters.
 
-The `#[getter]` and `#[setter]` attributes are mutually exclusive on methods.
+The `#[php(getter)]` and `#[php(setter)]` attributes are mutually exclusive on methods.
 Properties cannot have multiple getters or setters, and the property name cannot
 conflict with field properties defined on the struct.
 
@@ -107,7 +107,7 @@ use ext_php_rs::{prelude::*, types::ZendClassObject};
 pub struct Human {
     name: String,
     age: i32,
-    #[prop]
+    #[php(prop)]
     address: String,
 }
 
@@ -124,17 +124,17 @@ impl Human {
         }
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn get_name(&self) -> String {
         self.name.to_string()
     }
 
-    #[setter]
+    #[php(setter)]
     pub fn set_name(&mut self, name: String) {
         self.name = name;
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn get_age(&self) -> i32 {
         self.age
     }

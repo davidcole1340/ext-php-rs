@@ -187,13 +187,13 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 /// use crate::ext_php_rs::convert::IntoZval;
 ///
 /// #[php_class]
-/// #[extends(ext_php_rs::zend::ce::exception)]
+/// #[php(extends = ext_php_rs::zend::ce::exception)]
 /// pub struct JsException {
-///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///     #[php(prop, flags = ext_php_rs::flags::PropertyFlags::Public)]
 ///     message: String,
-///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///     #[php(prop, flags = ext_php_rs::flags::PropertyFlags::Public)]
 ///     code: i32,
-///     #[prop(flags = ext_php_rs::flags::PropertyFlags::Public)]
+///     #[php(prop, flags = ext_php_rs::flags::PropertyFlags::Public)]
 ///     file: String,
 /// }
 ///
