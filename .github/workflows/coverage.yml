@@ -1,0 +1,60 @@
+name: coverage
+on: ["push", "pull_request"]
+env:
+  # increment this manually to force cache eviction
+  RUST_CACHE_PREFIX: "v0-rust"
+
+jobs:
+  test:
+    name: coverage
+    runs-on: ubuntu-latest
+    env:
+      clang: "17"
+      php_version: "8.4"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.php_version }}
+        env:
+          debug: true
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          components: rustfmt, clippy
+          toolchain: stable
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.RUST_CACHE_PREFIX }}
+      - name: Cache LLVM and Clang
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/llvm-${{ env.clang }}
+          key: ubuntu-latest-llvm-${{ env.clang }}
+      - name: Setup LLVM & Clang
+        id: clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: ${{ env.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ env.clang }}
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+      - name: Configure Clang
+        run: |
+          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/lib" >> $GITHUB_ENV
+          echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
+          echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/bin/llvm-config" >> $GITHUB_ENV
+      - name: Install tarpaulin
+        run: |
+          cargo install cargo-tarpaulin --locked
+          cargo tarpaulin --version
+      - name: Run tests
+        run: |
+          cargo tarpaulin --engine llvm --workspace --all-features --tests --exclude tests --exclude-files docsrs_bindings.rs --timeout 120 --out Xml
+      - name: Upload coverage
+        uses: coverallsapp/github-action@v2
