@@ -4,7 +4,7 @@ use quote::{format_ident, quote};
 use syn::ItemConst;
 
 use crate::helpers::get_docs;
-use crate::parsing::{PhpRename, Visibility};
+use crate::parsing::PhpRename;
 use crate::prelude::*;
 
 const INTERNAL_CONST_DOC_PREFIX: &str = "_internal_const_docs_";
@@ -15,7 +15,8 @@ const INTERNAL_CONST_NAME_PREFIX: &str = "_internal_const_name_";
 pub(crate) struct PhpConstAttribute {
     #[darling(flatten)]
     pub(crate) rename: PhpRename,
-    pub(crate) vis: Option<Visibility>,
+    // TODO: Implement const Visibility
+    // pub(crate) vis: Option<Visibility>,
     pub(crate) attrs: Vec<syn::Attribute>,
 }
 

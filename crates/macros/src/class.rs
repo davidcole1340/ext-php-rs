@@ -14,6 +14,9 @@ pub struct StructAttributes {
     /// The name of the PHP class. Defaults to the same name as the struct.
     #[darling(flatten)]
     rename: PhpRename,
+    /// A modifier function which should accept one argument, a `ClassBuilder`,
+    /// and return the same object. Allows the user to modify the class before
+    /// it is built.
     modifier: Option<syn::Ident>,
     /// An expression of `ClassFlags` to be applied to the class.
     flags: Option<syn::Expr>,
