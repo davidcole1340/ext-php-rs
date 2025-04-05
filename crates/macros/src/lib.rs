@@ -7,6 +7,7 @@ mod function;
 mod helpers;
 mod impl_;
 mod module;
+mod parsing;
 mod syn_ext;
 mod zval;
 
@@ -193,10 +194,10 @@ extern crate proc_macro;
 /// # fn main() {}
 /// ````
 #[proc_macro_attribute]
-pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_class(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
 
-    class::parser(args.into(), input)
+    class::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
@@ -354,21 +355,21 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 /// translated into an exception and thrown. See the section on
 /// [exceptions](../exceptions.md) for more details.
 #[proc_macro_attribute]
-pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_function(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    function::parser(args.into(), input)
+    function::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
 
 /// # `#[php_const]` Attribute
 ///
-/// Exports a Rust constant as a global PHP constant. The constant can be any type
-/// that implements `IntoConst`.
+/// Exports a Rust constant as a global PHP constant. The constant can be any
+/// type that implements `IntoConst`.
 ///
-/// The `wrap_constant!()` macro can be used to simplify the registration of constants.
-/// It sets the name and doc comments for the constant.
+/// The `wrap_constant!()` macro can be used to simplify the registration of
+/// constants. It sets the name and doc comments for the constant.
 ///
 /// ## Examples
 ///
@@ -404,30 +405,32 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
 pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemConst);
 
-    constant::parser(input).into()
+    constant::parser(input)
+        .unwrap_or_else(|e| e.to_compile_error())
+        .into()
 }
 
 /// # `#[php_module]` Attribute
 ///
-/// The module macro is used to annotate the `get_module` function, which is used by
-/// the PHP interpreter to retrieve information about your extension, including the
-/// name, version, functions and extra initialization functions. Regardless if you
-/// use this macro, your extension requires a `extern "C" fn get_module()` so that
-/// PHP can get this information.
+/// The module macro is used to annotate the `get_module` function, which is
+/// used by the PHP interpreter to retrieve information about your extension,
+/// including the name, version, functions and extra initialization functions.
+/// Regardless if you use this macro, your extension requires a `extern "C" fn
+/// get_module()` so that PHP can get this information.
 ///
 /// The function is renamed to `get_module` if you have used another name. The
-/// function is passed an instance of `ModuleBuilder` which allows you to register
-/// the following (if required):
+/// function is passed an instance of `ModuleBuilder` which allows you to
+/// register the following (if required):
 ///
 /// - Functions, classes, and constants
 /// - Extension and request startup and shutdown functions.
-///   - Read more about the PHP extension lifecycle
-///     [here](https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html).
+///   - Read more about the PHP extension lifecycle [here](https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html).
 /// - PHP extension information function
-///   - Used by the `phpinfo()` function to get information about your extension.
+///   - Used by the `phpinfo()` function to get information about your
+///     extension.
 ///
-/// Classes and constants are not registered with PHP in the `get_module` function. These are
-/// registered inside the extension startup function.
+/// Classes and constants are not registered with PHP in the `get_module`
+/// function. These are registered inside the extension startup function.
 ///
 /// ## Usage
 ///
@@ -656,10 +659,10 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// [`php_async_impl`]: ./async_impl.md
 #[proc_macro_attribute]
-pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_impl(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemImpl);
 
-    impl_::parser(args.into(), input)
+    impl_::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
@@ -939,7 +942,7 @@ pub fn zend_fastcall(input: TokenStream) -> TokenStream {
 pub fn wrap_function(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::Path);
 
-    match function::wrap(input) {
+    match function::wrap(&input) {
         Ok(parsed) => parsed,
         Err(e) => e.to_compile_error(),
     }
@@ -951,7 +954,7 @@ pub fn wrap_function(input: TokenStream) -> TokenStream {
 pub fn wrap_constant(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::Path);
 
-    match constant::wrap(input) {
+    match constant::wrap(&input) {
         Ok(parsed) => parsed,
         Err(e) => e.to_compile_error(),
     }
@@ -987,9 +990,10 @@ pub(crate) mod prelude {
 
     impl<T: quote::ToTokens> OptionTokens for Option<T> {
         fn option_tokens(&self) -> proc_macro2::TokenStream {
-            match self {
-                Some(token) => quote::quote! { ::std::option::Option::Some(#token) },
-                None => quote::quote! { ::std::option::Option::None },
+            if let Some(token) = self {
+                quote::quote! { ::std::option::Option::Some(#token) }
+            } else {
+                quote::quote! { ::std::option::Option::None }
             }
         }
     }

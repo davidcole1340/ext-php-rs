@@ -185,28 +185,28 @@ pub fn test_variadic_add_required(number: u32, numbers: &[&Zval]) -> u32 {
 pub struct TestClass {
     string: String,
     number: i32,
-    #[prop]
+    #[php(prop)]
     boolean: bool,
 }
 
 #[php_impl]
 impl TestClass {
-    #[getter]
+    #[php(getter)]
     pub fn get_string(&self) -> String {
         self.string.to_string()
     }
 
-    #[setter]
+    #[php(setter)]
     pub fn set_string(&mut self, string: String) {
         self.string = string;
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn get_number(&self) -> i32 {
         self.number
     }
 
-    #[setter]
+    #[php(setter)]
     pub fn set_number(&mut self, number: i32) {
         self.number = number;
     }

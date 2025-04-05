@@ -1,18 +1,19 @@
+#![allow(missing_docs)]
 #![cfg_attr(windows, feature(abi_vectorcall))]
 use ext_php_rs::{constant::IntoConst, prelude::*, types::ZendClassObject};
 
 #[derive(Debug)]
 #[php_class]
 pub struct TestClass {
-    #[prop]
+    #[php(prop)]
     a: i32,
-    #[prop]
+    #[php(prop)]
     b: i32,
 }
 
 #[php_impl]
 impl TestClass {
-    #[rename("NEW_CONSTANT_NAME")]
+    #[php(name = "NEW_CONSTANT_NAME")]
     pub const SOME_CONSTANT: i32 = 5;
     pub const SOME_OTHER_STR: &'static str = "Hello, world!";
 
@@ -23,8 +24,7 @@ impl TestClass {
         }
     }
 
-    #[optional(test)]
-    #[defaults(a = 5, test = 100)]
+    #[php(defaults(a = 5, test = 100))]
     pub fn test_camel_case(&self, a: i32, test: i32) {
         println!("a: {} test: {}", a, test);
     }

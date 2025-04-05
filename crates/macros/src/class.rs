@@ -1,76 +1,34 @@
-use darling::ast::NestedMeta;
-use darling::{FromMeta, ToTokens};
-use proc_macro2::{Ident, TokenStream};
+use darling::util::Flag;
+use darling::{FromAttributes, FromMeta, ToTokens};
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::parse::ParseStream;
-use syn::{Attribute, Expr, Fields, ItemStruct, LitStr, Meta, Token};
+use syn::{Attribute, Expr, Fields, ItemStruct};
 
 use crate::helpers::get_docs;
+use crate::parsing::PhpRename;
 use crate::prelude::*;
 
-#[derive(Debug, Default, FromMeta)]
-#[darling(default)]
-pub struct StructArgs {
+#[derive(FromAttributes, Debug, Default)]
+#[darling(attributes(php), forward_attrs(doc), default)]
+pub struct StructAttributes {
     /// The name of the PHP class. Defaults to the same name as the struct.
-    name: Option<String>,
-    /// A modifier function which should accept one argument, a `ClassBuilder`,
-    /// and return the same object. Allows the user to modify the class before
-    /// it is built.
+    #[darling(flatten)]
+    rename: PhpRename,
     modifier: Option<syn::Ident>,
     /// An expression of `ClassFlags` to be applied to the class.
     flags: Option<syn::Expr>,
-}
-
-/// Sub-attributes which are parsed by this macro. Must be placed underneath the
-/// main `#[php_class]` attribute.
-#[derive(Debug, Default)]
-struct ClassAttrs {
     extends: Option<syn::Expr>,
+    #[darling(multiple)]
     implements: Vec<syn::Expr>,
-    docs: Vec<String>,
+    attrs: Vec<Attribute>,
 }
 
-impl ClassAttrs {
-    fn parse(&mut self, attrs: &mut Vec<syn::Attribute>) -> Result<()> {
-        let mut unparsed = vec![];
-        unparsed.append(attrs);
-        for attr in unparsed {
-            let path = attr.path();
-
-            if path.is_ident("extends") {
-                if self.extends.is_some() {
-                    bail!(attr => "Only one `#[extends]` attribute is valid per struct.");
-                }
-                let extends: syn::Expr = match attr.parse_args() {
-                    Ok(extends) => extends,
-                    Err(_) => bail!(attr => "Invalid arguments passed to extends attribute."),
-                };
-                self.extends = Some(extends);
-            } else if path.is_ident("implements") {
-                let implements: syn::Expr = match attr.parse_args() {
-                    Ok(extends) => extends,
-                    Err(_) => bail!(attr => "Invalid arguments passed to implements attribute."),
-                };
-                self.implements.push(implements);
-            } else {
-                attrs.push(attr);
-            }
-        }
-        self.docs = get_docs(attrs);
-        Ok(())
-    }
-}
-
-pub fn parser(args: TokenStream, mut input: ItemStruct) -> Result<TokenStream> {
+pub fn parser(mut input: ItemStruct) -> Result<TokenStream> {
+    let attr = StructAttributes::from_attributes(&input.attrs)?;
     let ident = &input.ident;
-    let meta = NestedMeta::parse_meta_list(args)?;
-    let args = match StructArgs::from_list(&meta) {
-        Ok(args) => args,
-        Err(e) => bail!("Failed to parse struct arguments: {:?}", e),
-    };
-
-    let mut class_attrs = ClassAttrs::default();
-    class_attrs.parse(&mut input.attrs)?;
+    let name = attr.rename.rename(ident.to_string());
+    let docs = get_docs(&attr.attrs)?;
+    input.attrs.retain(|attr| !attr.path().is_ident("php"));
 
     let fields = match &mut input.fields {
         Fields::Named(fields) => parse_fields(fields.named.iter_mut())?,
@@ -79,13 +37,13 @@ pub fn parser(args: TokenStream, mut input: ItemStruct) -> Result<TokenStream> {
 
     let class_impl = generate_registered_class_impl(
         ident,
-        args.name.as_deref(),
-        args.modifier.as_ref(),
-        class_attrs.extends.as_ref(),
-        &class_attrs.implements,
+        &name,
+        attr.modifier.as_ref(),
+        attr.extends.as_ref(),
+        &attr.implements,
         &fields,
-        args.flags.as_ref(),
-        &class_attrs.docs,
+        attr.flags.as_ref(),
+        &docs,
     );
 
     Ok(quote! {
@@ -94,6 +52,16 @@ pub fn parser(args: TokenStream, mut input: ItemStruct) -> Result<TokenStream> {
 
         ::ext_php_rs::class_derives!(#ident);
     })
+}
+
+#[derive(FromAttributes, Debug, Default)]
+#[darling(attributes(php), forward_attrs(doc), default)]
+struct PropAttributes {
+    prop: Flag,
+    #[darling(flatten)]
+    rename: PhpRename,
+    flags: Option<Expr>,
+    attrs: Vec<Attribute>,
 }
 
 fn parse_fields<'a>(fields: impl Iterator<Item = &'a mut syn::Field>) -> Result<Vec<Property<'a>>> {
@@ -105,35 +73,16 @@ fn parse_fields<'a>(fields: impl Iterator<Item = &'a mut syn::Field>) -> Result<
 
     let mut result = vec![];
     for field in fields {
-        let mut docs = vec![];
-        let mut property = None;
-        let mut unparsed = vec![];
-        unparsed.append(&mut field.attrs);
+        let attr = PropAttributes::from_attributes(&field.attrs)?;
+        if attr.prop.is_present() {
+            let ident = field
+                .ident
+                .as_ref()
+                .ok_or_else(|| err!("Only named fields can be properties."))?;
+            let docs = get_docs(&attr.attrs)?;
+            field.attrs.retain(|attr| !attr.path().is_ident("php"));
 
-        for attr in unparsed {
-            if let Some(parsed) = parse_attribute(&attr)? {
-                match parsed {
-                    ParsedAttribute::Property(prop) => {
-                        let ident = field
-                            .ident
-                            .as_ref()
-                            .ok_or_else(|| err!(attr => "Only named fields can be properties."))?;
-
-                        property = Some((ident, prop));
-                    }
-                    ParsedAttribute::Comment(doc) => docs.push(doc),
-                }
-            } else {
-                field.attrs.push(attr);
-            }
-        }
-
-        if let Some((ident, prop)) = property {
-            result.push(Property {
-                ident,
-                attr: prop,
-                docs,
-            });
+            result.push(Property { ident, attr, docs });
         }
     }
 
@@ -141,98 +90,23 @@ fn parse_fields<'a>(fields: impl Iterator<Item = &'a mut syn::Field>) -> Result<
 }
 
 #[derive(Debug)]
-pub struct Property<'a> {
+struct Property<'a> {
     pub ident: &'a syn::Ident,
-    pub attr: PropertyAttr,
+    pub attr: PropAttributes,
     pub docs: Vec<String>,
 }
 
 impl Property<'_> {
     pub fn name(&self) -> String {
-        self.attr
-            .rename
-            .to_owned()
-            .unwrap_or_else(|| self.ident.to_string())
+        self.attr.rename.rename(self.ident.to_string())
     }
-}
-
-#[derive(Debug, Default)]
-pub struct PropertyAttr {
-    pub rename: Option<String>,
-    pub flags: Option<Expr>,
-}
-
-impl syn::parse::Parse for PropertyAttr {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut this = Self::default();
-        while !input.is_empty() {
-            let field = input.parse::<Ident>()?.to_string();
-            input.parse::<Token![=]>()?;
-
-            match field.as_str() {
-                "rename" => {
-                    this.rename.replace(input.parse::<LitStr>()?.value());
-                }
-                "flags" => {
-                    this.flags.replace(input.parse::<Expr>()?);
-                }
-                _ => return Err(input.error("invalid attribute field")),
-            }
-
-            let _ = input.parse::<Token![,]>();
-        }
-
-        Ok(this)
-    }
-}
-
-#[derive(Debug)]
-pub enum ParsedAttribute {
-    Property(PropertyAttr),
-    Comment(String),
-}
-
-pub fn parse_attribute(attr: &Attribute) -> Result<Option<ParsedAttribute>> {
-    let name = attr.path().to_token_stream().to_string();
-
-    Ok(match name.as_ref() {
-        "doc" => {
-            struct DocComment(pub String);
-
-            impl syn::parse::Parse for DocComment {
-                fn parse(input: ParseStream) -> syn::Result<Self> {
-                    input.parse::<Token![=]>()?;
-                    let comment: LitStr = input.parse()?;
-                    Ok(Self(comment.value()))
-                }
-            }
-
-            let comment: DocComment = syn::parse2(attr.to_token_stream())
-                .map_err(|e| err!(attr => "Failed to parse doc comment {}", e))?;
-            Some(ParsedAttribute::Comment(comment.0))
-        }
-        "prop" | "property" => {
-            let attr = match attr.meta {
-                Meta::Path(_) => PropertyAttr::default(),
-                Meta::List(_) => attr
-                    .parse_args()
-                    .map_err(|e| err!(attr => "Unable to parse `#[{}]` attribute: {}", name, e))?,
-                _ => {
-                    bail!(attr => "Invalid attribute format for `#[{}]`", name);
-                }
-            };
-
-            Some(ParsedAttribute::Property(attr))
-        }
-        _ => None,
-    })
 }
 
 /// Generates an implementation of `RegisteredClass` for struct `ident`.
 #[allow(clippy::too_many_arguments)]
 fn generate_registered_class_impl(
     ident: &syn::Ident,
-    class_name: Option<&str>,
+    class_name: &str,
     modifier: Option<&syn::Ident>,
     extends: Option<&syn::Expr>,
     implements: &[syn::Expr],
@@ -240,11 +114,6 @@ fn generate_registered_class_impl(
     flags: Option<&syn::Expr>,
     docs: &[String],
 ) -> TokenStream {
-    let ident_str = ident.to_string();
-    let class_name = match class_name {
-        Some(class_name) => class_name,
-        None => &ident_str,
-    };
     let modifier = modifier.option_tokens();
     let extends = extends.option_tokens();
 
@@ -255,7 +124,7 @@ fn generate_registered_class_impl(
             .attr
             .flags
             .as_ref()
-            .map(|flags| flags.to_token_stream())
+            .map(ToTokens::to_token_stream)
             .unwrap_or(quote! { ::ext_php_rs::flags::PropertyFlags::Public });
         let docs = &prop.docs;
 

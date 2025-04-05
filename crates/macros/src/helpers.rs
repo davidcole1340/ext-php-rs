@@ -1,16 +1,26 @@
-use crate::class::{parse_attribute, ParsedAttribute};
-use syn::Attribute;
+use crate::prelude::*;
+use syn::{Attribute, Expr, Lit, Meta};
 
 /// Takes a list of attributes and returns a list of doc comments retrieved from
 /// the attributes.
-pub fn get_docs(attrs: &[Attribute]) -> Vec<String> {
-    let mut docs = vec![];
+pub fn get_docs(attrs: &[Attribute]) -> Result<Vec<String>> {
+    attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("doc"))
+        .map(|attr| {
+            let Meta::NameValue(meta) = &attr.meta else {
+                bail!(attr.meta => "Invalid format for `#[doc]` attribute.");
+            };
 
-    for attr in attrs {
-        if let Ok(Some(ParsedAttribute::Comment(doc))) = parse_attribute(attr) {
-            docs.push(doc);
-        }
-    }
+            let Expr::Lit(value) = &meta.value else {
+                bail!(attr.meta => "Invalid format for `#[doc]` attribute.");
+            };
 
-    docs
+            let Lit::Str(doc) = &value.lit else {
+                bail!(value.lit => "Invalid format for `#[doc]` attribute.");
+            };
+
+            Ok(doc.value())
+        })
+        .collect::<Result<Vec<_>>>()
 }

@@ -1,72 +1,15 @@
-use darling::ast::NestedMeta;
-use darling::FromMeta;
+use darling::util::Flag;
+use darling::FromAttributes;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::HashMap;
 use syn::{Ident, ItemImpl, Lit};
 
+use crate::constant::PhpConstAttribute;
 use crate::function::{Args, CallType, Function, MethodReceiver};
 use crate::helpers::get_docs;
+use crate::parsing::{PhpRename, RenameRule, Visibility};
 use crate::prelude::*;
-
-#[derive(Debug, Copy, Clone, FromMeta, Default)]
-pub enum RenameRule {
-    /// Methods won't be renamed.
-    #[darling(rename = "none")]
-    None,
-    /// Methods will be converted to camelCase.
-    #[darling(rename = "camelCase")]
-    #[default]
-    Camel,
-    /// Methods will be converted to snake_case.
-    #[darling(rename = "snake_case")]
-    Snake,
-}
-
-impl RenameRule {
-    /// Change case of an identifier.
-    ///
-    /// Magic methods are handled specially to make sure they're always cased
-    /// correctly.
-    pub fn rename(&self, name: impl AsRef<str>) -> String {
-        let name = name.as_ref();
-        match self {
-            RenameRule::None => name.to_string(),
-            rule => match name {
-                "__construct" => "__construct".to_string(),
-                "__destruct" => "__destruct".to_string(),
-                "__call" => "__call".to_string(),
-                "__call_static" => "__callStatic".to_string(),
-                "__get" => "__get".to_string(),
-                "__set" => "__set".to_string(),
-                "__isset" => "__isset".to_string(),
-                "__unset" => "__unset".to_string(),
-                "__sleep" => "__sleep".to_string(),
-                "__wakeup" => "__wakeup".to_string(),
-                "__serialize" => "__serialize".to_string(),
-                "__unserialize" => "__unserialize".to_string(),
-                "__to_string" => "__toString".to_string(),
-                "__invoke" => "__invoke".to_string(),
-                "__set_state" => "__set_state".to_string(),
-                "__clone" => "__clone".to_string(),
-                "__debug_info" => "__debugInfo".to_string(),
-                field => match rule {
-                    Self::Camel => ident_case::RenameRule::CamelCase.apply_to_field(field),
-                    Self::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(field),
-                    Self::None => unreachable!(),
-                },
-            },
-        }
-    }
-}
-
-/// Method visibilities.
-#[derive(Debug)]
-enum MethodVis {
-    Public,
-    Private,
-    Protected,
-}
 
 /// Method types.
 #[derive(Debug)]
@@ -83,26 +26,18 @@ enum MethodTy {
     Abstract,
 }
 
-#[derive(Default, Debug, FromMeta)]
-#[darling(default)]
-pub struct AttrArgs {
+#[derive(FromAttributes, Debug, Default)]
+#[darling(attributes(php), default)]
+pub struct PhpImpl {
+    /// Rename methods to match the given rule.
     rename_methods: Option<RenameRule>,
+    /// Rename constants to match the given rule.
+    rename_constants: Option<RenameRule>,
 }
 
-/// Attribute arguments for `impl` blocks.
-#[derive(Debug, Default, FromMeta)]
-#[darling(default)]
-pub struct ImplArgs {
-    /// How the methods are renamed.
-    rename_methods: RenameRule,
-}
-
-pub fn parser(args: TokenStream, mut input: ItemImpl) -> Result<TokenStream> {
-    let meta = NestedMeta::parse_meta_list(args)?;
-    let args = match ImplArgs::from_list(&meta) {
-        Ok(args) => args,
-        Err(e) => bail!(input => "Failed to parse impl attribute arguments: {:?}", e),
-    };
+pub fn parser(mut input: ItemImpl) -> Result<TokenStream> {
+    let args = PhpImpl::from_attributes(&input.attrs)?;
+    input.attrs.retain(|attr| !attr.path().is_ident("php"));
     let path = match &*input.self_ty {
         syn::Type::Path(ty) => &ty.path,
         _ => {
@@ -110,10 +45,15 @@ pub fn parser(args: TokenStream, mut input: ItemImpl) -> Result<TokenStream> {
         }
     };
 
-    let mut parsed = ParsedImpl::new(path, args.rename_methods);
+    let mut parsed = ParsedImpl::new(
+        path,
+        args.rename_methods.unwrap_or(RenameRule::Camel),
+        args.rename_constants
+            .unwrap_or(RenameRule::ScreamingSnakeCase),
+    );
     parsed.parse(input.items.iter_mut())?;
 
-    let php_class_impl = parsed.generate_php_class_impl()?;
+    let php_class_impl = parsed.generate_php_class_impl();
     Ok(quote::quote! {
         #input
         #php_class_impl
@@ -130,86 +70,55 @@ struct MethodArgs {
     /// Default values for optional arguments.
     defaults: HashMap<Ident, Lit>,
     /// Visibility of the method (public, protected, private).
-    vis: MethodVis,
+    vis: Visibility,
     /// Method type.
     ty: MethodTy,
 }
 
+#[derive(FromAttributes, Default, Debug)]
+#[darling(default, attributes(php), forward_attrs(doc))]
+pub struct PhpFunctionImplAttribute {
+    #[darling(flatten)]
+    rename: PhpRename,
+    defaults: HashMap<Ident, Lit>,
+    optional: Option<Ident>,
+    vis: Option<Visibility>,
+    attrs: Vec<syn::Attribute>,
+    getter: Flag,
+    setter: Flag,
+    constructor: Flag,
+    abstract_method: Flag,
+}
+
 impl MethodArgs {
-    fn new(name: String) -> Self {
-        let ty = if name == "__construct" {
+    fn new(name: String, attr: PhpFunctionImplAttribute) -> Self {
+        let ty = if name == "__construct" || attr.constructor.is_present() {
             MethodTy::Constructor
+        } else if attr.getter.is_present() {
+            MethodTy::Getter
+        } else if attr.setter.is_present() {
+            MethodTy::Setter
+        } else if attr.abstract_method.is_present() {
+            MethodTy::Abstract
         } else {
             MethodTy::Normal
         };
+
         Self {
             name,
-            optional: Default::default(),
-            defaults: Default::default(),
-            vis: MethodVis::Public,
+            optional: attr.optional,
+            defaults: attr.defaults,
+            vis: attr.vis.unwrap_or(Visibility::Public),
             ty,
         }
-    }
-
-    fn parse(&mut self, attrs: &mut Vec<syn::Attribute>) -> Result<()> {
-        let mut unparsed = vec![];
-        unparsed.append(attrs);
-        for attr in unparsed {
-            let path = &attr.path();
-
-            if path.is_ident("optional") {
-                // x
-                if self.optional.is_some() {
-                    bail!(attr => "Only one `#[optional]` attribute is valid per method.");
-                }
-                let optional = attr.parse_args().map_err(
-                    |e| err!(e.span() => "Invalid arguments passed to `#[optional]` attribute. {}", e),
-                )?;
-                self.optional = Some(optional);
-            } else if path.is_ident("defaults") {
-                let defaults = HashMap::from_meta(&attr.meta).map_err(
-                    |e| err!(e.span() => "Invalid arguments passed to `#[defaults]` attribute. {}", e),
-                )?;
-                self.defaults = defaults;
-            } else if path.is_ident("public") {
-                // x
-                self.vis = MethodVis::Public;
-            } else if path.is_ident("protected") {
-                // x
-                self.vis = MethodVis::Protected;
-            } else if path.is_ident("private") {
-                // x
-                self.vis = MethodVis::Private;
-            } else if path.is_ident("rename") {
-                let lit: syn::Lit = attr.parse_args().map_err(|e| err!(attr => "Invalid arguments passed to the `#[rename]` attribute. {}", e))?;
-                match lit {
-                    Lit::Str(name) => self.name = name.value(),
-                    _ => bail!(attr => "Only strings are valid method names."),
-                };
-            } else if path.is_ident("getter") {
-                // x
-                self.ty = MethodTy::Getter;
-            } else if path.is_ident("setter") {
-                // x
-                self.ty = MethodTy::Setter;
-            } else if path.is_ident("constructor") {
-                // x
-                self.ty = MethodTy::Constructor;
-            } else if path.is_ident("abstract_method") {
-                // x
-                self.ty = MethodTy::Abstract;
-            } else {
-                attrs.push(attr);
-            }
-        }
-        Ok(())
     }
 }
 
 #[derive(Debug)]
 struct ParsedImpl<'a> {
     path: &'a syn::Path,
-    rename: RenameRule,
+    rename_methods: RenameRule,
+    rename_constants: RenameRule,
     functions: Vec<FnBuilder>,
     constructor: Option<Function<'a>>,
     constants: Vec<Constant<'a>>,
@@ -217,10 +126,10 @@ struct ParsedImpl<'a> {
 
 #[derive(Debug)]
 struct FnBuilder {
-    /// Tokens which represent the FunctionBuilder for this function.
+    /// Tokens which represent the `FunctionBuilder` for this function.
     pub builder: TokenStream,
     /// The visibility of this method.
-    pub vis: MethodVis,
+    pub vis: Visibility,
     /// Whether this method is abstract.
     pub r#abstract: bool,
 }
@@ -242,13 +151,14 @@ impl<'a> ParsedImpl<'a> {
     ///
     /// * `path` - Path of the type the `impl` block is for.
     /// * `rename` - Rename rule for methods.
-    fn new(path: &'a syn::Path, rename: RenameRule) -> Self {
+    fn new(path: &'a syn::Path, rename_methods: RenameRule, rename_constants: RenameRule) -> Self {
         Self {
             path,
-            rename,
-            functions: Default::default(),
-            constructor: Default::default(),
-            constants: Default::default(),
+            rename_methods,
+            rename_constants,
+            functions: Vec::default(),
+            constructor: Option::default(),
+            constants: Vec::default(),
         }
     }
 
@@ -257,37 +167,28 @@ impl<'a> ParsedImpl<'a> {
         for items in items {
             match items {
                 syn::ImplItem::Const(c) => {
-                    let mut name = None;
-                    let mut unparsed = vec![];
-                    unparsed.append(&mut c.attrs);
-                    for attr in unparsed {
-                        if attr.path().is_ident("rename") {
-                            let lit: syn::Lit = attr.parse_args().map_err(|e| err!(attr => "Invalid arguments passed to the `#[rename]` attribute. {}", e))?;
-                            match lit {
-                                Lit::Str(str) => name = Some(str.value()),
-                                _ => bail!(attr => "Only strings are valid constant names."),
-                            };
-                        } else {
-                            c.attrs.push(attr);
-                        }
-                    }
-                    let docs = get_docs(&c.attrs);
+                    let attr = PhpConstAttribute::from_attributes(&c.attrs)?;
+                    let name = self.rename_constants.rename(c.ident.to_string());
+                    let name = attr.rename.rename(name);
+                    let docs = get_docs(&attr.attrs)?;
+                    c.attrs.retain(|attr| !attr.path().is_ident("php"));
 
                     self.constants.push(Constant {
-                        name: name.unwrap_or_else(|| c.ident.to_string()),
+                        name,
                         ident: &c.ident,
                         docs,
                     });
                 }
                 syn::ImplItem::Fn(method) => {
-                    let name = self.rename.rename(method.sig.ident.to_string());
-                    let docs = get_docs(&method.attrs);
-                    let mut opts = MethodArgs::new(name);
-                    opts.parse(&mut method.attrs)?;
+                    let attr = PhpFunctionImplAttribute::from_attributes(&method.attrs)?;
+                    let name = self.rename_methods.rename(method.sig.ident.to_string());
+                    let name = attr.rename.rename(name);
+                    let docs = get_docs(&attr.attrs)?;
+                    method.attrs.retain(|attr| !attr.path().is_ident("php"));
 
+                    let opts = MethodArgs::new(name, attr);
                     let args = Args::parse_from_fnargs(method.sig.inputs.iter(), opts.defaults)?;
-                    let mut func =
-                        Function::new(&method.sig, Some(opts.name), args, opts.optional, docs)?;
+                    let mut func = Function::new(&method.sig, opts.name, args, opts.optional, docs);
 
                     if matches!(opts.ty, MethodTy::Constructor) {
                         if self.constructor.replace(func).is_some() {
@@ -303,8 +204,7 @@ impl<'a> ParsedImpl<'a> {
                                 .args
                                 .typed
                                 .first()
-                                .map(|arg| arg.name == "self_")
-                                .unwrap_or_default()
+                                .is_some_and(|arg| arg.name == "self_")
                             {
                                 // `self_: &[mut] ZendClassObject<Self>`
                                 // Need to remove arg from argument list
@@ -315,7 +215,7 @@ impl<'a> ParsedImpl<'a> {
                                 MethodReceiver::Static
                             },
                         };
-                        let builder = func.function_builder(call_type)?;
+                        let builder = func.function_builder(call_type);
                         self.functions.push(FnBuilder {
                             builder,
                             vis: opts.vis,
@@ -331,14 +231,14 @@ impl<'a> ParsedImpl<'a> {
 
     /// Generates an `impl PhpClassImpl<Self> for PhpClassImplCollector<Self>`
     /// block.
-    fn generate_php_class_impl(&self) -> Result<TokenStream> {
+    fn generate_php_class_impl(&self) -> TokenStream {
         let path = &self.path;
         let functions = &self.functions;
-        let constructor = match &self.constructor {
-            Some(func) => Some(func.constructor_meta(self.path)?),
-            None => None,
-        }
-        .option_tokens();
+        let constructor = self
+            .constructor
+            .as_ref()
+            .map(|func| func.constructor_meta(self.path))
+            .option_tokens();
         let constants = self.constants.iter().map(|c| {
             let name = &c.name;
             let ident = c.ident;
@@ -348,7 +248,7 @@ impl<'a> ParsedImpl<'a> {
             }
         });
 
-        Ok(quote! {
+        quote! {
             impl ::ext_php_rs::internal::class::PhpClassImpl<#path>
                 for ::ext_php_rs::internal::class::PhpClassImplCollector<#path>
             {
@@ -370,7 +270,7 @@ impl<'a> ParsedImpl<'a> {
                     &[#(#constants),*]
                 }
             }
-        })
+        }
     }
 }
 
@@ -380,9 +280,9 @@ impl quote::ToTokens for FnBuilder {
         // TODO(cole_d): allow more flags via attributes
         let mut flags = vec![];
         flags.push(match self.vis {
-            MethodVis::Public => quote! { ::ext_php_rs::flags::MethodFlags::Public },
-            MethodVis::Protected => quote! { ::ext_php_rs::flags::MethodFlags::Protected },
-            MethodVis::Private => quote! { ::ext_php_rs::flags::MethodFlags::Private },
+            Visibility::Public => quote! { ::ext_php_rs::flags::MethodFlags::Public },
+            Visibility::Protected => quote! { ::ext_php_rs::flags::MethodFlags::Protected },
+            Visibility::Private => quote! { ::ext_php_rs::flags::MethodFlags::Private },
         });
         if self.r#abstract {
             flags.push(quote! { ::ext_php_rs::flags::MethodFlags::Abstract });
