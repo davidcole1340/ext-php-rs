@@ -7,6 +7,7 @@ mod function;
 mod helpers;
 mod impl_;
 mod module;
+mod parsing;
 mod syn_ext;
 mod zval;
 
@@ -21,50 +22,56 @@ extern crate proc_macro;
 ///
 /// Structs can be exported to PHP as classes with the `#[php_class]` attribute
 /// macro. This attribute derives the `RegisteredClass` trait on your struct, as
-/// well as registering the class to be registered with the `#[php_module]` macro.
+/// well as registering the class to be registered with the `#[php_module]`
+/// macro.
 ///
 /// ## Options
 ///
 /// The attribute takes some options to modify the output of the class:
 ///
-/// - `name` - Changes the name of the class when exported to PHP. The Rust struct
-///   name is kept the same. If no name is given, the name of the struct is used.
-///   Useful for namespacing classes.
+/// - `name` - Changes the name of the class when exported to PHP. The Rust
+///   struct name is kept the same. If no name is given, the name of the struct
+///   is used. Useful for namespacing classes.
 ///
-/// There are also additional macros that modify the class. These macros **must** be
-/// placed underneath the `#[php_class]` attribute.
+/// There are also additional macros that modify the class. These macros
+/// **must** be placed underneath the `#[php_class]` attribute.
 ///
-/// - `#[extends(ce)]` - Sets the parent class of the class. Can only be used once.
-///   `ce` must be a function with the signature `fn() -> &'static ClassEntry`.
-/// - `#[implements(ce)]` - Implements the given interface on the class. Can be used
-///   multiple times. `ce` must be a valid function with the signature
-///   `fn() -> &'static ClassEntry`.
+/// - `#[php(extends = ce)]` - Sets the parent class of the class. Can only be
+///   used once. `ce` must be a function with the signature `fn() -> &'static
+///   ClassEntry`.
+/// - `#[php(implements = ce)]` - Implements the given interface on the class.
+///   Can be used multiple times. `ce` must be a valid function with the
+///   signature `fn() -> &'static ClassEntry`.
 ///
-/// You may also use the `#[prop]` attribute on a struct field to use the field as a
-/// PHP property. By default, the field will be accessible from PHP publicly with
-/// the same name as the field. Property types must implement `IntoZval` and
-/// `FromZval`.
+/// You may also use the `#[php(prop)]` attribute on a struct field to use the
+/// field as a PHP property. By default, the field will be accessible from PHP
+/// publicly with the same name as the field. Property types must implement
+/// `IntoZval` and `FromZval`.
 ///
 /// You can rename the property with options:
 ///
-/// - `rename` - Allows you to rename the property, e.g.
-///   `#[prop(rename = "new_name")]`
+/// - `name` - Allows you to rename the property, e.g. `#[php(name =
+///   "new_name")]`
+/// - `rename` - Allows you to rename the property using rename rules, e.g.
+///   `#[php(rename = PascalCase)]`
 ///
 /// ## Restrictions
 ///
 /// ### No lifetime parameters
 ///
-/// Rust lifetimes are used by the Rust compiler to reason about a program's memory safety.
-/// They are a compile-time only concept;
-/// there is no way to access Rust lifetimes at runtime from a dynamic language like PHP.
+/// Rust lifetimes are used by the Rust compiler to reason about a program's
+/// memory safety. They are a compile-time only concept;
+/// there is no way to access Rust lifetimes at runtime from a dynamic language
+/// like PHP.
 ///
 /// As soon as Rust data is exposed to PHP,
-/// there is no guarantee which the Rust compiler can make on how long the data will live.
-/// PHP is a reference-counted language and those references can be held
-/// for an arbitrarily long time, which is untraceable by the Rust compiler.
-/// The only possible way to express this correctly is to require that any `#[php_class]`
-/// does not borrow data for any lifetime shorter than the `'static` lifetime,
-/// i.e. the `#[php_class]` cannot have any lifetime parameters.
+/// there is no guarantee which the Rust compiler can make on how long the data
+/// will live. PHP is a reference-counted language and those references can be
+/// held for an arbitrarily long time, which is untraceable by the Rust
+/// compiler. The only possible way to express this correctly is to require that
+/// any `#[php_class]` does not borrow data for any lifetime shorter than the
+/// `'static` lifetime, i.e. the `#[php_class]` cannot have any lifetime
+/// parameters.
 ///
 /// When you need to share ownership of data between PHP and Rust,
 /// instead of using borrowed references with lifetimes, consider using
@@ -72,11 +79,12 @@ extern crate proc_macro;
 ///
 /// ### No generic parameters
 ///
-/// A Rust struct `Foo<T>` with a generic parameter `T` generates new compiled implementations
-/// each time it is used with a different concrete type for `T`.
+/// A Rust struct `Foo<T>` with a generic parameter `T` generates new compiled
+/// implementations each time it is used with a different concrete type for `T`.
 /// These new implementations are generated by the compiler at each usage site.
 /// This is incompatible with wrapping `Foo` in PHP,
-/// where there needs to be a single compiled implementation of `Foo` which is integrated with the PHP interpreter.
+/// where there needs to be a single compiled implementation of `Foo` which is
+/// integrated with the PHP interpreter.
 ///
 /// ## Example
 ///
@@ -91,7 +99,7 @@ extern crate proc_macro;
 /// pub struct Human {
 ///     name: String,
 ///     age: i32,
-///     #[prop]
+///     #[php(prop)]
 ///     address: String,
 /// }
 ///
@@ -102,8 +110,8 @@ extern crate proc_macro;
 /// # fn main() {}
 /// ```
 ///
-/// Create a custom exception `RedisException`, which extends `Exception`, and put
-/// it in the `Redis\Exception` namespace:
+/// Create a custom exception `RedisException`, which extends `Exception`, and
+/// put it in the `Redis\Exception` namespace:
 ///
 /// ```rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -115,7 +123,7 @@ extern crate proc_macro;
 /// };
 ///
 /// #[php_class(name = "Redis\\Exception\\RedisException")]
-/// #[extends(ce::exception)]
+/// #[php(extends = ce::exception)]
 /// #[derive(Default)]
 /// pub struct RedisException;
 ///
@@ -136,8 +144,8 @@ extern crate proc_macro;
 ///
 /// ## Implementing an Interface
 ///
-/// To implement an interface, use `#[implements(ce)]` where `ce` is an function returning a `ClassEntry`.
-/// The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
+/// To implement an interface, use `#[php(implements = ce)]` where `ce` is an
+/// function returning a `ClassEntry`. The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
 ///
 /// ````rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -150,7 +158,7 @@ extern crate proc_macro;
 /// };
 ///
 /// #[php_class]
-/// #[implements(ce::arrayaccess)]
+/// #[php(implements = ce::arrayaccess)]
 /// #[derive(Default)]
 /// pub struct EvenNumbersArray;
 ///
@@ -193,10 +201,10 @@ extern crate proc_macro;
 /// # fn main() {}
 /// ````
 #[proc_macro_attribute]
-pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_class(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
 
-    class::parser(args.into(), input)
+    class::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
@@ -211,10 +219,10 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// ## Optional parameters
 ///
-/// Optional parameters can be used by setting the Rust parameter type to a variant
-/// of `Option<T>`. The macro will then figure out which parameters are optional by
-/// using the last consecutive arguments that are a variant of `Option<T>` or have a
-/// default value.
+/// Optional parameters can be used by setting the Rust parameter type to a
+/// variant of `Option<T>`. The macro will then figure out which parameters are
+/// optional by using the last consecutive arguments that are a variant of
+/// `Option<T>` or have a default value.
 ///
 /// ```rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -239,16 +247,17 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 /// # fn main() {}
 /// ```
 ///
-/// Default parameter values can also be set for optional parameters. This is done
-/// through the `defaults` attribute option. When an optional parameter has a
-/// default, it does not need to be a variant of `Option`:
+/// Default parameter values can also be set for optional parameters. This is
+/// done through the `#[php(defaults)]` attribute option. When an optional
+/// parameter has a default, it does not need to be a variant of `Option`:
 ///
 /// ```rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
 /// # extern crate ext_php_rs;
 /// use ext_php_rs::prelude::*;
 ///
-/// #[php_function(defaults(offset = 0))]
+/// #[php_function]
+/// #[php(defaults(offset = 0))]
 /// pub fn rusty_strpos(haystack: &str, needle: &str, offset: i64) -> Option<usize> {
 ///     let haystack: String = haystack.chars().skip(offset as usize).collect();
 ///     haystack.find(needle)
@@ -301,7 +310,8 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// /// `age` will be deemed required and nullable rather than optional,
 /// /// while description will be optional.
-/// #[php_function(optional = "description")]
+/// #[php_function]
+/// #[php(optional = "description")]
 /// pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> String {
 ///     let mut greeting = format!("Hello, {}!", name);
 ///
@@ -325,9 +335,9 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// ## Variadic Functions
 ///
-/// Variadic functions can be implemented by specifying the last argument in the Rust
-/// function to the type `&[&Zval]`. This is the equivalent of a PHP function using
-/// the `...$args` syntax.
+/// Variadic functions can be implemented by specifying the last argument in the
+/// Rust function to the type `&[&Zval]`. This is the equivalent of a PHP
+/// function using the `...$args` syntax.
 ///
 /// ```rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -354,21 +364,28 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 /// translated into an exception and thrown. See the section on
 /// [exceptions](../exceptions.md) for more details.
 #[proc_macro_attribute]
-pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_function(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    function::parser(args.into(), input)
+    function::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
 
 /// # `#[php_const]` Attribute
 ///
-/// Exports a Rust constant as a global PHP constant. The constant can be any type
-/// that implements `IntoConst`.
+/// Exports a Rust constant as a global PHP constant. The constant can be any
+/// type that implements `IntoConst`.
 ///
-/// The `wrap_constant!()` macro can be used to simplify the registration of constants.
-/// It sets the name and doc comments for the constant.
+/// The `wrap_constant!()` macro can be used to simplify the registration of
+/// constants. It sets the name and doc comments for the constant.
+///
+/// You can rename the const with options:
+///
+/// - `name` - Allows you to rename the property, e.g. `#[php(name =
+///   "new_name")]`
+/// - `rename` - Allows you to rename the property using rename rules, e.g.
+///   `#[php(rename = PascalCase)]`
 ///
 /// ## Examples
 ///
@@ -381,12 +398,17 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
 /// const TEST_CONSTANT: i32 = 100;
 ///
 /// #[php_const]
+/// #[php(name = "I_AM_RENAMED")]
+/// const TEST_CONSTANT_THE_SECOND: i32 = 42;
+///
+/// #[php_const]
 /// const ANOTHER_STRING_CONST: &'static str = "Hello world!";
 ///
 /// #[php_module]
 /// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 ///     module
 ///         .constant(wrap_constant!(TEST_CONSTANT))
+///         .constant(wrap_constant!(TEST_CONSTANT_THE_SECOND))
 ///         .constant(("MANUAL_CONSTANT", ANOTHER_STRING_CONST, &[]))
 /// }
 /// # fn main() {}
@@ -398,36 +420,39 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
 /// <?php
 ///
 /// var_dump(TEST_CONSTANT); // int(100)
+/// var_dump(I_AM_RENAMED); // int(42)
 /// var_dump(MANUAL_CONSTANT); // string(12) "Hello world!"
 /// ```
 #[proc_macro_attribute]
 pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemConst);
 
-    constant::parser(input).into()
+    constant::parser(input)
+        .unwrap_or_else(|e| e.to_compile_error())
+        .into()
 }
 
 /// # `#[php_module]` Attribute
 ///
-/// The module macro is used to annotate the `get_module` function, which is used by
-/// the PHP interpreter to retrieve information about your extension, including the
-/// name, version, functions and extra initialization functions. Regardless if you
-/// use this macro, your extension requires a `extern "C" fn get_module()` so that
-/// PHP can get this information.
+/// The module macro is used to annotate the `get_module` function, which is
+/// used by the PHP interpreter to retrieve information about your extension,
+/// including the name, version, functions and extra initialization functions.
+/// Regardless if you use this macro, your extension requires a `extern "C" fn
+/// get_module()` so that PHP can get this information.
 ///
 /// The function is renamed to `get_module` if you have used another name. The
-/// function is passed an instance of `ModuleBuilder` which allows you to register
-/// the following (if required):
+/// function is passed an instance of `ModuleBuilder` which allows you to
+/// register the following (if required):
 ///
 /// - Functions, classes, and constants
 /// - Extension and request startup and shutdown functions.
-///   - Read more about the PHP extension lifecycle
-///     [here](https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html).
+///   - Read more about the PHP extension lifecycle [here](https://www.phpinternalsbook.com/php7/extensions_design/php_lifecycle.html).
 /// - PHP extension information function
-///   - Used by the `phpinfo()` function to get information about your extension.
+///   - Used by the `phpinfo()` function to get information about your
+///     extension.
 ///
-/// Classes and constants are not registered with PHP in the `get_module` function. These are
-/// registered inside the extension startup function.
+/// Classes and constants are not registered with PHP in the `get_module`
+/// function. These are registered inside the extension startup function.
 ///
 /// ## Usage
 ///
@@ -484,16 +509,17 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// # `#[php_impl]` Attribute
 ///
-/// You can export an entire `impl` block to PHP. This exports all methods as well
-/// as constants to PHP on the class that it is implemented on. This requires the
-/// `#[php_class]` macro to already be used on the underlying struct. Trait
-/// implementations cannot be exported to PHP. Only one `impl` block can be exported
-/// per class.
+/// You can export an entire `impl` block to PHP. This exports all methods as
+/// well as constants to PHP on the class that it is implemented on. This
+/// requires the `#[php_class]` macro to already be used on the underlying
+/// struct. Trait implementations cannot be exported to PHP. Only one `impl`
+/// block can be exported per class.
 ///
-/// If you do not want a function exported to PHP, you should place it in a separate
-/// `impl` block.
+/// If you do not want a function exported to PHP, you should place it in a
+/// separate `impl` block.
 ///
-/// If you want to use async Rust, use `#[php_async_impl]`, instead: see [here &raquo;](./async_impl.md) for more info.
+/// If you want to use async Rust, use `#[php_async_impl]`, instead: see [here
+/// &raquo;](./async_impl.md) for more info.
 ///
 /// ## Methods
 ///
@@ -501,16 +527,17 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 /// [`php_function`] macro first. The primary difference between functions and
 /// methods is they are bounded by their class object.
 ///
-/// Class methods can take a `&self` or `&mut self` parameter. They cannot take a
-/// consuming `self` parameter. Static methods can omit this `self` parameter.
+/// Class methods can take a `&self` or `&mut self` parameter. They cannot take
+/// a consuming `self` parameter. Static methods can omit this `self` parameter.
 ///
 /// To access the underlying Zend object, you can take a reference to a
-/// `ZendClassObject<T>` in place of the self parameter, where the parameter must
-/// be named `self_`. This can also be used to return a reference to `$this`.
+/// `ZendClassObject<T>` in place of the self parameter, where the parameter
+/// must be named `self_`. This can also be used to return a reference to
+/// `$this`.
 ///
-/// By default, all methods are renamed in PHP to the camel-case variant of the Rust
-/// method name. This can be changed on the `#[php_impl]` attribute, by passing one
-/// of the following as the `rename_methods` option:
+/// By default, all methods are renamed in PHP to the camel-case variant of the
+/// Rust method name. This can be changed on the `#[php_impl]` attribute, by
+/// passing one of the following as the `rename_methods` option:
 ///
 /// - `"none"` - does not rename the methods.
 /// - `"camelCase"` - renames all methods to camel case (default).
@@ -521,65 +548,68 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// The rest of the options are passed as separate attributes:
 ///
-/// - `#[defaults(i = 5, b = "hello")]` - Sets the default value for parameter(s).
-/// - `#[optional(i)]` - Sets the first optional parameter. Note that this also sets
-///   the remaining parameters as optional, so all optional parameters must be a
-///   variant of `Option<T>`.
-/// - `#[public]`, `#[protected]` and `#[private]` - Sets the visibility of the
-///   method.
-/// - `#[rename("method_name")]` - Renames the PHP method to a different identifier,
-///   without renaming the Rust method name.
+/// - `#[php(defaults(i = 5, b = "hello")]` - Sets the default value for
+///   parameter(s).
+/// - `#[php(optional = i)]` - Sets the first optional parameter. Note that this
+///   also sets the remaining parameters as optional, so all optional parameters
+///   must be a variant of `Option<T>`.
+/// - `#[php(public)]`, `#[php(protected)]` and `#[php(private)]` - Sets the
+///   visibility of the method.
+/// - `#[php(name = "method_name")]` - Renames the PHP method to a different
+///   identifier, without renaming the Rust method name.
 ///
-/// The `#[defaults]` and `#[optional]` attributes operate the same as the
-/// equivalent function attribute parameters.
+/// The `#[php(defaults)]` and `#[php(optional)]` attributes operate the same as
+/// the equivalent function attribute parameters.
 ///
 /// ### Constructors
 ///
-/// By default, if a class does not have a constructor, it is not constructable from
-/// PHP. It can only be returned from a Rust function to PHP.
+/// By default, if a class does not have a constructor, it is not constructable
+/// from PHP. It can only be returned from a Rust function to PHP.
 ///
 /// Constructors are Rust methods which can take any amount of parameters and
-/// returns either `Self` or `Result<Self, E>`, where `E: Into<PhpException>`. When
-/// the error variant of `Result` is encountered, it is thrown as an exception and
-/// the class is not constructed.
+/// returns either `Self` or `Result<Self, E>`, where `E: Into<PhpException>`.
+/// When the error variant of `Result` is encountered, it is thrown as an
+/// exception and the class is not constructed.
 ///
 /// Constructors are designated by either naming the method `__construct` or by
-/// annotating a method with the `#[constructor]` attribute. Note that when using
-/// the attribute, the function is not exported to PHP like a regular method.
+/// annotating a method with the `#[php(constructor)]` attribute. Note that when
+/// using the attribute, the function is not exported to PHP like a regular
+/// method.
 ///
 /// Constructors cannot use the visibility or rename attributes listed above.
 ///
 /// ## Constants
 ///
-/// Constants are defined as regular Rust `impl` constants. Any type that implements
-/// `IntoZval` can be used as a constant. Constant visibility is not supported at
-/// the moment, and therefore no attributes are valid on constants.
+/// Constants are defined as regular Rust `impl` constants. Any type that
+/// implements `IntoZval` can be used as a constant. Constant visibility is not
+/// supported at the moment, and therefore no attributes are valid on constants.
 ///
 /// ## Property getters and setters
 ///
 /// You can add properties to classes which use Rust functions as getters and/or
-/// setters. This is done with the `#[getter]` and `#[setter]` attributes. By
-/// default, the `get_` or `set_` prefix is trimmed from the start of the function
-/// name, and the remainder is used as the property name.
+/// setters. This is done with the `#[php(getter)]` and `#[php(setter)]`
+/// attributes. By default, the `get_` or `set_` prefix is trimmed from the
+/// start of the function name, and the remainder is used as the property name.
 ///
-/// If you want to use a different name for the property, you can pass a `rename`
-/// option to the attribute which will change the property name.
+/// If you want to use a different name for the property, you can pass a
+/// `rename` option to the attribute which will change the property name.
 ///
-/// Properties do not necessarily have to have both a getter and a setter, if the
-/// property is immutable the setter can be omitted, and vice versa for getters.
+/// Properties do not necessarily have to have both a getter and a setter, if
+/// the property is immutable the setter can be omitted, and vice versa for
+/// getters.
 ///
-/// The `#[getter]` and `#[setter]` attributes are mutually exclusive on methods.
-/// Properties cannot have multiple getters or setters, and the property name cannot
-/// conflict with field properties defined on the struct.
+/// The `#[php(getter)]` and `#[php(setter)]` attributes are mutually exclusive
+/// on methods. Properties cannot have multiple getters or setters, and the
+/// property name cannot conflict with field properties defined on the struct.
 ///
 /// As the same as field properties, method property types must implement both
 /// `IntoZval` and `FromZval`.
 ///
 /// ## Example
 ///
-/// Continuing on from our `Human` example in the structs section, we will define a
-/// constructor, as well as getters for the properties. We will also define a
-/// constant for the maximum age of a `Human`.
+/// Continuing on from our `Human` example in the structs section, we will
+/// define a constructor, as well as getters for the properties. We will also
+/// define a constant for the maximum age of a `Human`.
 ///
 /// ```rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -591,7 +621,7 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 /// pub struct Human {
 ///     name: String,
 ///     age: i32,
-///     #[prop]
+///     #[php(prop)]
 ///     address: String,
 /// }
 ///
@@ -608,17 +638,17 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 ///         }
 ///     }
 ///
-///     #[getter]
+///     #[php(getter)]
 ///     pub fn get_name(&self) -> String {
 ///         self.name.to_string()
 ///     }
 ///
-///     #[setter]
+///     #[php(setter)]
 ///     pub fn set_name(&mut self, name: String) {
 ///         self.name = name;
 ///     }
 ///
-///     #[getter]
+///     #[php(getter)]
 ///     pub fn get_age(&self) -> i32 {
 ///         self.age
 ///     }
@@ -656,10 +686,10 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// [`php_async_impl`]: ./async_impl.md
 #[proc_macro_attribute]
-pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_impl(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemImpl);
 
-    impl_::parser(args.into(), input)
+    impl_::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }
@@ -738,16 +768,16 @@ pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
 
 /// # `ZvalConvert` Derive Macro
 ///
-/// The `#[derive(ZvalConvert)]` macro derives the `FromZval` and `IntoZval` traits
-/// on a struct or enum.
+/// The `#[derive(ZvalConvert)]` macro derives the `FromZval` and `IntoZval`
+/// traits on a struct or enum.
 ///
 /// ## Structs
 ///
-/// When used on a struct, the `FromZendObject` and `IntoZendObject` traits are also
-/// implemented, mapping fields to properties in both directions. All fields on the
-/// struct must implement `FromZval` as well. Generics are allowed on structs that
-/// use the derive macro, however, the implementation will add a `FromZval` bound to
-/// all generics types.
+/// When used on a struct, the `FromZendObject` and `IntoZendObject` traits are
+/// also implemented, mapping fields to properties in both directions. All
+/// fields on the struct must implement `FromZval` as well. Generics are allowed
+/// on structs that use the derive macro, however, the implementation will add a
+/// `FromZval` bound to all generics types.
 ///
 /// ### Examples
 ///
@@ -830,18 +860,18 @@ pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
 /// ## Enums
 ///
 /// When used on an enum, the `FromZval` implementation will treat the enum as a
-/// tagged union with a mixed datatype. This allows you to accept multiple types in
-/// a parameter, for example, a string and an integer.
+/// tagged union with a mixed datatype. This allows you to accept multiple types
+/// in a parameter, for example, a string and an integer.
 ///
-/// The enum variants must not have named fields, and each variant must have exactly
-/// one field (the type to extract from the zval). Optionally, the enum may have one
-/// default variant with no data contained, which will be used when the rest of the
-/// variants could not be extracted from the zval.
+/// The enum variants must not have named fields, and each variant must have
+/// exactly one field (the type to extract from the zval). Optionally, the enum
+/// may have one default variant with no data contained, which will be used when
+/// the rest of the variants could not be extracted from the zval.
 ///
 /// The ordering of the variants in the enum is important, as the `FromZval`
-/// implementation will attempt to parse the zval data in order. For example, if you
-/// put a `String` variant before an integer variant, the integer would be converted
-/// to a string and passed as the string variant.
+/// implementation will attempt to parse the zval data in order. For example, if
+/// you put a `String` variant before an integer variant, the integer would be
+/// converted to a string and passed as the string variant.
 ///
 /// ### Examples
 ///
@@ -939,7 +969,7 @@ pub fn zend_fastcall(input: TokenStream) -> TokenStream {
 pub fn wrap_function(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::Path);
 
-    match function::wrap(input) {
+    match function::wrap(&input) {
         Ok(parsed) => parsed,
         Err(e) => e.to_compile_error(),
     }
@@ -951,7 +981,7 @@ pub fn wrap_function(input: TokenStream) -> TokenStream {
 pub fn wrap_constant(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::Path);
 
-    match constant::wrap(input) {
+    match constant::wrap(&input) {
         Ok(parsed) => parsed,
         Err(e) => e.to_compile_error(),
     }
@@ -987,9 +1017,10 @@ pub(crate) mod prelude {
 
     impl<T: quote::ToTokens> OptionTokens for Option<T> {
         fn option_tokens(&self) -> proc_macro2::TokenStream {
-            match self {
-                Some(token) => quote::quote! { ::std::option::Option::Some(#token) },
-                None => quote::quote! { ::std::option::Option::None },
+            if let Some(token) = self {
+                quote::quote! { ::std::option::Option::Some(#token) }
+            } else {
+                quote::quote! { ::std::option::Option::None }
             }
         }
     }

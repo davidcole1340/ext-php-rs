@@ -32,6 +32,7 @@
   - [Constants](./macros/constant.md)
   - [PHP Functions](./macros/extern.md)
   - [`ZvalConvert`](./macros/zval_convert.md)
+  - [`Attributes`](./macros/php.md)
 - [Exceptions](./exceptions.md)
 - [INI Settings](./ini-settings.md)
 

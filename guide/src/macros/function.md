@@ -37,7 +37,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 ```
 
 Default parameter values can also be set for optional parameters. This is done
-through the `defaults` attribute option. When an optional parameter has a
+through the `#[php(defaults)]` attribute option. When an optional parameter has a
 default, it does not need to be a variant of `Option`:
 
 ```rust,no_run
@@ -45,7 +45,8 @@ default, it does not need to be a variant of `Option`:
 # extern crate ext_php_rs;
 use ext_php_rs::prelude::*;
 
-#[php_function(defaults(offset = 0))]
+#[php_function]
+#[php(defaults(offset = 0))]
 pub fn rusty_strpos(haystack: &str, needle: &str, offset: i64) -> Option<usize> {
     let haystack: String = haystack.chars().skip(offset as usize).collect();
     haystack.find(needle)
@@ -98,7 +99,8 @@ use ext_php_rs::prelude::*;
 
 /// `age` will be deemed required and nullable rather than optional,
 /// while description will be optional.
-#[php_function(optional = "description")]
+#[php_function]
+#[php(optional = "description")]
 pub fn greet(name: String, age: Option<i32>, description: Option<String>) -> String {
     let mut greeting = format!("Hello, {}!", name);
 
