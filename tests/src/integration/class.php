@@ -19,3 +19,12 @@ assert($class->getNumber() === 2023);
 assert($class->boolean);
 $class->boolean = false;
 assert($class->boolean === false);
+
+// Call regular from object
+assert($class->staticCall('Php') === 'Hello Php');
+
+// Call static from object
+assert($class::staticCall('Php') === 'Hello Php');
+
+// Call static from class
+assert(TestClass::staticCall('Php') === 'Hello Php');

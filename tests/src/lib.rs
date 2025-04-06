@@ -210,6 +210,10 @@ impl TestClass {
     pub fn set_number(&mut self, number: i32) {
         self.number = number;
     }
+
+    pub fn static_call(name: String) -> String {
+        format!("Hello {name}")
+    }
 }
 
 #[php_function]
