@@ -9,7 +9,8 @@ use crate::{
     types::{ZendObject, ZendStr},
     zend::ExecutorGlobals,
 };
-use std::{convert::TryInto, fmt::Debug, ops::DerefMut};
+use std::ptr;
+use std::{convert::TryInto, fmt::Debug};
 
 /// A PHP class entry.
 ///
@@ -21,13 +22,12 @@ impl ClassEntry {
     ///
     /// Returns a reference to the class if found, or [`None`] if the class
     /// could not be found or the class table has not been initialized.
+    #[must_use]
     pub fn try_find(name: &str) -> Option<&'static Self> {
         ExecutorGlobals::get().class_table()?;
         let mut name = ZendStr::new(name, false);
 
-        unsafe {
-            crate::ffi::zend_lookup_class_ex(name.deref_mut(), std::ptr::null_mut(), 0).as_ref()
-        }
+        unsafe { crate::ffi::zend_lookup_class_ex(&mut *name, std::ptr::null_mut(), 0).as_ref() }
     }
 
     /// Creates a new [`ZendObject`], returned inside an [`ZBox<ZendObject>`]
@@ -37,17 +37,20 @@ impl ClassEntry {
     ///
     /// Panics when allocating memory for the new object fails.
     #[allow(clippy::new_ret_no_self)]
+    #[must_use]
     pub fn new(&self) -> ZBox<ZendObject> {
         ZendObject::new(self)
     }
 
     /// Returns the class flags.
+    #[must_use]
     pub fn flags(&self) -> ClassFlags {
         ClassFlags::from_bits_truncate(self.ce_flags)
     }
 
     /// Returns `true` if the class entry is an interface, and `false`
     /// otherwise.
+    #[must_use]
     pub fn is_interface(&self) -> bool {
         self.flags().contains(ClassFlags::Interface)
     }
@@ -57,24 +60,35 @@ impl ClassEntry {
     /// # Parameters
     ///
     /// * `other` - The inherited class entry to check.
+    #[must_use]
     pub fn instance_of(&self, other: &ClassEntry) -> bool {
         if self == other {
             return true;
         }
 
-        unsafe { instanceof_function_slow(self as _, other as _) }
+        unsafe { instanceof_function_slow(ptr::from_ref(self), ptr::from_ref(other)) }
     }
 
     /// Returns an iterator of all the interfaces that the class implements.
     ///
     /// Returns [`None`] if the interfaces have not been resolved on the
     /// class.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number of interfaces exceeds `isize::MAX`.
+    #[must_use]
     pub fn interfaces(&self) -> Option<impl Iterator<Item = &ClassEntry>> {
         self.flags()
             .contains(ClassFlags::ResolvedInterfaces)
             .then(|| unsafe {
                 (0..self.num_interfaces)
-                    .map(move |i| *self.__bindgen_anon_3.interfaces.offset(i as _))
+                    .map(move |i| {
+                        *self
+                            .__bindgen_anon_3
+                            .interfaces
+                            .offset(isize::try_from(i).expect("index exceeds isize"))
+                    })
                     .filter_map(|ptr| ptr.as_ref())
             })
     }
@@ -84,6 +98,7 @@ impl ClassEntry {
     /// If the parent of the class has not been resolved, it attempts to find
     /// the parent by name. Returns [`None`] if the parent was not resolved
     /// and the parent was not able to be found by name.
+    #[must_use]
     pub fn parent(&self) -> Option<&Self> {
         if self.flags().contains(ClassFlags::ResolvedParent) {
             unsafe { self.__bindgen_anon_1.parent.as_ref() }
@@ -96,22 +111,19 @@ impl ClassEntry {
     /// Returns the iterator for the class for a specific instance
     ///
     /// Returns [`None`] if there is no associated iterator for the class.
+    #[must_use]
     pub fn get_iterator<'a>(&self, zval: &'a Zval, by_ref: bool) -> Option<&'a mut ZendIterator> {
         let ptr: *const Self = self;
         let zval_ptr: *const Zval = zval;
 
-        let iterator = unsafe {
-            (*ptr).get_iterator?(
-                ptr as *mut ClassEntry,
-                zval_ptr as *mut Zval,
-                if by_ref { 1 } else { 0 },
-            )
-        };
+        let iterator =
+            unsafe { (*ptr).get_iterator?(ptr.cast_mut(), zval_ptr.cast_mut(), i32::from(by_ref)) };
 
         unsafe { iterator.as_mut() }
     }
 
     /// Gets the name of the class.
+    #[must_use]
     pub fn name(&self) -> Option<&str> {
         unsafe { self.name.as_ref().and_then(|s| s.as_str().ok()) }
     }
@@ -135,7 +147,7 @@ impl Debug for ClassEntry {
             .field("is_interface", &self.is_interface())
             .field(
                 "interfaces",
-                &self.interfaces().map(|iter| iter.collect::<Vec<_>>()),
+                &self.interfaces().map(Iterator::collect::<Vec<_>>),
             )
             .field("parent", &self.parent())
             .finish()

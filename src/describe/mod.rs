@@ -9,7 +9,7 @@ use crate::{
     flags::{DataType, MethodFlags, PropertyFlags},
     prelude::ModuleBuilder,
 };
-use abi::*;
+use abi::{Option, RString, Str, Vec};
 
 pub mod abi;
 mod stub;
@@ -34,6 +34,7 @@ impl Description {
     /// # Parameters
     ///
     /// * `module` - The extension module representation.
+    #[must_use]
     pub fn new(module: Module) -> Self {
         Self {
             module,
@@ -162,7 +163,8 @@ pub struct Class {
     pub docs: DocBlock,
     /// Name of the class the exported class extends. (Not implemented #326)
     pub extends: Option<RString>,
-    /// Names of the interfaces the exported class implements. (Not implemented #326)
+    /// Names of the interfaces the exported class implements. (Not implemented
+    /// #326)
     pub implements: Vec<RString>,
     /// Properties of the class.
     pub properties: Vec<Property>,
@@ -239,7 +241,7 @@ impl From<(String, PropertyFlags, DocComments)> for Property {
         // TODO: Implement nullable #376
         let nullable = false;
         let docs = docs.into();
-        println!("Property: {:?}", name);
+        println!("Property: {name:?}");
         Self {
             name: name.into(),
             docs,
@@ -266,7 +268,7 @@ pub struct Method {
     /// Return value of the method.
     pub retval: Option<Retval>,
     /// Whether the method is static.
-    pub _static: bool,
+    pub r#static: bool,
     /// Visibility of the method.
     pub visibility: Visibility,
 }
@@ -295,11 +297,11 @@ impl From<(FunctionBuilder<'_>, MethodFlags)> for Method {
             params: builder
                 .args
                 .into_iter()
-                .map(|a| a.into())
+                .map(Into::into)
                 .collect::<StdVec<_>>()
                 .into(),
             ty: flags.into(),
-            _static: flags.contains(MethodFlags::Static),
+            r#static: flags.contains(MethodFlags::Static),
             visibility: flags.into(),
         }
     }

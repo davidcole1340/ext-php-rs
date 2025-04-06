@@ -1,5 +1,11 @@
+//! Module tests
 #![cfg_attr(windows, feature(abi_vectorcall))]
 #![cfg(feature = "embed")]
+#![allow(
+    missing_docs,
+    clippy::needless_pass_by_value,
+    clippy::must_use_candidate
+)]
 extern crate ext_php_rs;
 
 use cfg_if::cfg_if;
@@ -42,7 +48,7 @@ fn test_module() {
 /// @return string Nice greeting!
 #[php_function]
 pub fn hello_world(name: String) -> String {
-    format!("Hello, {}!", name)
+    format!("Hello, {name}!")
 }
 
 #[php_module]

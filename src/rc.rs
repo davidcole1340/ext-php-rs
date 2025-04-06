@@ -33,7 +33,7 @@ pub trait PhpRc {
 
     /// Increments the reference counter by 1.
     fn inc_count(&mut self) {
-        self.get_rc_mut().refcount += 1
+        self.get_rc_mut().refcount += 1;
     }
 
     /// Decrements the reference counter by 1.

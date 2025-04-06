@@ -4,6 +4,8 @@ use crate::{embed::SapiModule, error::Result};
 use std::ffi::{c_char, c_void};
 use std::{ffi::CString, ptr};
 
+/// Builder for `SapiModule`s
+#[must_use]
 pub struct SapiBuilder {
     name: String,
     pretty_name: String,
@@ -11,6 +13,7 @@ pub struct SapiBuilder {
 }
 
 impl SapiBuilder {
+    /// Creates a new [`SapiBuilder`] instance
     pub fn new<T: Into<String>, U: Into<String>>(name: T, pretty_name: U) -> Self {
         Self {
             name: name.into(),
@@ -56,6 +59,7 @@ impl SapiBuilder {
         }
     }
 
+    /// Sets the `ub_write` function for this SAPI
     pub fn ub_write_function(mut self, func: SapiUbWriteFunc) -> Self {
         self.module.ub_write = Some(func);
         self
@@ -74,6 +78,10 @@ impl SapiBuilder {
     /// Builds the extension and returns a `SapiModule`.
     ///
     /// Returns a result containing the sapi module if successful.
+    ///
+    /// # Errors
+    ///
+    /// * If name or property name contain null bytes
     pub fn build(mut self) -> Result<SapiModule> {
         self.module.name = CString::new(self.name)?.into_raw();
         self.module.pretty_name = CString::new(self.pretty_name)?.into_raw();

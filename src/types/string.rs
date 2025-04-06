@@ -6,7 +6,7 @@ use std::{
     convert::TryFrom,
     ffi::{CStr, CString},
     fmt::Debug,
-    slice,
+    ptr, slice,
 };
 
 use parking_lot::{const_mutex, Mutex};
@@ -118,6 +118,7 @@ impl ZendStr {
     /// let c_s = CString::new("Hello world!").unwrap();
     /// let s = ZendStr::from_c_str(&c_s, false);
     /// ```
+    #[must_use]
     pub fn from_c_str(str: &CStr, persistent: bool) -> ZBox<Self> {
         unsafe {
             let ptr =
@@ -250,6 +251,7 @@ impl ZendStr {
     /// let s = ZendStr::new("hello, world!", false);
     /// assert_eq!(s.len(), 13);
     /// ```
+    #[must_use]
     pub fn len(&self) -> usize {
         self.len
     }
@@ -264,6 +266,7 @@ impl ZendStr {
     /// let s = ZendStr::new("hello, world!", false);
     /// assert_eq!(s.is_empty(), false);
     /// ```
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -271,7 +274,9 @@ impl ZendStr {
     /// Attempts to return a reference to the underlying bytes inside the Zend
     /// string as a [`CStr`].
     ///
-    /// Returns an [Error::InvalidCString] variant if the string contains null
+    /// # Errors
+    ///
+    /// Returns an [`Error::InvalidCString`] variant if the string contains null
     /// bytes.
     pub fn as_c_str(&self) -> Result<&CStr> {
         let bytes_with_null =
@@ -282,7 +287,9 @@ impl ZendStr {
     /// Attempts to return a reference to the underlying bytes inside the Zend
     /// string.
     ///
-    /// Returns an [Error::InvalidUtf8] variant if the [`str`] contains
+    /// # Errors
+    ///
+    /// Returns an [`Error::InvalidUtf8`] variant if the [`str`] contains
     /// non-UTF-8 characters.
     ///
     /// # Example
@@ -299,23 +306,25 @@ impl ZendStr {
             return Ok(str);
         }
         let str = std::str::from_utf8(self.as_bytes()).map_err(|_| Error::InvalidUtf8)?;
-        unsafe { ext_php_rs_set_known_valid_utf8(self.as_ptr() as *mut _) };
+        unsafe { ext_php_rs_set_known_valid_utf8(self.as_ptr().cast_mut()) };
         Ok(str)
     }
 
     /// Returns a reference to the underlying bytes inside the Zend string.
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         unsafe { slice::from_raw_parts(self.val.as_ptr().cast(), self.len()) }
     }
 
     /// Returns a raw pointer to this object
+    #[must_use]
     pub fn as_ptr(&self) -> *const ZendStr {
-        self as *const _
+        ptr::from_ref(self)
     }
 
     /// Returns a mutable pointer to this object
     pub fn as_mut_ptr(&mut self) -> *mut ZendStr {
-        self as *mut _
+        ptr::from_mut(self)
     }
 }
 
@@ -467,10 +476,10 @@ mod tests {
 
             assert!(result.is_ok());
 
-            let zval = result.as_ref().unwrap();
+            let zval = result.as_ref().expect("Unreachable");
 
             assert!(zval.is_string());
-            assert_eq!(zval.string().unwrap(), "foo");
+            assert_eq!(zval.string(), Some("foo".to_string()));
         });
     }
 }

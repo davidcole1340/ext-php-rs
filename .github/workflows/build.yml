@@ -68,7 +68,7 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all -- --check
       - name: Run clippy
-        run: cargo clippy --all -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
       # Docs
       - name: Run rustdoc
         run: cargo rustdoc -- -D warnings

@@ -26,24 +26,24 @@ pub trait PhpClassImpl<T: RegisteredClass> {
     fn get_constants(self) -> &'static [(&'static str, &'static dyn IntoZvalDyn, DocComments)];
 }
 
-// Default implementation for classes without an `impl` block. Classes that do
-// have an `impl` block will override this by implementing `PhpClassImpl` for
-// `PhpClassImplCollector<ClassName>` (note the missing reference). This is
-// `dtolnay` specialisation: https://github.com/dtolnay/case-studies/blob/master/autoref-specialization/README.md
+/// Default implementation for classes without an `impl` block. Classes that do
+/// have an `impl` block will override this by implementing `PhpClassImpl` for
+/// `PhpClassImplCollector<ClassName>` (note the missing reference). This is
+/// `dtolnay` specialisation: <https://github.com/dtolnay/case-studies/blob/master/autoref-specialization/README.md>
 impl<T: RegisteredClass> PhpClassImpl<T> for &'_ PhpClassImplCollector<T> {
     #[inline]
     fn get_methods(self) -> Vec<(FunctionBuilder<'static>, MethodFlags)> {
-        Default::default()
+        Vec::default()
     }
 
     #[inline]
     fn get_method_props<'a>(self) -> HashMap<&'static str, Property<'a, T>> {
-        Default::default()
+        HashMap::default()
     }
 
     #[inline]
     fn get_constructor(self) -> Option<ConstructorMeta<T>> {
-        Default::default()
+        Option::default()
     }
 
     #[inline]

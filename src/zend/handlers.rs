@@ -18,6 +18,7 @@ pub type ZendObjectHandlers = zend_object_handlers;
 impl ZendObjectHandlers {
     /// Creates a new set of object handlers based on the standard object
     /// handlers.
+    #[must_use]
     pub fn new<T: RegisteredClass>() -> ZendObjectHandlers {
         let mut this = MaybeUninit::uninit();
 
@@ -40,10 +41,14 @@ impl ZendObjectHandlers {
     /// # Safety
     ///
     /// Caller must guarantee that the `ptr` given is a valid memory location.
+    ///
+    /// # Panics
+    ///
+    /// * If the offset of the `T` type is not a valid `i32` value.
     pub unsafe fn init<T: RegisteredClass>(ptr: *mut ZendObjectHandlers) {
         std::ptr::copy_nonoverlapping(&std_object_handlers, ptr, 1);
         let offset = ZendClassObject::<T>::std_offset();
-        (*ptr).offset = offset as _;
+        (*ptr).offset = offset.try_into().expect("Invalid offset");
         (*ptr).free_obj = Some(Self::free_obj::<T>);
         (*ptr).read_property = Some(Self::read_property::<T>);
         (*ptr).write_property = Some(Self::write_property::<T>);
@@ -60,7 +65,7 @@ impl ZendObjectHandlers {
         // Manually drop the object as we don't want to free the underlying memory.
         ptr::drop_in_place(&mut obj.obj);
 
-        zend_object_std_dtor(object)
+        zend_object_std_dtor(object);
     }
 
     unsafe extern "C" fn read_property<T: RegisteredClass>(
@@ -70,6 +75,8 @@ impl ZendObjectHandlers {
         cache_slot: *mut *mut c_void,
         rv: *mut Zval,
     ) -> *mut Zval {
+        // TODO: Measure this
+        #[allow(clippy::inline_always)]
         #[inline(always)]
         unsafe fn internal<T: RegisteredClass>(
             object: *mut ZendObject,
@@ -118,6 +125,8 @@ impl ZendObjectHandlers {
         value: *mut Zval,
         cache_slot: *mut *mut c_void,
     ) -> *mut Zval {
+        // TODO: Measure this
+        #[allow(clippy::inline_always)]
         #[inline(always)]
         unsafe fn internal<T: RegisteredClass>(
             object: *mut ZendObject,
@@ -158,6 +167,8 @@ impl ZendObjectHandlers {
     unsafe extern "C" fn get_properties<T: RegisteredClass>(
         object: *mut ZendObject,
     ) -> *mut ZendHashTable {
+        // TODO: Measure this
+        #[allow(clippy::inline_always)]
         #[inline(always)]
         unsafe fn internal<T: RegisteredClass>(
             object: *mut ZendObject,
@@ -201,6 +212,8 @@ impl ZendObjectHandlers {
         has_set_exists: c_int,
         cache_slot: *mut *mut c_void,
     ) -> c_int {
+        // TODO: Measure this
+        #[allow(clippy::inline_always)]
         #[inline(always)]
         unsafe fn internal<T: RegisteredClass>(
             object: *mut ZendObject,
@@ -264,7 +277,7 @@ impl ZendObjectHandlers {
                     "Invalid value given for `has_set_exists` in struct `has_property` function."
                         .into(),
                 ),
-            };
+            }
 
             Ok(zend_std_has_property(
                 object,

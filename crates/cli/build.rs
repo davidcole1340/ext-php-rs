@@ -4,5 +4,5 @@
 //! time.
 
 fn main() {
-    println!("cargo:rustc-link-arg-bins=-rdynamic")
+    println!("cargo:rustc-link-arg-bins=-rdynamic");
 }

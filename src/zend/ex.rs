@@ -197,11 +197,13 @@ impl ExecuteData {
     }
 
     /// Attempt to retrieve the function that is being called.
+    #[must_use]
     pub fn function(&self) -> Option<&Function> {
         unsafe { self.func.as_ref() }
     }
 
     /// Attempt to retrieve the previous execute data on the call stack.
+    #[must_use]
     pub fn previous(&self) -> Option<&Self> {
         unsafe { self.prev_execute_data.as_ref() }
     }
@@ -209,14 +211,15 @@ impl ExecuteData {
     /// Translation of macro `ZEND_CALL_ARG(call, n)`
     /// zend_compile.h:578
     ///
-    /// The resultant zval reference has a lifetime equal to the lifetime of
+    /// The resultant [`Zval`] reference has a lifetime equal to the lifetime of
     /// `self`. This isn't specified because when you attempt to get a
     /// reference to args and the `$this` object, Rust doesn't let you.
     /// Since this is a private method it's up to the caller to ensure the
     /// lifetime isn't exceeded.
     #[doc(hidden)]
     unsafe fn zend_call_arg<'a>(&self, n: usize) -> Option<&'a mut Zval> {
-        let ptr = self.zend_call_var_num(n as isize);
+        let n = isize::try_from(n).expect("n is too large");
+        let ptr = self.zend_call_var_num(n);
         ptr.as_mut()
     }
 
@@ -224,7 +227,7 @@ impl ExecuteData {
     /// zend_compile.h: 575
     #[doc(hidden)]
     unsafe fn zend_call_var_num(&self, n: isize) -> *mut Zval {
-        let ptr = self as *const Self as *mut Zval;
+        let ptr = std::ptr::from_ref(self) as *mut Zval;
         ptr.offset(Self::zend_call_frame_slot() + n)
     }
 
@@ -240,8 +243,8 @@ impl ExecuteData {
     /// zend_alloc.h:41
     #[doc(hidden)]
     fn zend_mm_aligned_size<T>() -> isize {
-        let size = std::mem::size_of::<T>();
-        ((size as isize) + ZEND_MM_ALIGNMENT as isize - 1) & ZEND_MM_ALIGNMENT_MASK as isize
+        let size = isize::try_from(std::mem::size_of::<T>()).expect("size of T is too large");
+        (size + ZEND_MM_ALIGNMENT - 1) & ZEND_MM_ALIGNMENT_MASK
     }
 }
 

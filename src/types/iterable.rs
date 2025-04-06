@@ -17,6 +17,8 @@ pub enum Iterable<'a> {
 impl Iterable<'_> {
     /// Creates a new rust iterator from a PHP iterable.
     /// May return None if a Traversable cannot be rewound.
+    // TODO: Check iter not returning iterator
+    #[allow(clippy::iter_not_returning_iterator)]
     pub fn iter(&mut self) -> Option<Iter> {
         match self {
             Iterable::Array(array) => Some(Iter::Array(array.iter())),
@@ -25,6 +27,8 @@ impl Iterable<'_> {
     }
 }
 
+// TODO: Implement `iter_mut`
+#[allow(clippy::into_iter_without_iter)]
 impl<'a> IntoIterator for &'a mut Iterable<'a> {
     type Item = (Zval, &'a Zval);
     type IntoIter = Iter<'a>;

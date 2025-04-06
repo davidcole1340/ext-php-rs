@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, spanned::Spanned as _, ForeignItemFn, ItemForeignMod, ReturnType,
-    Signature, Token,
+    punctuated::Punctuated, spanned::Spanned as _, token::Unsafe, ForeignItemFn, ItemForeignMod,
+    ReturnType, Signature, Token,
 };
 
 use crate::prelude::*;
@@ -23,7 +23,7 @@ fn parse_function(mut func: ForeignItemFn) -> Result<TokenStream> {
     let ForeignItemFn {
         attrs, vis, sig, ..
     } = &mut func;
-    sig.unsafety = Some(Default::default()); // Function must be unsafe.
+    sig.unsafety = Some(Unsafe::default()); // Function must be unsafe.
 
     let Signature { ident, .. } = &sig;
 
@@ -36,13 +36,13 @@ fn parse_function(mut func: ForeignItemFn) -> Result<TokenStream> {
                 let pat = &arg.pat;
                 Some(quote! { &#pat })
             }
-            _ => None,
+            syn::FnArg::Receiver(_) => None,
         })
         .collect::<Option<Punctuated<_, Token![,]>>>()
         .ok_or_else(|| {
             err!(sig.span() => "`self` parameters are not permitted inside `#[php_extern]` blocks.")
         })?;
-    let ret = build_return(&name, &sig.output, params);
+    let ret = build_return(&name, &sig.output, &params);
 
     Ok(quote! {
         #(#attrs)* #vis #sig {
@@ -60,7 +60,7 @@ fn parse_function(mut func: ForeignItemFn) -> Result<TokenStream> {
 fn build_return(
     name: &str,
     return_type: &ReturnType,
-    params: Punctuated<TokenStream, Token![,]>,
+    params: &Punctuated<TokenStream, Token![,]>,
 ) -> TokenStream {
     match return_type {
         ReturnType::Default => quote! {

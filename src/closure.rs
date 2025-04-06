@@ -119,9 +119,7 @@ impl Closure {
     ///
     /// Panics if the function is called more than once.
     pub fn build() {
-        if CLOSURE_META.has_ce() {
-            panic!("Closure has already been built.");
-        }
+        assert!(!CLOSURE_META.has_ce(), "Closure class already built.");
 
         ClassBuilder::new("RustClosure")
             .method(
@@ -143,7 +141,7 @@ impl Closure {
             let (parser, this) = ex.parser_method::<Self>();
             let this = this.expect("Internal closure function called on non-closure class");
 
-            this.0.invoke(parser, ret)
+            this.0.invoke(parser, ret);
         }
     }
 }
@@ -213,7 +211,7 @@ where
 {
     fn invoke(&mut self, _: ArgParser, ret: &mut Zval) {
         if let Err(e) = self().set_zval(ret, false) {
-            let _ = PhpException::default(format!("Failed to return closure result to PHP: {}", e))
+            let _ = PhpException::default(format!("Failed to return closure result to PHP: {e}"))
                 .throw();
         }
     }
@@ -225,7 +223,7 @@ where
 {
     fn invoke(&mut self, _: ArgParser, ret: &mut Zval) {
         if let Err(e) = self().set_zval(ret, false) {
-            let _ = PhpException::default(format!("Failed to return closure result to PHP: {}", e))
+            let _ = PhpException::default(format!("Failed to return closure result to PHP: {e}"))
                 .throw();
         }
     }
@@ -239,15 +237,12 @@ where
         let mut this = Some(self);
 
         Closure::wrap(Box::new(move || {
-            let this = match this.take() {
-                Some(this) => this,
-                None => {
-                    let _ = PhpException::default(
-                        "Attempted to call `FnOnce` closure more than once.".into(),
-                    )
-                    .throw();
-                    return Option::<R>::None;
-                }
+            let Some(this) = this.take() else {
+                let _ = PhpException::default(
+                    "Attempted to call `FnOnce` closure more than once.".into(),
+                )
+                .throw();
+                return Option::<R>::None;
             };
 
             Some(this())
@@ -269,15 +264,12 @@ macro_rules! php_closure_impl {
                 let mut this = Some(self);
 
                 Closure::wrap(Box::new(move |$($gen),*| {
-                    let this = match this.take() {
-                        Some(this) => this,
-                        None => {
-                            let _ = PhpException::default(
-                                "Attempted to call `FnOnce` closure more than once.".into(),
-                            )
-                            .throw();
-                            return Option::<Ret>::None;
-                        }
+                    let Some(this) = this.take() else {
+                        let _ = PhpException::default(
+                            "Attempted to call `FnOnce` closure more than once.".into(),
+                        )
+                        .throw();
+                        return Option::<Ret>::None;
                     };
 
                     Some(this($($gen),*))

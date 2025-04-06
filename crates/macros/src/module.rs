@@ -21,9 +21,10 @@ pub fn parser(args: TokenStream, input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
     let Signature { output, inputs, .. } = sig;
     let stmts = &block.stmts;
-    let startup = match opts.startup {
-        Some(startup) => quote! { #startup(ty, mod_num) },
-        None => quote! { 0i32 },
+    let startup = if let Some(startup) = opts.startup {
+        quote! { #startup(ty, mod_num) }
+    } else {
+        quote! { 0i32 }
     };
 
     Ok(quote! {
