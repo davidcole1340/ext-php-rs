@@ -1,5 +1,25 @@
 use darling::FromMeta;
 
+const MAGIC_METHOD: [&str; 17] = [
+    "__construct",
+    "__destruct",
+    "__call",
+    "__call_static",
+    "__get",
+    "__set",
+    "__isset",
+    "__unset",
+    "__sleep",
+    "__wakeup",
+    "__serialize",
+    "__unserialize",
+    "__to_string",
+    "__invoke",
+    "__set_state",
+    "__clone",
+    "__debug_info",
+];
+
 #[derive(Debug, FromMeta)]
 pub enum Visibility {
     #[darling(rename = "public")]
@@ -8,6 +28,14 @@ pub enum Visibility {
     Private,
     #[darling(rename = "protected")]
     Protected,
+}
+
+pub trait Rename {
+    fn rename(&self, rule: &RenameRule) -> String;
+}
+
+pub trait MethodRename: Rename {
+    fn rename_method(&self, rule: &RenameRule) -> String;
 }
 
 #[derive(FromMeta, Debug, Default)]
@@ -24,7 +52,7 @@ impl PhpRename {
                 let name = name.as_ref();
                 self.rename
                     .as_ref()
-                    .map_or_else(|| name.to_string(), |r| r.rename(name))
+                    .map_or_else(|| name.to_string(), |r| name.rename(r))
             },
             ToString::to_string,
         )
@@ -52,52 +80,58 @@ pub enum RenameRule {
 }
 
 impl RenameRule {
-    /// Change case of an identifier.
-    ///
-    /// Magic methods are handled specially to make sure they're always cased
-    /// correctly.
-    pub fn rename(self, name: impl AsRef<str>) -> String {
-        let name = name.as_ref();
-        match self {
-            RenameRule::None => name.to_string(),
-            rule => match name {
-                "__construct" => "__construct".to_string(),
-                "__destruct" => "__destruct".to_string(),
-                "__call" => "__call".to_string(),
-                "__call_static" => "__callStatic".to_string(),
-                "__get" => "__get".to_string(),
-                "__set" => "__set".to_string(),
-                "__isset" => "__isset".to_string(),
-                "__unset" => "__unset".to_string(),
-                "__sleep" => "__sleep".to_string(),
-                "__wakeup" => "__wakeup".to_string(),
-                "__serialize" => "__serialize".to_string(),
-                "__unserialize" => "__unserialize".to_string(),
-                "__to_string" => "__toString".to_string(),
-                "__invoke" => "__invoke".to_string(),
-                "__set_state" => "__set_state".to_string(),
-                "__clone" => "__clone".to_string(),
-                "__debug_info" => "__debugInfo".to_string(),
-                field => match rule {
-                    Self::Camel => ident_case::RenameRule::CamelCase.apply_to_field(field),
-                    Self::Pascal => ident_case::RenameRule::PascalCase.apply_to_field(field),
-                    Self::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(field),
-                    Self::ScreamingSnakeCase => {
-                        ident_case::RenameRule::ScreamingSnakeCase.apply_to_field(field)
-                    }
-                    Self::None => unreachable!(),
-                },
-            },
+    fn rename(&self, value: impl AsRef<str>) -> String {
+        match *self {
+            Self::None => value.as_ref().to_string(),
+            Self::Camel => ident_case::RenameRule::CamelCase.apply_to_field(value.as_ref()),
+            Self::Pascal => ident_case::RenameRule::PascalCase.apply_to_field(value.as_ref()),
+            Self::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(value.as_ref()),
+            Self::ScreamingSnakeCase => {
+                ident_case::RenameRule::ScreamingSnakeCase.apply_to_field(value.as_ref())
+            }
+        }
+    }
+}
+
+impl Rename for &str {
+    fn rename(&self, rule: &RenameRule) -> String {
+        rule.rename(self)
+    }
+}
+
+impl Rename for syn::Ident {
+    fn rename(&self, rule: &RenameRule) -> String {
+        let s = self.to_string();
+        rule.rename(s)
+    }
+}
+
+impl MethodRename for syn::Ident {
+    fn rename_method(&self, rule: &RenameRule) -> String {
+        self.to_string().as_str().rename_method(rule)
+    }
+}
+
+impl MethodRename for &str {
+    fn rename_method(&self, rule: &RenameRule) -> String {
+        let s = self.to_string();
+
+        if MAGIC_METHOD.contains(&s.as_str()) {
+            s
+        } else {
+            self.rename(rule)
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{PhpRename, RenameRule};
+    use crate::parsing::{MethodRename, Rename};
+
+    use super::{PhpRename, RenameRule, MAGIC_METHOD};
 
     #[test]
-    fn test_php_rename() {
+    fn php_rename() {
         let rename = PhpRename {
             name: Some("test".to_string()),
             rename: None,
@@ -132,45 +166,41 @@ mod tests {
     }
 
     #[test]
-    fn test_rename_magic() {
-        for &(magic, expected) in &[
-            ("__construct", "__construct"),
-            ("__destruct", "__destruct"),
-            ("__call", "__call"),
-            ("__call_static", "__callStatic"),
-            ("__get", "__get"),
-            ("__set", "__set"),
-            ("__isset", "__isset"),
-            ("__unset", "__unset"),
-            ("__sleep", "__sleep"),
-            ("__wakeup", "__wakeup"),
-            ("__serialize", "__serialize"),
-            ("__unserialize", "__unserialize"),
-            ("__to_string", "__toString"),
-            ("__invoke", "__invoke"),
-            ("__set_state", "__set_state"),
-            ("__clone", "__clone"),
-            ("__debug_info", "__debugInfo"),
-        ] {
-            assert_eq!(magic, RenameRule::None.rename(magic));
-            assert_eq!(expected, RenameRule::Camel.rename(magic));
-            assert_eq!(expected, RenameRule::Pascal.rename(magic));
-            assert_eq!(expected, RenameRule::Snake.rename(magic));
-            assert_eq!(expected, RenameRule::ScreamingSnakeCase.rename(magic));
+    fn rename_magic_method() {
+        for magic in MAGIC_METHOD {
+            assert_eq!(magic, magic.rename_method(&RenameRule::None));
+            assert_eq!(magic, magic.rename_method(&RenameRule::Camel));
+            assert_eq!(magic, magic.rename_method(&RenameRule::Pascal));
+            assert_eq!(magic, magic.rename_method(&RenameRule::Snake));
+            assert_eq!(magic, magic.rename_method(&RenameRule::ScreamingSnakeCase));
         }
     }
 
     #[test]
-    fn test_rename_php_methods() {
+    fn rename_method() {
         let &(original, camel, snake, pascal, screaming_snake) =
             &("get_name", "getName", "get_name", "GetName", "GET_NAME");
-        assert_eq!(original, RenameRule::None.rename(original));
-        assert_eq!(camel, RenameRule::Camel.rename(original));
-        assert_eq!(pascal, RenameRule::Pascal.rename(original));
-        assert_eq!(snake, RenameRule::Snake.rename(original));
+        assert_eq!(original, original.rename_method(&RenameRule::None));
+        assert_eq!(camel, original.rename_method(&RenameRule::Camel));
+        assert_eq!(pascal, original.rename_method(&RenameRule::Pascal));
+        assert_eq!(snake, original.rename_method(&RenameRule::Snake));
         assert_eq!(
             screaming_snake,
-            RenameRule::ScreamingSnakeCase.rename(original)
+            original.rename_method(&RenameRule::ScreamingSnakeCase)
+        );
+    }
+
+    #[test]
+    fn rename() {
+        let &(original, camel, snake, pascal, screaming_snake) =
+            &("get_name", "getName", "get_name", "GetName", "GET_NAME");
+        assert_eq!(original, original.rename(&RenameRule::None));
+        assert_eq!(camel, original.rename(&RenameRule::Camel));
+        assert_eq!(pascal, original.rename(&RenameRule::Pascal));
+        assert_eq!(snake, original.rename(&RenameRule::Snake));
+        assert_eq!(
+            screaming_snake,
+            original.rename(&RenameRule::ScreamingSnakeCase)
         );
     }
 }
