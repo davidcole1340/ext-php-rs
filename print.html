@@ -1163,6 +1163,8 @@ methods and constants.</li>
 <li><a href="macros/./constant.html"><code>php_const</code></a> - Used to export a Rust constant to PHP as a global constant.</li>
 <li><a href="macros/./extern.html"><code>php_extern</code></a> - Attribute used to annotate <code>extern</code> blocks which are deemed as
 PHP functions.</li>
+<li><a href="macros/./php.html"><code>php</code></a> - Used to modify the default behavior of the above macros. This is a
+generic attribute that can be used on most of the above macros.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_module-attribute"><a class="header" href="#php_module-attribute"><code>#[php_module]</code> Attribute</a></h1>
 <p>The module macro is used to annotate the <code>get_module</code> function, which is used by
@@ -1261,13 +1263,14 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>Default parameter values can also be set for optional parameters. This is done
-through the <code>defaults</code> attribute option. When an optional parameter has a
+through the <code>#[php(defaults)]</code> attribute option. When an optional parameter has a
 default, it does not need to be a variant of <code>Option</code>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
 </span>use ext_php_rs::prelude::*;
 
-#[php_function(defaults(offset = 0))]
+#[php_function]
+#[php(defaults(offset = 0))]
 pub fn rusty_strpos(haystack: &amp;str, needle: &amp;str, offset: i64) -&gt; Option&lt;usize&gt; {
     let haystack: String = haystack.chars().skip(offset as usize).collect();
     haystack.find(needle)
@@ -1312,7 +1315,8 @@ parameter:</p>
 
 /// `age` will be deemed required and nullable rather than optional,
 /// while description will be optional.
-#[php_function(optional = "description")]
+#[php_function]
+#[php(optional = "description")]
 pub fn greet(name: String, age: Option&lt;i32&gt;, description: Option&lt;String&gt;) -&gt; String {
     let mut greeting = format!("Hello, {}!", name);
 
@@ -1370,20 +1374,22 @@ Useful for namespacing classes.</li>
 <p>There are also additional macros that modify the class. These macros <strong>must</strong> be
 placed underneath the <code>#[php_class]</code> attribute.</p>
 <ul>
-<li><code>#[extends(ce)]</code> - Sets the parent class of the class. Can only be used once.
+<li><code>#[php(extends = ce)]</code> - Sets the parent class of the class. Can only be used once.
 <code>ce</code> must be a function with the signature <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
-<li><code>#[implements(ce)]</code> - Implements the given interface on the class. Can be used
+<li><code>#[php(implements = ce)]</code> - Implements the given interface on the class. Can be used
 multiple times. <code>ce</code> must be a valid function with the signature
 <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
 </ul>
-<p>You may also use the <code>#[prop]</code> attribute on a struct field to use the field as a
+<p>You may also use the <code>#[php(prop)]</code> attribute on a struct field to use the field as a
 PHP property. By default, the field will be accessible from PHP publicly with
 the same name as the field. Property types must implement <code>IntoZval</code> and
 <code>FromZval</code>.</p>
 <p>You can rename the property with options:</p>
 <ul>
-<li><code>rename</code> - Allows you to rename the property, e.g.
-<code>#[prop(rename = "new_name")]</code></li>
+<li><code>name</code> - Allows you to rename the property, e.g.
+<code>#[php(name = "new_name")]</code></li>
+<li><code>rename</code> - Allows you to rename the property using rename rules, e.g.
+<code>#[php(rename = PascalCase)]</code></li>
 </ul>
 <h2 id="restrictions"><a class="header" href="#restrictions">Restrictions</a></h2>
 <h3 id="no-lifetime-parameters"><a class="header" href="#no-lifetime-parameters">No lifetime parameters</a></h3>
@@ -1416,7 +1422,7 @@ where there needs to be a single compiled implementation of <code>Foo</code> whi
 pub struct Human {
     name: String,
     age: i32,
-    #[prop]
+    #[php(prop)]
     address: String,
 }
 
@@ -1436,7 +1442,7 @@ it in the <code>Redis\Exception</code> namespace:</p>
 };
 
 #[php_class(name = "Redis\\Exception\\RedisException")]
-#[extends(ce::exception)]
+#[php(extends = ce::exception)]
 #[derive(Default)]
 pub struct RedisException;
 
@@ -1454,7 +1460,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="implementing-an-interface"><a class="header" href="#implementing-an-interface">Implementing an Interface</a></h2>
-<p>To implement an interface, use <code>#[implements(ce)]</code> where <code>ce</code> is an function returning a <code>ClassEntry</code>.
+<p>To implement an interface, use <code>#[php(implements = ce)]</code> where <code>ce</code> is an function returning a <code>ClassEntry</code>.
 The following example implements <a href="https://www.php.net/manual/en/class.arrayaccess.php"><code>ArrayAccess</code></a>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -1466,7 +1472,7 @@ The following example implements <a href="https://www.php.net/manual/en/class.ar
 };
 
 #[php_class]
-#[implements(ce::arrayaccess)]
+#[php(implements = ce::arrayaccess)]
 #[derive(Default)]
 pub struct EvenNumbersArray;
 
@@ -1537,16 +1543,16 @@ of the following as the <code>rename_methods</code> option:</p>
 <code>#[php_impl(rename_methods = "none")]</code>.</p>
 <p>The rest of the options are passed as separate attributes:</p>
 <ul>
-<li><code>#[defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
-<li><code>#[optional(i)]</code> - Sets the first optional parameter. Note that this also sets
+<li><code>#[php(defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
+<li><code>#[php(optional = i)]</code> - Sets the first optional parameter. Note that this also sets
 the remaining parameters as optional, so all optional parameters must be a
 variant of <code>Option&lt;T&gt;</code>.</li>
-<li><code>#[public]</code>, <code>#[protected]</code> and <code>#[private]</code> - Sets the visibility of the
+<li><code>#[php(public)]</code>, <code>#[php(protected)]</code> and <code>#[php(private)]</code> - Sets the visibility of the
 method.</li>
-<li><code>#[rename("method_name")]</code> - Renames the PHP method to a different identifier,
+<li><code>#[php(name = "method_name")]</code> - Renames the PHP method to a different identifier,
 without renaming the Rust method name.</li>
 </ul>
-<p>The <code>#[defaults]</code> and <code>#[optional]</code> attributes operate the same as the
+<p>The <code>#[php(defaults)]</code> and <code>#[php(optional)]</code> attributes operate the same as the
 equivalent function attribute parameters.</p>
 <h3 id="constructors"><a class="header" href="#constructors">Constructors</a></h3>
 <p>By default, if a class does not have a constructor, it is not constructable from
@@ -1556,7 +1562,7 @@ returns either <code>Self</code> or <code>Result&lt;Self, E&gt;</code>, where <c
 the error variant of <code>Result</code> is encountered, it is thrown as an exception and
 the class is not constructed.</p>
 <p>Constructors are designated by either naming the method <code>__construct</code> or by
-annotating a method with the <code>#[constructor]</code> attribute. Note that when using
+annotating a method with the <code>#[php(constructor)]</code> attribute. Note that when using
 the attribute, the function is not exported to PHP like a regular method.</p>
 <p>Constructors cannot use the visibility or rename attributes listed above.</p>
 <h2 id="constants"><a class="header" href="#constants">Constants</a></h2>
@@ -1565,14 +1571,14 @@ the attribute, the function is not exported to PHP like a regular method.</p>
 the moment, and therefore no attributes are valid on constants.</p>
 <h2 id="property-getters-and-setters"><a class="header" href="#property-getters-and-setters">Property getters and setters</a></h2>
 <p>You can add properties to classes which use Rust functions as getters and/or
-setters. This is done with the <code>#[getter]</code> and <code>#[setter]</code> attributes. By
+setters. This is done with the <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes. By
 default, the <code>get_</code> or <code>set_</code> prefix is trimmed from the start of the function
 name, and the remainder is used as the property name.</p>
 <p>If you want to use a different name for the property, you can pass a <code>rename</code>
 option to the attribute which will change the property name.</p>
 <p>Properties do not necessarily have to have both a getter and a setter, if the
 property is immutable the setter can be omitted, and vice versa for getters.</p>
-<p>The <code>#[getter]</code> and <code>#[setter]</code> attributes are mutually exclusive on methods.
+<p>The <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes are mutually exclusive on methods.
 Properties cannot have multiple getters or setters, and the property name cannot
 conflict with field properties defined on the struct.</p>
 <p>As the same as field properties, method property types must implement both
@@ -1590,7 +1596,7 @@ constant for the maximum age of a <code>Human</code>.</p>
 pub struct Human {
     name: String,
     age: i32,
-    #[prop]
+    #[php(prop)]
     address: String,
 }
 
@@ -1607,17 +1613,17 @@ impl Human {
         }
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn get_name(&amp;self) -&gt; String {
         self.name.to_string()
     }
 
-    #[setter]
+    #[php(setter)]
     pub fn set_name(&amp;mut self, name: String) {
         self.name = name;
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn get_age(&amp;self) -&gt; i32 {
         self.age
     }
@@ -1653,6 +1659,13 @@ var_dump(Human::MAX_AGE); // int(100)
 that implements <code>IntoConst</code>.</p>
 <p>The <code>wrap_constant!()</code> macro can be used to simplify the registration of constants.
 It sets the name and doc comments for the constant.</p>
+<p>You can rename the const with options:</p>
+<ul>
+<li><code>name</code> - Allows you to rename the property, e.g.
+<code>#[php(name = "new_name")]</code></li>
+<li><code>rename</code> - Allows you to rename the property using rename rules, e.g.
+<code>#[php(rename = PascalCase)]</code></li>
+</ul>
 <h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -1662,12 +1675,17 @@ It sets the name and doc comments for the constant.</p>
 const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
+#[php(name = "I_AM_RENAMED")]
+const TEST_CONSTANT_THE_SECOND: i32 = 42;
+
+#[php_const]
 const ANOTHER_STRING_CONST: &amp;'static str = "Hello world!";
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
         .constant(wrap_constant!(TEST_CONSTANT))
+        .constant(wrap_constant!(TEST_CONSTANT_THE_SECOND))
         .constant(("MANUAL_CONSTANT", ANOTHER_STRING_CONST, &amp;[]))
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
@@ -1675,6 +1693,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <pre><code class="language-php">&lt;?php
 
 var_dump(TEST_CONSTANT); // int(100)
+var_dump(I_AM_RENAMED); // int(42)
 var_dump(MANUAL_CONSTANT); // string(12) "Hello world!"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="php_extern-attribute"><a class="header" href="#php_extern-attribute"><code>#[php_extern]</code> Attribute</a></h1>
@@ -1852,7 +1871,50 @@ test_union(5.66666); // UnionExample::ParsedStr("5.6666")
 test_union(null); // UnionExample::None
 var_dump(give_union()); // int(5)
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="exceptions"><a class="header" href="#exceptions">Exceptions</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="php-attributes"><a class="header" href="#php-attributes"><code>#[php]</code> Attributes</a></h1>
+<p>There are a number of attributes that can be used to annotate elements in your
+extension.</p>
+<p>Multiple <code>#[php]</code> attributes will be combined. For example, the following will
+be identical:</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+#[php(name = "hi_world")]
+#[php(defaults(a = 1, b = 2))]
+fn hello_world(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span>#[php_function]
+#[php(name = "hi_world", defaults(a = 1, b = 2))]
+fn hello_world(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
+<p>Which attributes are available depends on the element you are annotating:</p>
+<div class="table-wrapper"><table><thead><tr><th>Attribute</th><th><code>const</code></th><th><code>fn</code></th><th><code>struct</code></th><th><code>struct</code> Field</th><th><code>impl</code></th><th><code>impl</code> <code>const</code></th><th><code>impl</code> <code>fn</code></th></tr></thead><tbody>
+<tr><td>name</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
+<tr><td>rename</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
+<tr><td>rename_methods</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>rename_constants</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>flags</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>prop</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>extends</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>implements</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>modifier</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>defaults</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+<tr><td>optional</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+<tr><td>vis</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+<tr><td>getter</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+<tr><td>setter</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+<tr><td>constructor</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+<tr><td>abstract_method</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><h1 id="exceptions"><a class="header" href="#exceptions">Exceptions</a></h1>
 <p>Exceptions can be thrown from Rust to PHP. The inverse (catching a PHP exception
 in Rust) is currently being worked on.</p>
 <h2 id="throwing-exceptions"><a class="header" href="#throwing-exceptions">Throwing exceptions</a></h2>
@@ -2099,6 +2161,14 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
         .function(wrap_function!(hello_world))
 }
 </code></pre>
+<p><strong>Supported <code>#[php]</code> attributes:</strong></p>
+<ul>
+<li><code>#[php(name = "NEW_NAME")]</code> - Renames the function</li>
+<li><code>#[php(rename = case)]</code> - Changes the case of the function name</li>
+<li><code>#[php(vis = "public")]</code> - Changes the visibility of the function</li>
+<li><code>#[php(defaults(a = 5, test = 100))]</code> - Sets default values for function arguments</li>
+<li><code>#[php(variadic)]</code> - Marks the function as variadic. The last argument must be a <code>&amp;[&amp;Zval]</code></li>
+</ul>
 <h3 id="classes"><a class="header" href="#classes">Classes</a></h3>
 <p>Mostly unchanged in terms of the class and impl definitions, however you now
 need to register the classes with the module builder:</p>
@@ -2107,15 +2177,15 @@ need to register the classes with the module builder:</p>
 #[php_class]
 #[derive(Debug)]
 pub struct TestClass {
-    #[prop]
+    #[php(prop)]
     a: i32,
-    #[prop]
+    #[php(prop)]
     b: i32,
 }
 
 #[php_impl]
 impl TestClass {
-    #[rename("NEW_CONSTANT_NAME")]
+    #[php(name = "NEW_CONSTANT_NAME")]
     pub const SOME_CONSTANT: i32 = 5;
     pub const SOME_OTHER_STR: &amp;'static str = "Hello, world!";
 
@@ -2123,8 +2193,7 @@ impl TestClass {
         Self { a: a + 10, b: b + 10 }
     }
 
-    #[optional(test)]
-    #[defaults(a = 5, test = 100)]
+    #[php(defaults(a = 5, test = 100))]
     pub fn test_camel_case(&amp;self, a: i32, test: i32) {
         println!("a: {} test: {}", a, test);
     }
@@ -2146,6 +2215,21 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
         .class::&lt;TestClass&gt;()
 }
 </code></pre>
+<p><strong>Supported <code>#[php]</code> attributes (<code>struct</code>):</strong></p>
+<ul>
+<li><code>#[php(name = "NEW_NAME")]</code> - Renames the class</li>
+<li><code>#[php(rename = case)]</code> - Changes the case of the class name</li>
+<li><code>#[php(vis = "public")]</code> - Changes the visibility of the class</li>
+<li><code>#[php(extends = "ParentClass")]</code> - Extends a parent class</li>
+<li><code>#[php(implements = "Interface")]</code> - Implements an interface</li>
+<li><code>#[php(prop)]</code> - Marks a field as a property</li>
+</ul>
+<p><strong>Supported <code>#[php]</code> attributes (<code>impl</code>):</strong></p>
+<ul>
+<li><code>#[php(rename_consts = case)]</code> - Changes the case of the constant names. Can be overridden by attributes on the constants.</li>
+<li><code>#[php(rename_methods = case)]</code> - Changes the case of the method names. Can be overridden by attributes on the methods.</li>
+</ul>
+<p>For elements in the <code>#[php_impl]</code> block see the respective function and constant attributes.</p>
 <h3 id="constants-1"><a class="header" href="#constants-1">Constants</a></h3>
 <p>Mostly unchanged in terms of constant definition, however you now need to
 register the constant with the module builder:</p>
@@ -2154,13 +2238,24 @@ register the constant with the module builder:</p>
 #[php_const]
 const SOME_CONSTANT: i32 = 100;
 
+#[php_const]
+#[php(name = "HELLO_WORLD")]
+const SOME_OTHER_CONSTANT: &amp;'static str = "Hello, world!";
+
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
         .constant(wrap_constant!(SOME_CONSTANT)) // SOME_CONSTANT = 100
+        .constant(wrap_constant!(SOME_OTHER_CONSTANT)) // HELLO_WORLD = "Hello, world!"
         .constant(("CONST_NAME", SOME_CONSTANT, &amp;[])) // CONST_NAME = 100
 }
 </code></pre>
+<p><strong>Supported <code>#[php]</code> attributes:</strong></p>
+<ul>
+<li><code>#[php(name = "NEW_NAME")]</code> - Renames the constant</li>
+<li><code>#[php(rename = case)]</code> - Changes the case of the constant name</li>
+<li><code>#[php(vis = "public")]</code> - Changes the visibility of the constant</li>
+</ul>
 <h3 id="extern"><a class="header" href="#extern">Extern</a></h3>
 <p>No changes.</p>
 <pre><code class="language-rs">use ext_php_rs::prelude::*;
@@ -2188,6 +2283,15 @@ fn startup_function(ty: i32, mod_num: i32) -&gt; i32 {
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
 }
+</code></pre>
+<h3 id="php-attributes-1"><a class="header" href="#php-attributes-1"><code>#[php]</code> Attributes</a></h3>
+<p>Attributes like <code>#[rename]</code> or <code>#[prop]</code> have been moved to the <code>#[php]</code> attribute.</p>
+<p>The <code>#[php]</code> attribute on an item are combined with each other. This means that
+the following variants are equivalent:</p>
+<pre><code class="language-rs">#[php(rename = case)]
+#[php(vis = "public")]
+</code></pre>
+<pre><code class="language-rs">#[php(rename = case, vis = "public")]
 </code></pre>
 
                     </main>

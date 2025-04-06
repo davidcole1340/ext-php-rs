@@ -190,6 +190,14 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
         .function(wrap_function!(hello_world))
 }
 </code></pre>
+<p><strong>Supported <code>#[php]</code> attributes:</strong></p>
+<ul>
+<li><code>#[php(name = "NEW_NAME")]</code> - Renames the function</li>
+<li><code>#[php(rename = case)]</code> - Changes the case of the function name</li>
+<li><code>#[php(vis = "public")]</code> - Changes the visibility of the function</li>
+<li><code>#[php(defaults(a = 5, test = 100))]</code> - Sets default values for function arguments</li>
+<li><code>#[php(variadic)]</code> - Marks the function as variadic. The last argument must be a <code>&amp;[&amp;Zval]</code></li>
+</ul>
 <h3 id="classes"><a class="header" href="#classes">Classes</a></h3>
 <p>Mostly unchanged in terms of the class and impl definitions, however you now
 need to register the classes with the module builder:</p>
@@ -198,15 +206,15 @@ need to register the classes with the module builder:</p>
 #[php_class]
 #[derive(Debug)]
 pub struct TestClass {
-    #[prop]
+    #[php(prop)]
     a: i32,
-    #[prop]
+    #[php(prop)]
     b: i32,
 }
 
 #[php_impl]
 impl TestClass {
-    #[rename("NEW_CONSTANT_NAME")]
+    #[php(name = "NEW_CONSTANT_NAME")]
     pub const SOME_CONSTANT: i32 = 5;
     pub const SOME_OTHER_STR: &amp;'static str = "Hello, world!";
 
@@ -214,8 +222,7 @@ impl TestClass {
         Self { a: a + 10, b: b + 10 }
     }
 
-    #[optional(test)]
-    #[defaults(a = 5, test = 100)]
+    #[php(defaults(a = 5, test = 100))]
     pub fn test_camel_case(&amp;self, a: i32, test: i32) {
         println!("a: {} test: {}", a, test);
     }
@@ -237,6 +244,21 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
         .class::&lt;TestClass&gt;()
 }
 </code></pre>
+<p><strong>Supported <code>#[php]</code> attributes (<code>struct</code>):</strong></p>
+<ul>
+<li><code>#[php(name = "NEW_NAME")]</code> - Renames the class</li>
+<li><code>#[php(rename = case)]</code> - Changes the case of the class name</li>
+<li><code>#[php(vis = "public")]</code> - Changes the visibility of the class</li>
+<li><code>#[php(extends = "ParentClass")]</code> - Extends a parent class</li>
+<li><code>#[php(implements = "Interface")]</code> - Implements an interface</li>
+<li><code>#[php(prop)]</code> - Marks a field as a property</li>
+</ul>
+<p><strong>Supported <code>#[php]</code> attributes (<code>impl</code>):</strong></p>
+<ul>
+<li><code>#[php(rename_consts = case)]</code> - Changes the case of the constant names. Can be overridden by attributes on the constants.</li>
+<li><code>#[php(rename_methods = case)]</code> - Changes the case of the method names. Can be overridden by attributes on the methods.</li>
+</ul>
+<p>For elements in the <code>#[php_impl]</code> block see the respective function and constant attributes.</p>
 <h3 id="constants"><a class="header" href="#constants">Constants</a></h3>
 <p>Mostly unchanged in terms of constant definition, however you now need to
 register the constant with the module builder:</p>
@@ -245,13 +267,24 @@ register the constant with the module builder:</p>
 #[php_const]
 const SOME_CONSTANT: i32 = 100;
 
+#[php_const]
+#[php(name = "HELLO_WORLD")]
+const SOME_OTHER_CONSTANT: &amp;'static str = "Hello, world!";
+
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
         .constant(wrap_constant!(SOME_CONSTANT)) // SOME_CONSTANT = 100
+        .constant(wrap_constant!(SOME_OTHER_CONSTANT)) // HELLO_WORLD = "Hello, world!"
         .constant(("CONST_NAME", SOME_CONSTANT, &amp;[])) // CONST_NAME = 100
 }
 </code></pre>
+<p><strong>Supported <code>#[php]</code> attributes:</strong></p>
+<ul>
+<li><code>#[php(name = "NEW_NAME")]</code> - Renames the constant</li>
+<li><code>#[php(rename = case)]</code> - Changes the case of the constant name</li>
+<li><code>#[php(vis = "public")]</code> - Changes the visibility of the constant</li>
+</ul>
 <h3 id="extern"><a class="header" href="#extern">Extern</a></h3>
 <p>No changes.</p>
 <pre><code class="language-rs">use ext_php_rs::prelude::*;
@@ -279,6 +312,15 @@ fn startup_function(ty: i32, mod_num: i32) -&gt; i32 {
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
 }
+</code></pre>
+<h3 id="php-attributes"><a class="header" href="#php-attributes"><code>#[php]</code> Attributes</a></h3>
+<p>Attributes like <code>#[rename]</code> or <code>#[prop]</code> have been moved to the <code>#[php]</code> attribute.</p>
+<p>The <code>#[php]</code> attribute on an item are combined with each other. This means that
+the following variants are equivalent:</p>
+<pre><code class="language-rs">#[php(rename = case)]
+#[php(vis = "public")]
+</code></pre>
+<pre><code class="language-rs">#[php(rename = case, vis = "public")]
 </code></pre>
 
                     </main>

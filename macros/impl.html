@@ -185,16 +185,16 @@ of the following as the <code>rename_methods</code> option:</p>
 <code>#[php_impl(rename_methods = "none")]</code>.</p>
 <p>The rest of the options are passed as separate attributes:</p>
 <ul>
-<li><code>#[defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
-<li><code>#[optional(i)]</code> - Sets the first optional parameter. Note that this also sets
+<li><code>#[php(defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
+<li><code>#[php(optional = i)]</code> - Sets the first optional parameter. Note that this also sets
 the remaining parameters as optional, so all optional parameters must be a
 variant of <code>Option&lt;T&gt;</code>.</li>
-<li><code>#[public]</code>, <code>#[protected]</code> and <code>#[private]</code> - Sets the visibility of the
+<li><code>#[php(public)]</code>, <code>#[php(protected)]</code> and <code>#[php(private)]</code> - Sets the visibility of the
 method.</li>
-<li><code>#[rename("method_name")]</code> - Renames the PHP method to a different identifier,
+<li><code>#[php(name = "method_name")]</code> - Renames the PHP method to a different identifier,
 without renaming the Rust method name.</li>
 </ul>
-<p>The <code>#[defaults]</code> and <code>#[optional]</code> attributes operate the same as the
+<p>The <code>#[php(defaults)]</code> and <code>#[php(optional)]</code> attributes operate the same as the
 equivalent function attribute parameters.</p>
 <h3 id="constructors"><a class="header" href="#constructors">Constructors</a></h3>
 <p>By default, if a class does not have a constructor, it is not constructable from
@@ -204,7 +204,7 @@ returns either <code>Self</code> or <code>Result&lt;Self, E&gt;</code>, where <c
 the error variant of <code>Result</code> is encountered, it is thrown as an exception and
 the class is not constructed.</p>
 <p>Constructors are designated by either naming the method <code>__construct</code> or by
-annotating a method with the <code>#[constructor]</code> attribute. Note that when using
+annotating a method with the <code>#[php(constructor)]</code> attribute. Note that when using
 the attribute, the function is not exported to PHP like a regular method.</p>
 <p>Constructors cannot use the visibility or rename attributes listed above.</p>
 <h2 id="constants"><a class="header" href="#constants">Constants</a></h2>
@@ -213,14 +213,14 @@ the attribute, the function is not exported to PHP like a regular method.</p>
 the moment, and therefore no attributes are valid on constants.</p>
 <h2 id="property-getters-and-setters"><a class="header" href="#property-getters-and-setters">Property getters and setters</a></h2>
 <p>You can add properties to classes which use Rust functions as getters and/or
-setters. This is done with the <code>#[getter]</code> and <code>#[setter]</code> attributes. By
+setters. This is done with the <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes. By
 default, the <code>get_</code> or <code>set_</code> prefix is trimmed from the start of the function
 name, and the remainder is used as the property name.</p>
 <p>If you want to use a different name for the property, you can pass a <code>rename</code>
 option to the attribute which will change the property name.</p>
 <p>Properties do not necessarily have to have both a getter and a setter, if the
 property is immutable the setter can be omitted, and vice versa for getters.</p>
-<p>The <code>#[getter]</code> and <code>#[setter]</code> attributes are mutually exclusive on methods.
+<p>The <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes are mutually exclusive on methods.
 Properties cannot have multiple getters or setters, and the property name cannot
 conflict with field properties defined on the struct.</p>
 <p>As the same as field properties, method property types must implement both
@@ -238,7 +238,7 @@ constant for the maximum age of a <code>Human</code>.</p>
 pub struct Human {
     name: String,
     age: i32,
-    #[prop]
+    #[php(prop)]
     address: String,
 }
 
@@ -255,17 +255,17 @@ impl Human {
         }
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn get_name(&amp;self) -&gt; String {
         self.name.to_string()
     }
 
-    #[setter]
+    #[php(setter)]
     pub fn set_name(&amp;mut self, name: String) {
         self.name = name;
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn get_age(&amp;self) -&gt; i32 {
         self.age
     }

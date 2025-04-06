@@ -160,6 +160,13 @@
 that implements <code>IntoConst</code>.</p>
 <p>The <code>wrap_constant!()</code> macro can be used to simplify the registration of constants.
 It sets the name and doc comments for the constant.</p>
+<p>You can rename the const with options:</p>
+<ul>
+<li><code>name</code> - Allows you to rename the property, e.g.
+<code>#[php(name = "new_name")]</code></li>
+<li><code>rename</code> - Allows you to rename the property using rename rules, e.g.
+<code>#[php(rename = PascalCase)]</code></li>
+</ul>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -169,12 +176,17 @@ It sets the name and doc comments for the constant.</p>
 const TEST_CONSTANT: i32 = 100;
 
 #[php_const]
+#[php(name = "I_AM_RENAMED")]
+const TEST_CONSTANT_THE_SECOND: i32 = 42;
+
+#[php_const]
 const ANOTHER_STRING_CONST: &amp;'static str = "Hello world!";
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
         .constant(wrap_constant!(TEST_CONSTANT))
+        .constant(wrap_constant!(TEST_CONSTANT_THE_SECOND))
         .constant(("MANUAL_CONSTANT", ANOTHER_STRING_CONST, &amp;[]))
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
@@ -182,6 +194,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <pre><code class="language-php">&lt;?php
 
 var_dump(TEST_CONSTANT); // int(100)
+var_dump(I_AM_RENAMED); // int(42)
 var_dump(MANUAL_CONSTANT); // string(12) "Hello world!"
 </code></pre>
 
