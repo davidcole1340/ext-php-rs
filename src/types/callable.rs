@@ -1,6 +1,6 @@
 //! Types related to callables in PHP (anonymous functions, functions, etc).
 
-use std::{convert::TryFrom, ops::Deref};
+use std::{convert::TryFrom, ops::Deref, ptr};
 
 use crate::{
     convert::{FromZval, IntoZvalDyn},
@@ -43,6 +43,10 @@ impl<'a> ZendCallable<'a> {
     /// # Parameters
     ///
     /// * `callable` - The underlying [`Zval`] that is callable.
+    ///
+    /// # Errors
+    ///
+    /// * [`Error::Callable`] - If the zval was not callable.
     pub fn new_owned(callable: Zval) -> Result<Self> {
         if callable.is_callable() {
             Ok(Self(OwnedZval::Owned(callable)))
@@ -58,6 +62,10 @@ impl<'a> ZendCallable<'a> {
     /// # Parameters
     ///
     /// * `name` - Name of the callable function.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the function does not exist or is not callable.
     ///
     /// # Example
     ///
@@ -87,8 +95,13 @@ impl<'a> ZendCallable<'a> {
     ///
     /// # Returns
     ///
-    /// Returns the result wrapped in [`Ok`] upon success. If calling the
-    /// callable fails, or an exception is thrown, an [`Err`] is returned.
+    /// Returns the result wrapped in [`Ok`] upon success.
+    ///
+    /// # Errors
+    ///
+    /// * If calling the callable fails, or an exception is thrown, an [`Err`]
+    ///   is returned.
+    /// * If the number of parameters exceeds `u32::MAX`.
     ///
     /// # Example
     ///
@@ -99,6 +112,8 @@ impl<'a> ZendCallable<'a> {
     /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
     /// assert_eq!(result.long(), Some(1));
     /// ```
+    // TODO: Measure this
+    #[allow(clippy::inline_always)]
     #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         if !self.0.is_callable() {
@@ -114,12 +129,13 @@ impl<'a> ZendCallable<'a> {
         let packed = params.into_boxed_slice();
 
         let result = unsafe {
+            #[allow(clippy::used_underscore_items)]
             _call_user_function_impl(
                 std::ptr::null_mut(),
-                self.0.as_ref() as *const crate::ffi::_zval_struct as *mut crate::ffi::_zval_struct,
+                ptr::from_ref(self.0.as_ref()).cast_mut(),
                 &mut retval,
-                len as _,
-                packed.as_ptr() as *mut _,
+                len.try_into()?,
+                packed.as_ptr().cast_mut(),
                 std::ptr::null_mut(),
             )
         };

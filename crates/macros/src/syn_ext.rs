@@ -27,14 +27,16 @@ impl DropLifetimes for syn::Type {
 
 impl DropLifetimes for syn::TypeArray {
     fn drop_lifetimes(&mut self) {
-        self.elem.drop_lifetimes()
+        self.elem.drop_lifetimes();
     }
 }
 
 impl DropLifetimes for syn::TypeBareFn {
     fn drop_lifetimes(&mut self) {
         self.lifetimes = None;
-        self.inputs.iter_mut().for_each(|i| i.drop_lifetimes());
+        self.inputs
+            .iter_mut()
+            .for_each(DropLifetimes::drop_lifetimes);
         self.output.drop_lifetimes();
     }
 }
@@ -55,7 +57,7 @@ impl DropLifetimes for syn::ReturnType {
 
 impl DropLifetimes for syn::TypeGroup {
     fn drop_lifetimes(&mut self) {
-        self.elem.drop_lifetimes()
+        self.elem.drop_lifetimes();
     }
 }
 
@@ -89,7 +91,9 @@ impl DropLifetimes for syn::TraitBound {
 
 impl DropLifetimes for syn::Path {
     fn drop_lifetimes(&mut self) {
-        self.segments.iter_mut().for_each(|i| i.drop_lifetimes());
+        self.segments
+            .iter_mut()
+            .for_each(DropLifetimes::drop_lifetimes);
     }
 }
 
@@ -103,10 +107,9 @@ impl DropLifetimes for syn::PathSegment {
                         syn::GenericArgument::Type(t) => t.drop_lifetimes(),
                         syn::GenericArgument::AssocType(t) => t.drop_lifetimes(),
                         syn::GenericArgument::Constraint(t) => t.drop_lifetimes(),
-                        syn::GenericArgument::Const(_) => {}
-                        syn::GenericArgument::AssocConst(_) => {}
+                        syn::GenericArgument::Const(_) | syn::GenericArgument::AssocConst(_) => {}
                         _ => return None,
-                    };
+                    }
                     Some(i)
                 })
                 .collect();
@@ -168,7 +171,9 @@ impl DropLifetimes for syn::TypeTraitObject {
 
 impl DropLifetimes for syn::TypeTuple {
     fn drop_lifetimes(&mut self) {
-        self.elems.iter_mut().for_each(|i| i.drop_lifetimes());
+        self.elems
+            .iter_mut()
+            .for_each(DropLifetimes::drop_lifetimes);
     }
 }
 

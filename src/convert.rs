@@ -79,6 +79,13 @@ where
 /// type.
 pub trait FromZendObject<'a>: Sized {
     /// Extracts `Self` from the source `ZendObject`.
+    ///
+    /// # Errors
+    ///
+    /// If the conversion fails, an [`Error`] is returned.
+    ///
+    /// [`Error`]: crate::error::Error
+    // TODO: Expand on error information
     fn from_zend_object(obj: &'a ZendObject) -> Result<Self>;
 }
 
@@ -89,6 +96,13 @@ pub trait FromZendObject<'a>: Sized {
 /// any types that also implement [`FromZendObject`].
 pub trait FromZendObjectMut<'a>: Sized {
     /// Extracts `Self` from the source `ZendObject`.
+    ///
+    /// # Errors
+    ///
+    /// If the conversion fails, an [`Error`] is returned.
+    ///
+    /// [`Error`]: crate::error::Error
+    // TODO: Expand on error information
     fn from_zend_object_mut(obj: &'a mut ZendObject) -> Result<Self>;
 }
 
@@ -106,6 +120,13 @@ where
 /// the implementation to determine the type of object which is produced.
 pub trait IntoZendObject {
     /// Attempts to convert `self` into a Zend object.
+    ///
+    /// # Errors
+    ///
+    /// If the conversion fails, an [`Error`] is returned.
+    ///
+    /// [`Error`]: crate::error::Error
+    // TODO: Expand on error information
     fn into_zend_object(self) -> Result<ZBox<ZendObject>>;
 }
 
@@ -129,6 +150,13 @@ pub trait IntoZval: Sized {
     ///
     /// * `persistent` - Whether the contents of the Zval will persist between
     ///   requests.
+    ///
+    /// # Errors
+    ///
+    /// If the conversion fails, an [`Error`] is returned.
+    ///
+    /// [`Error`]: crate::error::Error
+    // TODO: Expand on error information
     fn into_zval(self, persistent: bool) -> Result<Zval> {
         let mut zval = Zval::new();
         self.set_zval(&mut zval, persistent)?;
@@ -143,6 +171,13 @@ pub trait IntoZval: Sized {
     /// * `zv` - The Zval to set the content of.
     /// * `persistent` - Whether the contents of the Zval will persist between
     ///   requests.
+    ///
+    /// # Errors
+    ///
+    /// If setting the content fails, an [`Error`] is returned.
+    ///
+    /// [`Error`]: crate::error::Error
+    // TODO: Expand on error information
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()>;
 }
 
@@ -166,12 +201,11 @@ where
 
     #[inline]
     fn set_zval(self, zv: &mut Zval, persistent: bool) -> Result<()> {
-        match self {
-            Some(val) => val.set_zval(zv, persistent),
-            None => {
-                zv.set_null();
-                Ok(())
-            }
+        if let Some(val) = self {
+            val.set_zval(zv, persistent)
+        } else {
+            zv.set_null();
+            Ok(())
         }
     }
 }
@@ -209,6 +243,12 @@ pub trait IntoZvalDyn {
     ///
     /// * `persistent` - Whether the contents of the Zval will persist between
     ///   requests.
+    ///
+    /// # Errors
+    ///
+    /// If the conversion fails, an [`Error`] is returned.
+    ///
+    /// [`Error`]: crate::error::Error
     fn as_zval(&self, persistent: bool) -> Result<Zval>;
 
     /// Returns the PHP type of the type.

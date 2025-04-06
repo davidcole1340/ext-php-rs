@@ -28,6 +28,10 @@ pub trait IntoConst: Debug {
     /// * `module_number` - The module number that we are registering the
     ///   constant under.
     ///
+    /// # Errors
+    ///
+    /// Returns an error if the constant could not be registered.
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -60,6 +64,10 @@ pub trait IntoConst: Debug {
     /// * `module_number` - The module number that we are registering the
     ///   constant under.
     /// * `flags` - Flags to register the constant with.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the constant flags could not be registered.
     ///
     /// # Examples
     ///
@@ -103,9 +111,9 @@ impl IntoConst for &str {
                 CString::new(name)?.as_ptr(),
                 name.len() as _,
                 CString::new(*self)?.as_ptr(),
-                flags.bits() as _,
+                flags.bits().try_into()?,
                 module_number,
-            )
+            );
         };
         Ok(())
     }
@@ -123,9 +131,9 @@ impl IntoConst for bool {
                 CString::new(name)?.as_ptr(),
                 name.len() as _,
                 *self,
-                flags.bits() as _,
+                flags.bits().try_into()?,
                 module_number,
-            )
+            );
         };
         Ok(())
     }
@@ -146,8 +154,8 @@ macro_rules! into_const_num {
                     $fn(
                         CString::new(name)?.as_ptr(),
                         name.len() as _,
-                        *self as _,
-                        flags.bits() as _,
+                        (*self).into(),
+                        flags.bits().try_into()?,
                         module_number,
                     )
                 })

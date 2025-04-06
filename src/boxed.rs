@@ -26,7 +26,7 @@ use std::{
     fmt::Debug,
     mem::ManuallyDrop,
     ops::{Deref, DerefMut},
-    ptr::NonNull,
+    ptr::{self, NonNull},
 };
 
 use super::alloc::efree;
@@ -59,6 +59,7 @@ impl<T: ZBoxable> ZBox<T> {
     ///
     /// The caller is responsible for managing the memory pointed to by the
     /// returned pointer, including freeing the memory.
+    #[must_use]
     pub fn into_raw(self) -> &'static mut T {
         let mut this = ManuallyDrop::new(self);
         // SAFETY: All constructors ensure the contained pointer is well-aligned and
@@ -70,7 +71,7 @@ impl<T: ZBoxable> ZBox<T> {
 impl<T: ZBoxable> Drop for ZBox<T> {
     #[inline]
     fn drop(&mut self) {
-        self.deref_mut().free()
+        self.deref_mut().free();
     }
 }
 
@@ -133,6 +134,6 @@ pub unsafe trait ZBoxable {
     /// Frees the memory pointed to by `self`, calling any destructors required
     /// in the process.
     fn free(&mut self) {
-        unsafe { efree(self as *mut _ as *mut u8) };
+        unsafe { efree(ptr::from_mut(self).cast::<u8>()) };
     }
 }

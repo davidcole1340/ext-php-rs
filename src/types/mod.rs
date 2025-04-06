@@ -36,6 +36,7 @@ impl FromZval<'_> for f32 {
     const TYPE: DataType = DataType::Double;
 
     fn from_zval(zval: &Zval) -> Option<Self> {
+        #[allow(clippy::cast_possible_truncation)]
         zval.double().map(|v| v as f32)
     }
 }

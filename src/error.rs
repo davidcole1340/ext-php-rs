@@ -4,6 +4,7 @@ use std::{
     error::Error as ErrorTrait,
     ffi::{CString, NulError},
     fmt::Display,
+    num::TryFromIntError,
 };
 
 use crate::{
@@ -124,6 +125,12 @@ impl From<NulError> for Error {
     }
 }
 
+impl From<TryFromIntError> for Error {
+    fn from(_value: TryFromIntError) -> Self {
+        Self::IntegerOverflow
+    }
+}
+
 impl From<Error> for PhpException {
     fn from(err: Error) -> Self {
         Self::default(err.to_string())
@@ -133,13 +140,20 @@ impl From<Error> for PhpException {
 /// Trigger an error that is reported in PHP the same way `trigger_error()` is.
 ///
 /// See specific error type descriptions at <https://www.php.net/manual/en/errorfunc.constants.php>.
-pub fn php_error(type_: ErrorType, message: &str) {
-    let c_string = match CString::new(message) {
-        Ok(string) => string,
-        Err(_) => {
-            return;
-        }
+///
+/// # Panics
+///
+/// * If the error type bits exceed `i32::MAX`.
+pub fn php_error(type_: &ErrorType, message: &str) {
+    let Ok(c_string) = CString::new(message) else {
+        return;
     };
 
-    unsafe { php_error_docref(std::ptr::null(), type_.bits() as _, c_string.as_ptr()) }
+    unsafe {
+        php_error_docref(
+            std::ptr::null(),
+            type_.bits().try_into().expect("Error type flags overflown"),
+            c_string.as_ptr(),
+        );
+    }
 }

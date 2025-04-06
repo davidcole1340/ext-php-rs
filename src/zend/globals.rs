@@ -41,11 +41,15 @@ pub type SapiModule = _sapi_module_struct;
 impl ExecutorGlobals {
     /// Returns a reference to the PHP executor globals.
     ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// The executor globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
+    ///
+    /// # Panics
+    ///
+    /// * If static executor globals are not set
     pub fn get() -> GlobalReadGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
@@ -65,11 +69,15 @@ impl ExecutorGlobals {
 
     /// Returns a mutable reference to the PHP executor globals.
     ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// The executor globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
+    ///
+    /// # Panics
+    ///
+    /// * If static executor globals are not set
     pub fn get_mut() -> GlobalWriteGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
@@ -88,26 +96,35 @@ impl ExecutorGlobals {
     }
 
     /// Attempts to retrieve the global class hash table.
+    #[must_use]
     pub fn class_table(&self) -> Option<&ZendHashTable> {
         unsafe { self.class_table.as_ref() }
     }
 
     /// Attempts to retrieve the global functions hash table.
+    #[must_use]
     pub fn function_table(&self) -> Option<&ZendHashTable> {
         unsafe { self.function_table.as_ref() }
     }
 
     /// Attempts to retrieve the global functions hash table as mutable.
+    #[must_use]
     pub fn function_table_mut(&self) -> Option<&mut ZendHashTable> {
         unsafe { self.function_table.as_mut() }
     }
 
     /// Retrieves the ini values for all ini directives in the current executor
     /// context..
+    ///
+    /// # Panics
+    ///
+    /// * If the ini directives are not a valid hash table.
+    /// * If the ini entry is not a string.
+    #[must_use]
     pub fn ini_values(&self) -> HashMap<String, Option<String>> {
         let hash_table = unsafe { &*self.ini_directives };
         let mut ini_hash_map: HashMap<String, Option<String>> = HashMap::new();
-        for (key, value) in hash_table.iter() {
+        for (key, value) in hash_table {
             ini_hash_map.insert(key.to_string(), unsafe {
                 let ini_entry = &*value.ptr::<zend_ini_entry>().expect("Invalid ini entry");
                 if ini_entry.value.is_null() {
@@ -126,6 +143,7 @@ impl ExecutorGlobals {
     }
 
     /// Attempts to retrieve the global constants table.
+    #[must_use]
     pub fn constants(&self) -> Option<&ZendHashTable> {
         unsafe { self.zend_constants.as_ref() }
     }
@@ -136,6 +154,7 @@ impl ExecutorGlobals {
     /// This function requires the executor globals to be mutably held, which
     /// could lead to a deadlock if the globals are already borrowed immutably
     /// or mutably.
+    #[must_use]
     pub fn take_exception() -> Option<ZBox<ZendObject>> {
         {
             // This avoid a write lock if there is no exception.
@@ -154,6 +173,7 @@ impl ExecutorGlobals {
     }
 
     /// Checks if the executor globals contain an exception.
+    #[must_use]
     pub fn has_exception() -> bool {
         !Self::get().exception.is_null()
     }
@@ -164,6 +184,11 @@ impl ExecutorGlobals {
     /// This function requires the executor globals to be mutably held, which
     /// could lead to a deadlock if the globals are already borrowed immutably
     /// or mutably.
+    ///
+    /// # Errors
+    ///
+    /// If an exception is present, it will be returned as `Err` value inside a
+    /// [`PhpResult`].
     pub fn throw_if_exception() -> PhpResult<()> {
         if let Some(e) = Self::take_exception() {
             Err(crate::error::Error::Exception(e).into())
@@ -204,11 +229,15 @@ impl ExecutorGlobals {
 impl SapiModule {
     /// Returns a reference to the PHP SAPI module.
     ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// The executor globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
+    ///
+    /// # Panics
+    ///
+    /// * If static executor globals are not set
     pub fn get() -> GlobalReadGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
@@ -220,11 +249,15 @@ impl SapiModule {
 
     /// Returns a mutable reference to the PHP executor globals.
     ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// The executor globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
+    ///
+    /// # Panics
+    ///
+    /// * If static executor globals are not set
     pub fn get_mut() -> GlobalWriteGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
@@ -241,7 +274,7 @@ pub type ProcessGlobals = php_core_globals;
 impl ProcessGlobals {
     /// Returns a reference to the PHP process globals.
     ///
-    /// The process globals are guarded by a RwLock. There can be multiple
+    /// The process globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
@@ -264,7 +297,7 @@ impl ProcessGlobals {
 
     /// Returns a mutable reference to the PHP executor globals.
     ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// The executor globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
@@ -286,6 +319,7 @@ impl ProcessGlobals {
     }
 
     /// Get the HTTP Server variables. Equivalent of $_SERVER.
+    #[must_use]
     pub fn http_server_vars(&self) -> Option<&ZendHashTable> {
         // $_SERVER is lazy-initted, we need to call zend_is_auto_global
         // if it's not already populated.
@@ -301,6 +335,11 @@ impl ProcessGlobals {
     }
 
     /// Get the HTTP POST variables. Equivalent of $_POST.
+    ///
+    /// # Panics
+    ///
+    /// * If the post global is not found or fails to be populated.
+    #[must_use]
     pub fn http_post_vars(&self) -> &ZendHashTable {
         self.http_globals[TRACK_VARS_POST as usize]
             .array()
@@ -308,6 +347,11 @@ impl ProcessGlobals {
     }
 
     /// Get the HTTP GET variables. Equivalent of $_GET.
+    ///
+    /// # Panics
+    ///
+    /// * If the get global is not found or fails to be populated.
+    #[must_use]
     pub fn http_get_vars(&self) -> &ZendHashTable {
         self.http_globals[TRACK_VARS_GET as usize]
             .array()
@@ -315,6 +359,11 @@ impl ProcessGlobals {
     }
 
     /// Get the HTTP Cookie variables. Equivalent of $_COOKIE.
+    ///
+    /// # Panics
+    ///
+    /// * If the cookie global is not found or fails to be populated.
+    #[must_use]
     pub fn http_cookie_vars(&self) -> &ZendHashTable {
         self.http_globals[TRACK_VARS_COOKIE as usize]
             .array()
@@ -324,8 +373,9 @@ impl ProcessGlobals {
     /// Get the HTTP Request variables. Equivalent of $_REQUEST.
     ///
     /// # Panics
-    /// - If the request global is not found or fails to be populated.
-    /// - If the request global is not a ZendArray.
+    ///
+    /// * If the request global is not found or fails to be populated.
+    /// * If the request global is not a [`ZendHashTable`].
     pub fn http_request_vars(&self) -> Option<&ZendHashTable> {
         cfg_if::cfg_if! {
             if #[cfg(php81)] {
@@ -339,9 +389,10 @@ impl ProcessGlobals {
 
         // `$_REQUEST` is lazy-initted, we need to call `zend_is_auto_global` to make
         // sure it's populated.
-        if !unsafe { zend_is_auto_global(key) } {
-            panic!("Failed to get request global");
-        }
+        assert!(
+            unsafe { zend_is_auto_global(key) },
+            "Failed to get request global"
+        );
 
         let symbol_table = &ExecutorGlobals::get().symbol_table;
         cfg_if::cfg_if! {
@@ -360,6 +411,11 @@ impl ProcessGlobals {
     }
 
     /// Get the HTTP Environment variables. Equivalent of $_ENV.
+    ///
+    /// # Panics
+    ///
+    /// * If the environment global is not found or fails to be populated.
+    #[must_use]
     pub fn http_env_vars(&self) -> &ZendHashTable {
         self.http_globals[TRACK_VARS_ENV as usize]
             .array()
@@ -367,6 +423,11 @@ impl ProcessGlobals {
     }
 
     /// Get the HTTP Files variables. Equivalent of $_FILES.
+    ///
+    /// # Panics
+    ///
+    /// * If the files global is not found or fails to be populated.
+    #[must_use]
     pub fn http_files_vars(&self) -> &ZendHashTable {
         self.http_globals[TRACK_VARS_FILES as usize]
             .array()
@@ -380,7 +441,7 @@ pub type SapiGlobals = sapi_globals_struct;
 impl SapiGlobals {
     /// Returns a reference to the PHP process globals.
     ///
-    /// The process globals are guarded by a RwLock. There can be multiple
+    /// The process globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
@@ -403,7 +464,7 @@ impl SapiGlobals {
 
     /// Returns a mutable reference to the PHP executor globals.
     ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// The executor globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
@@ -425,11 +486,13 @@ impl SapiGlobals {
     }
 
     /// Get the request info for the Sapi.
+    #[must_use]
     pub fn request_info(&self) -> &SapiRequestInfo {
         &self.request_info
     }
 
     /// Get the sapi headers for the Sapi.
+    #[must_use]
     pub fn sapi_headers(&self) -> &SapiHeaders {
         &self.sapi_headers
     }
@@ -450,7 +513,9 @@ impl<'a> SapiHeader {
     /// Get the header as a string.
     ///
     /// # Panics
-    /// - If the header is not a valid UTF-8 string.
+    ///
+    /// * If the header is not a valid UTF-8 string.
+    #[must_use]
     pub fn as_str(&'a self) -> &'a str {
         unsafe {
             let slice = slice::from_raw_parts(self.header as *const u8, self.header_len);
@@ -459,13 +524,15 @@ impl<'a> SapiHeader {
     }
 
     /// Returns the header name (key).
+    #[must_use]
     pub fn name(&'a self) -> &'a str {
         self.as_str().split(':').next().unwrap_or("").trim()
     }
 
     /// Returns the header value.
+    #[must_use]
     pub fn value(&'a self) -> Option<&'a str> {
-        self.as_str().split(':').nth(1).map(|s| s.trim())
+        self.as_str().split(':').nth(1).map(str::trim)
     }
 }
 
@@ -473,6 +540,7 @@ pub type SapiRequestInfo = sapi_request_info;
 
 impl SapiRequestInfo {
     /// Get the request method.
+    #[must_use]
     pub fn request_method(&self) -> Option<&str> {
         if self.request_method.is_null() {
             return None;
@@ -481,6 +549,7 @@ impl SapiRequestInfo {
     }
 
     /// Get the query string.
+    #[must_use]
     pub fn query_string(&self) -> Option<&str> {
         if self.query_string.is_null() {
             return None;
@@ -489,6 +558,7 @@ impl SapiRequestInfo {
     }
 
     /// Get the cookie data.
+    #[must_use]
     pub fn cookie_data(&self) -> Option<&str> {
         if self.cookie_data.is_null() {
             return None;
@@ -497,11 +567,13 @@ impl SapiRequestInfo {
     }
 
     /// Get the content length.
+    #[must_use]
     pub fn content_length(&self) -> i64 {
         self.content_length
     }
 
     /// Get the path info.
+    #[must_use]
     pub fn path_translated(&self) -> Option<&str> {
         if self.path_translated.is_null() {
             return None;
@@ -510,6 +582,7 @@ impl SapiRequestInfo {
     }
 
     /// Get the request uri.
+    #[must_use]
     pub fn request_uri(&self) -> Option<&str> {
         if self.request_uri.is_null() {
             return None;
@@ -520,6 +593,7 @@ impl SapiRequestInfo {
     // Todo: request_body _php_stream
 
     /// Get the content type.
+    #[must_use]
     pub fn content_type(&self) -> Option<&str> {
         if self.content_type.is_null() {
             return None;
@@ -528,16 +602,19 @@ impl SapiRequestInfo {
     }
 
     /// Whether the request consists of headers only.
+    #[must_use]
     pub fn headers_only(&self) -> bool {
         self.headers_only
     }
 
     /// Whether the request has no headers.
+    #[must_use]
     pub fn no_headers(&self) -> bool {
         self.no_headers
     }
 
     /// Whether the request headers have been read.
+    #[must_use]
     pub fn headers_read(&self) -> bool {
         self.headers_read
     }
@@ -545,6 +622,7 @@ impl SapiRequestInfo {
     // Todo: post_entry sapi_post_entry
 
     /// Get the auth user.
+    #[must_use]
     pub fn auth_user(&self) -> Option<&str> {
         if self.auth_user.is_null() {
             return None;
@@ -553,6 +631,7 @@ impl SapiRequestInfo {
     }
 
     /// Get the auth password.
+    #[must_use]
     pub fn auth_password(&self) -> Option<&str> {
         if self.auth_password.is_null() {
             return None;
@@ -561,6 +640,7 @@ impl SapiRequestInfo {
     }
 
     /// Get the auth digest.
+    #[must_use]
     pub fn auth_digest(&self) -> Option<&str> {
         if self.auth_digest.is_null() {
             return None;
@@ -569,6 +649,7 @@ impl SapiRequestInfo {
     }
 
     /// Get argv0.
+    #[must_use]
     pub fn argv0(&self) -> Option<&str> {
         if self.argv0.is_null() {
             return None;
@@ -577,6 +658,7 @@ impl SapiRequestInfo {
     }
 
     /// Get the current user.
+    #[must_use]
     pub fn current_user(&self) -> Option<&str> {
         if self.current_user.is_null() {
             return None;
@@ -585,16 +667,19 @@ impl SapiRequestInfo {
     }
 
     /// Get the current user length.
+    #[must_use]
     pub fn current_user_length(&self) -> i32 {
         self.current_user_length
     }
 
     /// Get argvc.
+    #[must_use]
     pub fn argvc(&self) -> i32 {
         self.argc
     }
 
     /// Get argv.
+    #[must_use]
     pub fn argv(&self) -> Option<&str> {
         if self.argv.is_null() {
             return None;
@@ -603,6 +688,7 @@ impl SapiRequestInfo {
     }
 
     /// Get the protocol number.
+    #[must_use]
     pub fn proto_num(&self) -> i32 {
         self.proto_num
     }
@@ -614,11 +700,15 @@ pub type FileGlobals = php_file_globals;
 impl FileGlobals {
     /// Returns a reference to the PHP process globals.
     ///
-    /// The process globals are guarded by a RwLock. There can be multiple
+    /// The process globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
+    ///
+    /// # Panics
+    ///
+    /// * If static file globals are not set
     pub fn get() -> GlobalReadGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
@@ -638,7 +728,7 @@ impl FileGlobals {
 
     /// Returns a mutable reference to the PHP executor globals.
     ///
-    /// The executor globals are guarded by a RwLock. There can be multiple
+    /// The executor globals are guarded by a [`RwLock`]. There can be multiple
     /// immutable references at one time but only ever one mutable reference.
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
@@ -660,6 +750,7 @@ impl FileGlobals {
     }
 
     /// Returns the stream wrappers
+    #[must_use]
     pub fn stream_wrappers(&self) -> Option<&'static ZendHashTable> {
         unsafe { self.stream_wrappers.as_ref() }
     }

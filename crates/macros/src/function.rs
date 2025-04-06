@@ -132,27 +132,16 @@ impl<'a> Function<'a> {
 
     /// Generates the function builder for the function.
     pub fn function_builder(&self, call_type: CallType) -> TokenStream {
-        let ident = self.ident;
         let name = &self.name;
         let (required, not_required) = self.args.split_args(self.optional.as_ref());
 
         // `handler` impl
-        let required_arg_names: Vec<_> = required.iter().map(|arg| arg.name).collect();
-        let not_required_arg_names: Vec<_> = not_required.iter().map(|arg| arg.name).collect();
         let arg_declarations = self
             .args
             .typed
             .iter()
             .map(TypedArg::arg_declaration)
             .collect::<Vec<_>>();
-        let arg_accessors = self.args.typed.iter().map(|arg| {
-            arg.accessor(|e| {
-                quote! {
-                    #e.throw().expect("Failed to throw PHP exception.");
-                    return;
-                }
-            })
-        });
 
         // `entry` impl
         let required_args = required
@@ -163,7 +152,50 @@ impl<'a> Function<'a> {
             .iter()
             .map(TypedArg::arg_builder)
             .collect::<Vec<_>>();
-        let returns = self.output.as_ref().map(|output| {
+
+        let returns = self.build_returns();
+        let result = self.build_result(call_type, required, not_required);
+        let docs = if self.docs.is_empty() {
+            quote! {}
+        } else {
+            let docs = &self.docs;
+            quote! {
+                .docs(&[#(#docs),*])
+            }
+        };
+
+        quote! {
+            ::ext_php_rs::builders::FunctionBuilder::new(#name, {
+                ::ext_php_rs::zend_fastcall! {
+                    extern fn handler(
+                        ex: &mut ::ext_php_rs::zend::ExecuteData,
+                        retval: &mut ::ext_php_rs::types::Zval,
+                    ) {
+                        use ::ext_php_rs::convert::IntoZval;
+
+                        #(#arg_declarations)*
+                        let result = {
+                            #result
+                        };
+
+                        if let Err(e) = result.set_zval(retval, false) {
+                            let e: ::ext_php_rs::exception::PhpException = e.into();
+                            e.throw().expect("Failed to throw PHP exception.");
+                        }
+                    }
+                }
+                handler
+            })
+            #(.arg(#required_args))*
+            .not_required()
+            #(.arg(#not_required_args))*
+            #returns
+            #docs
+        }
+    }
+
+    fn build_returns(&self) -> Option<TokenStream> {
+        self.output.as_ref().map(|output| {
             quote! {
                 .returns(
                     <#output as ::ext_php_rs::convert::IntoZval>::TYPE,
@@ -171,9 +203,29 @@ impl<'a> Function<'a> {
                     <#output as ::ext_php_rs::convert::IntoZval>::NULLABLE,
                 )
             }
+        })
+    }
+
+    fn build_result(
+        &self,
+        call_type: CallType,
+        required: &[TypedArg<'_>],
+        not_required: &[TypedArg<'_>],
+    ) -> TokenStream {
+        let ident = self.ident;
+        let required_arg_names: Vec<_> = required.iter().map(|arg| arg.name).collect();
+        let not_required_arg_names: Vec<_> = not_required.iter().map(|arg| arg.name).collect();
+
+        let arg_accessors = self.args.typed.iter().map(|arg| {
+            arg.accessor(|e| {
+                quote! {
+                    #e.throw().expect("Failed to throw PHP exception.");
+                    return;
+                }
+            })
         });
 
-        let result = match call_type {
+        match call_type {
             CallType::Function => quote! {
                 let parse = ex.parser()
                     #(.arg(&mut #required_arg_names))*
@@ -227,44 +279,6 @@ impl<'a> Function<'a> {
                     #call
                 }
             }
-        };
-
-        let docs = if self.docs.is_empty() {
-            quote! {}
-        } else {
-            let docs = &self.docs;
-            quote! {
-                .docs(&[#(#docs),*])
-            }
-        };
-
-        quote! {
-            ::ext_php_rs::builders::FunctionBuilder::new(#name, {
-                ::ext_php_rs::zend_fastcall! {
-                    extern fn handler(
-                        ex: &mut ::ext_php_rs::zend::ExecuteData,
-                        retval: &mut ::ext_php_rs::types::Zval,
-                    ) {
-                        use ::ext_php_rs::convert::IntoZval;
-
-                        #(#arg_declarations)*
-                        let result = {
-                            #result
-                        };
-
-                        if let Err(e) = result.set_zval(retval, false) {
-                            let e: ::ext_php_rs::exception::PhpException = e.into();
-                            e.throw().expect("Failed to throw PHP exception.");
-                        }
-                    }
-                }
-                handler
-            })
-            #(.arg(#required_args))*
-            .not_required()
-            #(.arg(#not_required_args))*
-            #returns
-            #docs
         }
     }
 

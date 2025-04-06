@@ -39,24 +39,32 @@ pub type Zval = zval;
 
 impl Zval {
     /// Creates a new, empty zval.
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             value: zend_value {
                 ptr: ptr::null_mut(),
             },
+            #[allow(clippy::used_underscore_items)]
             u1: _zval_struct__bindgen_ty_1 {
                 type_info: DataType::Null.as_u32(),
             },
+            #[allow(clippy::used_underscore_items)]
             u2: _zval_struct__bindgen_ty_2 { next: 0 },
         }
     }
 
     /// Dereference the zval, if it is a reference.
+    #[must_use]
     pub fn dereference(&self) -> &Self {
         self.reference().or_else(|| self.indirect()).unwrap_or(self)
     }
 
     /// Dereference the zval mutable, if it is a reference.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a mutable reference to the zval is not possible.
     pub fn dereference_mut(&mut self) -> &mut Self {
         // TODO: probably more ZTS work is needed here
         if self.is_reference() {
@@ -71,6 +79,7 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is a long.
+    #[must_use]
     pub fn long(&self) -> Option<ZendLong> {
         if self.is_long() {
             Some(unsafe { self.value.lval })
@@ -80,6 +89,7 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is a bool.
+    #[must_use]
     pub fn bool(&self) -> Option<bool> {
         if self.is_true() {
             Some(true)
@@ -91,6 +101,7 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is a double.
+    #[must_use]
     pub fn double(&self) -> Option<f64> {
         if self.is_double() {
             Some(unsafe { self.value.dval })
@@ -104,6 +115,7 @@ impl Zval {
     /// Note that this functions output will not be the same as
     /// [`string()`](#method.string), as this function does not attempt to
     /// convert other types into a [`String`].
+    #[must_use]
     pub fn zend_str(&self) -> Option<&ZendStr> {
         if self.is_string() {
             unsafe { self.value.str_.as_ref() }
@@ -116,7 +128,7 @@ impl Zval {
     ///
     /// [`str()`]: #method.str
     pub fn string(&self) -> Option<String> {
-        self.str().map(|s| s.to_string())
+        self.str().map(ToString::to_string)
     }
 
     /// Returns the value of the zval if it is a string.
@@ -125,6 +137,7 @@ impl Zval {
     /// [`string()`](#method.string), as this function does not attempt to
     /// convert other types into a [`String`], as it could not pass back a
     /// [`&str`] in those cases.
+    #[must_use]
     pub fn str(&self) -> Option<&str> {
         self.zend_str().and_then(|zs| zs.as_str().ok())
     }
@@ -170,6 +183,7 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is a resource.
+    #[must_use]
     pub fn resource(&self) -> Option<*mut zend_resource> {
         // TODO: Can we improve this function? I haven't done much research into
         // resources so I don't know if this is the optimal way to return this.
@@ -182,6 +196,7 @@ impl Zval {
 
     /// Returns an immutable reference to the underlying zval hashtable if the
     /// zval contains an array.
+    #[must_use]
     pub fn array(&self) -> Option<&ZendHashTable> {
         if self.is_array() {
             unsafe { self.value.arr.as_ref() }
@@ -201,6 +216,7 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is an object.
+    #[must_use]
     pub fn object(&self) -> Option<&ZendObject> {
         if self.is_object() {
             unsafe { self.value.obj.as_ref() }
@@ -220,6 +236,12 @@ impl Zval {
     }
 
     /// Attempts to call a method on the object contained in the zval.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the [`Zval`] is not an object.
+    // TODO: Measure this
+    #[allow(clippy::inline_always)]
     #[inline(always)]
     pub fn try_call_method(&self, name: &str, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.object()
@@ -228,9 +250,10 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is an internal indirect reference.
+    #[must_use]
     pub fn indirect(&self) -> Option<&Zval> {
         if self.is_indirect() {
-            Some(unsafe { &*(self.value.zv as *mut Zval) })
+            Some(unsafe { &*(self.value.zv.cast::<Zval>()) })
         } else {
             None
         }
@@ -238,15 +261,17 @@ impl Zval {
 
     /// Returns a mutable reference to the zval if it is an internal indirect
     /// reference.
+    #[must_use]
     pub fn indirect_mut(&self) -> Option<&mut Zval> {
         if self.is_indirect() {
-            Some(unsafe { &mut *(self.value.zv as *mut Zval) })
+            Some(unsafe { &mut *(self.value.zv.cast::<Zval>()) })
         } else {
             None
         }
     }
 
     /// Returns the value of the zval if it is a reference.
+    #[must_use]
     pub fn reference(&self) -> Option<&Zval> {
         if self.is_reference() {
             Some(&unsafe { self.value.ref_.as_ref() }?.val)
@@ -265,12 +290,14 @@ impl Zval {
     }
 
     /// Returns the value of the zval if it is callable.
+    #[must_use]
     pub fn callable(&self) -> Option<ZendCallable> {
         // The Zval is checked if it is callable in the `new` function.
         ZendCallable::new(self).ok()
     }
 
     /// Returns an iterator over the zval if it is traversable.
+    #[must_use]
     pub fn traversable(&self) -> Option<&mut ZendIterator> {
         if self.is_traversable() {
             self.object()?.get_class_entry().get_iterator(self, false)
@@ -281,6 +308,7 @@ impl Zval {
 
     /// Returns an iterable over the zval if it is an array or traversable. (is
     /// iterable)
+    #[must_use]
     pub fn iterable(&self) -> Option<Iterable> {
         if self.is_iterable() {
             Iterable::from_zval(self)
@@ -296,9 +324,10 @@ impl Zval {
     /// The caller must ensure that the pointer contained in the zval is in fact
     /// a pointer to an instance of `T`, as the zval has no way of defining
     /// the type of pointer.
+    #[must_use]
     pub unsafe fn ptr<T>(&self) -> Option<*mut T> {
         if self.is_ptr() {
-            Some(self.value.ptr as *mut T)
+            Some(self.value.ptr.cast::<T>())
         } else {
             None
         }
@@ -316,80 +345,100 @@ impl Zval {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the [`Zval`] is not callable.
+    // TODO: Measure this
+    #[allow(clippy::inline_always)]
     #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.callable().ok_or(Error::Callable)?.try_call(params)
     }
 
     /// Returns the type of the Zval.
+    #[must_use]
     pub fn get_type(&self) -> DataType {
-        DataType::from(unsafe { self.u1.v.type_ } as u32)
+        DataType::from(u32::from(unsafe { self.u1.v.type_ }))
     }
 
     /// Returns true if the zval is a long, false otherwise.
+    #[must_use]
     pub fn is_long(&self) -> bool {
         self.get_type() == DataType::Long
     }
 
     /// Returns true if the zval is null, false otherwise.
+    #[must_use]
     pub fn is_null(&self) -> bool {
         self.get_type() == DataType::Null
     }
 
     /// Returns true if the zval is true, false otherwise.
+    #[must_use]
     pub fn is_true(&self) -> bool {
         self.get_type() == DataType::True
     }
 
     /// Returns true if the zval is false, false otherwise.
+    #[must_use]
     pub fn is_false(&self) -> bool {
         self.get_type() == DataType::False
     }
 
     /// Returns true if the zval is a bool, false otherwise.
+    #[must_use]
     pub fn is_bool(&self) -> bool {
         self.is_true() || self.is_false()
     }
 
     /// Returns true if the zval is a double, false otherwise.
+    #[must_use]
     pub fn is_double(&self) -> bool {
         self.get_type() == DataType::Double
     }
 
     /// Returns true if the zval is a string, false otherwise.
+    #[must_use]
     pub fn is_string(&self) -> bool {
         self.get_type() == DataType::String
     }
 
     /// Returns true if the zval is a resource, false otherwise.
+    #[must_use]
     pub fn is_resource(&self) -> bool {
         self.get_type() == DataType::Resource
     }
 
     /// Returns true if the zval is an array, false otherwise.
+    #[must_use]
     pub fn is_array(&self) -> bool {
         self.get_type() == DataType::Array
     }
 
     /// Returns true if the zval is an object, false otherwise.
+    #[must_use]
     pub fn is_object(&self) -> bool {
         matches!(self.get_type(), DataType::Object(_))
     }
 
     /// Returns true if the zval is a reference, false otherwise.
+    #[must_use]
     pub fn is_reference(&self) -> bool {
         self.get_type() == DataType::Reference
     }
 
     /// Returns true if the zval is a reference, false otherwise.
+    #[must_use]
     pub fn is_indirect(&self) -> bool {
         self.get_type() == DataType::Indirect
     }
 
     /// Returns true if the zval is callable, false otherwise.
+    #[must_use]
     pub fn is_callable(&self) -> bool {
         let ptr: *const Self = self;
-        unsafe { zend_is_callable(ptr as *mut Self, 0, std::ptr::null_mut()) }
+        unsafe { zend_is_callable(ptr.cast_mut(), 0, std::ptr::null_mut()) }
     }
 
     /// Checks if the zval is identical to another one.
@@ -398,13 +447,15 @@ impl Zval {
     /// # Parameters
     ///
     /// * `other` - The the zval to check identity against.
+    #[must_use]
     pub fn is_identical(&self, other: &Self) -> bool {
         let self_p: *const Self = self;
         let other_p: *const Self = other;
-        unsafe { zend_is_identical(self_p as *mut Self, other_p as *mut Self) }
+        unsafe { zend_is_identical(self_p.cast_mut(), other_p.cast_mut()) }
     }
 
     /// Returns true if the zval is traversable, false otherwise.
+    #[must_use]
     pub fn is_traversable(&self) -> bool {
         match self.object() {
             None => false,
@@ -414,12 +465,14 @@ impl Zval {
 
     /// Returns true if the zval is iterable (array or traversable), false
     /// otherwise.
+    #[must_use]
     pub fn is_iterable(&self) -> bool {
         let ptr: *const Self = self;
-        unsafe { zend_is_iterable(ptr as *mut Self) }
+        unsafe { zend_is_iterable(ptr.cast_mut()) }
     }
 
     /// Returns true if the zval contains a pointer, false otherwise.
+    #[must_use]
     pub fn is_ptr(&self) -> bool {
         self.get_type() == DataType::Ptr
     }
@@ -431,6 +484,11 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
+    ///
+    /// # Errors
+    ///
+    /// Never returns an error.
+    // TODO: Check if we can drop the result here.
     pub fn set_string(&mut self, val: &str, persistent: bool) -> Result<()> {
         self.set_zend_string(ZendStr::new(val, persistent));
         Ok(())
@@ -465,6 +523,11 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     /// * `persistent` - Whether the string should persist between requests.
+    ///
+    /// # Errors
+    ///
+    /// Never returns an error.
+    // TODO: Check if we can drop the result here.
     pub fn set_interned_string(&mut self, val: &str, persistent: bool) -> Result<()> {
         self.set_zend_string(ZendStr::new_interned(val, persistent));
         Ok(())
@@ -476,10 +539,10 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_long<T: Into<ZendLong>>(&mut self, val: T) {
-        self._set_long(val.into())
+        self.internal_set_long(val.into());
     }
 
-    fn _set_long(&mut self, val: ZendLong) {
+    fn internal_set_long(&mut self, val: ZendLong) {
         self.change_type(ZvalTypeFlags::Long);
         self.value.lval = val;
     }
@@ -490,10 +553,10 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_double<T: Into<f64>>(&mut self, val: T) {
-        self._set_double(val.into())
+        self.internal_set_double(val.into());
     }
 
-    fn _set_double(&mut self, val: f64) {
+    fn internal_set_double(&mut self, val: f64) {
         self.change_type(ZvalTypeFlags::Double);
         self.value.dval = val;
     }
@@ -504,10 +567,10 @@ impl Zval {
     ///
     /// * `val` - The value to set the zval as.
     pub fn set_bool<T: Into<bool>>(&mut self, val: T) {
-        self._set_bool(val.into())
+        self.internal_set_bool(val.into());
     }
 
-    fn _set_bool(&mut self, val: bool) {
+    fn internal_set_bool(&mut self, val: bool) {
         self.change_type(if val {
             ZvalTypeFlags::True
         } else {
@@ -540,7 +603,7 @@ impl Zval {
     pub fn set_object(&mut self, val: &mut ZendObject) {
         self.change_type(ZvalTypeFlags::ObjectEx);
         val.inc_count(); // TODO(david): not sure if this is needed :/
-        self.value.obj = (val as *const ZendObject) as *mut ZendObject;
+        self.value.obj = ptr::from_ref(val).cast_mut();
     }
 
     /// Sets the value of the zval as an array. Returns nothing in a result on
@@ -549,6 +612,10 @@ impl Zval {
     /// # Parameters
     ///
     /// * `val` - The value to set the zval as.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if the conversion to a hashtable fails.
     pub fn set_array<T: TryInto<ZBox<ZendHashTable>, Error = Error>>(
         &mut self,
         val: T,
@@ -575,7 +642,7 @@ impl Zval {
     /// * `ptr` - The pointer to set the zval as.
     pub fn set_ptr<T>(&mut self, ptr: *mut T) {
         self.u1.type_info = ZvalTypeFlags::Ptr.bits();
-        self.value.ptr = ptr as *mut c_void;
+        self.value.ptr = ptr.cast::<c_void>();
     }
 
     /// Used to drop the Zval but keep the value of the zval intact.
@@ -605,6 +672,7 @@ impl Zval {
     /// Extracts some type from a `Zval`.
     ///
     /// This is a wrapper function around `TryFrom`.
+    #[must_use]
     pub fn extract<'a, T>(&'a self) -> Option<T>
     where
         T: FromZval<'a>,
@@ -624,6 +692,7 @@ impl Zval {
     /// # Returns
     ///
     /// The cloned zval.
+    #[must_use]
     pub fn shallow_clone(&self) -> Zval {
         let mut new = Zval::new();
         new.u1 = self.u1;
@@ -658,20 +727,18 @@ impl Debug for Zval {
         }
 
         match ty {
-            DataType::Undef => field!(Option::<()>::None),
-            DataType::Null => field!(Option::<()>::None),
+            DataType::Undef | DataType::Null | DataType::ConstantExpression | DataType::Void => {
+                field!(Option::<()>::None)
+            }
             DataType::False => field!(false),
             DataType::True => field!(true),
             DataType::Long => field!(self.long()),
             DataType::Double => field!(self.double()),
-            DataType::String | DataType::Mixed => field!(self.string()),
+            DataType::String | DataType::Mixed | DataType::Callable => field!(self.string()),
             DataType::Array => field!(self.array()),
             DataType::Object(_) => field!(self.object()),
             DataType::Resource => field!(self.resource()),
             DataType::Reference => field!(self.reference()),
-            DataType::Callable => field!(self.string()),
-            DataType::ConstantExpression => field!(Option::<()>::None),
-            DataType::Void => field!(Option::<()>::None),
             DataType::Bool => field!(self.bool()),
             DataType::Indirect => field!(self.indirect()),
             DataType::Iterable => field!(self.iterable()),
