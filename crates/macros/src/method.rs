@@ -6,12 +6,6 @@ use darling::FromMeta;
 use proc_macro2::TokenStream;
 use syn::{FnArg, Ident, ImplItemFn, ItemFn, TraitItemFn};
 
-// pub enum FunctionLikeType {
-//     Interface(TraitItemFn),
-//     Impl(ImplItemFn),
-//     Function(ItemFn),
-// }
-
 pub trait FunctionLike: GetDocs {
     fn name(&self) -> String;
 
