@@ -27,11 +27,11 @@ pub fn wrap(input: syn::Path) -> Result<TokenStream> {
 #[darling(default)]
 pub struct FnArgs {
     /// The name of the function.
-    name: Option<String>,
+    pub name: Option<String>,
     /// The first optional argument of the function signature.
-    optional: Option<Ident>,
+    pub optional: Option<Ident>,
     /// Default values for optional arguments.
-    defaults: HashMap<Ident, Lit>,
+    pub defaults: HashMap<Ident, Lit>,
 }
 
 pub fn parser(opts: TokenStream, input: ItemFn) -> Result<TokenStream> {

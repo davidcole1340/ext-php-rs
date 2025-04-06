@@ -1,4 +1,5 @@
 use crate::class::{parse_attribute, ParsedAttribute};
+use darling::FromMeta;
 use syn::Attribute;
 
 pub type Docs = Vec<String>;
@@ -24,5 +25,33 @@ pub trait GetDocs {
 impl GetDocs for &[Attribute] {
     fn get_docs(&self) -> Docs {
         get_docs(self)
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromMeta, Default)]
+pub enum RenameRule {
+    /// Methods won't be renamed.
+    #[darling(rename = "none")]
+    None,
+    /// Methods will be converted to camelCase.
+    #[darling(rename = "camelCase")]
+    #[default]
+    Camel,
+    /// Methods will be converted to snake_case.
+    #[darling(rename = "snake_case")]
+    Snake,
+}
+
+pub trait Rename {
+    fn renmae(self, rule: &RenameRule) -> Self;
+}
+
+impl Rename for String {
+    fn renmae(self, rule: &RenameRule) -> Self {
+        match *rule {
+            RenameRule::None => self,
+            RenameRule::Camel => ident_case::RenameRule::CamelCase.apply_to_field(self),
+            RenameRule::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(self),
+        }
     }
 }
