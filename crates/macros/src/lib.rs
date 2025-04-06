@@ -7,6 +7,7 @@ mod function;
 mod helpers;
 mod impl_;
 mod interface;
+mod method;
 mod module;
 mod syn_ext;
 mod zval;
@@ -1004,6 +1005,7 @@ pub(crate) mod prelude {
             }
         }
     }
+    use crate::helpers::GetDocs;
 
     pub(crate) use crate::{bail, err};
     pub(crate) type Result<T> = std::result::Result<T, syn::Error>;
