@@ -2,7 +2,7 @@ use darling::util::Flag;
 use darling::FromAttributes;
 use proc_macro2::TokenStream;
 use quote::quote;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use syn::{Ident, ItemImpl, Lit};
 
 use crate::constant::PhpConstAttribute;
@@ -124,6 +124,22 @@ struct ParsedImpl<'a> {
     constants: Vec<Constant<'a>>,
 }
 
+#[derive(Debug, Eq, Hash, PartialEq)]
+enum MethodModifier {
+    Abstract,
+    Static,
+}
+
+impl quote::ToTokens for MethodModifier {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match *self {
+            Self::Abstract => quote! { ::ext_php_rs::flags::MethodFlags::Abstract },
+            Self::Static => quote! { ::ext_php_rs::flags::MethodFlags::Static },
+        }
+        .to_tokens(tokens);
+    }
+}
+
 #[derive(Debug)]
 struct FnBuilder {
     /// Tokens which represent the `FunctionBuilder` for this function.
@@ -131,7 +147,7 @@ struct FnBuilder {
     /// The visibility of this method.
     pub vis: Visibility,
     /// Whether this method is abstract.
-    pub r#abstract: bool,
+    pub modifiers: HashSet<MethodModifier>,
 }
 
 #[derive(Debug)]
@@ -190,6 +206,8 @@ impl<'a> ParsedImpl<'a> {
                     let args = Args::parse_from_fnargs(method.sig.inputs.iter(), opts.defaults)?;
                     let mut func = Function::new(&method.sig, opts.name, args, opts.optional, docs);
 
+                    let mut modifiers: HashSet<MethodModifier> = HashSet::new();
+
                     if matches!(opts.ty, MethodTy::Constructor) {
                         if self.constructor.replace(func).is_some() {
                             bail!(method => "Only one constructor can be provided per class.");
@@ -211,15 +229,21 @@ impl<'a> ParsedImpl<'a> {
                                 func.args.typed.pop();
                                 MethodReceiver::ZendClassObject
                             } else {
+                                modifiers.insert(MethodModifier::Static);
                                 // Static method
                                 MethodReceiver::Static
                             },
                         };
+                        if matches!(opts.ty, MethodTy::Abstract) {
+                            modifiers.insert(MethodModifier::Abstract);
+                        }
+
                         let builder = func.function_builder(call_type);
+
                         self.functions.push(FnBuilder {
                             builder,
                             vis: opts.vis,
-                            r#abstract: matches!(opts.ty, MethodTy::Abstract),
+                            modifiers,
                         });
                     }
                 }
@@ -284,9 +308,10 @@ impl quote::ToTokens for FnBuilder {
             Visibility::Protected => quote! { ::ext_php_rs::flags::MethodFlags::Protected },
             Visibility::Private => quote! { ::ext_php_rs::flags::MethodFlags::Private },
         });
-        if self.r#abstract {
-            flags.push(quote! { ::ext_php_rs::flags::MethodFlags::Abstract });
+        for flag in &self.modifiers {
+            flags.push(quote! { #flag })
         }
+
         quote! {
             (#builder, #(#flags)|*)
         }
