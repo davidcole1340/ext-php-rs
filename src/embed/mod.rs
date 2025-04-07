@@ -25,19 +25,29 @@ use std::ptr::null_mut;
 pub use ffi::ext_php_rs_sapi_startup;
 pub use sapi::SapiModule;
 
+/// The embed module provides a way to run php code from rust
 pub struct Embed;
 
+/// Error type for the embed module
 #[derive(Debug)]
 pub enum EmbedError {
+    /// Failed to initialize
     InitError,
+    /// The script exited with a non-zero code
     ExecuteError(Option<ZBox<ZendObject>>),
+    /// The script exited with a non-zero code
     ExecuteScriptError,
+    /// The script is not a valid [`CString`]
     InvalidEvalString(NulError),
+    /// Failed to open the script file at the given path
     InvalidPath,
+    /// The script was executed but an exception was thrown
     CatchError,
 }
 
 impl EmbedError {
+    /// Check if the error is a bailout
+    #[must_use]
     pub fn is_bailout(&self) -> bool {
         matches!(self, EmbedError::CatchError)
     }
@@ -54,6 +64,9 @@ impl Embed {
     /// # Returns
     ///
     /// * `Ok(())` - The script was executed successfully
+    ///
+    /// # Errors
+    ///
     /// * `Err(EmbedError)` - An error occurred during the execution of the
     ///   script
     ///
@@ -78,6 +91,7 @@ impl Embed {
         };
 
         let mut file_handle = zend_file_handle {
+            #[allow(clippy::used_underscore_items)]
             handle: _zend_file_handle__bindgen_ty_1 { fp: null_mut() },
             filename: null_mut(),
             opened_path: null_mut(),
@@ -142,7 +156,7 @@ impl Embed {
                 0,
                 null_mut(),
                 panic_wrapper::<R, F>,
-                &func as *const F as *const c_void,
+                (&raw const func).cast::<c_void>(),
             )
         };
 
@@ -151,7 +165,7 @@ impl Embed {
             return R::default();
         }
 
-        match unsafe { *Box::from_raw(panic as *mut std::thread::Result<R>) } {
+        match unsafe { *Box::from_raw(panic.cast::<std::thread::Result<R>>()) } {
             Ok(r) => r,
             Err(err) => {
                 // we resume the panic here so it can be caught correctly by the test framework
@@ -168,6 +182,9 @@ impl Embed {
     /// # Returns
     ///
     /// * `Ok(Zval)` - The result of the evaluation
+    ///
+    /// # Errors
+    ///
     /// * `Err(EmbedError)` - An error occurred during the evaluation
     ///
     /// # Example
@@ -190,9 +207,9 @@ impl Embed {
 
         let exec_result = try_catch(|| unsafe {
             zend_eval_string(
-                cstr.as_ptr() as *const c_char,
+                cstr.as_ptr().cast::<c_char>(),
                 &mut result,
-                b"run\0".as_ptr() as *const _,
+                c"run".as_ptr().cast(),
             )
         });
 
@@ -206,6 +223,7 @@ impl Embed {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
     use super::Embed;
 
     #[test]
@@ -222,7 +240,7 @@ mod tests {
         Embed::run(|| {
             let result = Embed::eval("stupid code;");
 
-            assert!(!result.is_ok());
+            assert!(result.is_err());
         });
     }
 
@@ -248,12 +266,12 @@ mod tests {
         Embed::run(|| {
             let result = Embed::run_script("src/embed/test-script-exception.php");
 
-            assert!(!result.is_ok());
+            assert!(result.is_err());
         });
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "test panic")]
     fn test_panic() {
         Embed::run::<(), _>(|| {
             panic!("test panic");
@@ -262,9 +280,7 @@ mod tests {
 
     #[test]
     fn test_return() {
-        let foo = Embed::run(|| {
-            return "foo";
-        });
+        let foo = Embed::run(|| "foo");
 
         assert_eq!(foo, "foo");
     }

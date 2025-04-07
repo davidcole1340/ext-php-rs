@@ -1,5 +1,11 @@
+//! Sapi Tests
 #![cfg_attr(windows, feature(abi_vectorcall))]
 #![cfg(feature = "embed")]
+#![allow(
+    missing_docs,
+    clippy::needless_pass_by_value,
+    clippy::must_use_candidate
+)]
 extern crate ext_php_rs;
 
 use ext_php_rs::builders::SapiBuilder;
@@ -15,10 +21,10 @@ use std::ffi::c_char;
 static mut LAST_OUTPUT: String = String::new();
 
 extern "C" fn output_tester(str: *const c_char, str_length: usize) -> usize {
-    let char = unsafe { std::slice::from_raw_parts(str as *const u8, str_length) };
+    let char = unsafe { std::slice::from_raw_parts(str.cast::<u8>(), str_length) };
     let string = String::from_utf8_lossy(char);
 
-    println!("{}", string);
+    println!("{string}");
 
     unsafe {
         LAST_OUTPUT = string.to_string();
@@ -89,7 +95,7 @@ fn test_sapi() {
 /// @return string Nice greeting!
 #[php_function]
 pub fn hello_world(name: String) -> String {
-    format!("Hello, {}!", name)
+    format!("Hello, {name}!")
 }
 
 #[php_module]

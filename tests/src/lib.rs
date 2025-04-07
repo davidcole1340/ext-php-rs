@@ -1,4 +1,10 @@
 #![cfg_attr(windows, feature(abi_vectorcall))]
+#![allow(
+    clippy::must_use_candidate,
+    clippy::missing_panics_doc,
+    clippy::needless_pass_by_value,
+    clippy::implicit_hasher
+)]
 use ext_php_rs::{
     binary::Binary,
     boxed::ZBox,
@@ -177,7 +183,7 @@ pub fn test_variadic_add_required(number: u32, numbers: &[&Zval]) -> u32 {
     number
         + numbers
             .iter()
-            .map(|x| x.long().unwrap() as u32)
+            .map(|x| u32::try_from(x.long().unwrap()).unwrap())
             .sum::<u32>()
 }
 
@@ -294,7 +300,7 @@ mod integration {
             .arg("-dassert.active=1")
             .arg("-dassert.exception=1")
             .arg("-dzend.assertions=1")
-            .arg(format!("src/integration/{}", file))
+            .arg(format!("src/integration/{file}"))
             .output()
             .expect("failed to run php file");
         if output.status.success() {

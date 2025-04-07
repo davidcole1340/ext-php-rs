@@ -19,10 +19,11 @@ use crate::{
 };
 
 /// Represents an argument to a function.
+#[must_use]
 #[derive(Debug)]
 pub struct Arg<'a> {
     name: String,
-    _type: DataType,
+    r#type: DataType,
     as_ref: bool,
     allow_null: bool,
     pub(crate) variadic: bool,
@@ -38,10 +39,10 @@ impl<'a> Arg<'a> {
     ///
     /// * `name` - The name of the parameter.
     /// * `_type` - The type of the parameter.
-    pub fn new<T: Into<String>>(name: T, _type: DataType) -> Self {
+    pub fn new<T: Into<String>>(name: T, r#type: DataType) -> Self {
         Arg {
             name: name.into(),
-            _type,
+            r#type,
             as_ref: false,
             allow_null: false,
             variadic: false,
@@ -79,11 +80,13 @@ impl<'a> Arg<'a> {
     /// Attempts to consume the argument, converting the inner type into `T`.
     /// Upon success, the result is returned in a [`Result`].
     ///
-    /// If the conversion fails (or the argument contains no value), the
-    /// argument is returned in an [`Err`] variant.
-    ///
     /// As this function consumes, it cannot return a reference to the
     /// underlying zval.
+    ///
+    /// # Errors
+    ///
+    /// If the conversion fails (or the argument contains no value), the
+    /// argument is returned in an [`Err`] variant.
     pub fn consume<T>(mut self) -> Result<T, Self>
     where
         for<'b> T: FromZvalMut<'b>,
@@ -95,7 +98,7 @@ impl<'a> Arg<'a> {
     }
 
     /// Attempts to retrieve the value of the argument.
-    /// This will be None until the ArgParser is used to parse
+    /// This will be None until the [`ArgParser`] is used to parse
     /// the arguments.
     pub fn val<T>(&'a mut self) -> Option<T>
     where
@@ -124,6 +127,8 @@ impl<'a> Arg<'a> {
     ///
     /// * `Some(&Zval)` - The internal zval.
     /// * `None` - The argument was empty.
+    // TODO: Figure out if we can change this
+    #[allow(clippy::mut_mut)]
     pub fn zval(&mut self) -> Option<&mut &'a mut Zval> {
         self.zval.as_mut()
     }
@@ -140,6 +145,12 @@ impl<'a> Arg<'a> {
     /// # Parameters
     ///
     /// * `params` - A list of parameters to call the function with.
+    ///
+    /// # Errors
+    ///
+    /// * `Error::Callable` - The argument is not callable.
+    // TODO: Measure this
+    #[allow(clippy::inline_always)]
     #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         self.zval.as_ref().ok_or(Error::Callable)?.try_call(params)
@@ -150,7 +161,7 @@ impl<'a> Arg<'a> {
         Ok(ArgInfo {
             name: CString::new(self.name.as_str())?.into_raw(),
             type_: ZendType::empty_from_type(
-                self._type,
+                self.r#type,
                 self.as_ref,
                 self.variadic,
                 self.allow_null,
@@ -166,7 +177,7 @@ impl<'a> Arg<'a> {
 
 impl From<Arg<'_>> for _zend_expected_type {
     fn from(arg: Arg) -> Self {
-        let err = match arg._type {
+        let err = match arg.r#type {
             DataType::False | DataType::True => _zend_expected_type_Z_EXPECTED_BOOL,
             DataType::Long => _zend_expected_type_Z_EXPECTED_LONG,
             DataType::Double => _zend_expected_type_Z_EXPECTED_DOUBLE,
@@ -189,7 +200,7 @@ impl From<Arg<'_>> for Parameter {
     fn from(val: Arg<'_>) -> Self {
         Parameter {
             name: val.name.into(),
-            ty: Some(val._type).into(),
+            ty: Some(val.r#type).into(),
             nullable: val.allow_null,
             default: val.default_value.map(abi::RString::from).into(),
         }
@@ -200,6 +211,7 @@ impl From<Arg<'_>> for Parameter {
 pub type ArgInfo = zend_internal_arg_info;
 
 /// Parses the arguments of a function.
+#[must_use]
 pub struct ArgParser<'a, 'b> {
     args: Vec<&'b mut Arg<'a>>,
     min_num_args: Option<usize>,
@@ -248,6 +260,9 @@ impl<'a, 'b> ArgParser<'a, 'b> {
     /// Returns an [`Error`] type if there were too many or too little arguments
     /// passed to the function. The user has already been notified so you
     /// should break execution after seeing an error type.
+    ///
+    /// Also returns an error if the number of min/max arguments exceeds
+    /// `u32::MAX`
     pub fn parse(mut self) -> Result<()> {
         let max_num_args = self.args.len();
         let mut min_num_args = self.min_num_args.unwrap_or(max_num_args);
@@ -260,7 +275,12 @@ impl<'a, 'b> ArgParser<'a, 'b> {
         if num_args < min_num_args || (!has_variadic && num_args > max_num_args) {
             // SAFETY: Exported C function is safe, return value is unused and parameters
             // are copied.
-            unsafe { zend_wrong_parameters_count_error(min_num_args as _, max_num_args as _) };
+            unsafe {
+                zend_wrong_parameters_count_error(
+                    min_num_args.try_into()?,
+                    max_num_args.try_into()?,
+                );
+            };
             return Err(Error::IncorrectArguments(num_args, min_num_args));
         }
 

@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, clippy::must_use_candidate)]
 #![cfg_attr(windows, feature(abi_vectorcall))]
 use ext_php_rs::{constant::IntoConst, prelude::*, types::ZendClassObject};
 
@@ -26,10 +26,10 @@ impl TestClass {
 
     #[php(defaults(a = 5, test = 100))]
     pub fn test_camel_case(&self, a: i32, test: i32) {
-        println!("a: {} test: {}", a, test);
+        println!("a: {a} test: {test}");
     }
 
-    fn x(&self) -> i32 {
+    fn x() -> i32 {
         5
     }
 

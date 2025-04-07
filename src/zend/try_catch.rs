@@ -15,7 +15,7 @@ pub(crate) unsafe extern "C" fn panic_wrapper<R, F: FnMut() -> R + RefUnwindSafe
     // mandatory when we do assert on test as other test would not run correctly
     let panic = catch_unwind(|| (*(ctx as *mut F))());
 
-    Box::into_raw(Box::new(panic)) as *mut c_void
+    Box::into_raw(Box::new(panic)).cast::<c_void>()
 }
 
 /// PHP propose a try catch mechanism in C using setjmp and longjmp (bailout)
@@ -23,12 +23,15 @@ pub(crate) unsafe extern "C" fn panic_wrapper<R, F: FnMut() -> R + RefUnwindSafe
 /// If a bailout is triggered, the executor will jump to the setjmp and restore
 /// the previous setjmp
 ///
-/// try_catch allow to use this mechanism
+/// [`try_catch`] allow to use this mechanism
 ///
 /// # Returns
 ///
-/// * `Ok(R)` - The result of the function
-/// * `Err(CatchError)` - A bailout occurred during the execution
+/// * The result of the function
+///
+/// # Errors
+///
+/// * [`CatchError`] - A bailout occurred during the execution
 pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, CatchError> {
     do_try_catch(func, false)
 }
@@ -38,15 +41,18 @@ pub fn try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, Catch
 /// If a bailout is triggered, the executor will jump to the setjmp and restore
 /// the previous setjmp
 ///
-/// try_catch_first allow to use this mechanism
+/// [`try_catch_first`] allow to use this mechanism
 ///
-/// This functions differs from ['try_catch'] as it also initialize the bailout
+/// This functions differs from [`try_catch`] as it also initialize the bailout
 /// mechanism for the first time
 ///
 /// # Returns
 ///
-/// * `Ok(R)` - The result of the function
-/// * `Err(CatchError)` - A bailout occurred during the execution
+/// * The result of the function
+///
+/// # Errors
+///
+/// * [`CatchError`] - A bailout occurred during the execution
 pub fn try_catch_first<R, F: FnMut() -> R + RefUnwindSafe>(func: F) -> Result<R, CatchError> {
     do_try_catch(func, true)
 }
@@ -57,26 +63,26 @@ fn do_try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F, first: bool) -> Res
         if first {
             ext_php_rs_zend_first_try_catch(
                 panic_wrapper::<R, F>,
-                &func as *const F as *const c_void,
-                (&mut panic_ptr) as *mut *mut c_void,
+                (&raw const func).cast::<c_void>(),
+                &raw mut panic_ptr,
             )
         } else {
             ext_php_rs_zend_try_catch(
                 panic_wrapper::<R, F>,
-                &func as *const F as *const c_void,
-                (&mut panic_ptr) as *mut *mut c_void,
+                (&raw const func).cast::<c_void>(),
+                &raw mut panic_ptr,
             )
         }
     };
 
-    let panic = panic_ptr as *mut std::thread::Result<R>;
+    let panic = panic_ptr.cast::<std::thread::Result<R>>();
 
     // can be null if there is a bailout
     if panic.is_null() || has_bailout {
         return Err(CatchError);
     }
 
-    match unsafe { *Box::from_raw(panic as *mut std::thread::Result<R>) } {
+    match unsafe { *Box::from_raw(panic.cast::<std::thread::Result<R>>()) } {
         Ok(r) => Ok(r),
         Err(err) => {
             // we resume the panic here so it can be caught correctly by the test framework
@@ -118,6 +124,7 @@ mod tests {
                 }
 
                 #[allow(unreachable_code)]
+                #[allow(clippy::assertions_on_constants)]
                 {
                     assert!(false);
                 }
@@ -131,7 +138,10 @@ mod tests {
     fn test_no_catch() {
         Embed::run(|| {
             let catch = try_catch(|| {
-                assert!(true);
+                #[allow(clippy::assertions_on_constants)]
+                {
+                    assert!(false);
+                }
             });
 
             assert!(catch.is_ok());
@@ -146,6 +156,7 @@ mod tests {
             }
 
             #[allow(unreachable_code)]
+            #[allow(clippy::assertions_on_constants)]
             {
                 assert!(false);
             }
@@ -153,7 +164,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "should panic")]
     fn test_panic() {
         Embed::run(|| {
             let _ = try_catch(|| {
@@ -165,12 +176,11 @@ mod tests {
     #[test]
     fn test_return() {
         let foo = Embed::run(|| {
-            let result = try_catch(|| {
-                return "foo";
-            });
+            let result = try_catch(|| "foo");
 
             assert!(result.is_ok());
 
+            #[allow(clippy::unwrap_used)]
             result.unwrap()
         });
 

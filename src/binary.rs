@@ -154,16 +154,22 @@ macro_rules! pack_impl {
             }
 
             fn unpack_into(s: &zend_string) -> Vec<Self> {
+                #[allow(clippy::cast_lossless)]
                 let bytes = ($d / 8) as u64;
                 let len = (s.len as u64) / bytes;
-                let mut result = Vec::with_capacity(len as _);
-                let ptr = s.val.as_ptr() as *const $t;
+                let mut result =
+                    Vec::with_capacity(len.try_into().expect("Capacity integer overflow"));
+                // TODO: Check alignment
+                #[allow(clippy::cast_ptr_alignment)]
+                let ptr = s.val.as_ptr().cast::<$t>();
 
                 // SAFETY: We calculate the length of memory that we can legally read based on
                 // the side of the type, therefore we never read outside the memory we
                 // should.
                 for i in 0..len {
-                    result.push(unsafe { *ptr.offset(i as _) });
+                    result.push(unsafe {
+                        *ptr.offset(i.try_into().expect("Offset integer overflow"))
+                    });
                 }
 
                 result

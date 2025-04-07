@@ -109,8 +109,8 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     unsafe fn internal_new(val: Option<T>, ce: Option<&'static ClassEntry>) -> ZBox<Self> {
         let size = mem::size_of::<ZendClassObject<T>>();
         let meta = T::get_metadata();
-        let ce = ce.unwrap_or_else(|| meta.ce()) as *const _ as *mut _;
-        let obj = ext_php_rs_zend_object_alloc(size as _, ce) as *mut ZendClassObject<T>;
+        let ce = ptr::from_ref(ce.unwrap_or_else(|| meta.ce())).cast_mut();
+        let obj = ext_php_rs_zend_object_alloc(size as _, ce).cast::<ZendClassObject<T>>();
         let obj = obj
             .as_mut()
             .expect("Failed to allocate for new Zend object");
@@ -148,8 +148,13 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Parameters
     ///
     /// * `obj` - The zend object to get the [`ZendClassObject`] for.
+    ///
+    /// # Panics
+    ///
+    /// * If the std offset over/underflows `isize`.
+    #[must_use]
     pub fn from_zend_obj(std: &zend_object) -> Option<&Self> {
-        Some(Self::_from_zend_obj(std)?)
+        Some(Self::internal_from_zend_obj(std)?)
     }
 
     /// Returns a mutable reference to the [`ZendClassObject`] of a given zend
@@ -159,16 +164,21 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     /// # Parameters
     ///
     /// * `obj` - The zend object to get the [`ZendClassObject`] for.
+    ///
+    /// # Panics
+    ///
+    /// * If the std offset over/underflows `isize`.
     #[allow(clippy::needless_pass_by_ref_mut)]
     pub fn from_zend_obj_mut(std: &mut zend_object) -> Option<&mut Self> {
-        Self::_from_zend_obj(std)
+        Self::internal_from_zend_obj(std)
     }
 
-    fn _from_zend_obj(std: &zend_object) -> Option<&mut Self> {
-        let std = std as *const zend_object as *const c_char;
+    fn internal_from_zend_obj(std: &zend_object) -> Option<&mut Self> {
+        let std = ptr::from_ref(std).cast::<c_char>();
         let ptr = unsafe {
-            let ptr = std.offset(0 - Self::std_offset() as isize) as *const Self;
-            (ptr as *mut Self).as_mut()?
+            let offset = isize::try_from(Self::std_offset()).expect("Offset overflow");
+            let ptr = std.offset(0 - offset).cast::<Self>();
+            ptr.cast_mut().as_mut()?
         };
 
         if ptr.std.instance_of(T::get_metadata().ce()) {
@@ -188,7 +198,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         unsafe {
             let null = NonNull::<Self>::dangling();
             let base = null.as_ref() as *const Self;
-            let std = &null.as_ref().std as *const zend_object;
+            let std = &raw const null.as_ref().std;
 
             (std as usize) - (base as usize)
         }
@@ -266,7 +276,7 @@ impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
         // therefore we can dereference both safely.
         unsafe {
             let mut new = ZendClassObject::new((***self).clone());
-            zend_objects_clone_members(&mut new.std, &self.std as *const _ as *mut _);
+            zend_objects_clone_members(&mut new.std, (&raw const self.std).cast_mut());
             new
         }
     }

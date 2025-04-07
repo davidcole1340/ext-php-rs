@@ -2,6 +2,7 @@
 //! This script is responsible for generating the bindings to the PHP Zend API.
 //! It also checks the PHP version for compatibility with ext-php-rs and sets
 //! configuration flags accordingly.
+#![allow(clippy::inconsistent_digit_grouping)]
 #[cfg_attr(windows, path = "windows_build.rs")]
 #[cfg_attr(not(windows), path = "unix_build.rs")]
 mod impl_;
@@ -19,21 +20,25 @@ use anyhow::{anyhow, bail, Context, Result};
 use bindgen::RustTarget;
 use impl_::Provider;
 
-const MIN_PHP_API_VER: u32 = 20200930;
-const MAX_PHP_API_VER: u32 = 20240924;
+const MIN_PHP_API_VER: u32 = 2020_09_30;
+const MAX_PHP_API_VER: u32 = 2024_09_24;
 
 /// Provides information about the PHP installation.
 pub trait PHPProvider<'a>: Sized {
     /// Create a new PHP provider.
+    #[allow(clippy::missing_errors_doc)]
     fn new(info: &'a PHPInfo) -> Result<Self>;
 
     /// Retrieve a list of absolute include paths.
+    #[allow(clippy::missing_errors_doc)]
     fn get_includes(&self) -> Result<Vec<PathBuf>>;
 
     /// Retrieve a list of macro definitions to pass to the compiler.
+    #[allow(clippy::missing_errors_doc)]
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>>;
 
     /// Writes the bindings to a file.
+    #[allow(clippy::missing_errors_doc)]
     fn write_bindings(&self, bindings: String, writer: &mut impl Write) -> Result<()> {
         for line in bindings.lines() {
             writeln!(writer, "{line}")?;
@@ -42,12 +47,14 @@ pub trait PHPProvider<'a>: Sized {
     }
 
     /// Prints any extra link arguments.
+    #[allow(clippy::missing_errors_doc)]
     fn print_extra_link_args(&self) -> Result<()> {
         Ok(())
     }
 }
 
 /// Finds the location of an executable `name`.
+#[must_use]
 pub fn find_executable(name: &str) -> Option<PathBuf> {
     const WHICH: &str = if cfg!(windows) { "where" } else { "which" };
     let cmd = Command::new(WHICH).arg(name).output().ok()?;
@@ -59,7 +66,7 @@ pub fn find_executable(name: &str) -> Option<PathBuf> {
     }
 }
 
-/// Returns an environment variable's value as a PathBuf
+/// Returns an environment variable's value as a `PathBuf`
 pub fn path_from_env(key: &str) -> Option<PathBuf> {
     std::env::var_os(key).map(PathBuf::from)
 }
@@ -85,6 +92,9 @@ pub struct PHPInfo(String);
 
 impl PHPInfo {
     /// Get the PHP info.
+    ///
+    /// # Errors
+    /// - `php -i` command failed to execute successfully
     pub fn get(php: &Path) -> Result<Self> {
         let cmd = Command::new(php)
             .arg("-i")
@@ -108,6 +118,9 @@ impl PHPInfo {
     }
 
     /// Checks if thread safety is enabled.
+    ///
+    /// # Errors
+    /// - `PHPInfo` does not contain thread satety information
     pub fn thread_safety(&self) -> Result<bool> {
         Ok(self
             .get_key("Thread Safety")
@@ -116,6 +129,9 @@ impl PHPInfo {
     }
 
     /// Checks if PHP was built with debug.
+    ///
+    /// # Errors
+    /// - `PHPInfo` does not contain debug build information
     pub fn debug(&self) -> Result<bool> {
         Ok(self
             .get_key("Debug Build")
@@ -124,12 +140,18 @@ impl PHPInfo {
     }
 
     /// Get the php version.
+    ///
+    /// # Errors
+    /// - `PHPInfo` does not contain version number
     pub fn version(&self) -> Result<&str> {
         self.get_key("PHP Version")
             .context("Failed to get PHP version")
     }
 
     /// Get the zend version.
+    ///
+    /// # Errors
+    /// - `PHPInfo` does not contain php api version
     pub fn zend_version(&self) -> Result<u32> {
         self.get_key("PHP API")
             .context("Failed to get Zend version")
@@ -202,7 +224,7 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
         .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok())
         .rust_target(RustTarget::Nightly);
 
-    for binding in ALLOWED_BINDINGS.iter() {
+    for binding in ALLOWED_BINDINGS {
         bindgen = bindgen
             .allowlist_function(binding)
             .allowlist_type(binding)
@@ -230,6 +252,11 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
 /// Checks the PHP Zend API version for compatibility with ext-php-rs, setting
 /// any configuration flags required.
 fn check_php_version(info: &PHPInfo) -> Result<()> {
+    const PHP_81_API_VER: u32 = 2021_09_02;
+    const PHP_82_API_VER: u32 = 2022_08_29;
+    const PHP_83_API_VER: u32 = 2023_08_31;
+    const PHP_84_API_VER: u32 = 2024_09_24;
+
     let version = info.zend_version()?;
 
     if !(MIN_PHP_API_VER..=MAX_PHP_API_VER).contains(&version) {
@@ -245,14 +272,6 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     //
     // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
     // should get both the `php81` and `php82` flags.
-    const PHP_81_API_VER: u32 = 20210902;
-
-    const PHP_82_API_VER: u32 = 20220829;
-
-    const PHP_83_API_VER: u32 = 20230831;
-
-    const PHP_84_API_VER: u32 = 20240924;
-
     println!(
         "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
     );

@@ -115,7 +115,9 @@ macro_rules! pack_slice_impl {
             fn unpack_into(s: &zend_string) -> &[Self] {
                 let bytes = ($d / 8) as usize;
                 let len = (s.len as usize) / bytes;
-                let ptr = s.val.as_ptr() as *const $t;
+                // TODO: alignment needs fixing?
+                #[allow(clippy::cast_ptr_alignment)]
+                let ptr = s.val.as_ptr().cast::<$t>();
                 unsafe { from_raw_parts(ptr, len) }
             }
         }

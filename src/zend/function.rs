@@ -31,9 +31,10 @@ impl Debug for FunctionEntry {
 
 impl FunctionEntry {
     /// Returns an empty function entry, signifing the end of a function list.
+    #[must_use]
     pub fn end() -> Self {
         Self {
-            fname: ptr::null() as *const c_char,
+            fname: ptr::null::<c_char>(),
             handler: None,
             arg_info: ptr::null(),
             num_args: 0,
@@ -47,6 +48,7 @@ impl FunctionEntry {
 
     /// Converts the function entry into a raw and pointer, releasing it to the
     /// C world.
+    #[must_use]
     pub fn into_raw(self) -> *mut Self {
         Box::into_raw(Box::new(self))
     }
@@ -57,14 +59,16 @@ pub type Function = zend_function;
 
 impl Function {
     /// Returns the function type.
+    #[must_use]
     pub fn function_type(&self) -> FunctionType {
         FunctionType::from(unsafe { self.type_ })
     }
 
     /// Attempts to fetch a [`Function`] from the function name.
+    #[must_use]
     pub fn try_from_function(name: &str) -> Option<Self> {
         unsafe {
-            let res = zend_fetch_function_str(name.as_ptr() as *const c_char, name.len());
+            let res = zend_fetch_function_str(name.as_ptr().cast::<c_char>(), name.len());
             if res.is_null() {
                 return None;
             }
@@ -73,15 +77,17 @@ impl Function {
     }
 
     /// Attempts to fetch a [`Function`] from the class and method name.
+    #[must_use]
     pub fn try_from_method(class: &str, name: &str) -> Option<Self> {
         match ClassEntry::try_find(class) {
             None => None,
             Some(ce) => unsafe {
                 let res = zend_hash_str_find_ptr_lc(
                     &ce.function_table,
-                    name.as_ptr() as *const c_char,
+                    name.as_ptr().cast::<c_char>(),
                     name.len(),
-                ) as *mut zend_function;
+                )
+                .cast::<zend_function>();
                 if res.is_null() {
                     return None;
                 }
@@ -102,8 +108,12 @@ impl Function {
     ///
     /// # Returns
     ///
-    /// Returns the result wrapped in [`Ok`] upon success. If calling the
-    /// callable fails, or an exception is thrown, an [`Err`] is returned.
+    /// Returns the result wrapped in [`Ok`] upon success.
+    ///
+    /// # Errors
+    ///
+    /// * If the function call fails, an [`Err`] is returned.
+    /// * If the number of parameters is not a valid `u32` value.
     ///
     /// # Example
     ///
@@ -114,6 +124,8 @@ impl Function {
     /// let result = strpos.try_call(vec![&"hello", &"e"]).unwrap();
     /// assert_eq!(result.long(), Some(1));
     /// ```
+    // TODO: Measure this
+    #[allow(clippy::inline_always)]
     #[inline(always)]
     pub fn try_call(&self, params: Vec<&dyn IntoZvalDyn>) -> Result<Zval> {
         let mut retval = Zval::new();
@@ -126,14 +138,14 @@ impl Function {
 
         unsafe {
             zend_call_known_function(
-                self as *const _ as *mut _,
+                ptr::from_ref(self).cast_mut(),
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
                 &mut retval,
-                len as _,
-                packed.as_ptr() as *mut _,
+                len.try_into()?,
+                packed.as_ptr().cast_mut(),
                 std::ptr::null_mut(),
-            )
+            );
         };
 
         Ok(retval)

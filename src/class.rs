@@ -123,6 +123,7 @@ pub struct ClassMetadata<T> {
 
 impl<T> ClassMetadata<T> {
     /// Creates a new class metadata instance.
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             handlers: OnceCell::new(),
