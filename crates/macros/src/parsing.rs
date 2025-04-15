@@ -167,12 +167,33 @@ mod tests {
 
     #[test]
     fn rename_magic_method() {
-        for magic in MAGIC_METHOD {
+        for &(magic, expected) in &[
+            ("__construct", "__construct"),
+            ("__destruct", "__destruct"),
+            ("__call", "__call"),
+            ("__call_static", "__callStatic"),
+            ("__get", "__get"),
+            ("__set", "__set"),
+            ("__isset", "__isset"),
+            ("__unset", "__unset"),
+            ("__sleep", "__sleep"),
+            ("__wakeup", "__wakeup"),
+            ("__serialize", "__serialize"),
+            ("__unserialize", "__unserialize"),
+            ("__to_string", "__toString"),
+            ("__invoke", "__invoke"),
+            ("__set_state", "__set_state"),
+            ("__clone", "__clone"),
+            ("__debug_info", "__debugInfo"),
+        ] {
             assert_eq!(magic, magic.rename_method(&RenameRule::None));
-            assert_eq!(magic, magic.rename_method(&RenameRule::Camel));
-            assert_eq!(magic, magic.rename_method(&RenameRule::Pascal));
-            assert_eq!(magic, magic.rename_method(&RenameRule::Snake));
-            assert_eq!(magic, magic.rename_method(&RenameRule::ScreamingSnakeCase));
+            assert_eq!(expected, magic.rename_method(&RenameRule::Camel));
+            assert_eq!(expected, magic.rename_method(&RenameRule::Pascal));
+            assert_eq!(expected, magic.rename_method(&RenameRule::Snake));
+            assert_eq!(
+                expected,
+                magic.rename_method(&RenameRule::ScreamingSnakeCase)
+            );
         }
     }
 
