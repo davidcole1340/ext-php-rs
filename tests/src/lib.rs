@@ -257,9 +257,10 @@ impl MagicMethod {
                 arguments
                     .iter()
                     .filter(|(_, v)| v.is_long())
-                    .map(|(_, s)| s.long().unwrap().to_string())
+                    .map(|(_, s)| s.long().unwrap())
                     .collect::<Vec<_>>()
-                    .join(" ")
+                    .iter()
+                    .sum::<i64>()
             );
 
             let _ = zval.set_string(&concat_args, false);

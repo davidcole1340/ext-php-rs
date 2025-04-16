@@ -33,5 +33,5 @@ assert("Hello" === $magicMethod->callMagicMethod(1, 2, 3));
 assert(null === $magicMethod->callUndefinedMagicMethod());
 
 // __call_static
-assert("Hello from static call 1 2 3" === MagicMethod::callStaticSomeMagic(1, 2, 3));
+assert("Hello from static call 6" === MagicMethod::callStaticSomeMagic(1, 2, 3));
 assert(null === MagicMethod::callUndefinedStaticSomeMagic());
