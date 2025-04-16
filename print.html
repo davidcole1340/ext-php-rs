@@ -1967,7 +1967,7 @@ pub fn startup(ty: i32, mod_num: i32) -&gt; i32 {
         IniEntryDef::new(
             "my_extension.display_emoji".to_owned(),
             "yes".to_owned(),
-            IniEntryPermission::All,
+            &amp;IniEntryPermission::All,
         ),
     ];
     IniEntryDef::register(ini_entries, mod_num);
