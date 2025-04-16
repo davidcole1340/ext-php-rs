@@ -118,14 +118,11 @@ impl MethodRename for &str {
             RenameRule::None => self.to_string(),
             _ => {
                 if MAGIC_METHOD.contains(self) {
-                    if self == &MAGIC_METHOD[12] {
-                        "__toString".to_string()
-                    } else if self == &MAGIC_METHOD[16] {
-                        "__debugInfo".to_string()
-                    } else if self == &MAGIC_METHOD[3] {
-                        "__callStatic".to_string()
-                    } else {
-                        self.to_string()
+                    match *self {
+                        "__to_string" => "__toString".to_string(),
+                        "__debug_info" => "__debugInfo".to_string(),
+                        "__call_static" => "__callStatic".to_string(),
+                        _ => self.to_string(),
                     }
                 } else {
                     self.rename(rule)
