@@ -8,7 +8,7 @@ use syn::{Ident, ItemImpl, Lit};
 use crate::constant::PhpConstAttribute;
 use crate::function::{Args, CallType, Function, MethodReceiver};
 use crate::helpers::get_docs;
-use crate::parsing::{PhpRename, RenameRule, Visibility};
+use crate::parsing::{MethodRename, PhpRename, Rename, RenameRule, Visibility};
 use crate::prelude::*;
 
 /// Method types.
@@ -184,7 +184,7 @@ impl<'a> ParsedImpl<'a> {
             match items {
                 syn::ImplItem::Const(c) => {
                     let attr = PhpConstAttribute::from_attributes(&c.attrs)?;
-                    let name = self.rename_constants.rename(c.ident.to_string());
+                    let name = c.ident.rename(&self.rename_constants);
                     let name = attr.rename.rename(name);
                     let docs = get_docs(&attr.attrs)?;
                     c.attrs.retain(|attr| !attr.path().is_ident("php"));
@@ -197,7 +197,7 @@ impl<'a> ParsedImpl<'a> {
                 }
                 syn::ImplItem::Fn(method) => {
                     let attr = PhpFunctionImplAttribute::from_attributes(&method.attrs)?;
-                    let name = self.rename_methods.rename(method.sig.ident.to_string());
+                    let name = method.sig.ident.rename_method(&self.rename_methods);
                     let name = attr.rename.rename(name);
                     let docs = get_docs(&attr.attrs)?;
                     method.attrs.retain(|attr| !attr.path().is_ident("php"));
@@ -316,45 +316,5 @@ impl quote::ToTokens for FnBuilder {
             (#builder, #(#flags)|*)
         }
         .to_tokens(tokens);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::RenameRule;
-
-    #[test]
-    fn test_rename_magic() {
-        for &(magic, expected) in &[
-            ("__construct", "__construct"),
-            ("__destruct", "__destruct"),
-            ("__call", "__call"),
-            ("__call_static", "__callStatic"),
-            ("__get", "__get"),
-            ("__set", "__set"),
-            ("__isset", "__isset"),
-            ("__unset", "__unset"),
-            ("__sleep", "__sleep"),
-            ("__wakeup", "__wakeup"),
-            ("__serialize", "__serialize"),
-            ("__unserialize", "__unserialize"),
-            ("__to_string", "__toString"),
-            ("__invoke", "__invoke"),
-            ("__set_state", "__set_state"),
-            ("__clone", "__clone"),
-            ("__debug_info", "__debugInfo"),
-        ] {
-            assert_eq!(magic, RenameRule::None.rename(magic));
-            assert_eq!(expected, RenameRule::Camel.rename(magic));
-            assert_eq!(expected, RenameRule::Snake.rename(magic));
-        }
-    }
-
-    #[test]
-    fn test_rename_php_methods() {
-        let &(original, camel, snake) = &("get_name", "getName", "get_name");
-        assert_eq!(original, RenameRule::None.rename(original));
-        assert_eq!(camel, RenameRule::Camel.rename(original));
-        assert_eq!(snake, RenameRule::Snake.rename(original));
     }
 }
