@@ -36,7 +36,7 @@ pub use module::ModuleEntry;
 pub use streams::*;
 #[cfg(feature = "embed")]
 pub(crate) use try_catch::panic_wrapper;
-pub use try_catch::{bailout, try_catch, try_catch_first};
+pub use try_catch::{bailout, try_catch, try_catch_first, CatchError};
 
 // Used as the format string for `php_printf`.
 const FORMAT_STR: &[u8] = b"%s\0";
@@ -49,10 +49,9 @@ const FORMAT_STR: &[u8] = b"%s\0";
 ///
 /// * message - The message to print to stdout.
 ///
-/// # Returns
+/// # Errors
 ///
-/// Nothing on success, error if the message could not be converted to a
-/// [`CString`].
+/// * If the message could not be converted to a [`CString`].
 pub fn printf(message: &str) -> Result<()> {
     let message = CString::new(message)?;
     unsafe {
@@ -62,6 +61,12 @@ pub fn printf(message: &str) -> Result<()> {
 }
 
 /// Get the name of the SAPI module.
+///
+/// # Panics
+///
+/// * If the module name is not a valid [`CStr`]
+///
+/// [`CStr`]: std::ffi::CStr
 pub fn php_sapi_name() -> String {
     let c_str = unsafe { std::ffi::CStr::from_ptr(sapi_module.name) };
     c_str.to_str().expect("Unable to parse CStr").to_string()

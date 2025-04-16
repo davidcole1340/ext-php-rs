@@ -37,6 +37,10 @@ pub trait Prop<'a> {
     /// # Parameters
     ///
     /// * `zv` - The zval to set the value of.
+    ///
+    /// # Errors
+    ///
+    /// If the property could not be read.
     fn get(&self, zv: &mut Zval) -> Result<()>;
 
     /// Sets the value of `self` with the contents of a given zval `zv`.
@@ -44,6 +48,10 @@ pub trait Prop<'a> {
     /// # Parameters
     ///
     /// * `zv` - The zval containing the new value of `self`.
+    ///
+    /// # Errors
+    ///
+    /// If the property could not be set
     fn set(&mut self, zv: &'a Zval) -> Result<()>;
 }
 
@@ -132,6 +140,7 @@ impl<'a, T: 'a> Property<'a, T> {
     ///
     /// let prop: Property<Test> = Property::method(Some(Test::get_prop), Some(Test::set_prop));
     /// ```
+    #[must_use]
     pub fn method<V>(get: Option<fn(&T) -> V>, set: Option<fn(&mut T, V)>) -> Self
     where
         for<'b> V: IntoZval + FromZval<'b> + 'a,
@@ -172,8 +181,12 @@ impl<'a, T: 'a> Property<'a, T> {
     ///
     /// # Returns
     ///
-    /// Nothing upon success, a [`PhpException`] inside an error variant when
-    /// the property could not be retrieved.
+    /// Nothing upon success
+    ///
+    /// # Errors
+    ///
+    /// A [`PhpException`] inside an error variant when the property could not
+    /// be retrieved.
     ///
     /// # Examples
     ///
@@ -219,8 +232,12 @@ impl<'a, T: 'a> Property<'a, T> {
     ///
     /// # Returns
     ///
-    /// Nothing upon success, a [`PhpException`] inside an error variant when
-    /// the property could not be set.
+    /// Nothing upon success
+    ///
+    /// # Errors
+    ///
+    /// A [`PhpException`] inside an error variant when the property could not
+    /// be set.
     ///
     /// # Examples
     ///

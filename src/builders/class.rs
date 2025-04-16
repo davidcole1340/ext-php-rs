@@ -1,4 +1,4 @@
-use std::{ffi::CString, mem::MaybeUninit, rc::Rc};
+use std::{ffi::CString, mem::MaybeUninit, ptr, rc::Rc};
 
 use crate::{
     builders::FunctionBuilder,
@@ -20,6 +20,7 @@ use crate::{
 type ConstantEntry = (String, Box<dyn FnOnce() -> Result<Zval>>, DocComments);
 
 /// Builder for registering a class in PHP.
+#[must_use]
 pub struct ClassBuilder {
     pub(crate) name: String,
     ce: ClassEntry,
@@ -132,6 +133,10 @@ impl ClassBuilder {
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
     /// * `docs` - Documentation comments for the constant.
+    ///
+    /// # Errors
+    ///
+    /// TODO: Never?
     pub fn constant<T: Into<String>>(
         mut self,
         name: T,
@@ -154,6 +159,10 @@ impl ClassBuilder {
     /// * `name` - The name of the constant to add to the class.
     /// * `value` - The value of the constant.
     /// * `docs` - Documentation comments for the constant.
+    ///
+    /// # Errors
+    ///
+    /// TODO: Never?
     pub fn dyn_constant<T: Into<String>>(
         mut self,
         name: T,
@@ -199,14 +208,11 @@ impl ClassBuilder {
 
         zend_fastcall! {
             extern fn constructor<T: RegisteredClass>(ex: &mut ExecuteData, _: &mut Zval) {
-                let ConstructorMeta { constructor, .. } = match T::constructor() {
-                    Some(c) => c,
-                    None => {
-                        PhpException::default("You cannot instantiate this class from PHP.".into())
-                            .throw()
-                            .expect("Failed to throw exception when constructing class");
-                        return;
-                    }
+                let Some(ConstructorMeta { constructor, .. }) = T::constructor() else {
+                    PhpException::default("You cannot instantiate this class from PHP.".into())
+                        .throw()
+                        .expect("Failed to throw exception when constructing class");
+                    return;
                 };
 
                 let this = match constructor(ex) {
@@ -218,15 +224,14 @@ impl ClassBuilder {
                     }
                     ConstructorResult::ArgError => return,
                 };
-                let this_obj = match ex.get_object::<T>() {
-                    Some(obj) => obj,
-                    None => {
-                        PhpException::default("Failed to retrieve reference to `this` object.".into())
-                            .throw()
-                            .expect("Failed to throw exception while constructing class");
-                        return;
-                    }
+
+                let Some(this_obj) = ex.get_object::<T>() else {
+                    PhpException::default("Failed to retrieve reference to `this` object.".into())
+                        .throw()
+                        .expect("Failed to throw exception while constructing class");
+                    return;
                 };
+
                 this_obj.initialize(this);
             }
         }
@@ -274,7 +279,14 @@ impl ClassBuilder {
     ///
     /// # Errors
     ///
-    /// Returns an [`Error`] variant if the class could not be registered.
+    /// * [`Error::InvalidPointer`] - If the class could not be registered.
+    /// * [`Error::InvalidCString`] - If the class name is not a valid C string.
+    /// * [`Error::IntegerOverflow`] - If the property flags are not valid.
+    /// * If a method or property could not be built.
+    ///
+    /// # Panics
+    ///
+    /// If no registration function was provided.
     pub fn register(mut self) -> Result<()> {
         self.ce.name = ZendStr::new_interned(&self.name, true).into_raw();
 
@@ -297,7 +309,7 @@ impl ClassBuilder {
             zend_register_internal_class_ex(
                 &mut self.ce,
                 match self.extends {
-                    Some(ptr) => (ptr as *const _) as *mut _,
+                    Some(ptr) => ptr::from_ref(ptr).cast_mut(),
                     None => std::ptr::null_mut(),
                 },
             )
@@ -318,13 +330,7 @@ impl ClassBuilder {
         }
 
         for iface in self.interfaces {
-            unsafe {
-                zend_do_implement_interface(
-                    class,
-                    iface as *const crate::ffi::_zend_class_entry
-                        as *mut crate::ffi::_zend_class_entry,
-                )
-            };
+            unsafe { zend_do_implement_interface(class, ptr::from_ref(iface).cast_mut()) };
         }
 
         for (name, flags, _) in self.properties {
@@ -334,7 +340,7 @@ impl ClassBuilder {
                     CString::new(name.as_str())?.as_ptr(),
                     name.len() as _,
                     &mut Zval::new(),
-                    flags.bits() as _,
+                    flags.bits().try_into()?,
                 );
             }
         }
@@ -347,7 +353,7 @@ impl ClassBuilder {
                     CString::new(name.as_str())?.as_ptr(),
                     name.len(),
                     value,
-                )
+                );
             };
         }
 

@@ -2,8 +2,8 @@ use darling::ToTokens;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    token::Where, DataEnum, DataStruct, DeriveInput, GenericParam, Generics, Ident, ImplGenerics,
-    Lifetime, LifetimeParam, TypeGenerics, Variant, WhereClause,
+    punctuated::Punctuated, token::Where, DataEnum, DataStruct, DeriveInput, GenericParam,
+    Generics, Ident, ImplGenerics, Lifetime, LifetimeParam, TypeGenerics, Variant, WhereClause,
 };
 
 use crate::prelude::*;
@@ -19,7 +19,7 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
         where_token: Where {
             span: Span::call_site(),
         },
-        predicates: Default::default(),
+        predicates: Punctuated::default(),
     });
     let mut from_where_clause = into_where_clause.clone();
 
@@ -38,7 +38,7 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
         parsed
     };
 
-    for generic in generics.params.iter() {
+    for generic in &generics.params {
         match generic {
             GenericParam::Type(ty) => {
                 let ident = &ty.ident;
@@ -61,43 +61,43 @@ pub fn parser(input: DeriveInput) -> Result<TokenStream> {
                 })
                 .expect("couldn't parse where predicate"),
             ),
-            _ => continue,
+            GenericParam::Const(_) => {}
         }
     }
 
     match input.data {
         syn::Data::Struct(data) => parse_struct(
-            data,
-            ident,
-            into_impl_generics,
-            from_impl_generics,
-            into_where_clause,
-            from_where_clause,
-            ty_generics,
+            &data,
+            &ident,
+            &into_impl_generics,
+            &from_impl_generics,
+            &into_where_clause,
+            &from_where_clause,
+            &ty_generics,
         ),
         syn::Data::Enum(data) => parse_enum(
-            data,
-            ident,
-            into_impl_generics,
-            from_impl_generics,
-            into_where_clause,
-            from_where_clause,
-            ty_generics,
+            &data,
+            &ident,
+            &into_impl_generics,
+            &from_impl_generics,
+            &into_where_clause,
+            &from_where_clause,
+            &ty_generics,
         ),
-        _ => {
+        syn::Data::Union(_) => {
             bail!(ident.span() => "Only structs and enums are supported by the `#[derive(ZvalConvert)]` macro.")
         }
     }
 }
 
 fn parse_struct(
-    data: DataStruct,
-    ident: Ident,
-    into_impl_generics: ImplGenerics,
-    from_impl_generics: Generics,
-    into_where_clause: WhereClause,
-    from_where_clause: WhereClause,
-    ty_generics: TypeGenerics,
+    data: &DataStruct,
+    ident: &Ident,
+    into_impl_generics: &ImplGenerics,
+    from_impl_generics: &Generics,
+    into_where_clause: &WhereClause,
+    from_where_clause: &WhereClause,
+    ty_generics: &TypeGenerics,
 ) -> Result<TokenStream> {
     let into_fields = data
         .fields
@@ -176,13 +176,13 @@ fn parse_struct(
 }
 
 fn parse_enum(
-    data: DataEnum,
-    ident: Ident,
-    into_impl_generics: ImplGenerics,
-    from_impl_generics: Generics,
-    into_where_clause: WhereClause,
-    from_where_clause: WhereClause,
-    ty_generics: TypeGenerics,
+    data: &DataEnum,
+    ident: &Ident,
+    into_impl_generics: &ImplGenerics,
+    from_impl_generics: &Generics,
+    into_where_clause: &WhereClause,
+    from_where_clause: &WhereClause,
+    ty_generics: &TypeGenerics,
 ) -> Result<TokenStream> {
     let into_variants = data.variants.iter().filter_map(|variant| {
         // can have default fields - in this case, return `null`.
@@ -228,7 +228,7 @@ fn parse_enum(
                 });
                 Ok(None)
             }
-            _ => bail!(fields => "Enum variants must be unnamed and have only one field inside the variant when using `#[derive(ZvalConvert)]`.")
+            syn::Fields::Named(_) => bail!(fields => "Enum variants must be unnamed and have only one field inside the variant when using `#[derive(ZvalConvert)]`.")
         }
     }).collect::<Result<Vec<_>>>()?;
     let default = default.unwrap_or_else(|| quote! { None });

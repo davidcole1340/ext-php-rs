@@ -1,6 +1,8 @@
 //! Functions relating to the Zend Memory Manager, used to allocate
 //! request-bound memory.
 
+use cfg_if::cfg_if;
+
 use crate::ffi::{_efree, _emalloc};
 use std::{alloc::Layout, ffi::c_void};
 
@@ -13,20 +15,23 @@ use std::{alloc::Layout, ffi::c_void};
 /// # Returns
 ///
 /// A pointer to the memory allocated.
+#[must_use]
 pub fn emalloc(layout: Layout) -> *mut u8 {
     // TODO account for alignment
     let size = layout.size();
 
     (unsafe {
-        #[cfg(php_debug)]
-        {
-            _emalloc(size as _, std::ptr::null_mut(), 0, std::ptr::null_mut(), 0)
+        cfg_if! {
+            if #[cfg(php_debug)] {
+                #[allow(clippy::used_underscore_items)]
+                _emalloc(size as _, std::ptr::null_mut(), 0, std::ptr::null_mut(), 0)
+            } else {
+                #[allow(clippy::used_underscore_items)]
+                _emalloc(size as _)
+            }
         }
-        #[cfg(not(php_debug))]
-        {
-            _emalloc(size as _)
-        }
-    }) as *mut u8
+    })
+    .cast::<u8>()
 }
 
 /// Frees a given memory pointer which was allocated through the PHP memory
@@ -41,18 +46,19 @@ pub fn emalloc(layout: Layout) -> *mut u8 {
 /// Caller must guarantee that the given pointer is valid (aligned and non-null)
 /// and was originally allocated through the Zend memory manager.
 pub unsafe fn efree(ptr: *mut u8) {
-    #[cfg(php_debug)]
-    {
-        _efree(
-            ptr as *mut c_void,
-            std::ptr::null_mut(),
-            0,
-            std::ptr::null_mut(),
-            0,
-        )
-    }
-    #[cfg(not(php_debug))]
-    {
-        _efree(ptr as *mut c_void)
+    cfg_if! {
+        if #[cfg(php_debug)] {
+            #[allow(clippy::used_underscore_items)]
+            _efree(
+                ptr.cast::<c_void>(),
+                std::ptr::null_mut(),
+                0,
+                std::ptr::null_mut(),
+                0,
+            )
+        } else {
+            #[allow(clippy::used_underscore_items)]
+            _efree(ptr.cast::<c_void>());
+        }
     }
 }

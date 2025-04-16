@@ -42,7 +42,7 @@ impl<T> From<StdVec<T>> for Vec<T> {
     fn from(vec: StdVec<T>) -> Self {
         let vec = vec.into_boxed_slice();
         let len = vec.len();
-        let ptr = Box::into_raw(vec) as *mut T;
+        let ptr = Box::into_raw(vec).cast::<T>();
 
         Self { ptr, len }
     }
@@ -60,6 +60,7 @@ impl Str {
     ///
     /// The lifetime is `'static` and can outlive the [`Str`] object, as you can
     /// only initialize a [`Str`] through a static reference.
+    #[must_use]
     pub fn str(&self) -> &'static str {
         unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(self.ptr, self.len)) }
     }
@@ -93,6 +94,11 @@ pub struct RString {
 
 impl RString {
     /// Returns the string as a string slice.
+    ///
+    /// # Panics
+    ///
+    /// * If the string is not valid UTF-8
+    #[must_use]
     pub fn as_str(&self) -> &str {
         std::str::from_utf8(&self.inner).expect("RString value is not valid UTF-8")
     }

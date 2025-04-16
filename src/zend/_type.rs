@@ -18,9 +18,10 @@ impl ZendType {
     ///
     /// * `pass_by_ref` - Whether the value should be passed by reference.
     /// * `is_variadic` - Whether this type represents a variadic argument.
+    #[must_use]
     pub fn empty(pass_by_ref: bool, is_variadic: bool) -> Self {
         Self {
-            ptr: ptr::null::<c_void>() as *mut c_void,
+            ptr: ptr::null_mut::<c_void>(),
             type_mask: Self::arg_info_flags(pass_by_ref, is_variadic),
         }
     }
@@ -39,6 +40,7 @@ impl ZendType {
     /// * `is_variadic` - Whether the type is for a variadic argument.
     /// * `allow_null` - Whether the type should allow null to be passed in
     ///   place.
+    #[must_use]
     pub fn empty_from_type(
         type_: DataType,
         pass_by_ref: bool,
@@ -80,7 +82,7 @@ impl ZendType {
     ) -> Option<Self> {
         let mut flags = Self::arg_info_flags(pass_by_ref, is_variadic);
         if allow_null {
-            flags |= _ZEND_TYPE_NULLABLE_BIT
+            flags |= _ZEND_TYPE_NULLABLE_BIT;
         }
         cfg_if::cfg_if! {
             if #[cfg(php83)] {
@@ -91,7 +93,10 @@ impl ZendType {
         }
 
         Some(Self {
-            ptr: std::ffi::CString::new(class_name).ok()?.into_raw() as *mut c_void,
+            ptr: std::ffi::CString::new(class_name)
+                .ok()?
+                .into_raw()
+                .cast::<c_void>(),
             type_mask: flags,
         })
     }
@@ -117,20 +122,21 @@ impl ZendType {
     ) -> Self {
         assert!(!matches!(type_, DataType::Object(Some(_))));
         Self {
-            ptr: ptr::null::<c_void>() as *mut c_void,
+            ptr: ptr::null_mut::<c_void>(),
             type_mask: Self::type_init_code(type_, pass_by_ref, is_variadic, allow_null),
         }
     }
 
     /// Calculates the internal flags of the type.
-    /// Translation of of the `_ZEND_ARG_INFO_FLAGS` macro from zend_API.h:110.
+    /// Translation of of the `_ZEND_ARG_INFO_FLAGS` macro from
+    /// `zend_API.h:110`.
     ///
     /// # Parameters
     ///
     /// * `pass_by_ref` - Whether the value should be passed by reference.
     /// * `is_variadic` - Whether this type represents a variadic argument.
     pub(crate) fn arg_info_flags(pass_by_ref: bool, is_variadic: bool) -> u32 {
-        ((pass_by_ref as u32) << _ZEND_SEND_MODE_SHIFT)
+        (u32::from(pass_by_ref) << _ZEND_SEND_MODE_SHIFT)
             | (if is_variadic {
                 _ZEND_IS_VARIADIC_BIT
             } else {
@@ -139,7 +145,7 @@ impl ZendType {
     }
 
     /// Calculates the internal flags of the type.
-    /// Translation of the `ZEND_TYPE_INIT_CODE` macro from zend_API.h:163.
+    /// Translation of the `ZEND_TYPE_INIT_CODE` macro from `zend_API.h:163`.
     ///
     /// # Parameters
     ///

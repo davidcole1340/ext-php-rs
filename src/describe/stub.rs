@@ -4,7 +4,8 @@ use crate::flags::DataType;
 use std::{cmp::Ordering, collections::HashMap};
 
 use super::{
-    abi::*, Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
+    abi::{Option, RString},
+    Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
     Visibility,
 };
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};
@@ -17,8 +18,11 @@ pub trait ToStub {
     ///
     /// # Returns
     ///
-    /// Returns a string on success. Returns an error if there was an error
-    /// writing into the string.
+    /// Returns a string on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there was an error writing into the string.
     fn to_stub(&self) -> Result<String, FmtError> {
         let mut buf = String::new();
         self.fmt_stub(&mut buf)?;
@@ -33,8 +37,11 @@ pub trait ToStub {
     ///
     /// # Returns
     ///
-    /// Returns nothing on success. Returns an error if there was an error
-    /// writing into the buffer.
+    /// Returns nothing on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there was an error writing into the buffer.
     fn fmt_stub(&self, buf: &mut String) -> FmtResult;
 }
 
@@ -158,7 +165,7 @@ impl ToStub for DataType {
             buf,
             "{}",
             match self {
-                DataType::True | DataType::False => "bool",
+                DataType::Bool | DataType::True | DataType::False => "bool",
                 DataType::Long => "int",
                 DataType::Double => "float",
                 DataType::String => "string",
@@ -171,7 +178,6 @@ impl ToStub for DataType {
                 DataType::Resource => "resource",
                 DataType::Reference => "reference",
                 DataType::Callable => "callable",
-                DataType::Bool => "bool",
                 DataType::Iterable => "iterable",
                 _ => "mixed",
             }
@@ -194,6 +200,12 @@ impl ToStub for DocBlock {
 
 impl ToStub for Class {
     fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        fn stub<T: ToStub>(items: &[T]) -> impl Iterator<Item = Result<String, FmtError>> + '_ {
+            items
+                .iter()
+                .map(|item| item.to_stub().map(|stub| indent(&stub, 4)))
+        }
+
         self.docs.fmt_stub(buf)?;
 
         let (_, name) = split_namespace(self.name.as_ref());
@@ -209,19 +221,13 @@ impl ToStub for Class {
                 "implements {} ",
                 self.implements
                     .iter()
-                    .map(|s| s.as_str())
+                    .map(RString::as_str)
                     .collect::<StdVec<_>>()
                     .join(", ")
             )?;
         }
 
         writeln!(buf, "{{")?;
-
-        fn stub<T: ToStub>(items: &[T]) -> impl Iterator<Item = Result<String, FmtError>> + '_ {
-            items
-                .iter()
-                .map(|item| item.to_stub().map(|stub| indent(&stub, 4)))
-        }
 
         buf.push_str(
             &stub(&self.constants)

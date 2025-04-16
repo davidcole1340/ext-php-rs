@@ -7,6 +7,7 @@ use std::{
     ffi::CString,
     fmt::{Debug, Display},
     iter::FromIterator,
+    ptr,
 };
 
 use crate::{
@@ -67,6 +68,7 @@ impl ZendHashTable {
     /// # Panics
     ///
     /// Panics if memory for the hashtable could not be allocated.
+    #[must_use]
     pub fn new() -> ZBox<Self> {
         Self::with_capacity(HT_MIN_SIZE)
     }
@@ -89,9 +91,11 @@ impl ZendHashTable {
     /// # Panics
     ///
     /// Panics if memory for the hashtable could not be allocated.
+    #[must_use]
     pub fn with_capacity(size: u32) -> ZBox<Self> {
         unsafe {
             // SAFETY: PHP allocator handles the creation of the array.
+            #[allow(clippy::used_underscore_items)]
             let ptr = _zend_new_array(size);
 
             // SAFETY: `as_mut()` checks if the pointer is null, and panics if it is not.
@@ -116,8 +120,9 @@ impl ZendHashTable {
     ///
     /// assert_eq!(ht.len(), 2);
     /// ```
+    #[must_use]
     pub fn len(&self) -> usize {
-        unsafe { zend_array_count(self as *const ZendHashTable as *mut ZendHashTable) as usize }
+        unsafe { zend_array_count(ptr::from_ref(self).cast_mut()) as usize }
     }
 
     /// Returns whether the hash table is empty.
@@ -136,6 +141,7 @@ impl ZendHashTable {
     ///
     /// assert_eq!(ht.is_empty(), false);
     /// ```
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -181,6 +187,7 @@ impl ZendHashTable {
     /// ht.insert("test", "hello world");
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
     /// ```
+    #[must_use]
     pub fn get(&self, key: &'_ str) -> Option<&Zval> {
         let str = CString::new(key).ok()?;
         unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_ref() }
@@ -208,6 +215,7 @@ impl ZendHashTable {
     /// ht.insert("test", "hello world");
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
     /// ```
+    #[must_use]
     pub fn get_mut(&self, key: &'_ str) -> Option<&mut Zval> {
         let str = CString::new(key).ok()?;
         unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_mut() }
@@ -235,6 +243,7 @@ impl ZendHashTable {
     /// ht.push(100);
     /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
     /// ```
+    #[must_use]
     pub fn get_index(&self, key: u64) -> Option<&Zval> {
         unsafe { zend_hash_index_find(self, key).as_ref() }
     }
@@ -261,6 +270,7 @@ impl ZendHashTable {
     /// ht.push(100);
     /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
     /// ```
+    #[must_use]
     pub fn get_index_mut(&self, key: u64) -> Option<&mut Zval> {
         unsafe { zend_hash_index_find(self, key).as_mut() }
     }
@@ -344,9 +354,12 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// Returns nothing in a result on success. Returns an error if the key
-    /// could not be converted into a [`CString`], or converting the value into
-    /// a [`Zval`] failed.
+    /// Returns nothing in a result on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key could not be converted into a [`CString`],
+    /// or converting the value into a [`Zval`] failed.
     ///
     /// # Example
     ///
@@ -380,8 +393,11 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// Returns nothing in a result on success. Returns an error if converting
-    /// the value into a [`Zval`] failed.
+    /// Returns nothing in a result on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if converting the value into a [`Zval`] failed.
     ///
     /// # Example
     ///
@@ -414,8 +430,11 @@ impl ZendHashTable {
     ///
     /// # Returns
     ///
-    /// Returns nothing in a result on success. Returns an error if converting
-    /// the value into a [`Zval`] failed.
+    /// Returns nothing in a result on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if converting the value into a [`Zval`] failed.
     ///
     /// # Example
     ///
@@ -461,6 +480,7 @@ impl ZendHashTable {
     /// ht.insert("obviously not numerical", 10);
     /// assert!(!ht.has_numerical_keys());
     /// ```
+    #[must_use]
     pub fn has_numerical_keys(&self) -> bool {
         !self.into_iter().any(|(k, _)| !k.is_long())
     }
@@ -471,6 +491,10 @@ impl ZendHashTable {
     ///
     /// True if all keys on the hashtable are numerical and are in sequential
     /// order (i.e. starting at 0 and not skipping any keys).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number of elements in the hashtable exceeds `i64::MAX`.
     ///
     /// # Example
     ///
@@ -487,11 +511,12 @@ impl ZendHashTable {
     /// ht.insert_at_index(90, 10);
     /// assert!(!ht.has_sequential_keys());
     /// ```
+    #[must_use]
     pub fn has_sequential_keys(&self) -> bool {
         !self
             .into_iter()
             .enumerate()
-            .any(|(i, (k, _))| ArrayKey::Long(i as i64) != k)
+            .any(|(i, (k, _))| ArrayKey::Long(i64::try_from(i).expect("Integer overflow")) != k)
     }
 
     /// Returns an iterator over the values contained inside the hashtable, as
@@ -508,6 +533,7 @@ impl ZendHashTable {
     ///     dbg!(val);
     /// }
     #[inline]
+    #[must_use]
     pub fn values(&self) -> Values {
         Values::new(self)
     }
@@ -532,6 +558,7 @@ impl ZendHashTable {
     ///     dbg!(key, val);
     /// }
     #[inline]
+    #[must_use]
     pub fn iter(&self) -> Iter {
         self.into_iter()
     }
@@ -558,7 +585,7 @@ impl ToOwned for ZendHashTable {
     fn to_owned(&self) -> Self::Owned {
         unsafe {
             // SAFETY: FFI call does not modify `self`, returns a new hashtable.
-            let ptr = zend_array_dup(self as *const ZendHashTable as *mut ZendHashTable);
+            let ptr = zend_array_dup(ptr::from_ref(self).cast_mut());
 
             // SAFETY: `as_mut()` checks if the pointer is null, and panics if it is not.
             ZBox::from_raw(
@@ -593,6 +620,7 @@ impl ArrayKey {
     /// # Returns
     ///
     /// Returns true if the key is an integer, false otherwise.
+    #[must_use]
     pub fn is_long(&self) -> bool {
         match self {
             ArrayKey::Long(_) => true,
@@ -604,8 +632,8 @@ impl ArrayKey {
 impl Display for ArrayKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ArrayKey::Long(key) => write!(f, "{}", key),
-            ArrayKey::String(key) => write!(f, "{}", key),
+            ArrayKey::Long(key) => write!(f, "{key}"),
+            ArrayKey::String(key) => write!(f, "{key}"),
         }
     }
 }
@@ -707,10 +735,7 @@ impl DoubleEndedIterator for Iter<'_> {
         }
 
         let key_type = unsafe {
-            zend_hash_get_current_key_type_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.pos as *mut HashPosition,
-            )
+            zend_hash_get_current_key_type_ex(ptr::from_ref(self.ht).cast_mut(), &raw mut self.pos)
         };
 
         if key_type == -1 {
@@ -721,15 +746,15 @@ impl DoubleEndedIterator for Iter<'_> {
 
         unsafe {
             zend_hash_get_current_key_zval_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &key as *const Zval as *mut Zval,
-                &mut self.end_pos as *mut HashPosition,
+                ptr::from_ref(self.ht).cast_mut(),
+                (&raw const key).cast_mut(),
+                &raw mut self.end_pos,
             );
         }
         let value = unsafe {
             &*zend_hash_get_current_data_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.end_pos as *mut HashPosition,
+                ptr::from_ref(self.ht).cast_mut(),
+                &raw mut self.end_pos,
             )
         };
 
@@ -739,10 +764,7 @@ impl DoubleEndedIterator for Iter<'_> {
         };
 
         unsafe {
-            zend_hash_move_backwards_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.end_pos as *mut HashPosition,
-            )
+            zend_hash_move_backwards_ex(ptr::from_ref(self.ht).cast_mut(), &raw mut self.end_pos)
         };
         self.end_num -= 1;
 
@@ -757,10 +779,7 @@ impl<'a> Iter<'a> {
         }
 
         let key_type = unsafe {
-            zend_hash_get_current_key_type_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.pos as *mut HashPosition,
-            )
+            zend_hash_get_current_key_type_ex(ptr::from_ref(self.ht).cast_mut(), &raw mut self.pos)
         };
 
         // Key type `-1` is ???
@@ -775,16 +794,14 @@ impl<'a> Iter<'a> {
 
         unsafe {
             zend_hash_get_current_key_zval_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &key as *const Zval as *mut Zval,
-                &mut self.pos as *mut HashPosition,
+                ptr::from_ref(self.ht).cast_mut(),
+                (&raw const key).cast_mut(),
+                &raw mut self.pos,
             );
         }
         let value = unsafe {
-            let val_ptr = zend_hash_get_current_data_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.pos as *mut HashPosition,
-            );
+            let val_ptr =
+                zend_hash_get_current_data_ex(ptr::from_ref(self.ht).cast_mut(), &raw mut self.pos);
 
             if val_ptr.is_null() {
                 return None;
@@ -794,15 +811,10 @@ impl<'a> Iter<'a> {
         };
 
         if !key.is_long() && !key.is_string() {
-            key.set_long(self.current_num)
+            key.set_long(self.current_num);
         }
 
-        unsafe {
-            zend_hash_move_forward_ex(
-                self.ht as *const ZendHashTable as *mut ZendHashTable,
-                &mut self.pos as *mut HashPosition,
-            )
-        };
+        unsafe { zend_hash_move_forward_ex(ptr::from_ref(self.ht).cast_mut(), &raw mut self.pos) };
         self.current_num += 1;
 
         Some((key, value))
@@ -885,6 +897,8 @@ impl<'a> FromZval<'a> for &'a ZendHashTable {
 // HashMap
 ///////////////////////////////////////////
 
+// TODO: Generalize hasher
+#[allow(clippy::implicit_hasher)]
 impl<'a, V> TryFrom<&'a ZendHashTable> for HashMap<String, V>
 where
     V: FromZval<'a>,
@@ -917,7 +931,7 @@ where
             value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
         );
 
-        for (k, v) in value.into_iter() {
+        for (k, v) in value {
             ht.insert(k.as_ref(), v)?;
         }
 
@@ -925,6 +939,8 @@ where
     }
 }
 
+// TODO: Generalize hasher
+#[allow(clippy::implicit_hasher)]
 impl<K, V> IntoZval for HashMap<K, V>
 where
     K: AsRef<str>,
@@ -940,6 +956,8 @@ where
     }
 }
 
+// TODO: Generalize hasher
+#[allow(clippy::implicit_hasher)]
 impl<'a, T> FromZval<'a> for HashMap<String, T>
 where
     T: FromZval<'a>,
@@ -983,7 +1001,7 @@ where
             value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
         );
 
-        for val in value.into_iter() {
+        for val in value {
             ht.push(val)?;
         }
 
@@ -1019,7 +1037,7 @@ where
 impl FromIterator<Zval> for ZBox<ZendHashTable> {
     fn from_iter<T: IntoIterator<Item = Zval>>(iter: T) -> Self {
         let mut ht = ZendHashTable::new();
-        for item in iter.into_iter() {
+        for item in iter {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting
             // `val` to a zval fails.
             let _ = ht.push(item);
@@ -1031,7 +1049,7 @@ impl FromIterator<Zval> for ZBox<ZendHashTable> {
 impl FromIterator<(u64, Zval)> for ZBox<ZendHashTable> {
     fn from_iter<T: IntoIterator<Item = (u64, Zval)>>(iter: T) -> Self {
         let mut ht = ZendHashTable::new();
-        for (key, val) in iter.into_iter() {
+        for (key, val) in iter {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting
             // `val` to a zval fails.
             let _ = ht.insert_at_index(key, val);
@@ -1043,7 +1061,7 @@ impl FromIterator<(u64, Zval)> for ZBox<ZendHashTable> {
 impl<'a> FromIterator<(&'a str, Zval)> for ZBox<ZendHashTable> {
     fn from_iter<T: IntoIterator<Item = (&'a str, Zval)>>(iter: T) -> Self {
         let mut ht = ZendHashTable::new();
-        for (key, val) in iter.into_iter() {
+        for (key, val) in iter {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting
             // `val` to a zval fails.
             let _ = ht.insert(key, val);

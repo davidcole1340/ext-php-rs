@@ -7,30 +7,53 @@ use crate::{ffi::zend_ini_entry_def, ffi::zend_register_ini_entries, flags::IniE
 
 /// A Zend ini entry definition.
 ///
-/// To register ini definitions for extensions, the IniEntryDef builder should
-/// be used. Ini entries should be registered in your module's startup_function
-/// via `IniEntryDef::register(Vec<IniEntryDef>)`.
+/// To register ini definitions for extensions, the [`IniEntryDef`] builder
+/// should be used. Ini entries should be registered in your module's
+/// `startup_function` via `IniEntryDef::register(Vec<IniEntryDef>)`.
 pub type IniEntryDef = zend_ini_entry_def;
 
 impl IniEntryDef {
-    /// Returns an empty ini entry, signifying the end of a ini list.
-    pub fn new(name: String, default_value: String, permission: IniEntryPermission) -> Self {
+    /// Creates a new ini entry definition.
+    ///
+    /// # Panics
+    ///
+    /// * If the name or value cannot be converted to a C string
+    /// * If the name or value length is > `65_535`
+    /// * If the permission bits are invalid
+    #[must_use]
+    pub fn new(name: String, default_value: String, permission: &IniEntryPermission) -> Self {
         let mut template = Self::end();
         let name = CString::new(name).expect("Unable to create CString from name");
         let value = CString::new(default_value).expect("Unable to create CString from value");
-        template.name_length = name.as_bytes().len() as _;
+        template.name_length = name
+            .as_bytes()
+            .len()
+            .try_into()
+            .expect("Invalid name length");
         template.name = name.into_raw();
-        template.value_length = value.as_bytes().len() as _;
+        template.value_length = value
+            .as_bytes()
+            .len()
+            .try_into()
+            .expect("Invalid value length");
         template.value = value.into_raw();
-        template.modifiable = IniEntryPermission::PerDir.bits() as _;
-        template.modifiable = permission.bits() as _;
+        // FIXME: Double assignment of modifiable
+        template.modifiable = IniEntryPermission::PerDir
+            .bits()
+            .try_into()
+            .expect("Invalid permission bits");
+        template.modifiable = permission
+            .bits()
+            .try_into()
+            .expect("Invalid permission bits");
         template
     }
 
     /// Returns an empty ini entry def, signifying the end of a ini list.
+    #[must_use]
     pub fn end() -> Self {
         Self {
-            name: ptr::null() as *const c_char,
+            name: ptr::null::<c_char>(),
             on_modify: None,
             mh_arg1: std::ptr::null_mut(),
             mh_arg2: std::ptr::null_mut(),
@@ -45,6 +68,7 @@ impl IniEntryDef {
 
     /// Converts the ini entry into a raw and pointer, releasing it to the
     /// C world.
+    #[must_use]
     pub fn into_raw(self) -> *mut Self {
         Box::into_raw(Box::new(self))
     }

@@ -7,17 +7,22 @@ use std::fmt::{Debug, Formatter};
 
 /// A PHP Iterator.
 ///
-/// In PHP, iterators are represented as zend_object_iterator. This allows user
-/// to iterate over objects implementing Traversable interface using foreach.
+/// In PHP, iterators are represented as `zend_object_iterator`. This allows
+/// user to iterate over objects implementing Traversable interface using
+/// foreach.
 ///
-/// Use ZendIterable to iterate over both iterators and arrays.
+/// Use [`Iterable`] to iterate over both iterators and arrays.
+///
+/// [`Iterable`]: crate::types::iterable::Iterable
 pub type ZendIterator = zend_object_iterator;
 
 impl ZendIterator {
-    /// Creates a new rust iterator from a zend_object_iterator.
+    /// Creates a new rust iterator from a `zend_object_iterator`.
     ///
-    /// Returns a iterator over the zend_object_iterator, or None if the
+    /// Returns a iterator over the `zend_object_iterator`, or [`None`] if the
     /// iterator cannot be rewound.
+    // TODO: Check iter not returning iterator
+    #[allow(clippy::iter_not_returning_iterator)]
     pub fn iter(&mut self) -> Option<Iter> {
         self.index = 0;
 
@@ -31,7 +36,7 @@ impl ZendIterator {
     /// Check if the current position of the iterator is valid.
     ///
     /// As an example this will call the user defined valid method of the
-    /// ['\Iterator'] interface. see <https://www.php.net/manual/en/iterator.valid.php>
+    /// `\Iterator` interface. see <https://www.php.net/manual/en/iterator.valid.php>
     pub fn valid(&mut self) -> bool {
         if let Some(valid) = unsafe { (*self.funcs).valid } {
             let valid = unsafe { valid(&mut *self) == ZEND_RESULT_CODE_SUCCESS };
@@ -49,7 +54,7 @@ impl ZendIterator {
     /// Rewind the iterator to the first element.
     ///
     /// As an example this will call the user defined rewind method of the
-    /// ['\Iterator'] interface. see <https://www.php.net/manual/en/iterator.rewind.php>
+    /// `\Iterator` interface. see <https://www.php.net/manual/en/iterator.rewind.php>
     ///
     /// # Returns
     ///
@@ -68,7 +73,7 @@ impl ZendIterator {
     /// Move the iterator forward to the next element.
     ///
     /// As an example this will call the user defined next method of the
-    /// ['\Iterator'] interface. see <https://www.php.net/manual/en/iterator.next.php>
+    /// `\Iterator` interface. see <https://www.php.net/manual/en/iterator.next.php>
     ///
     /// # Returns
     ///
@@ -89,7 +94,7 @@ impl ZendIterator {
     /// # Returns
     ///
     /// Returns a reference to the current data of the iterator if available
-    /// , ['None'] otherwise.
+    /// , [`None`] otherwise.
     pub fn get_current_data<'a>(&mut self) -> Option<&'a Zval> {
         let get_current_data = unsafe { (*self.funcs).get_current_data }?;
         let value = unsafe { &*get_current_data(&mut *self) };
@@ -105,8 +110,8 @@ impl ZendIterator {
     ///
     /// # Returns
     ///
-    /// Returns a new ['Zval'] containing the current key of the iterator if
-    /// available , ['None'] otherwise.
+    /// Returns a new [`Zval`] containing the current key of the iterator if
+    /// available , [`None`] otherwise.
     pub fn get_current_key(&mut self) -> Option<Zval> {
         let get_current_key = unsafe { (*self.funcs).get_current_key? };
         let mut key = Zval::new();
@@ -123,6 +128,8 @@ impl ZendIterator {
     }
 }
 
+// TODO: Implement `iter_mut`
+#[allow(clippy::into_iter_without_iter)]
 impl<'a> IntoIterator for &'a mut ZendIterator {
     type Item = (Zval, &'a Zval);
     type IntoIter = Iter<'a>;
@@ -159,12 +166,12 @@ impl<'a> Iterator for Iter<'a> {
 
         self.zi.index += 1;
 
-        let real_index = self.zi.index - 1;
+        let real_index = i64::try_from(self.zi.index - 1).expect("index out of bounds");
 
         let key = match self.zi.get_current_key() {
             None => {
                 let mut z = Zval::new();
-                z.set_long(real_index as i64);
+                z.set_long(real_index);
                 z
             }
             Some(key) => key,
@@ -185,6 +192,7 @@ impl<'a> FromZvalMut<'a> for &'a mut ZendIterator {
 #[cfg(test)]
 #[cfg(feature = "embed")]
 mod tests {
+    #![allow(clippy::unwrap_used)]
     use crate::embed::Embed;
 
     #[test]

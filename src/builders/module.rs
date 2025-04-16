@@ -38,6 +38,7 @@ use crate::{
 ///     entry.into_raw()
 /// }
 /// ```
+#[must_use]
 #[derive(Debug, Default)]
 pub struct ModuleBuilder<'a> {
     pub(crate) name: String,
@@ -150,8 +151,8 @@ impl ModuleBuilder<'_> {
     ///
     /// # Arguments
     ///
-    /// * `const` - Tuple containing the name, value and doc comments for the constant. This is
-    ///   a tuple to support the [`wrap_constant`] macro.
+    /// * `const` - Tuple containing the name, value and doc comments for the
+    ///   constant. This is a tuple to support the [`wrap_constant`] macro.
     ///
     /// [`wrap_constant`]: crate::wrap_constant
     pub fn constant(
@@ -168,6 +169,10 @@ impl ModuleBuilder<'_> {
     }
 
     /// Adds a class to the extension.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if a constant could not be registered.
     pub fn class<T: RegisteredClass>(mut self) -> Self {
         self.classes.push(|| {
             let mut builder = ClassBuilder::new(T::CLASS_NAME);
@@ -213,6 +218,14 @@ pub struct ModuleStartup {
 impl ModuleStartup {
     /// Completes startup of the module. Should only be called inside the module
     /// startup function.
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if a constant could not be registered.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if a class could not be registered.
     pub fn startup(self, _ty: i32, mod_num: i32) -> Result<()> {
         for (name, val) in self.constants {
             val.register_constant(&name, mod_num)?;
@@ -240,7 +253,7 @@ impl TryFrom<ModuleBuilder<'_>> for (ModuleEntry, ModuleStartup) {
         let mut functions = builder
             .functions
             .into_iter()
-            .map(|f| f.build())
+            .map(FunctionBuilder::build)
             .collect::<Result<Vec<_>>>()?;
         functions.push(FunctionEntry::end());
         let functions = Box::into_raw(functions.into_boxed_slice()) as *const FunctionEntry;
@@ -259,7 +272,7 @@ impl TryFrom<ModuleBuilder<'_>> for (ModuleEntry, ModuleStartup) {
 
         Ok((
             ModuleEntry {
-                size: mem::size_of::<ModuleEntry>() as u16,
+                size: mem::size_of::<ModuleEntry>().try_into()?,
                 zend_api: ZEND_MODULE_API_NO,
                 zend_debug: u8::from(PHP_DEBUG),
                 zts: u8::from(PHP_ZTS),

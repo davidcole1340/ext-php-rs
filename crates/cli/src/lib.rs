@@ -36,13 +36,17 @@ macro_rules! stub_symbols {
 pub type CrateResult = AResult<()>;
 
 /// Runs the CLI application. Returns nothing in a result on success.
+///
+/// # Errors
+///
+/// Returns an error if the application fails to run.
 pub fn run() -> CrateResult {
     let mut args: Vec<_> = std::env::args().collect();
 
     // When called as a cargo subcommand, the second argument given will be the
     // subcommand, in this case `php`. We don't want this so we remove from args and
     // pass it to clap.
-    if args.get(1).map(|nth| nth == "php").unwrap_or(false) {
+    if args.get(1).is_some_and(|nth| nth == "php") {
         args.remove(1);
     }
 
@@ -91,6 +95,7 @@ struct Install {
     /// Changes the path that the extension is copied to. This will not
     /// activate the extension unless `ini_path` is also passed.
     #[arg(long)]
+    #[allow(clippy::struct_field_names)]
     install_dir: Option<PathBuf>,
     /// Path to the `php.ini` file to update with the new extension.
     #[arg(long)]
@@ -166,7 +171,7 @@ impl Args {
 
 impl Install {
     pub fn handle(self) -> CrateResult {
-        let artifact = find_ext(&self.manifest)?;
+        let artifact = find_ext(self.manifest.as_ref())?;
         let ext_path = build_ext(&artifact, self.release)?;
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
@@ -213,11 +218,11 @@ impl Install {
             let mut new_lines = vec![];
             for line in BufReader::new(&file).lines() {
                 let line = line.with_context(|| "Failed to read line from `php.ini`")?;
-                if !line.contains(&ext_line) {
-                    new_lines.push(line);
-                } else {
+                if line.contains(&ext_line) {
                     bail!("Extension already enabled.");
                 }
+
+                new_lines.push(line);
             }
 
             // Comment out extension if user specifies disable flag
@@ -255,10 +260,14 @@ fn get_ext_dir() -> AResult<PathBuf> {
                 "Extension directory returned from PHP is not a valid directory: {:?}",
                 ext_dir
             );
-        } else {
-            std::fs::create_dir(&ext_dir)
-                .with_context(|| format!("Failed to create extension directory at {ext_dir:?}"))?;
         }
+
+        std::fs::create_dir(&ext_dir).with_context(|| {
+            format!(
+                "Failed to create extension directory at {}",
+                ext_dir.display()
+            )
+        })?;
     }
     Ok(ext_dir)
 }
@@ -288,7 +297,7 @@ impl Remove {
     pub fn handle(self) -> CrateResult {
         use std::env::consts;
 
-        let artifact = find_ext(&self.manifest)?;
+        let artifact = find_ext(self.manifest.as_ref())?;
 
         let (mut ext_path, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
@@ -361,7 +370,7 @@ impl Stubs {
         let ext_path = if let Some(ext_path) = self.ext {
             ext_path
         } else {
-            let target = find_ext(&self.manifest)?;
+            let target = find_ext(self.manifest.as_ref())?;
             build_ext(&target, false)?.into()
         };
 
@@ -410,7 +419,7 @@ impl Stubs {
 }
 
 /// Attempts to find an extension in the target directory.
-fn find_ext(manifest: &Option<PathBuf>) -> AResult<cargo_metadata::Target> {
+fn find_ext(manifest: Option<&PathBuf>) -> AResult<cargo_metadata::Target> {
     // TODO(david): Look for cargo manifest option or env
     let mut cmd = cargo_metadata::MetadataCommand::new();
     if let Some(manifest) = manifest {
@@ -493,13 +502,13 @@ fn build_ext(target: &Target, release: bool) -> AResult<Utf8PathBuf> {
                 }
             }
             cargo_metadata::Message::BuildFinished(b) => {
-                if !b.success {
-                    bail!("Compilation failed, cancelling installation.")
-                } else {
+                if b.success {
                     break;
                 }
+
+                bail!("Compilation failed, cancelling installation.")
             }
-            _ => continue,
+            _ => {}
         }
     }
 

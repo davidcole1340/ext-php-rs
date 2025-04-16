@@ -338,11 +338,11 @@ pub enum FunctionType {
 impl From<u8> for FunctionType {
     #[allow(clippy::bad_bit_mask)]
     fn from(value: u8) -> Self {
-        match value as _ {
+        match value.into() {
             ZEND_INTERNAL_FUNCTION => Self::Internal,
             ZEND_USER_FUNCTION => Self::User,
             ZEND_EVAL_CODE => Self::Eval,
-            _ => panic!("Unknown function type: {}", value),
+            _ => panic!("Unknown function type: {value}"),
         }
     }
 }
@@ -399,6 +399,7 @@ impl Default for DataType {
 
 impl DataType {
     /// Returns the integer representation of the data type.
+    #[must_use]
     pub const fn as_u32(&self) -> u32 {
         match self {
             DataType::Undef => IS_UNDEF,
@@ -410,8 +411,7 @@ impl DataType {
             DataType::String => IS_STRING,
             DataType::Array => IS_ARRAY,
             DataType::Object(_) => IS_OBJECT,
-            DataType::Resource => IS_RESOURCE,
-            DataType::Reference => IS_RESOURCE,
+            DataType::Resource | DataType::Reference => IS_RESOURCE,
             DataType::Indirect => IS_INDIRECT,
             DataType::Callable => IS_CALLABLE,
             DataType::ConstantExpression => IS_CONSTANT_AST,
@@ -533,6 +533,7 @@ impl Display for DataType {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unnecessary_fallible_conversions)]
     use super::DataType;
     use crate::ffi::{
         IS_ARRAY, IS_ARRAY_EX, IS_CONSTANT_AST, IS_CONSTANT_AST_EX, IS_DOUBLE, IS_FALSE,

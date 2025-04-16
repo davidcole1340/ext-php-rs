@@ -23,6 +23,7 @@ type FunctionPointerHandler =
     extern "vectorcall" fn(execute_data: *mut ExecuteData, retval: *mut Zval);
 
 /// Builder for registering a function in PHP.
+#[must_use]
 #[derive(Debug)]
 pub struct FunctionBuilder<'a> {
     pub(crate) name: String,
@@ -155,6 +156,14 @@ impl<'a> FunctionBuilder<'a> {
     /// Builds the function converting it into a Zend function entry.
     ///
     /// Returns a result containing the function entry if successful.
+    ///
+    /// # Errors
+    ///
+    /// * `Error::InvalidCString` - If the function name is not a valid C
+    ///   string.
+    /// * `Error::IntegerOverflow` - If the number of arguments is too large.
+    /// * If arg info for an argument could not be created.
+    /// * If the function name contains NUL bytes.
     pub fn build(mut self) -> Result<FunctionEntry> {
         let mut args = Vec::with_capacity(self.args.len() + 1);
         let mut n_req = self.n_req.unwrap_or(self.args.len());
@@ -186,12 +195,12 @@ impl<'a> FunctionBuilder<'a> {
         args.extend(
             self.args
                 .iter()
-                .map(|arg| arg.as_arg_info())
+                .map(Arg::as_arg_info)
                 .collect::<Result<Vec<_>>>()?,
         );
 
         self.function.fname = CString::new(self.name)?.into_raw();
-        self.function.num_args = (args.len() - 1) as u32;
+        self.function.num_args = (args.len() - 1).try_into()?;
         self.function.arg_info = Box::into_raw(args.into_boxed_slice()) as *const ArgInfo;
 
         Ok(self.function)

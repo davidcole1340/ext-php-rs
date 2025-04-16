@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ptr};
 
 use crate::ffi::{zend_llist, zend_llist_element, zend_llist_get_next_ex};
 
@@ -7,6 +7,7 @@ pub type ZendLinkedList = zend_llist;
 
 impl ZendLinkedList {
     /// Create an iterator over the linked list
+    #[must_use]
     pub fn iter<T>(&self) -> ZendLinkedListIterator<T> {
         ZendLinkedListIterator::new(self)
     }
@@ -36,10 +37,10 @@ impl<'a, T: 'a> Iterator for ZendLinkedListIterator<'a, T> {
             return None;
         }
         let ptr = unsafe { (*self.position).data.as_mut_ptr() };
-        let value = unsafe { &*(ptr as *const T as *mut T) };
+        let value = unsafe { &*((ptr as *const T).cast_mut()) };
         unsafe {
             zend_llist_get_next_ex(
-                self.list as *const ZendLinkedList as *mut ZendLinkedList,
+                ptr::from_ref::<ZendLinkedList>(self.list).cast_mut(),
                 &mut self.position,
             )
         };

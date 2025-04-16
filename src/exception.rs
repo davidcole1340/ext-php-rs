@@ -1,6 +1,6 @@
 //! Types and functions used for throwing exceptions from Rust to PHP.
 
-use std::{ffi::CString, fmt::Debug};
+use std::{ffi::CString, fmt::Debug, ptr};
 
 use crate::{
     class::RegisteredClass,
@@ -38,6 +38,7 @@ impl PhpException {
     /// * `message` - Message to contain in the exception.
     /// * `code` - Integer code to go inside the exception.
     /// * `ex` - Exception type to throw.
+    #[must_use]
     pub fn new(message: String, code: i32, ex: &'static ClassEntry) -> Self {
         Self {
             message,
@@ -54,6 +55,7 @@ impl PhpException {
     /// # Parameters
     ///
     /// * `message` - Message to contain in the exception.
+    #[must_use]
     pub fn default(message: String) -> Self {
         Self::new(message, 0, ce::exception())
     }
@@ -63,6 +65,7 @@ impl PhpException {
     /// # Parameters
     ///
     /// * `message` - Message to contain in the exception.
+    #[must_use]
     pub fn from_class<T: RegisteredClass>(message: String) -> Self {
         Self::new(message, 0, T::get_metadata().ce())
     }
@@ -81,6 +84,12 @@ impl PhpException {
 
     /// Throws the exception, returning nothing inside a result if successful
     /// and an error otherwise.
+    ///
+    /// # Errors
+    ///
+    /// * [`Error::InvalidException`] - If the exception type is an interface or
+    ///   abstract class.
+    /// * If the message contains NUL bytes.
     pub fn throw(self) -> Result<()> {
         match self.object {
             Some(object) => throw_object(object),
@@ -104,7 +113,7 @@ impl From<&str> for PhpException {
 #[cfg(feature = "anyhow")]
 impl From<anyhow::Error> for PhpException {
     fn from(err: anyhow::Error) -> Self {
-        Self::new(format!("{:#}", err), 0, crate::zend::ce::exception())
+        Self::new(format!("{err:#}"), 0, crate::zend::ce::exception())
     }
 }
 
@@ -118,6 +127,12 @@ impl From<anyhow::Error> for PhpException {
 ///
 /// * `ex` - The exception type to throw.
 /// * `message` - The message to display when throwing the exception.
+///
+/// # Errors
+///
+/// * [`Error::InvalidException`] - If the exception type is an interface or
+///   abstract class.
+/// * If the message contains NUL bytes.
 ///
 /// # Examples
 ///
@@ -142,6 +157,12 @@ pub fn throw(ex: &ClassEntry, message: &str) -> Result<()> {
 /// * `code` - The status code to use when throwing the exception.
 /// * `message` - The message to display when throwing the exception.
 ///
+/// # Errors
+///
+/// * [`Error::InvalidException`] - If the exception type is an interface or
+///   abstract class.
+/// * If the message contains NUL bytes.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -161,8 +182,8 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
     // to a pointer it will be valid.
     unsafe {
         zend_throw_exception_ex(
-            (ex as *const _) as *mut _,
-            code as _,
+            ptr::from_ref(ex).cast_mut(),
+            code.into(),
             CString::new("%s")?.as_ptr(),
             CString::new(message)?.as_ptr(),
         )
@@ -178,6 +199,11 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 /// # Parameters
 ///
 /// * `object` - The zval of type object
+///
+/// # Errors
+///
+/// *shrug*
+/// TODO: does this error?
 ///
 /// # Examples
 ///

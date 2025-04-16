@@ -184,7 +184,7 @@ impl<'a> ParsedImpl<'a> {
             match items {
                 syn::ImplItem::Const(c) => {
                     let attr = PhpConstAttribute::from_attributes(&c.attrs)?;
-                    let name = c.ident.rename(&self.rename_constants);
+                    let name = c.ident.rename(self.rename_constants);
                     let name = attr.rename.rename(name);
                     let docs = get_docs(&attr.attrs)?;
                     c.attrs.retain(|attr| !attr.path().is_ident("php"));
@@ -197,7 +197,7 @@ impl<'a> ParsedImpl<'a> {
                 }
                 syn::ImplItem::Fn(method) => {
                     let attr = PhpFunctionImplAttribute::from_attributes(&method.attrs)?;
-                    let name = method.sig.ident.rename_method(&self.rename_methods);
+                    let name = method.sig.ident.rename_method(self.rename_methods);
                     let name = attr.rename.rename(name);
                     let docs = get_docs(&attr.attrs)?;
                     method.attrs.retain(|attr| !attr.path().is_ident("php"));
@@ -309,7 +309,7 @@ impl quote::ToTokens for FnBuilder {
             Visibility::Private => quote! { ::ext_php_rs::flags::MethodFlags::Private },
         });
         for flag in &self.modifiers {
-            flags.push(quote! { #flag })
+            flags.push(quote! { #flag });
         }
 
         quote! {
