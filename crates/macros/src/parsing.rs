@@ -114,12 +114,23 @@ impl MethodRename for syn::Ident {
 
 impl MethodRename for &str {
     fn rename_method(&self, rule: &RenameRule) -> String {
-        let s = self.to_string();
-
-        if MAGIC_METHOD.contains(&s.as_str()) {
-            s
-        } else {
-            self.rename(rule)
+        match rule {
+            RenameRule::None => self.to_string(),
+            _ => {
+                if MAGIC_METHOD.contains(self) {
+                    if self == &MAGIC_METHOD[12] {
+                        "__toString".to_string()
+                    } else if self == &MAGIC_METHOD[16] {
+                        "__debugInfo".to_string()
+                    } else if self == &MAGIC_METHOD[3] {
+                        "__callStatic".to_string()
+                    } else {
+                        self.to_string()
+                    }
+                } else {
+                    self.rename(rule)
+                }
+            }
         }
     }
 }
