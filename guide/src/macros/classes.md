@@ -6,15 +6,13 @@ well as registering the class to be registered with the `#[php_module]` macro.
 
 ## Options
 
-The attribute takes some options to modify the output of the class:
+There are additional macros that modify the class. These macros **must** be
+placed underneath the `#[php_class]` attribute.
 
 - `name` - Changes the name of the class when exported to PHP. The Rust struct
   name is kept the same. If no name is given, the name of the struct is used.
   Useful for namespacing classes.
-
-There are also additional macros that modify the class. These macros **must** be
-placed underneath the `#[php_class]` attribute.
-
+- `rename` - Changes the case of the class name when exported to PHP.
 - `#[php(extends = ce)]` - Sets the parent class of the class. Can only be used once.
   `ce` must be a function with the signature `fn() -> &'static ClassEntry`.
 - `#[php(implements = ce)]` - Implements the given interface on the class. Can be used
@@ -97,7 +95,8 @@ use ext_php_rs::{
     zend::ce
 };
 
-#[php_class(name = "Redis\\Exception\\RedisException")]
+#[php_class]
+#[php(name = "Redis\\Exception\\RedisException")]
 #[php(extends = ce::exception)]
 #[derive(Default)]
 pub struct RedisException;
