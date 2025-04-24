@@ -499,10 +499,10 @@ pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
 /// # fn main() {}
 /// ```
 #[proc_macro_attribute]
-pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_module(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    module::parser(args.into(), input)
+    module::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
         .into()
 }

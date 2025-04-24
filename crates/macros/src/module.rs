@@ -1,27 +1,23 @@
-use darling::{ast::NestedMeta, FromMeta};
+use darling::FromAttributes;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{ItemFn, Signature};
 
 use crate::prelude::*;
 
-#[derive(Debug, Default, FromMeta)]
-#[darling(default)]
-pub struct ModuleArgs {
-    /// Optional function that will be called when the module starts up.
+#[derive(FromAttributes, Default, Debug)]
+#[darling(default, attributes(php))]
+pub(crate) struct PhpModuleAttribute {
     startup: Option<Ident>,
 }
 
-pub fn parser(args: TokenStream, input: ItemFn) -> Result<TokenStream> {
-    let meta = NestedMeta::parse_meta_list(args)?;
-    let opts = match ModuleArgs::from_list(&meta) {
-        Ok(opts) => opts,
-        Err(e) => bail!(input => "Failed to parse attribute options: {:?}", e),
-    };
+pub fn parser(input: ItemFn) -> Result<TokenStream> {
     let ItemFn { sig, block, .. } = input;
     let Signature { output, inputs, .. } = sig;
     let stmts = &block.stmts;
-    let startup = if let Some(startup) = opts.startup {
+
+    let attr = PhpModuleAttribute::from_attributes(&input.attrs)?;
+    let startup = if let Some(startup) = attr.startup {
         quote! { #startup(ty, mod_num) }
     } else {
         quote! { 0i32 }
