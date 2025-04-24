@@ -166,7 +166,8 @@ changes to user code. This document summarises the changes.</p>
 <p>There is no real changes on existing macros, however you will now need to
 register functions, classes, constants and startup function when declaring
 the module.</p>
-<pre><code class="language-rs">#[php_module(startup = "startup_function")]
+<pre><code class="language-rs">#[php_module]
+#[php(startup = "startup_function")]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
         .class::&lt;TestClass&gt;()
@@ -308,7 +309,8 @@ fn startup_function(ty: i32, mod_num: i32) -&gt; i32 {
     0
 }
 
-#[php_module(startup = "startup_function")]
+#[php_module]
+#[php(startup = "startup_function")]
 pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
     module
 }
