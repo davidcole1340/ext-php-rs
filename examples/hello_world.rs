@@ -76,7 +76,8 @@ fn startup(_ty: i32, mod_num: i32) -> i32 {
     0
 }
 
-#[php_module(startup = "startup")]
+#[php_module]
+#[php(startup = startup)]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
     module
         .class::<TestClass>()
