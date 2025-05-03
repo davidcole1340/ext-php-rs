@@ -1,14 +1,19 @@
-use std::{ffi::c_void, mem::MaybeUninit, os::raw::c_int, ptr};
+use std::{
+    ffi::{c_void, CString},
+    mem::MaybeUninit,
+    os::raw::c_int,
+    ptr,
+};
 
 use crate::{
     class::RegisteredClass,
     exception::PhpResult,
     ffi::{
-        std_object_handlers, zend_is_true, zend_object_handlers, zend_object_std_dtor,
-        zend_std_get_properties, zend_std_has_property, zend_std_read_property,
-        zend_std_write_property,
+        _zend_class_entry, std_object_handlers, zend_hash_update_ind, zend_is_true,
+        zend_object_handlers, zend_object_std_dtor, zend_std_get_properties, zend_std_has_property,
+        zend_std_read_property, zend_std_write_property, zend_throw_error,
     },
-    flags::ZvalTypeFlags,
+    flags::{PropertyFlags, ZvalTypeFlags},
     types::{ZendClassObject, ZendHashTable, ZendObject, ZendStr, Zval},
 };
 
@@ -92,6 +97,7 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
+
             let self_ = &mut **obj;
             let props = T::get_metadata().get_properties();
             let prop = props.get(prop_name.as_str()?);
@@ -102,6 +108,9 @@ impl ZendObjectHandlers {
 
             Ok(match prop {
                 Some(prop_info) => {
+                    if prop_info.flags.contains(PropertyFlags::Private) {
+                        bad_property_access::<T>(prop_name.as_str()?);
+                    }
                     prop_info.prop.get(self_, rv_mut)?;
                     rv
                 }
@@ -148,6 +157,9 @@ impl ZendObjectHandlers {
 
             Ok(match prop {
                 Some(prop_info) => {
+                    if prop_info.flags.contains(PropertyFlags::Private) {
+                        bad_property_access::<T>(prop_name.as_str()?);
+                    }
                     prop_info.prop.set(self_, value_mut)?;
                     value
                 }
@@ -186,9 +198,19 @@ impl ZendObjectHandlers {
                 if val.prop.get(self_, &mut zv).is_err() {
                     continue;
                 }
-                props.insert(name, zv).map_err(|e| {
-                    format!("Failed to insert value into properties hashtable: {e:?}")
-                })?;
+
+                let name = if val.flags.contains(PropertyFlags::Private) {
+                    println!("Private property {name}");
+                    format!("\0{}\0{name}", T::CLASS_NAME)
+                } else if val.flags.contains(PropertyFlags::Protected) {
+                    println!("Protected property {name}");
+                    format!("\0*\0{name}")
+                } else {
+                    (*name).to_string()
+                };
+                let mut name = ZendStr::new(name, false);
+
+                zend_hash_update_ind(props, name.as_mut_ptr(), &mut zv);
             }
 
             Ok(())
@@ -295,4 +317,23 @@ impl ZendObjectHandlers {
             }
         }
     }
+}
+
+/// Throws the error if a property is accessed incorrectly.
+/// This only throws the error and does not perform any checks.
+///
+/// # Panics
+///
+/// * If the property name is not a valid c string.
+unsafe fn bad_property_access<T: RegisteredClass>(prop_name: &str) {
+    zend_throw_error(
+        ptr::null_mut::<_zend_class_entry>(),
+        CString::new(format!(
+            "Cannot access private property {}::${}",
+            T::CLASS_NAME,
+            prop_name
+        ))
+        .expect("Failed to convert property name")
+        .as_ptr(),
+    );
 }
