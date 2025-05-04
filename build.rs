@@ -60,7 +60,7 @@ pub fn find_executable(name: &str) -> Option<PathBuf> {
     let cmd = Command::new(WHICH).arg(name).output().ok()?;
     if cmd.status.success() {
         let stdout = String::from_utf8_lossy(&cmd.stdout);
-        Some(stdout.trim().into())
+        stdout.trim().lines().next().map(|l| l.trim().into())
     } else {
         None
     }
