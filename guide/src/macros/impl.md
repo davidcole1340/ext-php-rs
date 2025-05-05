@@ -11,6 +11,18 @@ If you do not want a function exported to PHP, you should place it in a separate
 
 If you want to use async Rust, use `#[php_async_impl]`, instead: see [here &raquo;](./async_impl.md) for more info.
 
+## Options
+
+By default all constants are renamed to UPPER_CASE and all methods are renamed to
+camelCase. This can be changed by passing the `rename_methods` and
+`rename_constants` as `#[php]` attributes on the `impl` block. The options are:
+
+- `#[php(rename_methods = "snake_case")]` - Renames the method to snake case.
+- `#[php(rename_constants = "snake_case")]` - Renames the constant to snake case.
+
+See the [`name` and `rename`](./php.md#name-and-rename) section for a list of all
+available cases.
+
 ## Methods
 
 Methods basically follow the same rules as functions, so read about the
@@ -23,17 +35,6 @@ consuming `self` parameter. Static methods can omit this `self` parameter.
 To access the underlying Zend object, you can take a reference to a
 `ZendClassObject<T>` in place of the self parameter, where the parameter must
 be named `self_`. This can also be used to return a reference to `$this`.
-
-By default, all methods are renamed in PHP to the camel-case variant of the Rust
-method name. This can be changed on the `#[php_impl]` attribute, by passing one
-of the following as the `rename_methods` option:
-
-- `"none"` - does not rename the methods.
-- `"camelCase"` - renames all methods to camel case (default).
-- `"snake_case"` - renames all methods to snake case.
-
-For example, to disable renaming, change the `#[php_impl]` attribute to
-`#[php_impl(rename_methods = "none")]`.
 
 The rest of the options are passed as separate attributes:
 

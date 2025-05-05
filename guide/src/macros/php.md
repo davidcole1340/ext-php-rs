@@ -51,3 +51,20 @@ Which attributes are available depends on the element you are annotating:
 | setter           | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
 | constructor      | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
 | abstract_method  | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
+
+## `name` and `rename`
+
+`name` and `rename` are mutually exclusive. The `name` attribute is used to set the name of
+an item to a string literal. The `rename` attribute is used to change the case of the name.
+
+```rs
+#[php(name = "NEW_NAME")]
+#[php(rename = snake_case)]]
+```
+
+Available cases are:
+- `snake_case`
+- `PascalCase`
+- `camelCase`
+- `UPPER_CASE`
+- `none` - No change
