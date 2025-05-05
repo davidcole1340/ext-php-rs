@@ -160,15 +160,13 @@
 macro. This attribute derives the <code>RegisteredClass</code> trait on your struct, as
 well as registering the class to be registered with the <code>#[php_module]</code> macro.</p>
 <h2 id="options"><a class="header" href="#options">Options</a></h2>
-<p>The attribute takes some options to modify the output of the class:</p>
+<p>There are additional macros that modify the class. These macros <strong>must</strong> be
+placed underneath the <code>#[php_class]</code> attribute.</p>
 <ul>
 <li><code>name</code> - Changes the name of the class when exported to PHP. The Rust struct
 name is kept the same. If no name is given, the name of the struct is used.
 Useful for namespacing classes.</li>
-</ul>
-<p>There are also additional macros that modify the class. These macros <strong>must</strong> be
-placed underneath the <code>#[php_class]</code> attribute.</p>
-<ul>
+<li><code>rename</code> - Changes the case of the class name when exported to PHP.</li>
 <li><code>#[php(extends = ce)]</code> - Sets the parent class of the class. Can only be used once.
 <code>ce</code> must be a function with the signature <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
 <li><code>#[php(implements = ce)]</code> - Implements the given interface on the class. Can be used
@@ -236,7 +234,8 @@ it in the <code>Redis\Exception</code> namespace:</p>
     zend::ce
 };
 
-#[php_class(name = "Redis\\Exception\\RedisException")]
+#[php_class]
+#[php(name = "Redis\\Exception\\RedisException")]
 #[php(extends = ce::exception)]
 #[derive(Default)]
 pub struct RedisException;

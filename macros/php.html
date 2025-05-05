@@ -199,6 +199,21 @@ fn hello_world(a: i32, b: i32) -&gt; i32 {
 <tr><td>abstract_method</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
 </tbody></table>
 </div>
+<h2 id="name-and-rename"><a class="header" href="#name-and-rename"><code>name</code> and <code>rename</code></a></h2>
+<p><code>name</code> and <code>rename</code> are mutually exclusive. The <code>name</code> attribute is used to set the name of
+an item to a string literal. The <code>rename</code> attribute is used to change the case of the name.</p>
+<pre><code class="language-rs">#[php(name = "NEW_NAME")]
+#[php(rename = snake_case)]]
+</code></pre>
+<p>Available cases are:</p>
+<ul>
+<li><code>snake_case</code></li>
+<li><code>PascalCase</code></li>
+<li><code>camelCase</code></li>
+<li><code>UPPER_CASE</code></li>
+<li><code>none</code> - No change</li>
+</ul>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

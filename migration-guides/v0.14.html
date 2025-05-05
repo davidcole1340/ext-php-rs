@@ -324,6 +324,21 @@ the following variants are equivalent:</p>
 </code></pre>
 <pre><code class="language-rs">#[php(rename = case, vis = "public")]
 </code></pre>
+<h4 id="name-vs-rename"><a class="header" href="#name-vs-rename"><code>name</code> vs <code>rename</code></a></h4>
+<p>Previously the (re)name parameter was used to rename items. This has been
+unified to use <code>name</code> to set the name of an item to a string literal. The
+<code>rename</code> parameter is now used to change the case of the name.</p>
+<pre><code class="language-rs">#[php(name = "NEW_NAME")]
+#[php(rename = snake_case)]]
+</code></pre>
+<p>Available cases are:</p>
+<ul>
+<li><code>snake_case</code></li>
+<li><code>PascalCase</code></li>
+<li><code>camelCase</code></li>
+<li><code>UPPER_CASE</code></li>
+<li><code>none</code> - No change</li>
+</ul>
 
                     </main>
 

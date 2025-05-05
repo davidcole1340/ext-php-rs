@@ -164,6 +164,16 @@ per class.</p>
 <p>If you do not want a function exported to PHP, you should place it in a separate
 <code>impl</code> block.</p>
 <p>If you want to use async Rust, use <code>#[php_async_impl]</code>, instead: see <a href="./async_impl.html">here »</a> for more info.</p>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<p>By default all constants are renamed to UPPER_CASE and all methods are renamed to
+camelCase. This can be changed by passing the <code>rename_methods</code> and
+<code>rename_constants</code> as <code>#[php]</code> attributes on the <code>impl</code> block. The options are:</p>
+<ul>
+<li><code>#[php(rename_methods = "snake_case")]</code> - Renames the method to snake case.</li>
+<li><code>#[php(rename_constants = "snake_case")]</code> - Renames the constant to snake case.</li>
+</ul>
+<p>See the <a href="./php.html#name-and-rename"><code>name</code> and <code>rename</code></a> section for a list of all
+available cases.</p>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
 <p>Methods basically follow the same rules as functions, so read about the
 [<code>php_function</code>] macro first. The primary difference between functions and
@@ -173,16 +183,6 @@ consuming <code>self</code> parameter. Static methods can omit this <code>self</
 <p>To access the underlying Zend object, you can take a reference to a
 <code>ZendClassObject&lt;T&gt;</code> in place of the self parameter, where the parameter must
 be named <code>self_</code>. This can also be used to return a reference to <code>$this</code>.</p>
-<p>By default, all methods are renamed in PHP to the camel-case variant of the Rust
-method name. This can be changed on the <code>#[php_impl]</code> attribute, by passing one
-of the following as the <code>rename_methods</code> option:</p>
-<ul>
-<li><code>"none"</code> - does not rename the methods.</li>
-<li><code>"camelCase"</code> - renames all methods to camel case (default).</li>
-<li><code>"snake_case"</code> - renames all methods to snake case.</li>
-</ul>
-<p>For example, to disable renaming, change the <code>#[php_impl]</code> attribute to
-<code>#[php_impl(rename_methods = "none")]</code>.</p>
 <p>The rest of the options are passed as separate attributes:</p>
 <ul>
 <li><code>#[php(defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
