@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
+require(__DIR__ . '/../_utils.php');
+
 // Tests constructor
 $class = test_class('lorem ipsum', 2022);
-assert($class instanceof TestClass);
+assert($class instanceof Foo\TestClass);
 
 // Tests getter/setter
 assert($class->getString() === 'lorem ipsum');
@@ -25,4 +29,7 @@ assert($class->staticCall('Php') === 'Hello Php');
 assert($class::staticCall('Php') === 'Hello Php');
 
 // Call static from class
-assert(TestClass::staticCall('Php') === 'Hello Php');
+assert(Foo\TestClass::staticCall('Php') === 'Hello Php');
+
+assert_exception_thrown(fn() => $class->private_string = 'private2');
+assert_exception_thrown(fn() => $class->private_string);

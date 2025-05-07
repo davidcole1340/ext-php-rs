@@ -1,11 +1,16 @@
 use ext_php_rs::prelude::*;
 
 #[php_class]
+#[php(name = "Foo\\TestClass")]
 pub struct TestClass {
     string: String,
     number: i32,
     #[php(prop)]
     boolean: bool,
+    #[php(prop, flags = "ext_php_rs::flags::PropertyFlags::Private")]
+    private_string: String,
+    #[php(prop, flags = ext_php_rs::flags::PropertyFlags::Protected)]
+    protected_string: String,
 }
 
 #[php_impl]
@@ -41,6 +46,8 @@ pub fn test_class(string: String, number: i32) -> TestClass {
         string,
         number,
         boolean: true,
+        private_string: "private".to_string(),
+        protected_string: "protected".to_string(),
     }
 }
 
