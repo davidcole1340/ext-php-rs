@@ -13,10 +13,10 @@ placed underneath the `#[php_class]` attribute.
   name is kept the same. If no name is given, the name of the struct is used.
   Useful for namespacing classes.
 - `rename` - Changes the case of the class name when exported to PHP.
-- `#[php(extends = ce)]` - Sets the parent class of the class. Can only be used once.
-  `ce` must be a function with the signature `fn() -> &'static ClassEntry`.
-- `#[php(implements = ce)]` - Implements the given interface on the class. Can be used
-  multiple times. `ce` must be a valid function with the signature
+- `#[php(extends(ce = ce_fn, stub = "ParentClass"))]` - Sets the parent class of the class. Can only be used once.
+  `ce_fn` must be a function with the signature `fn() -> &'static ClassEntry`.
+- `#[php(implements(ce = ce_fn, stub = "InterfaceName"))]` - Implements the given interface on the class. Can be used
+  multiple times. `ce_fn` must be a valid function with the signature
   `fn() -> &'static ClassEntry`.
 
 You may also use the `#[php(prop)]` attribute on a struct field to use the field as a
@@ -97,7 +97,7 @@ use ext_php_rs::{
 
 #[php_class]
 #[php(name = "Redis\\Exception\\RedisException")]
-#[php(extends = ce::exception)]
+#[php(extends(ce = ce::exception, stub = "\\Exception"))]
 #[derive(Default)]
 pub struct RedisException;
 
@@ -118,7 +118,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 
 ## Implementing an Interface
 
-To implement an interface, use `#[php(implements = ce)]` where `ce` is an function returning a `ClassEntry`.
+To implement an interface, use `#[php(implements(ce = ce_fn, stub = "InterfaceName")]` where `ce_fn` is an function returning a `ClassEntry`.
 The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
 
 ````rust,no_run
@@ -132,7 +132,7 @@ use ext_php_rs::{
 };
 
 #[php_class]
-#[php(implements = ce::arrayaccess)]
+#[php(implements(ce = ce::arrayaccess, stub = "\\ArrayAccess"))]
 #[derive(Default)]
 pub struct EvenNumbersArray;
 

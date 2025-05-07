@@ -200,7 +200,7 @@ macro_rules! throw {
 /// # Examples
 ///
 /// ```
-/// # use ext_php_rs::{convert::{IntoZval, FromZval, IntoZvalDyn}, types::{Zval, ZendObject}, class::{RegisteredClass, ConstructorMeta}, builders::{ClassBuilder, FunctionBuilder}, zend::ClassEntry, flags::{ClassFlags, MethodFlags}, internal::property::PropertyInfo, describe::DocComments};
+/// # use ext_php_rs::{convert::{IntoZval, FromZval, IntoZvalDyn}, types::{Zval, ZendObject}, class::{RegisteredClass, ConstructorMeta, ClassEntryInfo}, builders::{ClassBuilder, FunctionBuilder}, zend::ClassEntry, flags::{ClassFlags, MethodFlags}, internal::property::PropertyInfo, describe::DocComments};
 /// use ext_php_rs::class_derives;
 ///
 /// struct Test {
@@ -212,8 +212,8 @@ macro_rules! throw {
 ///     const CLASS_NAME: &'static str = "Test";
 ///
 ///     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
-///     const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
-///     const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] =  &[];
+///     const EXTENDS: Option<ClassEntryInfo> = None;
+///     const IMPLEMENTS: &'static [ClassEntryInfo] =  &[];
 ///     const FLAGS: ClassFlags = ClassFlags::empty();
 ///     const DOC_COMMENTS: DocComments = &[];
 ///

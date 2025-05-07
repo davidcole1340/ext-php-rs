@@ -185,8 +185,13 @@ impl From<ClassBuilder> for Class {
                     .collect::<StdVec<_>>()
                     .into(),
             ),
-            extends: abi::Option::None, // TODO: Implement extends #326
-            implements: vec![].into(),  // TODO: Implement implements #326
+            extends: val.extends.map(|(_, stub)| stub.into()).into(),
+            implements: val
+                .interfaces
+                .into_iter()
+                .map(|(_, stub)| stub.into())
+                .collect::<StdVec<_>>()
+                .into(),
             properties: val
                 .properties
                 .into_iter()
@@ -241,7 +246,7 @@ impl From<(String, PropertyFlags, DocComments)> for Property {
         // TODO: Implement nullable #376
         let nullable = false;
         let docs = docs.into();
-        println!("Property: {name:?}");
+
         Self {
             name: name.into(),
             docs,

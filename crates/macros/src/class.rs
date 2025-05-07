@@ -20,10 +20,16 @@ pub struct StructAttributes {
     modifier: Option<syn::Ident>,
     /// An expression of `ClassFlags` to be applied to the class.
     flags: Option<syn::Expr>,
-    extends: Option<syn::Expr>,
+    extends: Option<ClassEntryAttribute>,
     #[darling(multiple)]
-    implements: Vec<syn::Expr>,
+    implements: Vec<ClassEntryAttribute>,
     attrs: Vec<Attribute>,
+}
+
+#[derive(FromMeta, Debug)]
+pub struct ClassEntryAttribute {
+    ce: syn::Expr,
+    stub: String,
 }
 
 pub fn parser(mut input: ItemStruct) -> Result<TokenStream> {
@@ -111,14 +117,13 @@ fn generate_registered_class_impl(
     ident: &syn::Ident,
     class_name: &str,
     modifier: Option<&syn::Ident>,
-    extends: Option<&syn::Expr>,
-    implements: &[syn::Expr],
+    extends: Option<&ClassEntryAttribute>,
+    implements: &[ClassEntryAttribute],
     fields: &[Property],
     flags: Option<&syn::Expr>,
     docs: &[String],
 ) -> TokenStream {
     let modifier = modifier.option_tokens();
-    let extends = extends.option_tokens();
 
     let fields = fields.iter().map(|prop| {
         let name = prop.name();
@@ -149,6 +154,24 @@ fn generate_registered_class_impl(
         #(#docs)*
     };
 
+    let extends = if let Some(extends) = extends {
+        let ce = &extends.ce;
+        let stub = &extends.stub;
+        quote! {
+            Some((#ce, #stub))
+        }
+    } else {
+        quote! { None }
+    };
+
+    let implements = implements.iter().map(|imp| {
+        let ce = &imp.ce;
+        let stub = &imp.stub;
+        quote! {
+            (#ce, #stub)
+        }
+    });
+
     quote! {
         impl ::ext_php_rs::class::RegisteredClass for #ident {
             const CLASS_NAME: &'static str = #class_name;
@@ -156,9 +179,9 @@ fn generate_registered_class_impl(
                 fn(::ext_php_rs::builders::ClassBuilder) -> ::ext_php_rs::builders::ClassBuilder
             > = #modifier;
             const EXTENDS: ::std::option::Option<
-                fn() -> &'static ::ext_php_rs::zend::ClassEntry
+                ::ext_php_rs::class::ClassEntryInfo
             > = #extends;
-            const IMPLEMENTS: &'static [fn() -> &'static ::ext_php_rs::zend::ClassEntry] = &[
+            const IMPLEMENTS: &'static [::ext_php_rs::class::ClassEntryInfo] = &[
                 #(#implements,)*
             ];
             const FLAGS: ::ext_php_rs::flags::ClassFlags = #flags;

@@ -82,6 +82,20 @@ impl PhpException {
         self.object = object;
     }
 
+    /// Builder function that sets the Zval object for the exception.
+    ///
+    /// Exceptions can be based of instantiated Zval objects when you are
+    /// throwing a custom exception with stateful properties.
+    ///
+    /// # Parameters
+    ///
+    /// * `object` - The Zval object.
+    #[must_use]
+    pub fn with_object(mut self, object: Zval) -> Self {
+        self.object = Some(object);
+        self
+    }
+
     /// Throws the exception, returning nothing inside a result if successful
     /// and an error otherwise.
     ///
@@ -213,7 +227,7 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 /// use crate::ext_php_rs::convert::IntoZval;
 ///
 /// #[php_class]
-/// #[php(extends = ext_php_rs::zend::ce::exception)]
+/// #[php(extends(ce = ext_php_rs::zend::ce::exception, stub = "\\Exception"))]
 /// pub struct JsException {
 ///     #[php(prop, flags = ext_php_rs::flags::PropertyFlags::Public)]
 ///     message: String,

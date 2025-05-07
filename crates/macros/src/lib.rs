@@ -27,21 +27,19 @@ extern crate proc_macro;
 ///
 /// ## Options
 ///
-/// The attribute takes some options to modify the output of the class:
+/// There are additional macros that modify the class. These macros **must** be
+/// placed underneath the `#[php_class]` attribute.
 ///
 /// - `name` - Changes the name of the class when exported to PHP. The Rust
 ///   struct name is kept the same. If no name is given, the name of the struct
 ///   is used. Useful for namespacing classes.
-///
-/// There are also additional macros that modify the class. These macros
-/// **must** be placed underneath the `#[php_class]` attribute.
-///
-/// - `#[php(extends = ce)]` - Sets the parent class of the class. Can only be
-///   used once. `ce` must be a function with the signature `fn() -> &'static
-///   ClassEntry`.
-/// - `#[php(implements = ce)]` - Implements the given interface on the class.
-///   Can be used multiple times. `ce` must be a valid function with the
-///   signature `fn() -> &'static ClassEntry`.
+/// - `rename` - Changes the case of the class name when exported to PHP.
+/// - `#[php(extends(ce = ce_fn, stub = "ParentClass"))]` - Sets the parent
+///   class of the class. Can only be used once. `ce_fn` must be a function with
+///   the signature `fn() -> &'static ClassEntry`.
+/// - `#[php(implements(ce = ce_fn, stub = "InterfaceName"))]` - Implements the
+///   given interface on the class. Can be used multiple times. `ce_fn` must be
+///   a valid function with the signature `fn() -> &'static ClassEntry`.
 ///
 /// You may also use the `#[php(prop)]` attribute on a struct field to use the
 /// field as a PHP property. By default, the field will be accessible from PHP
@@ -122,8 +120,9 @@ extern crate proc_macro;
 ///     zend::ce
 /// };
 ///
-/// #[php_class(name = "Redis\\Exception\\RedisException")]
-/// #[php(extends = ce::exception)]
+/// #[php_class]
+/// #[php(name = "Redis\\Exception\\RedisException")]
+/// #[php(extends(ce = ce::exception, stub = "\\Exception"))]
 /// #[derive(Default)]
 /// pub struct RedisException;
 ///
@@ -144,8 +143,8 @@ extern crate proc_macro;
 ///
 /// ## Implementing an Interface
 ///
-/// To implement an interface, use `#[php(implements = ce)]` where `ce` is an
-/// function returning a `ClassEntry`. The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
+/// To implement an interface, use `#[php(implements(ce = ce_fn, stub =
+/// "InterfaceName")]` where `ce_fn` is an function returning a `ClassEntry`. The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
 ///
 /// ````rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -158,7 +157,7 @@ extern crate proc_macro;
 /// };
 ///
 /// #[php_class]
-/// #[php(implements = ce::arrayaccess)]
+/// #[php(implements(ce = ce::arrayaccess, stub = "\\ArrayAccess"))]
 /// #[derive(Default)]
 /// pub struct EvenNumbersArray;
 ///

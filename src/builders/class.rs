@@ -2,7 +2,7 @@ use std::{ffi::CString, mem::MaybeUninit, ptr, rc::Rc};
 
 use crate::{
     builders::FunctionBuilder,
-    class::{ConstructorMeta, ConstructorResult, RegisteredClass},
+    class::{ClassEntryInfo, ConstructorMeta, ConstructorResult, RegisteredClass},
     convert::{IntoZval, IntoZvalDyn},
     describe::DocComments,
     error::{Error, Result},
@@ -24,8 +24,8 @@ type ConstantEntry = (String, Box<dyn FnOnce() -> Result<Zval>>, DocComments);
 pub struct ClassBuilder {
     pub(crate) name: String,
     ce: ClassEntry,
-    extends: Option<&'static ClassEntry>,
-    interfaces: Vec<&'static ClassEntry>,
+    pub(crate) extends: Option<ClassEntryInfo>,
+    pub(crate) interfaces: Vec<ClassEntryInfo>,
     pub(crate) methods: Vec<(FunctionBuilder<'static>, MethodFlags)>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
     pub(crate) properties: Vec<(String, PropertyFlags, DocComments)>,
@@ -63,7 +63,7 @@ impl ClassBuilder {
     /// # Parameters
     ///
     /// * `parent` - The parent class to extend.
-    pub fn extends(mut self, parent: &'static ClassEntry) -> Self {
+    pub fn extends(mut self, parent: ClassEntryInfo) -> Self {
         self.extends = Some(parent);
         self
     }
@@ -77,11 +77,7 @@ impl ClassBuilder {
     /// # Panics
     ///
     /// Panics when the given class entry `interface` is not an interface.
-    pub fn implements(mut self, interface: &'static ClassEntry) -> Self {
-        assert!(
-            interface.is_interface(),
-            "Given class entry was not an interface."
-        );
+    pub fn implements(mut self, interface: ClassEntryInfo) -> Self {
         self.interfaces.push(interface);
         self
     }
@@ -309,7 +305,7 @@ impl ClassBuilder {
             zend_register_internal_class_ex(
                 &mut self.ce,
                 match self.extends {
-                    Some(ptr) => ptr::from_ref(ptr).cast_mut(),
+                    Some((ptr, _)) => ptr::from_ref(ptr()).cast_mut(),
                     None => std::ptr::null_mut(),
                 },
             )
@@ -329,8 +325,14 @@ impl ClassBuilder {
             }
         }
 
-        for iface in self.interfaces {
-            unsafe { zend_do_implement_interface(class, ptr::from_ref(iface).cast_mut()) };
+        for (iface, _) in self.interfaces {
+            let interface = iface();
+            assert!(
+                interface.is_interface(),
+                "Given class entry was not an interface."
+            );
+
+            unsafe { zend_do_implement_interface(class, ptr::from_ref(interface).cast_mut()) };
         }
 
         for (name, flags, _) in self.properties {

@@ -179,11 +179,11 @@ impl ModuleBuilder<'_> {
             for (method, flags) in T::method_builders() {
                 builder = builder.method(method, flags);
             }
-            if let Some(extends) = T::EXTENDS {
-                builder = builder.extends(extends());
+            if let Some(parent) = T::EXTENDS {
+                builder = builder.extends(parent);
             }
-            for iface in T::IMPLEMENTS {
-                builder = builder.implements(iface());
+            for interface in T::IMPLEMENTS {
+                builder = builder.implements(*interface);
             }
             for (name, value, docs) in T::constants() {
                 builder = builder
