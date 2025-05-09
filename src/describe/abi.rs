@@ -17,6 +17,7 @@ use std::{fmt::Display, ops::Deref, vec::Vec as StdVec};
 
 /// An immutable, ABI-stable [`Vec`][std::vec::Vec].
 #[repr(C)]
+#[derive(Debug)]
 pub struct Vec<T> {
     ptr: *mut T,
     len: usize,
@@ -48,8 +49,18 @@ impl<T> From<StdVec<T>> for Vec<T> {
     }
 }
 
+impl<T> PartialEq for Vec<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.len == other.len && self.as_ref() == other.as_ref()
+    }
+}
+
 /// An immutable, ABI-stable borrowed [`&'static str`][str].
 #[repr(C)]
+#[derive(Debug)]
 pub struct Str {
     ptr: *const u8,
     len: usize,
@@ -86,8 +97,15 @@ impl Display for Str {
     }
 }
 
+impl PartialEq for Str {
+    fn eq(&self, other: &Self) -> bool {
+        self.len == other.len && self.str() == other.str()
+    }
+}
+
 /// An ABI-stable String
 #[repr(C)]
+#[derive(Debug, PartialEq)]
 pub struct RString {
     inner: Vec<u8>,
 }
@@ -134,6 +152,7 @@ impl Display for RString {
 
 /// An ABI-stable [`Option`][std::option::Option].
 #[repr(C, u8)]
+#[derive(Debug)]
 pub enum Option<T> {
     /// [`Option::Some`][std::option::Option::Some] variant.
     Some(T),
@@ -146,6 +165,19 @@ impl<T> From<std::option::Option<T>> for Option<T> {
         match opt {
             Some(val) => Self::Some(val),
             None => Self::None,
+        }
+    }
+}
+
+impl<T> PartialEq for Option<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Some(a), Self::Some(b)) => a == b,
+            (Self::None, Self::None) => true,
+            _ => false,
         }
     }
 }

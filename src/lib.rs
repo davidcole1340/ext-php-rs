@@ -31,6 +31,8 @@ pub mod embed;
 pub mod internal;
 pub mod props;
 pub mod rc;
+#[cfg(test)]
+pub mod test;
 pub mod types;
 pub mod zend;
 

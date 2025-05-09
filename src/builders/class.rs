@@ -372,3 +372,100 @@ impl ClassBuilder {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::test_function;
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let class = ClassBuilder::new("Foo");
+        assert_eq!(class.name, "Foo");
+        assert_eq!(class.extends, None);
+        assert_eq!(class.interfaces, vec![]);
+        assert_eq!(class.methods.len(), 0);
+        assert_eq!(class.object_override, None);
+        assert_eq!(class.properties, vec![]);
+        assert_eq!(class.constants.len(), 0);
+        assert_eq!(class.register, None);
+        assert_eq!(class.docs, &[] as DocComments);
+    }
+
+    #[test]
+    fn test_extends() {
+        let extends: ClassEntryInfo = (|| todo!(), "Bar");
+        let class = ClassBuilder::new("Foo").extends(extends);
+        assert_eq!(class.extends, Some(extends));
+    }
+
+    #[test]
+    fn test_implements() {
+        let implements: ClassEntryInfo = (|| todo!(), "Bar");
+        let class = ClassBuilder::new("Foo").implements(implements);
+        assert_eq!(class.interfaces, vec![implements]);
+    }
+
+    #[test]
+    fn test_method() {
+        let method = FunctionBuilder::new("foo", test_function);
+        let class = ClassBuilder::new("Foo").method(method, MethodFlags::Public);
+        assert_eq!(class.methods.len(), 1);
+    }
+
+    #[test]
+    fn test_property() {
+        let class = ClassBuilder::new("Foo").property("bar", PropertyFlags::Public, &["Doc 1"]);
+        assert_eq!(
+            class.properties,
+            vec![(
+                "bar".to_string(),
+                PropertyFlags::Public,
+                &["Doc 1"] as DocComments
+            )]
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_constant() {
+        let class = ClassBuilder::new("Foo")
+            .constant("bar", 42, &["Doc 1"])
+            .expect("Failed to create constant");
+        assert_eq!(class.constants.len(), 1);
+        assert_eq!(class.constants[0].0, "bar");
+        assert_eq!(class.constants[0].2, &["Doc 1"] as DocComments);
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_dyn_constant() {
+        let class = ClassBuilder::new("Foo")
+            .dyn_constant("bar", &42, &["Doc 1"])
+            .expect("Failed to create constant");
+        assert_eq!(class.constants.len(), 1);
+        assert_eq!(class.constants[0].0, "bar");
+        assert_eq!(class.constants[0].2, &["Doc 1"] as DocComments);
+    }
+
+    #[test]
+    fn test_flags() {
+        let class = ClassBuilder::new("Foo").flags(ClassFlags::Abstract);
+        assert_eq!(class.ce.ce_flags, ClassFlags::Abstract.bits());
+    }
+
+    #[test]
+    fn test_registration() {
+        let class = ClassBuilder::new("Foo").registration(|_| {});
+        assert!(class.register.is_some());
+    }
+
+    #[test]
+    fn test_docs() {
+        let class = ClassBuilder::new("Foo").docs(&["Doc 1"]);
+        assert_eq!(class.docs, &["Doc 1"] as DocComments);
+    }
+
+    // TODO: Test the register function
+}

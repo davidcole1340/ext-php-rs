@@ -304,3 +304,87 @@ impl TryFrom<ModuleBuilder<'_>> for (ModuleEntry, ModuleStartup) {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::{
+        test_deactivate_function, test_function, test_info_function, test_startup_shutdown_function,
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let builder = ModuleBuilder::new("test", "1.0");
+        assert_eq!(builder.name, "test");
+        assert_eq!(builder.version, "1.0");
+        assert!(builder.functions.is_empty());
+        assert!(builder.constants.is_empty());
+        assert!(builder.classes.is_empty());
+        assert!(builder.startup_func.is_none());
+        assert!(builder.shutdown_func.is_none());
+        assert!(builder.request_startup_func.is_none());
+        assert!(builder.request_shutdown_func.is_none());
+        assert!(builder.post_deactivate_func.is_none());
+        assert!(builder.info_func.is_none());
+    }
+
+    #[test]
+    fn test_startup_function() {
+        let builder =
+            ModuleBuilder::new("test", "1.0").startup_function(test_startup_shutdown_function);
+        assert!(builder.startup_func.is_some());
+    }
+
+    #[test]
+    fn test_shutdown_function() {
+        let builder =
+            ModuleBuilder::new("test", "1.0").shutdown_function(test_startup_shutdown_function);
+        assert!(builder.shutdown_func.is_some());
+    }
+
+    #[test]
+    fn test_request_startup_function() {
+        let builder = ModuleBuilder::new("test", "1.0")
+            .request_startup_function(test_startup_shutdown_function);
+        assert!(builder.request_startup_func.is_some());
+    }
+
+    #[test]
+    fn test_request_shutdown_function() {
+        let builder = ModuleBuilder::new("test", "1.0")
+            .request_shutdown_function(test_startup_shutdown_function);
+        assert!(builder.request_shutdown_func.is_some());
+    }
+
+    #[test]
+    fn test_set_post_deactivate_function() {
+        let builder =
+            ModuleBuilder::new("test", "1.0").post_deactivate_function(test_deactivate_function);
+        assert!(builder.post_deactivate_func.is_some());
+    }
+
+    #[test]
+    fn test_set_info_function() {
+        let builder = ModuleBuilder::new("test", "1.0").info_function(test_info_function);
+        assert!(builder.info_func.is_some());
+    }
+
+    #[test]
+    fn test_add_function() {
+        let builder =
+            ModuleBuilder::new("test", "1.0").function(FunctionBuilder::new("test", test_function));
+        assert_eq!(builder.functions.len(), 1);
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_add_constant() {
+        let builder =
+            ModuleBuilder::new("test", "1.0").constant(("TEST_CONST", 42, DocComments::default()));
+        assert_eq!(builder.constants.len(), 1);
+        assert_eq!(builder.constants[0].0, "TEST_CONST");
+        // TODO: Check if the value is 42
+        assert_eq!(builder.constants[0].2, DocComments::default());
+    }
+}

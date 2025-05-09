@@ -177,7 +177,7 @@ impl<'a> Arg<'a> {
 
 impl From<Arg<'_>> for _zend_expected_type {
     fn from(arg: Arg) -> Self {
-        let err = match arg.r#type {
+        let type_id = match arg.r#type {
             DataType::False | DataType::True => _zend_expected_type_Z_EXPECTED_BOOL,
             DataType::Long => _zend_expected_type_Z_EXPECTED_LONG,
             DataType::Double => _zend_expected_type_Z_EXPECTED_DOUBLE,
@@ -189,9 +189,9 @@ impl From<Arg<'_>> for _zend_expected_type {
         };
 
         if arg.allow_null {
-            err + 1
+            type_id + 1
         } else {
-            err
+            type_id
         }
     }
 }
@@ -301,4 +301,268 @@ impl<'a, 'b> ArgParser<'a, 'b> {
 
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let arg = Arg::new("test", DataType::Long);
+        assert_eq!(arg.name, "test");
+        assert_eq!(arg.r#type, DataType::Long);
+        assert!(!arg.as_ref);
+        assert!(!arg.allow_null);
+        assert!(!arg.variadic);
+        assert!(arg.default_value.is_none());
+        assert!(arg.zval.is_none());
+        assert!(arg.variadic_zvals.is_empty());
+    }
+
+    #[test]
+    fn test_as_ref() {
+        let arg = Arg::new("test", DataType::Long).as_ref();
+        assert!(arg.as_ref);
+    }
+
+    #[test]
+    fn test_is_variadic() {
+        let arg = Arg::new("test", DataType::Long).is_variadic();
+        assert!(arg.variadic);
+    }
+
+    #[test]
+    fn test_allow_null() {
+        let arg = Arg::new("test", DataType::Long).allow_null();
+        assert!(arg.allow_null);
+    }
+
+    #[test]
+    fn test_default() {
+        let arg = Arg::new("test", DataType::Long).default("default");
+        assert_eq!(arg.default_value, Some("default".to_string()));
+
+        // TODO: Validate type
+    }
+
+    #[test]
+    fn test_consume_no_value() {
+        let arg = Arg::new("test", DataType::Long);
+        let result: Result<i32, _> = arg.consume();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().name, "test");
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_consume() {
+        let mut arg = Arg::new("test", DataType::Long);
+        let mut zval = Zval::from(42);
+        arg.zval = Some(&mut zval);
+
+        let result: Result<i32, _> = arg.consume();
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[test]
+    fn test_val_no_value() {
+        let mut arg = Arg::new("test", DataType::Long);
+        let result: Option<i32> = arg.val();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_val() {
+        let mut arg = Arg::new("test", DataType::Long);
+        let mut zval = Zval::from(42);
+        arg.zval = Some(&mut zval);
+
+        let result: Option<i32> = arg.val();
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_variadic_vals() {
+        let mut arg = Arg::new("test", DataType::Long).is_variadic();
+        let mut zval1 = Zval::from(42);
+        let mut zval2 = Zval::from(43);
+        arg.variadic_zvals.push(Some(&mut zval1));
+        arg.variadic_zvals.push(Some(&mut zval2));
+
+        let result: Vec<i32> = arg.variadic_vals();
+        assert_eq!(result, vec![42, 43]);
+    }
+
+    #[test]
+    fn test_zval_no_value() {
+        let mut arg = Arg::new("test", DataType::Long);
+        let result = arg.zval();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_zval() {
+        let mut arg = Arg::new("test", DataType::Long);
+        let mut zval = Zval::from(42);
+        arg.zval = Some(&mut zval);
+
+        let result = arg.zval();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().dereference_mut().long(), Some(42));
+    }
+
+    #[test]
+    fn test_try_call_no_value() {
+        let arg = Arg::new("test", DataType::Long);
+        let result = arg.try_call(vec![]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_try_call_not_callable() {
+        let mut arg = Arg::new("test", DataType::Long);
+        let mut zval = Zval::from(42);
+        arg.zval = Some(&mut zval);
+
+        let result = arg.try_call(vec![]);
+        assert!(result.is_err());
+    }
+
+    // TODO: Test the callable case
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_as_arg_info() {
+        let arg = Arg::new("test", DataType::Long);
+        let arg_info = arg.as_arg_info();
+        assert!(arg_info.is_ok());
+
+        let arg_info = arg_info.unwrap();
+        assert!(arg_info.default_value.is_null());
+
+        let r#type = arg_info.type_;
+        assert_eq!(r#type.type_mask, 16);
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_as_arg_info_with_default() {
+        let arg = Arg::new("test", DataType::Long).default("default");
+        let arg_info = arg.as_arg_info();
+        assert!(arg_info.is_ok());
+
+        let arg_info = arg_info.unwrap();
+        assert!(!arg_info.default_value.is_null());
+
+        let r#type = arg_info.type_;
+        assert_eq!(r#type.type_mask, 16);
+    }
+
+    #[test]
+    fn test_type_from_arg() {
+        let arg = Arg::new("test", DataType::Long);
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 0);
+
+        let arg = Arg::new("test", DataType::Long).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 1);
+
+        let arg = Arg::new("test", DataType::False);
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 2);
+
+        let arg = Arg::new("test", DataType::False).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 3);
+
+        let arg = Arg::new("test", DataType::True);
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 2);
+
+        let arg = Arg::new("test", DataType::True).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 3);
+
+        let arg = Arg::new("test", DataType::String);
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 4);
+
+        let arg = Arg::new("test", DataType::String).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 5);
+
+        let arg = Arg::new("test", DataType::Array);
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 6);
+
+        let arg = Arg::new("test", DataType::Array).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 7);
+
+        let arg = Arg::new("test", DataType::Resource);
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 14);
+
+        let arg = Arg::new("test", DataType::Resource).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 15);
+
+        let arg = Arg::new("test", DataType::Object(None));
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 18);
+
+        let arg = Arg::new("test", DataType::Object(None)).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 19);
+
+        let arg = Arg::new("test", DataType::Double);
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 20);
+
+        let arg = Arg::new("test", DataType::Double).allow_null();
+        let actual: _zend_expected_type = arg.into();
+        assert_eq!(actual, 21);
+    }
+
+    #[test]
+    fn test_param_from_arg() {
+        let arg = Arg::new("test", DataType::Long)
+            .default("default")
+            .allow_null();
+        let param: Parameter = arg.into();
+        assert_eq!(param.name, "test".into());
+        assert_eq!(param.ty, abi::Option::Some(DataType::Long));
+        assert!(param.nullable);
+        assert_eq!(param.default, abi::Option::Some("default".into()));
+    }
+
+    #[test]
+    fn test_arg_parser_new() {
+        let arg_zvals = vec![None, None];
+        let parser = ArgParser::new(arg_zvals);
+        assert_eq!(parser.arg_zvals.len(), 2);
+        assert!(parser.args.is_empty());
+        assert!(parser.min_num_args.is_none());
+    }
+
+    #[test]
+    fn test_arg_parser_arg() {
+        let arg_zvals = vec![None, None];
+        let mut parser = ArgParser::new(arg_zvals);
+        let mut arg = Arg::new("test", DataType::Long);
+        parser = parser.arg(&mut arg);
+        assert_eq!(parser.args.len(), 1);
+        assert_eq!(parser.args[0].name, "test");
+        assert_eq!(parser.args[0].r#type, DataType::Long);
+    }
+
+    // TODO: test parse
 }
