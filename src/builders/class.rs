@@ -2,7 +2,7 @@ use std::{ffi::CString, mem::MaybeUninit, ptr, rc::Rc};
 
 use crate::{
     builders::FunctionBuilder,
-    class::{ConstructorMeta, ConstructorResult, RegisteredClass},
+    class::{ClassEntryInfo, ConstructorMeta, ConstructorResult, RegisteredClass},
     convert::{IntoZval, IntoZvalDyn},
     describe::DocComments,
     error::{Error, Result},
@@ -24,8 +24,8 @@ type ConstantEntry = (String, Box<dyn FnOnce() -> Result<Zval>>, DocComments);
 pub struct ClassBuilder {
     pub(crate) name: String,
     ce: ClassEntry,
-    extends: Option<&'static ClassEntry>,
-    interfaces: Vec<&'static ClassEntry>,
+    pub(crate) extends: Option<ClassEntryInfo>,
+    pub(crate) interfaces: Vec<ClassEntryInfo>,
     pub(crate) methods: Vec<(FunctionBuilder<'static>, MethodFlags)>,
     object_override: Option<unsafe extern "C" fn(class_type: *mut ClassEntry) -> *mut ZendObject>,
     pub(crate) properties: Vec<(String, PropertyFlags, DocComments)>,
@@ -63,7 +63,7 @@ impl ClassBuilder {
     /// # Parameters
     ///
     /// * `parent` - The parent class to extend.
-    pub fn extends(mut self, parent: &'static ClassEntry) -> Self {
+    pub fn extends(mut self, parent: ClassEntryInfo) -> Self {
         self.extends = Some(parent);
         self
     }
@@ -77,11 +77,7 @@ impl ClassBuilder {
     /// # Panics
     ///
     /// Panics when the given class entry `interface` is not an interface.
-    pub fn implements(mut self, interface: &'static ClassEntry) -> Self {
-        assert!(
-            interface.is_interface(),
-            "Given class entry was not an interface."
-        );
+    pub fn implements(mut self, interface: ClassEntryInfo) -> Self {
         self.interfaces.push(interface);
         self
     }
@@ -309,7 +305,7 @@ impl ClassBuilder {
             zend_register_internal_class_ex(
                 &mut self.ce,
                 match self.extends {
-                    Some(ptr) => ptr::from_ref(ptr).cast_mut(),
+                    Some((ptr, _)) => ptr::from_ref(ptr()).cast_mut(),
                     None => std::ptr::null_mut(),
                 },
             )
@@ -329,8 +325,14 @@ impl ClassBuilder {
             }
         }
 
-        for iface in self.interfaces {
-            unsafe { zend_do_implement_interface(class, ptr::from_ref(iface).cast_mut()) };
+        for (iface, _) in self.interfaces {
+            let interface = iface();
+            assert!(
+                interface.is_interface(),
+                "Given class entry was not an interface."
+            );
+
+            unsafe { zend_do_implement_interface(class, ptr::from_ref(interface).cast_mut()) };
         }
 
         for (name, flags, _) in self.properties {
@@ -369,4 +371,101 @@ impl ClassBuilder {
 
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test::test_function;
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let class = ClassBuilder::new("Foo");
+        assert_eq!(class.name, "Foo");
+        assert_eq!(class.extends, None);
+        assert_eq!(class.interfaces, vec![]);
+        assert_eq!(class.methods.len(), 0);
+        assert_eq!(class.object_override, None);
+        assert_eq!(class.properties, vec![]);
+        assert_eq!(class.constants.len(), 0);
+        assert_eq!(class.register, None);
+        assert_eq!(class.docs, &[] as DocComments);
+    }
+
+    #[test]
+    fn test_extends() {
+        let extends: ClassEntryInfo = (|| todo!(), "Bar");
+        let class = ClassBuilder::new("Foo").extends(extends);
+        assert_eq!(class.extends, Some(extends));
+    }
+
+    #[test]
+    fn test_implements() {
+        let implements: ClassEntryInfo = (|| todo!(), "Bar");
+        let class = ClassBuilder::new("Foo").implements(implements);
+        assert_eq!(class.interfaces, vec![implements]);
+    }
+
+    #[test]
+    fn test_method() {
+        let method = FunctionBuilder::new("foo", test_function);
+        let class = ClassBuilder::new("Foo").method(method, MethodFlags::Public);
+        assert_eq!(class.methods.len(), 1);
+    }
+
+    #[test]
+    fn test_property() {
+        let class = ClassBuilder::new("Foo").property("bar", PropertyFlags::Public, &["Doc 1"]);
+        assert_eq!(
+            class.properties,
+            vec![(
+                "bar".to_string(),
+                PropertyFlags::Public,
+                &["Doc 1"] as DocComments
+            )]
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_constant() {
+        let class = ClassBuilder::new("Foo")
+            .constant("bar", 42, &["Doc 1"])
+            .expect("Failed to create constant");
+        assert_eq!(class.constants.len(), 1);
+        assert_eq!(class.constants[0].0, "bar");
+        assert_eq!(class.constants[0].2, &["Doc 1"] as DocComments);
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn test_dyn_constant() {
+        let class = ClassBuilder::new("Foo")
+            .dyn_constant("bar", &42, &["Doc 1"])
+            .expect("Failed to create constant");
+        assert_eq!(class.constants.len(), 1);
+        assert_eq!(class.constants[0].0, "bar");
+        assert_eq!(class.constants[0].2, &["Doc 1"] as DocComments);
+    }
+
+    #[test]
+    fn test_flags() {
+        let class = ClassBuilder::new("Foo").flags(ClassFlags::Abstract);
+        assert_eq!(class.ce.ce_flags, ClassFlags::Abstract.bits());
+    }
+
+    #[test]
+    fn test_registration() {
+        let class = ClassBuilder::new("Foo").registration(|_| {});
+        assert!(class.register.is_some());
+    }
+
+    #[test]
+    fn test_docs() {
+        let class = ClassBuilder::new("Foo").docs(&["Doc 1"]);
+        assert_eq!(class.docs, &["Doc 1"] as DocComments);
+    }
+
+    // TODO: Test the register function
 }

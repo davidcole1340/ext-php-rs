@@ -5,14 +5,14 @@ use std::collections::HashMap;
 use crate::{
     args::{Arg, ArgParser},
     builders::{ClassBuilder, FunctionBuilder},
-    class::{ClassMetadata, RegisteredClass},
+    class::{ClassEntryInfo, ClassMetadata, RegisteredClass},
     convert::{FromZval, IntoZval},
     describe::DocComments,
     exception::PhpException,
     flags::{DataType, MethodFlags},
     internal::property::PropertyInfo,
     types::Zval,
-    zend::{ClassEntry, ExecuteData},
+    zend::ExecuteData,
     zend_fastcall,
 };
 
@@ -150,8 +150,8 @@ impl RegisteredClass for Closure {
     const CLASS_NAME: &'static str = "RustClosure";
 
     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder> = None;
-    const EXTENDS: Option<fn() -> &'static ClassEntry> = None;
-    const IMPLEMENTS: &'static [fn() -> &'static ClassEntry] = &[];
+    const EXTENDS: Option<ClassEntryInfo> = None;
+    const IMPLEMENTS: &'static [ClassEntryInfo] = &[];
 
     fn get_metadata() -> &'static ClassMetadata<Self> {
         &CLOSURE_META

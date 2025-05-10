@@ -82,6 +82,20 @@ impl PhpException {
         self.object = object;
     }
 
+    /// Builder function that sets the Zval object for the exception.
+    ///
+    /// Exceptions can be based of instantiated Zval objects when you are
+    /// throwing a custom exception with stateful properties.
+    ///
+    /// # Parameters
+    ///
+    /// * `object` - The Zval object.
+    #[must_use]
+    pub fn with_object(mut self, object: Zval) -> Self {
+        self.object = Some(object);
+        self
+    }
+
     /// Throws the exception, returning nothing inside a result if successful
     /// and an error otherwise.
     ///
@@ -213,7 +227,7 @@ pub fn throw_with_code(ex: &ClassEntry, code: i32, message: &str) -> Result<()> 
 /// use crate::ext_php_rs::convert::IntoZval;
 ///
 /// #[php_class]
-/// #[php(extends = ext_php_rs::zend::ce::exception)]
+/// #[php(extends(ce = ext_php_rs::zend::ce::exception, stub = "\\Exception"))]
 /// pub struct JsException {
 ///     #[php(prop, flags = ext_php_rs::flags::PropertyFlags::Public)]
 ///     message: String,
@@ -235,4 +249,143 @@ pub fn throw_object(zval: Zval) -> Result<()> {
     let mut zv = core::mem::ManuallyDrop::new(zval);
     unsafe { zend_throw_exception_object(core::ptr::addr_of_mut!(zv).cast()) };
     Ok(())
+}
+
+#[cfg(feature = "embed")]
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::assertions_on_constants)]
+    use super::*;
+    use crate::embed::Embed;
+
+    #[test]
+    fn test_new() {
+        Embed::run(|| {
+            let ex = PhpException::new("Test".into(), 0, ce::exception());
+            assert_eq!(ex.message, "Test");
+            assert_eq!(ex.code, 0);
+            assert_eq!(ex.ex, ce::exception());
+            assert!(ex.object.is_none());
+        });
+    }
+
+    #[test]
+    fn test_default() {
+        Embed::run(|| {
+            let ex = PhpException::default("Test".into());
+            assert_eq!(ex.message, "Test");
+            assert_eq!(ex.code, 0);
+            assert_eq!(ex.ex, ce::exception());
+            assert!(ex.object.is_none());
+        });
+    }
+
+    #[test]
+    fn test_set_object() {
+        Embed::run(|| {
+            let mut ex = PhpException::default("Test".into());
+            assert!(ex.object.is_none());
+            let obj = Zval::new();
+            ex.set_object(Some(obj));
+            assert!(ex.object.is_some());
+        });
+    }
+
+    #[test]
+    fn test_with_object() {
+        Embed::run(|| {
+            let obj = Zval::new();
+            let ex = PhpException::default("Test".into()).with_object(obj);
+            assert!(ex.object.is_some());
+        });
+    }
+
+    #[test]
+    fn test_throw_code() {
+        Embed::run(|| {
+            let ex = PhpException::default("Test".into());
+            assert!(ex.throw().is_ok());
+
+            assert!(false, "Should not reach here");
+        });
+    }
+
+    #[test]
+    fn test_throw_object() {
+        Embed::run(|| {
+            let ex = PhpException::default("Test".into()).with_object(Zval::new());
+            assert!(ex.throw().is_ok());
+
+            assert!(false, "Should not reach here");
+        });
+    }
+
+    #[test]
+    fn test_from_string() {
+        Embed::run(|| {
+            let ex: PhpException = "Test".to_string().into();
+            assert_eq!(ex.message, "Test");
+            assert_eq!(ex.code, 0);
+            assert_eq!(ex.ex, ce::exception());
+            assert!(ex.object.is_none());
+        });
+    }
+
+    #[test]
+    fn test_from_str() {
+        Embed::run(|| {
+            let ex: PhpException = "Test str".into();
+            assert_eq!(ex.message, "Test str");
+            assert_eq!(ex.code, 0);
+            assert_eq!(ex.ex, ce::exception());
+            assert!(ex.object.is_none());
+        });
+    }
+
+    #[test]
+    fn test_from_anyhow() {
+        Embed::run(|| {
+            let ex: PhpException = anyhow::anyhow!("Test anyhow").into();
+            assert_eq!(ex.message, "Test anyhow");
+            assert_eq!(ex.code, 0);
+            assert_eq!(ex.ex, ce::exception());
+            assert!(ex.object.is_none());
+        });
+    }
+
+    #[test]
+    fn test_throw_ex() {
+        Embed::run(|| {
+            assert!(throw(ce::exception(), "Test").is_ok());
+
+            assert!(false, "Should not reach here");
+        });
+    }
+
+    #[test]
+    fn test_throw_with_code() {
+        Embed::run(|| {
+            assert!(throw_with_code(ce::exception(), 1, "Test").is_ok());
+
+            assert!(false, "Should not reach here");
+        });
+    }
+
+    // TODO: Test abstract class
+    #[test]
+    fn test_throw_with_code_interface() {
+        Embed::run(|| {
+            assert!(throw_with_code(ce::arrayaccess(), 0, "Test").is_err());
+        });
+    }
+
+    #[test]
+    fn test_static_throw_object() {
+        Embed::run(|| {
+            let obj = Zval::new();
+            assert!(throw_object(obj).is_ok());
+
+            assert!(false, "Should not reach here");
+        });
+    }
 }

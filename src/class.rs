@@ -18,6 +18,10 @@ use crate::{
     zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
 };
 
+/// A type alias for a tuple containing a function pointer to a class entry
+/// and a string representing the class name used in stubs.
+pub type ClassEntryInfo = (fn() -> &'static ClassEntry, &'static str);
+
 /// Implemented on Rust types which are exported to PHP. Allows users to get and
 /// set PHP properties on the object.
 pub trait RegisteredClass: Sized + 'static {
@@ -29,10 +33,10 @@ pub trait RegisteredClass: Sized + 'static {
     const BUILDER_MODIFIER: Option<fn(ClassBuilder) -> ClassBuilder>;
 
     /// Parent class entry. Optional.
-    const EXTENDS: Option<fn() -> &'static ClassEntry>;
+    const EXTENDS: Option<ClassEntryInfo>;
 
     /// Interfaces implemented by the class.
-    const IMPLEMENTS: &'static [fn() -> &'static ClassEntry];
+    const IMPLEMENTS: &'static [ClassEntryInfo];
 
     /// PHP flags applied to the class.
     const FLAGS: ClassFlags = ClassFlags::empty();
