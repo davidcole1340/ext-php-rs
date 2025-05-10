@@ -250,8 +250,8 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <li><code>#[php(name = "NEW_NAME")]</code> - Renames the class</li>
 <li><code>#[php(rename = case)]</code> - Changes the case of the class name</li>
 <li><code>#[php(vis = "public")]</code> - Changes the visibility of the class</li>
-<li><code>#[php(extends = "ParentClass")]</code> - Extends a parent class</li>
-<li><code>#[php(implements = "Interface")]</code> - Implements an interface</li>
+<li><code>#[php(extends(ce = ce_fn, stub = "ParentClass")]</code> - Extends a parent class</li>
+<li><code>#[php(implements(ce = ce_fn, stub = "Interface"))]</code> - Implements an interface</li>
 <li><code>#[php(prop)]</code> - Marks a field as a property</li>
 </ul>
 <p><strong>Supported <code>#[php]</code> attributes (<code>impl</code>):</strong></p>
@@ -260,6 +260,10 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <li><code>#[php(rename_methods = case)]</code> - Changes the case of the method names. Can be overridden by attributes on the methods.</li>
 </ul>
 <p>For elements in the <code>#[php_impl]</code> block see the respective function and constant attributes.</p>
+<h4 id="extends-and-implements"><a class="header" href="#extends-and-implements">Extends and Implements</a></h4>
+<p>Extends and implements are now taking a second parameter which is the
+<code>stub</code> name. This is the name of the class or interface in PHP.</p>
+<p>This value is only used for stub generation and is not used for the class name in Rust.</p>
 <h3 id="constants"><a class="header" href="#constants">Constants</a></h3>
 <p>Mostly unchanged in terms of constant definition, however you now need to
 register the constant with the module builder:</p>

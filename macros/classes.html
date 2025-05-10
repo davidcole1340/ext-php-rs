@@ -167,10 +167,10 @@ placed underneath the <code>#[php_class]</code> attribute.</p>
 name is kept the same. If no name is given, the name of the struct is used.
 Useful for namespacing classes.</li>
 <li><code>rename</code> - Changes the case of the class name when exported to PHP.</li>
-<li><code>#[php(extends = ce)]</code> - Sets the parent class of the class. Can only be used once.
-<code>ce</code> must be a function with the signature <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
-<li><code>#[php(implements = ce)]</code> - Implements the given interface on the class. Can be used
-multiple times. <code>ce</code> must be a valid function with the signature
+<li><code>#[php(extends(ce = ce_fn, stub = "ParentClass"))]</code> - Sets the parent class of the class. Can only be used once.
+<code>ce_fn</code> must be a function with the signature <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
+<li><code>#[php(implements(ce = ce_fn, stub = "InterfaceName"))]</code> - Implements the given interface on the class. Can be used
+multiple times. <code>ce_fn</code> must be a valid function with the signature
 <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
 </ul>
 <p>You may also use the <code>#[php(prop)]</code> attribute on a struct field to use the field as a
@@ -236,7 +236,7 @@ it in the <code>Redis\Exception</code> namespace:</p>
 
 #[php_class]
 #[php(name = "Redis\\Exception\\RedisException")]
-#[php(extends = ce::exception)]
+#[php(extends(ce = ce::exception, stub = "\\Exception"))]
 #[derive(Default)]
 pub struct RedisException;
 
@@ -254,7 +254,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <h2 id="implementing-an-interface"><a class="header" href="#implementing-an-interface">Implementing an Interface</a></h2>
-<p>To implement an interface, use <code>#[php(implements = ce)]</code> where <code>ce</code> is an function returning a <code>ClassEntry</code>.
+<p>To implement an interface, use <code>#[php(implements(ce = ce_fn, stub = "InterfaceName")]</code> where <code>ce_fn</code> is an function returning a <code>ClassEntry</code>.
 The following example implements <a href="https://www.php.net/manual/en/class.arrayaccess.php"><code>ArrayAccess</code></a>:</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -266,7 +266,7 @@ The following example implements <a href="https://www.php.net/manual/en/class.ar
 };
 
 #[php_class]
-#[php(implements = ce::arrayaccess)]
+#[php(implements(ce = ce::arrayaccess, stub = "\\ArrayAccess"))]
 #[derive(Default)]
 pub struct EvenNumbersArray;
 
