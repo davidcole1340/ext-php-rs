@@ -34,7 +34,7 @@ ureq = { version = "3.0", features = [
     "gzip",
 ], default-features = false }
 native-tls = "0.2"
-zip = "2.2"
+zip = "3.0"
 
 [features]
 closure = []
