@@ -3,7 +3,7 @@ use darling::FromAttributes;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::{HashMap, HashSet};
-use syn::{Ident, ItemImpl, Lit};
+use syn::{Expr, Ident, ItemImpl};
 
 use crate::constant::PhpConstAttribute;
 use crate::function::{Args, CallType, Function, MethodReceiver};
@@ -68,7 +68,7 @@ struct MethodArgs {
     /// The first optional argument of the function signature.
     optional: Option<Ident>,
     /// Default values for optional arguments.
-    defaults: HashMap<Ident, Lit>,
+    defaults: HashMap<Ident, Expr>,
     /// Visibility of the method (public, protected, private).
     vis: Visibility,
     /// Method type.
@@ -80,7 +80,7 @@ struct MethodArgs {
 pub struct PhpFunctionImplAttribute {
     #[darling(flatten)]
     rename: PhpRename,
-    defaults: HashMap<Ident, Lit>,
+    defaults: HashMap<Ident, Expr>,
     optional: Option<Ident>,
     vis: Option<Visibility>,
     attrs: Vec<syn::Attribute>,
