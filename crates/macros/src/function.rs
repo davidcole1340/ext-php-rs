@@ -4,8 +4,8 @@ use darling::{FromAttributes, ToTokens};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::spanned::Spanned as _;
-use syn::PatType;
-use syn::{FnArg, GenericArgument, ItemFn, Lit, PathArguments, Type, TypePath};
+use syn::{Expr, PatType};
+use syn::{FnArg, GenericArgument, ItemFn, PathArguments, Type, TypePath};
 
 use crate::helpers::get_docs;
 use crate::parsing::{PhpRename, Visibility};
@@ -28,7 +28,7 @@ pub fn wrap(input: &syn::Path) -> Result<TokenStream> {
 struct PhpFunctionAttribute {
     #[darling(flatten)]
     rename: PhpRename,
-    defaults: HashMap<Ident, Lit>,
+    defaults: HashMap<Ident, Expr>,
     optional: Option<Ident>,
     vis: Option<Visibility>,
     attrs: Vec<syn::Attribute>,
@@ -381,7 +381,7 @@ pub struct TypedArg<'a> {
     pub name: &'a Ident,
     pub ty: Type,
     pub nullable: bool,
-    pub default: Option<Lit>,
+    pub default: Option<Expr>,
     pub as_ref: bool,
     pub variadic: bool,
 }
@@ -395,7 +395,7 @@ pub struct Args<'a> {
 impl<'a> Args<'a> {
     pub fn parse_from_fnargs(
         args: impl Iterator<Item = &'a FnArg>,
-        mut defaults: HashMap<Ident, Lit>,
+        mut defaults: HashMap<Ident, Expr>,
     ) -> Result<Self> {
         let mut result = Self {
             receiver: None,
