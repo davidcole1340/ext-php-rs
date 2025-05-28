@@ -17,6 +17,7 @@ pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
     module = integration::callable::build_module(module);
     module = integration::class::build_module(module);
     module = integration::closure::build_module(module);
+    module = integration::defaults::build_module(module);
     module = integration::globals::build_module(module);
     module = integration::iterator::build_module(module);
     module = integration::magic_method::build_module(module);
