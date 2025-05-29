@@ -6,7 +6,7 @@ pub struct TestClass {
     string: String,
     number: i32,
     #[php(prop)]
-    boolean: bool,
+    boolean_prop: bool,
 }
 
 #[php_impl]
@@ -41,7 +41,7 @@ pub fn test_class(string: String, number: i32) -> TestClass {
     TestClass {
         string,
         number,
-        boolean: true,
+        boolean_prop: true,
     }
 }
 

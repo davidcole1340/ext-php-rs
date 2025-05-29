@@ -1,8 +1,8 @@
 <?php
 
-assert(test_globals_http_get() === []);
-assert(test_globals_http_post() === []);
-assert(test_globals_http_cookie() === []);
-assert(!empty(test_globals_http_server()));
-assert(test_globals_http_request() === []);
-assert(test_globals_http_files() === []);
+assert(testGlobalsHttpGet() === []);
+assert(testGlobalsHttpPost() === []);
+assert(testGlobalsHttpCookie() === []);
+assert(!empty(testGlobalsHttpServer()));
+assert(testGlobalsHttpRequest() === []);
+assert(testGlobalsHttpFiles() === []);

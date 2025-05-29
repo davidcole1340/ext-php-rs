@@ -1,4 +1,4 @@
 <?php
 
-assert(is_null(test_nullable()));
-assert(!is_null(test_nullable('value')));
+assert(is_null(testNullable()));
+assert(!is_null(testNullable('value')));

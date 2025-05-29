@@ -1,7 +1,7 @@
 <?php
 
 // Tests sequential arrays
-$array = test_array(['a', 'b', 'c', 'd']);
+$array = testArray(['a', 'b', 'c', 'd']);
 unset($array[2]);
 
 assert(is_array($array));
@@ -11,7 +11,7 @@ assert(in_array('b', $array));
 assert(in_array('d', $array));
 
 // Tests associative arrays
-$assoc = test_array_assoc([
+$assoc = testArrayAssoc([
     'a' => '1',
     'b' => '2',
     'c' => '3'
