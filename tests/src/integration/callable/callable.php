@@ -1,3 +1,3 @@
 <?php
 
-assert(test_callable(fn (string $a) => $a, 'test') === 'test');
+assert(testCallable(fn (string $a) => $a, 'test') === 'test');

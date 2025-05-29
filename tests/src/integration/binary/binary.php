@@ -1,6 +1,6 @@
 <?php
 
-$bin = test_binary(pack('L*', 1, 2, 3, 4, 5));
+$bin = testBinary(pack('L*', 1, 2, 3, 4, 5));
 $result = unpack('L*', $bin);
 
 assert(count($result) === 5);

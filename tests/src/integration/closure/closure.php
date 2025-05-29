@@ -2,13 +2,13 @@
 
 require(__DIR__ . '/../_utils.php');
 
-$v = test_closure();
+$v = testClosure();
 
 // Closure
 assert($v('works') === 'works');
 
 // Closure once
-$closure = test_closure_once('test');
+$closure = testClosureOnce('test');
 
 assert(call_user_func($closure) === 'test');
 assert_exception_thrown($closure);
