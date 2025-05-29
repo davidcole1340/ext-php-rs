@@ -1,21 +1,21 @@
 <?php
 
 const TYPES = [
-    'test_str' => [['string'], 'string'],
-    'test_string' => [['string'], 'string'],
-    'test_bool' => [['bool'], 'bool'],
-    'test_number_signed' => [['int'], 'int'],
-    'test_number_unsigned' => [['int'], 'int'],
-    'test_number_float' => [['float'], 'float'],
-    'test_array' => [['array'], 'array'],
-    'test_array' => [['array'], 'array'],
-    'test_array_assoc' => [['array'], 'array'],
-    'test_binary' => [['string'], 'string'],
-    'test_nullable' => [['?string'], '?string'],
-    'test_object' => [['object'], 'object'],
-    'test_closure' => [[], 'RustClosure'],
-    'test_closure_once' => [['string'], 'RustClosure'],
-    'test_callable' => [['callable', 'string'], 'mixed']
+    'testStr' => [['string'], 'string'],
+    'testString' => [['string'], 'string'],
+    'testBool' => [['bool'], 'bool'],
+    'testNumberSigned' => [['int'], 'int'],
+    'testNumberUnsigned' => [['int'], 'int'],
+    'testNumberFloat' => [['float'], 'float'],
+    'testArray' => [['array'], 'array'],
+    'testArray' => [['array'], 'array'],
+    'testArrayAssoc' => [['array'], 'array'],
+    'testBinary' => [['string'], 'string'],
+    'testNullable' => [['?string'], '?string'],
+    'testObject' => [['object'], 'object'],
+    'testClosure' => [[], 'RustClosure'],
+    'testClosureOnce' => [['string'], 'RustClosure'],
+    'testCallable' => [['callable', 'string'], 'mixed']
 ];
 
 function toStr(ReflectionNamedType|ReflectionUnionType|ReflectionIntersectionType|null $v): string {

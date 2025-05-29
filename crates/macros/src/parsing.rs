@@ -46,16 +46,20 @@ pub struct PhpRename {
 }
 
 impl PhpRename {
-    pub fn rename(&self, name: impl AsRef<str>) -> String {
-        self.name.as_ref().map_or_else(
-            || {
-                let name = name.as_ref();
-                self.rename
-                    .as_ref()
-                    .map_or_else(|| name.to_string(), |r| name.rename(*r))
-            },
-            ToString::to_string,
-        )
+    pub fn rename(&self, name: impl AsRef<str>, default: RenameRule) -> String {
+        if let Some(name) = self.name.as_ref() {
+            return name.to_string();
+        }
+
+        name.as_ref().rename(self.rename.unwrap_or(default))
+    }
+
+    pub fn rename_method(&self, name: impl AsRef<str>, default: RenameRule) -> String {
+        if let Some(name) = self.name.as_ref() {
+            return name.to_string();
+        }
+
+        name.as_ref().rename_method(self.rename.unwrap_or(default))
     }
 }
 
@@ -93,32 +97,26 @@ impl RenameRule {
     }
 }
 
-impl Rename for &str {
+impl<T> Rename for T
+where
+    T: ToString,
+{
     fn rename(&self, rule: RenameRule) -> String {
-        rule.rename(self)
+        rule.rename(self.to_string())
     }
 }
 
-impl Rename for syn::Ident {
-    fn rename(&self, rule: RenameRule) -> String {
-        let s = self.to_string();
-        rule.rename(s)
-    }
-}
-
-impl MethodRename for syn::Ident {
+impl<T> MethodRename for T
+where
+    T: ToString + Rename,
+{
     fn rename_method(&self, rule: RenameRule) -> String {
-        self.to_string().as_str().rename_method(rule)
-    }
-}
-
-impl MethodRename for &str {
-    fn rename_method(&self, rule: RenameRule) -> String {
+        let original = self.to_string();
         match rule {
-            RenameRule::None => (*self).to_string(),
+            RenameRule::None => original,
             _ => {
-                if MAGIC_METHOD.contains(self) {
-                    match *self {
+                if MAGIC_METHOD.contains(&original.as_str()) {
+                    match original.as_str() {
                         "__to_string" => "__toString".to_string(),
                         "__debug_info" => "__debugInfo".to_string(),
                         "__call_static" => "__callStatic".to_string(),
@@ -144,33 +142,33 @@ mod tests {
             name: Some("test".to_string()),
             rename: None,
         };
-        assert_eq!(rename.rename("test"), "test");
-        assert_eq!(rename.rename("Test"), "test");
-        assert_eq!(rename.rename("TEST"), "test");
+        assert_eq!(rename.rename("test", RenameRule::None), "test");
+        assert_eq!(rename.rename("Test", RenameRule::None), "test");
+        assert_eq!(rename.rename("TEST", RenameRule::None), "test");
 
         let rename = PhpRename {
             name: None,
             rename: Some(RenameRule::ScreamingSnakeCase),
         };
-        assert_eq!(rename.rename("test"), "TEST");
-        assert_eq!(rename.rename("Test"), "TEST");
-        assert_eq!(rename.rename("TEST"), "TEST");
+        assert_eq!(rename.rename("test", RenameRule::None), "TEST");
+        assert_eq!(rename.rename("Test", RenameRule::None), "TEST");
+        assert_eq!(rename.rename("TEST", RenameRule::None), "TEST");
 
         let rename = PhpRename {
             name: Some("test".to_string()),
             rename: Some(RenameRule::ScreamingSnakeCase),
         };
-        assert_eq!(rename.rename("test"), "test");
-        assert_eq!(rename.rename("Test"), "test");
-        assert_eq!(rename.rename("TEST"), "test");
+        assert_eq!(rename.rename("test", RenameRule::None), "test");
+        assert_eq!(rename.rename("Test", RenameRule::None), "test");
+        assert_eq!(rename.rename("TEST", RenameRule::None), "test");
 
         let rename = PhpRename {
             name: None,
             rename: None,
         };
-        assert_eq!(rename.rename("test"), "test");
-        assert_eq!(rename.rename("Test"), "Test");
-        assert_eq!(rename.rename("TEST"), "TEST");
+        assert_eq!(rename.rename("test", RenameRule::None), "test");
+        assert_eq!(rename.rename("Test", RenameRule::None), "Test");
+        assert_eq!(rename.rename("TEST", RenameRule::None), "TEST");
     }
 
     #[test]
