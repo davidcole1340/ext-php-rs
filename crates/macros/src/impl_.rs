@@ -8,7 +8,7 @@ use syn::{Expr, Ident, ItemImpl};
 use crate::constant::PhpConstAttribute;
 use crate::function::{Args, CallType, Function, MethodReceiver};
 use crate::helpers::get_docs;
-use crate::parsing::{MethodRename, PhpRename, Rename, RenameRule, Visibility};
+use crate::parsing::{PhpRename, RenameRule, Visibility};
 use crate::prelude::*;
 
 /// Method types.
@@ -48,8 +48,7 @@ pub fn parser(mut input: ItemImpl) -> Result<TokenStream> {
     let mut parsed = ParsedImpl::new(
         path,
         args.rename_methods.unwrap_or(RenameRule::Camel),
-        args.rename_constants
-            .unwrap_or(RenameRule::ScreamingSnakeCase),
+        args.rename_constants.unwrap_or(RenameRule::ScreamingSnake),
     );
     parsed.parse(input.items.iter_mut())?;
 
@@ -184,8 +183,9 @@ impl<'a> ParsedImpl<'a> {
             match items {
                 syn::ImplItem::Const(c) => {
                     let attr = PhpConstAttribute::from_attributes(&c.attrs)?;
-                    let name = c.ident.rename(self.rename_constants);
-                    let name = attr.rename.rename(name);
+                    let name = attr
+                        .rename
+                        .rename(c.ident.to_string(), self.rename_constants);
                     let docs = get_docs(&attr.attrs)?;
                     c.attrs.retain(|attr| !attr.path().is_ident("php"));
 
@@ -197,8 +197,9 @@ impl<'a> ParsedImpl<'a> {
                 }
                 syn::ImplItem::Fn(method) => {
                     let attr = PhpFunctionImplAttribute::from_attributes(&method.attrs)?;
-                    let name = method.sig.ident.rename_method(self.rename_methods);
-                    let name = attr.rename.rename(name);
+                    let name = attr
+                        .rename
+                        .rename_method(method.sig.ident.to_string(), self.rename_methods);
                     let docs = get_docs(&attr.attrs)?;
                     method.attrs.retain(|attr| !attr.path().is_ident("php"));
 
