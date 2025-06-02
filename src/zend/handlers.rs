@@ -92,7 +92,7 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
-            let self_ = &mut **obj;
+            let self_ = &mut *obj;
             let props = T::get_metadata().get_properties();
             let prop = props.get(prop_name.as_str()?);
 
@@ -141,7 +141,7 @@ impl ZendObjectHandlers {
             let prop_name = member
                 .as_ref()
                 .ok_or("Invalid property name pointer given")?;
-            let self_ = &mut **obj;
+            let self_ = &mut *obj;
             let props = T::get_metadata().get_properties();
             let prop = props.get(prop_name.as_str()?);
             let value_mut = value.as_mut().ok_or("Invalid return zval given")?;
@@ -178,7 +178,7 @@ impl ZendObjectHandlers {
                 .as_mut()
                 .and_then(|obj| ZendClassObject::<T>::from_zend_obj_mut(obj))
                 .ok_or("Invalid object pointer given")?;
-            let self_ = &mut **obj;
+            let self_ = &mut *obj;
             let struct_props = T::get_metadata().get_properties();
 
             for (name, val) in struct_props {
@@ -230,7 +230,7 @@ impl ZendObjectHandlers {
                 .ok_or("Invalid property name pointer given")?;
             let props = T::get_metadata().get_properties();
             let prop = props.get(prop_name.as_str()?);
-            let self_ = &mut **obj;
+            let self_ = &mut *obj;
 
             match has_set_exists {
                 //

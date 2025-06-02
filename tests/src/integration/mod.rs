@@ -5,6 +5,7 @@ pub mod callable;
 pub mod class;
 pub mod closure;
 pub mod defaults;
+pub mod exception;
 pub mod globals;
 pub mod iterator;
 pub mod magic_method;
