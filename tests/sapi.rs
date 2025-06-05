@@ -58,7 +58,7 @@ fn test_sapi() {
     assert_eq!(result, ZEND_RESULT_CODE_SUCCESS);
 
     let _ = try_catch_first(|| {
-        let result = Embed::eval("$foo = hello_world('foo');");
+        let result = Embed::eval("$foo = helloWorld('foo');");
 
         assert!(result.is_ok());
 

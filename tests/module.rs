@@ -27,7 +27,7 @@ fn test_module() {
             }
         }
 
-        let result = Embed::eval("$foo = hello_world('foo');");
+        let result = Embed::eval("$foo = helloWorld('foo');");
 
         assert!(result.is_ok());
 

@@ -1,4 +1,4 @@
 <?php
 
-assert(test_bool(true) === true);
-assert(test_bool(false) === false);
+assert(testBool(true) === true);
+assert(testBool(false) === false);
