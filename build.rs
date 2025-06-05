@@ -120,7 +120,7 @@ impl PHPInfo {
     /// Checks if thread safety is enabled.
     ///
     /// # Errors
-    /// - `PHPInfo` does not contain thread satety information
+    /// - `PHPInfo` does not contain thread safety information
     pub fn thread_safety(&self) -> Result<bool> {
         Ok(self
             .get_key("Thread Safety")
