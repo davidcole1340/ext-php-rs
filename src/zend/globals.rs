@@ -532,7 +532,7 @@ impl<'a> SapiHeader {
     /// Returns the header value.
     #[must_use]
     pub fn value(&'a self) -> Option<&'a str> {
-        self.as_str().split(':').nth(1).map(str::trim)
+        self.as_str().split_once(':').map(|(_, value)| value.trim())
     }
 }
 
@@ -833,5 +833,38 @@ impl<T> Deref for GlobalWriteGuard<T> {
 impl<T> DerefMut for GlobalWriteGuard<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.globals
+    }
+}
+
+#[cfg(feature = "embed")]
+#[cfg(test)]
+mod embed_tests {
+    use crate::embed::Embed;
+    use std::os::raw::c_char;
+
+    use super::SapiHeader;
+
+    #[test]
+    fn test_sapi_header() {
+        Embed::run(|| {
+            let headers = [
+                ("Content-Type: text/html", "Content-Type", "text/html"),
+                ("X: Custom:Header", "X", "Custom:Header"),
+            ];
+
+            for (header_text, name, value) in headers {
+                let header = SapiHeader {
+                    header: header_text.as_bytes().as_ptr() as *mut c_char,
+                    header_len: header_text.len(),
+                };
+                assert_eq!(header.name(), name, "Header name mismatch");
+                assert_eq!(header.value(), Some(value), "Header value mismatch");
+                assert_eq!(
+                    header.as_str(),
+                    format!("{name}: {value}"),
+                    "Header string mismatch"
+                );
+            }
+        });
     }
 }
