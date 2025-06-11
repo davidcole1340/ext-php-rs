@@ -3,6 +3,9 @@
 #![allow(clippy::all)]
 #![allow(warnings)]
 
+#[cfg(php82)]
+use crate::ffi::php_ini_builder;
+
 use std::ffi::{c_char, c_int, c_void};
 
 #[link(name = "wrapper")]
@@ -20,4 +23,7 @@ extern "C" {
         error_msg: *const ::std::os::raw::c_char,
         ...
     );
+
+    #[cfg(php82)]
+    pub fn ext_php_rs_php_ini_builder_deinit(builder: *mut php_ini_builder);
 }

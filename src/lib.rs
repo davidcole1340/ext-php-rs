@@ -35,6 +35,7 @@ pub mod rc;
 #[cfg(test)]
 pub mod test;
 pub mod types;
+mod util;
 pub mod zend;
 
 /// A module typically glob-imported containing the typically required macros

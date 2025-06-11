@@ -16,12 +16,9 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Error, Result};
 use bindgen::RustTarget;
 use impl_::Provider;
-
-const MIN_PHP_API_VER: u32 = 2020_09_30;
-const MAX_PHP_API_VER: u32 = 2024_09_24;
 
 /// Provides information about the PHP installation.
 pub trait PHPProvider<'a>: Sized {
@@ -170,6 +167,20 @@ impl PHPInfo {
     }
 }
 
+fn add_php_version_defines(
+    defines: &mut Vec<(&'static str, &'static str)>,
+    info: &PHPInfo,
+) -> Result<()> {
+    let version = info.zend_version()?;
+    let supported_version: ApiVersion = version.try_into()?;
+
+    for supported_api in supported_version.supported_apis() {
+        defines.push((supported_api.define_name(), "1"));
+    }
+
+    Ok(())
+}
+
 /// Builds the wrapper library.
 fn build_wrapper(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
     let mut build = cc::Build::new();
@@ -217,6 +228,7 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
         )
         .clang_args(defines.iter().map(|(var, val)| format!("-D{var}={val}")))
         .formatter(bindgen::Formatter::Rustfmt)
+        .no_copy("php_ini_builder")
         .no_copy("_zval_struct")
         .no_copy("_zend_string")
         .no_copy("_zend_array")
@@ -249,19 +261,90 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
     Ok(bindings)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
+enum ApiVersion {
+    Php80 = 2020_09_30,
+    Php81 = 2021_09_02,
+    Php82 = 2022_08_29,
+    Php83 = 2023_08_31,
+    Php84 = 2024_09_24,
+}
+
+impl ApiVersion {
+    /// Returns the minimum API version supported by ext-php-rs.
+    pub const fn min() -> Self {
+        ApiVersion::Php80
+    }
+
+    /// Returns the maximum API version supported by ext-php-rs.
+    pub const fn max() -> Self {
+        ApiVersion::Php84
+    }
+
+    pub fn versions() -> Vec<Self> {
+        vec![
+            ApiVersion::Php80,
+            ApiVersion::Php81,
+            ApiVersion::Php82,
+            ApiVersion::Php83,
+            ApiVersion::Php84,
+        ]
+    }
+
+    /// Returns the API versions that are supported by this version.
+    pub fn supported_apis(self) -> Vec<ApiVersion> {
+        ApiVersion::versions()
+            .into_iter()
+            .filter(|&v| v <= self)
+            .collect()
+    }
+
+    pub fn cfg_name(self) -> &'static str {
+        match self {
+            ApiVersion::Php80 => "php80",
+            ApiVersion::Php81 => "php81",
+            ApiVersion::Php82 => "php82",
+            ApiVersion::Php83 => "php83",
+            ApiVersion::Php84 => "php84",
+        }
+    }
+
+    pub fn define_name(self) -> &'static str {
+        match self {
+            ApiVersion::Php80 => "EXT_PHP_RS_PHP_80",
+            ApiVersion::Php81 => "EXT_PHP_RS_PHP_81",
+            ApiVersion::Php82 => "EXT_PHP_RS_PHP_82",
+            ApiVersion::Php83 => "EXT_PHP_RS_PHP_83",
+            ApiVersion::Php84 => "EXT_PHP_RS_PHP_84",
+        }
+    }
+}
+
+impl TryFrom<u32> for ApiVersion {
+    type Error = Error;
+
+    fn try_from(version: u32) -> Result<Self, Self::Error> {
+        match version {
+            x if ((ApiVersion::Php80 as u32)..(ApiVersion::Php81 as u32)).contains(&x) => Ok(ApiVersion::Php80),
+            x if ((ApiVersion::Php81 as u32)..(ApiVersion::Php82 as u32)).contains(&x) => Ok(ApiVersion::Php81),
+            x if ((ApiVersion::Php82 as u32)..(ApiVersion::Php83 as u32)).contains(&x) => Ok(ApiVersion::Php82),
+            x if ((ApiVersion::Php83 as u32)..(ApiVersion::Php84 as u32)).contains(&x) => Ok(ApiVersion::Php83),
+            x if (ApiVersion::Php84 as u32) == x => Ok(ApiVersion::Php84),
+            version => Err(anyhow!(
+              "The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}",
+              version,
+              ApiVersion::min() as u32,
+              ApiVersion::max() as u32
+            ))
+        }
+    }
+}
+
 /// Checks the PHP Zend API version for compatibility with ext-php-rs, setting
 /// any configuration flags required.
 fn check_php_version(info: &PHPInfo) -> Result<()> {
-    const PHP_81_API_VER: u32 = 2021_09_02;
-    const PHP_82_API_VER: u32 = 2022_08_29;
-    const PHP_83_API_VER: u32 = 2023_08_31;
-    const PHP_84_API_VER: u32 = 2024_09_24;
-
     let version = info.zend_version()?;
-
-    if !(MIN_PHP_API_VER..=MAX_PHP_API_VER).contains(&version) {
-        bail!("The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}", version, MIN_PHP_API_VER, MAX_PHP_API_VER);
-    }
+    let version: ApiVersion = version.try_into()?;
 
     // Infra cfg flags - use these for things that change in the Zend API that don't
     // rely on a feature and the crate user won't care about (e.g. struct field
@@ -275,26 +358,13 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     println!(
         "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
     );
-    println!("cargo:rustc-cfg=php80");
 
-    if (MIN_PHP_API_VER..PHP_81_API_VER).contains(&version) {
-        println!("cargo:warning=PHP version 8.0 is EOL and will no longer be supported in a future release. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines.");
+    if version == ApiVersion::Php80 {
+        println!("cargo:warning=PHP 8.0 is EOL and will no longer be supported in a future release. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines.");
     }
 
-    if version >= PHP_81_API_VER {
-        println!("cargo:rustc-cfg=php81");
-    }
-
-    if version >= PHP_82_API_VER {
-        println!("cargo:rustc-cfg=php82");
-    }
-
-    if version >= PHP_83_API_VER {
-        println!("cargo:rustc-cfg=php83");
-    }
-
-    if version >= PHP_84_API_VER {
-        println!("cargo:rustc-cfg=php84");
+    for supported_version in version.supported_apis() {
+        println!("cargo:rustc-cfg={}", supported_version.cfg_name());
     }
 
     Ok(())
@@ -339,7 +409,8 @@ fn main() -> Result<()> {
     let provider = Provider::new(&info)?;
 
     let includes = provider.get_includes()?;
-    let defines = provider.get_defines()?;
+    let mut defines = provider.get_defines()?;
+    add_php_version_defines(&mut defines, &info)?;
 
     check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
