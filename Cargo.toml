@@ -24,7 +24,7 @@ skeptic = "0.13"
 
 [build-dependencies]
 anyhow = "1"
-bindgen = "0.72.0"
+bindgen = "0.71.0"
 cc = "1.0"
 skeptic = "0.13"
 
