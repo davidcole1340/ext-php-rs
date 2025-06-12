@@ -1,12 +1,9 @@
-use std::ops::Deref;
-use std::ffi::{c_char, CStr, CString, NulError};
 use crate::ffi::{
-    php_ini_builder,
-    php_ini_builder_prepend,
+    php_ini_builder, php_ini_builder_define, php_ini_builder_prepend, php_ini_builder_quoted,
     php_ini_builder_unquoted,
-    php_ini_builder_quoted,
-    php_ini_builder_define
 };
+use std::ffi::{c_char, CStr, CString, NulError};
+use std::ops::Deref;
 
 // Helpful for CString which only needs to live until immediately after C call.
 struct CStringScope(*mut c_char);
@@ -28,12 +25,18 @@ impl Deref for CStringScope {
 impl Drop for CStringScope {
     fn drop(&mut self) {
         // Convert back to a CString to ensure it gets dropped
-        drop(unsafe { CString::from_raw(self.0) })
+        drop(unsafe { CString::from_raw(self.0) });
     }
 }
 
 /// A builder for creating INI configurations.
 pub type IniBuilder = php_ini_builder;
+
+impl Default for IniBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl IniBuilder {
     /// Creates a new INI builder.
@@ -44,8 +47,9 @@ impl IniBuilder {
     /// # use ext_php_rs::builders::IniBuilder;
     /// let mut builder = IniBuilder::new();
     /// ```
+    #[must_use]
     pub fn new() -> IniBuilder {
-         IniBuilder {
+        IniBuilder {
             value: std::ptr::null_mut(),
             length: 0,
         }
@@ -56,6 +60,10 @@ impl IniBuilder {
     /// # Arguments
     ///
     /// * `value` - The value to append.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `NulError` if the value contains a null byte.
     ///
     /// # Examples
     ///
@@ -81,6 +89,10 @@ impl IniBuilder {
     ///
     /// * `name` - The name of the pair.
     /// * `value` - The value of the pair.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `NulError` if the value contains a null byte.
     ///
     /// # Examples
     ///
@@ -114,6 +126,10 @@ impl IniBuilder {
     /// * `name` - The name of the pair.
     /// * `value` - The value of the pair.
     ///
+    /// # Errors
+    ///
+    /// Returns a `NulError` if the value contains a null byte.
+    ///
     /// # Examples
     ///
     /// ```
@@ -144,6 +160,10 @@ impl IniBuilder {
     /// # Arguments
     ///
     /// * `value` - The value to define.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `NulError` if the value contains a null byte.
     ///
     /// # Examples
     ///
@@ -177,51 +197,82 @@ impl IniBuilder {
             return std::ptr::null_mut();
         }
 
-        unsafe { CStr::from_ptr(self.value) }.as_ptr() as *mut c_char
+        unsafe { CStr::from_ptr(self.value) }.as_ptr().cast_mut()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{slice, str};
 
     #[test]
     fn test_ini_builder_prepend() {
         let mut builder = IniBuilder::new();
-        builder.prepend("foo=bar").unwrap();
+        builder.prepend("foo=bar").expect("should prepend value");
 
         let ini = builder.finish();
         assert!(!ini.is_null());
-        assert_eq!(unsafe { CStr::from_ptr(ini) }.to_str().unwrap(), "foo=bar");
+        assert_eq!(
+            unsafe {
+                let data = slice::from_raw_parts(ini.cast::<u8>(), builder.length);
+                str::from_utf8(data)
+            },
+            Ok("foo=bar")
+        );
     }
 
     #[test]
     fn test_ini_builder_unquoted() {
         let mut builder = IniBuilder::new();
-        builder.unquoted("baz", "qux").unwrap();
+        builder
+            .unquoted("baz", "qux")
+            .expect("should add unquoted value");
 
         let ini = builder.finish();
         assert!(!ini.is_null());
-        assert_eq!(unsafe { CStr::from_ptr(ini) }.to_str().unwrap(), "baz=qux\n");
+        assert_eq!(
+            unsafe {
+                let data = slice::from_raw_parts(ini.cast::<u8>(), builder.length);
+                str::from_utf8(data)
+            },
+            Ok("baz=qux\n")
+        );
     }
 
     #[test]
     fn test_ini_builder_quoted() {
         let mut builder = IniBuilder::new();
-        builder.quoted("quux", "corge").unwrap();
+        builder
+            .quoted("quux", "corge")
+            .expect("should add quoted value");
 
         let ini = builder.finish();
         assert!(!ini.is_null());
-        assert_eq!(unsafe { CStr::from_ptr(ini) }.to_str().unwrap(), "quux=\"corge\"\n");
+        assert_eq!(
+            unsafe {
+                let data = slice::from_raw_parts(ini.cast::<u8>(), builder.length);
+                str::from_utf8(data)
+            },
+            Ok("quux=\"corge\"\n")
+        );
     }
 
     #[test]
     fn test_ini_builder_define() {
         let mut builder = IniBuilder::new();
-        builder.define("grault=garply").unwrap();
+        builder
+            .define("grault=garply")
+            .expect("should define value");
 
         let ini = builder.finish();
         assert!(!ini.is_null());
-        assert_eq!(unsafe { CStr::from_ptr(ini) }.to_str().unwrap(), "grault=garply\n");
+        assert_eq!(
+            unsafe {
+                let data = slice::from_raw_parts(ini.cast::<u8>(), builder.length);
+                str::from_utf8(data)
+            },
+            Ok("grault=garply\n")
+        );
     }
 }
