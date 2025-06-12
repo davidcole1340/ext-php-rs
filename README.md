@@ -201,6 +201,26 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
+## Development
+
+### `allowed_bindings.rs`
+This file contains the list of allowed bindings for the Zend API. It is acting
+as a whitelist for the bindings that can be used in the library.
+
+When updating this file you need to also update the `docsrs_bindings.rs` file.
+To do this, run the following command from the root of the project:
+
+```bash
+tools/update_bindings.sh
+```
+
+This will build the bindings using docker, and then copy the `docsrs_bindings.rs`
+file to the root of the repository.
+This will ensure that the file is always built in the same environment.
+
+Docker and buildx are required to run the script, so make sure you have
+those [installed](https://docs.docker.com/engine/install/).
+
 ## Resources
 
 - [PHP Internals Book](https://www.phpinternalsbook.com/)
