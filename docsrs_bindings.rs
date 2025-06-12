@@ -2302,6 +2302,17 @@ impl _php_stream {
         }
     }
     #[inline]
+    pub fn fatal_error(&self) -> u16 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(9usize, 1u8) as u16) }
+    }
+    #[inline]
+    pub fn set_fatal_error(&mut self, val: u16) {
+        unsafe {
+            let val: u16 = ::std::mem::transmute(val);
+            self._bitfield_1.set(9usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
     pub fn new_bitfield_1(
         is_persistent: u16,
         in_free: u16,
@@ -2310,6 +2321,7 @@ impl _php_stream {
         fclose_stdiocast: u16,
         has_buffered_data: u16,
         fclose_stdiocast_flush_in_progress: u16,
+        fatal_error: u16,
     ) -> __BindgenBitfieldUnit<[u8; 2usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 2usize]> = Default::default();
         __bindgen_bitfield_unit.set(0usize, 1u8, {
@@ -2340,6 +2352,10 @@ impl _php_stream {
             let fclose_stdiocast_flush_in_progress: u16 =
                 unsafe { ::std::mem::transmute(fclose_stdiocast_flush_in_progress) };
             fclose_stdiocast_flush_in_progress as u64
+        });
+        __bindgen_bitfield_unit.set(9usize, 1u8, {
+            let fatal_error: u16 = unsafe { ::std::mem::transmute(fatal_error) };
+            fatal_error as u64
         });
         __bindgen_bitfield_unit
     }
@@ -2879,4 +2895,43 @@ pub struct _sapi_post_entry {
             arg: *mut ::std::os::raw::c_void,
         ),
     >,
+}
+#[doc = " A class which helps with constructing INI entries from the command\n line."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct php_ini_builder {
+    pub value: *mut ::std::os::raw::c_char,
+    pub length: usize,
+}
+extern "C" {
+    #[doc = " Prepend a string.\n\n @param src the source string\n @param length the size of the source string"]
+    pub fn php_ini_builder_prepend(
+        b: *mut php_ini_builder,
+        src: *const ::std::os::raw::c_char,
+        length: usize,
+    );
+}
+extern "C" {
+    #[doc = " Append an unquoted name/value pair."]
+    pub fn php_ini_builder_unquoted(
+        b: *mut php_ini_builder,
+        name: *const ::std::os::raw::c_char,
+        name_length: usize,
+        value: *const ::std::os::raw::c_char,
+        value_length: usize,
+    );
+}
+extern "C" {
+    #[doc = " Append a quoted name/value pair."]
+    pub fn php_ini_builder_quoted(
+        b: *mut php_ini_builder,
+        name: *const ::std::os::raw::c_char,
+        name_length: usize,
+        value: *const ::std::os::raw::c_char,
+        value_length: usize,
+    );
+}
+extern "C" {
+    #[doc = " Parse an INI entry from the command-line option \"--define\"."]
+    pub fn php_ini_builder_define(b: *mut php_ini_builder, arg: *const ::std::os::raw::c_char);
 }

@@ -20,6 +20,7 @@ pub mod variadic_args;
 mod test {
     use std::env;
 
+    use std::path::PathBuf;
     use std::process::Command;
     use std::sync::Once;
 
@@ -36,6 +37,43 @@ mod test {
         });
     }
 
+    /// Finds the location of an executable `name`.
+    #[must_use]
+    pub fn find_executable(name: &str) -> Option<PathBuf> {
+        const WHICH: &str = if cfg!(windows) { "where" } else { "which" };
+        let cmd = Command::new(WHICH).arg(name).output().ok()?;
+        if cmd.status.success() {
+            let stdout = String::from_utf8_lossy(&cmd.stdout);
+            stdout.trim().lines().next().map(|l| l.trim().into())
+        } else {
+            None
+        }
+    }
+
+    /// Returns an environment variable's value as a `PathBuf`
+    pub fn path_from_env(key: &str) -> Option<PathBuf> {
+        std::env::var_os(key).map(PathBuf::from)
+    }
+
+    /// Finds the location of the PHP executable.
+    fn find_php() -> Result<PathBuf, String> {
+        // If path is given via env, it takes priority.
+        if let Some(path) = path_from_env("PHP") {
+            if !path
+                .try_exists()
+                .map_err(|e| format!("Could not check existence: {e}"))?
+            {
+                // If path was explicitly given and it can't be found, this is a hard error
+                return Err(format!("php executable not found at {path:?}"));
+            }
+            return Ok(path);
+        }
+        Ok(find_executable("php").ok_or(
+            "Could not find PHP executable. \
+            Please ensure `php` is in your PATH or the `PHP` environment variable is set.",
+        )?)
+    }
+
     pub fn run_php(file: &str) -> bool {
         setup();
         let mut path = env::current_dir().expect("Could not get cwd");
@@ -48,7 +86,7 @@ mod test {
             "libtests"
         });
         path.set_extension(std::env::consts::DLL_EXTENSION);
-        let output = Command::new("php")
+        let output = Command::new(find_php().expect("Could not find PHP executable"))
             .arg(format!("-dextension={}", path.to_str().unwrap()))
             .arg("-dassert.active=1")
             .arg("-dassert.exception=1")
