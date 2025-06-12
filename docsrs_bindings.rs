@@ -491,6 +491,15 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn _estrdup(
+        s: *const ::std::os::raw::c_char,
+        __zend_filename: *const ::std::os::raw::c_char,
+        __zend_lineno: u32,
+        __zend_orig_filename: *const ::std::os::raw::c_char,
+        __zend_orig_lineno: u32,
+    ) -> *mut ::std::os::raw::c_char;
+}
+extern "C" {
     pub fn __zend_malloc(len: usize) -> *mut ::std::os::raw::c_void;
 }
 #[repr(C)]
