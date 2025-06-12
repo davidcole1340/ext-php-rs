@@ -11,6 +11,10 @@ env:
   # increment this manually to force cache eviction
   RUST_CACHE_PREFIX: "v0-rust"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 jobs:
   lint:
     name: Lint

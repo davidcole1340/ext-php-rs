@@ -1,0 +1,28 @@
+name: docsrs bindings
+on:
+  pull_request:
+    paths:
+      - 'allowed-bindings.rs'
+      - 'docsrs_bindings.rs'
+      - 'Cargo.toml'
+      - 'build.rs'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'tools/update_bindings.sh'
+      - '.github/workflows/docsrs_bindings.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-bindings:
+    name: Lint bindings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check docsrs_bindings.rs
+        run: tools/update_bindings.sh && git diff --exit-code docsrs_bindings.rs

@@ -7,17 +7,19 @@
 //
 // NOTE TO EDITORS:
 //   When updating this file, you must re-generate the `docsrs_bindings.rs`
-//   file used by docs.rs to build documentation. To perform this:
+//   file used by docs.rs to build documentation. To perform this from
+//   within the repository root:
 //
-//     $ cargo clean
-//     $ cargo build
-//     $ cp target/debug/build/ext-php-rs-e2cb315d27898d01/out/bindings.rs
-//       docsrs_bindings.rs
+//     $ tools/update_bindings.sh
 //     $ git add . && git commit -m "update docs.rs bindings"
 //
-//   The hash after `ext-php-rs-` in the bindings path may change. There should
-//   be two folders beginning with `ext-php-rs-` in `target/debug/build`, so
-//   check both for the presence of the bindings file.
+//   This will build the bindings using docker, and then copy the
+//   `docsrs_bindings.rs` file to the root of the repository.
+//   This will ensure that the file is always built in the same environment.
+//
+//   Docker and buildx are required to run the script, so make sure you have
+//   those installed. For more information, see:
+//   https://docs.docker.com/engine/install/
 
 bind! {
     HashTable,
