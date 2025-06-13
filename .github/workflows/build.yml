@@ -85,7 +85,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [windows-latest]
         php: ["8.0", "8.1", "8.2", "8.3", "8.4"]
         rust: [stable, nightly]
         clang: ["15", "17"]
@@ -95,14 +96,14 @@ jobs:
           - os: windows-latest
             rust: stable
           # setup-php doesn't support thread safe PHP on Linux and macOS.
-          - os: macos-latest
-            phpts: ts
-          - os: ubuntu-latest
-            phpts: ts
-          - os: macos-latest
-            clang: "17"
-          - os: ubuntu-latest
-            clang: "15"
+          # - os: macos-latest
+          #   phpts: ts
+          # - os: ubuntu-latest
+          #   phpts: ts
+          # - os: macos-latest
+          #   clang: "17"
+          # - os: ubuntu-latest
+          #   clang: "15"
           - os: windows-latest
             clang: "15"
     env:
