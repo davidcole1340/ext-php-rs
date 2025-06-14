@@ -26,6 +26,7 @@ extern "C" {
     pub fn ext_php_rs_zend_object_alloc(obj_size: usize, ce: *mut zend_class_entry) -> *mut c_void;
     pub fn ext_php_rs_zend_object_release(obj: *mut zend_object);
     pub fn ext_php_rs_executor_globals() -> *mut zend_executor_globals;
+    pub fn ext_php_rs_compiler_globals() -> *mut zend_compiler_globals;
     pub fn ext_php_rs_process_globals() -> *mut php_core_globals;
     pub fn ext_php_rs_sapi_globals() -> *mut sapi_globals_struct;
     pub fn ext_php_rs_file_globals() -> *mut php_file_globals;

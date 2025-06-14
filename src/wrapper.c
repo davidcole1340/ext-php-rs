@@ -40,6 +40,18 @@ zend_executor_globals *ext_php_rs_executor_globals() {
 #endif
 }
 
+zend_compiler_globals *ext_php_rs_compiler_globals() {
+#ifdef ZTS
+#ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+  return TSRMG_FAST_BULK_STATIC(compiler_globals_offset, zend_compiler_globals);
+#else
+  return TSRMG_FAST_BULK(compiler_globals_offset, zend_compiler_globals *);
+#endif
+#else
+  return &compiler_globals;
+#endif
+}
+
 php_core_globals *ext_php_rs_process_globals() {
 #ifdef ZTS
 #ifdef ZEND_ENABLE_STATIC_TSRMLS_CACHE

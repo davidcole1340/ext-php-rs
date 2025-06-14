@@ -293,6 +293,7 @@ pub type zend_object = _zend_object;
 pub type zend_resource = _zend_resource;
 pub type zend_reference = _zend_reference;
 pub type zend_ast_ref = _zend_ast_ref;
+pub type zend_ast = _zend_ast;
 pub type dtor_func_t = ::std::option::Option<unsafe extern "C" fn(pDest: *mut zval)>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -696,6 +697,16 @@ extern "C" {
         str_: *const ::std::os::raw::c_char,
         len: usize,
     ) -> *mut ::std::os::raw::c_void;
+}
+pub type zend_ast_kind = u16;
+pub type zend_ast_attr = u16;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_ast {
+    pub kind: zend_ast_kind,
+    pub attr: zend_ast_attr,
+    pub lineno: u32,
+    pub child: [*mut zend_ast; 1usize],
 }
 extern "C" {
     pub fn gc_possible_root(ref_: *mut zend_refcounted);
@@ -1266,6 +1277,24 @@ pub union _znode_op {
 }
 pub type znode_op = _znode_op;
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_declarables {
+    pub ticks: zend_long,
+}
+pub type zend_declarables = _zend_declarables;
+#[repr(C)]
+pub struct _zend_file_context {
+    pub declarables: zend_declarables,
+    pub current_namespace: *mut zend_string,
+    pub in_namespace: bool,
+    pub has_bracketed_namespaces: bool,
+    pub imports: *mut HashTable,
+    pub imports_function: *mut HashTable,
+    pub imports_const: *mut HashTable,
+    pub seen_symbols: HashTable,
+}
+pub type zend_file_context = _zend_file_context;
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct _zend_op {
     pub handler: *const ::std::os::raw::c_void,
@@ -1279,6 +1308,16 @@ pub struct _zend_op {
     pub op2_type: u8,
     pub result_type: u8,
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_brk_cont_element {
+    pub start: ::std::os::raw::c_int,
+    pub cont: ::std::os::raw::c_int,
+    pub brk: ::std::os::raw::c_int,
+    pub parent: ::std::os::raw::c_int,
+    pub is_switch: bool,
+}
+pub type zend_brk_cont_element = _zend_brk_cont_element;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_try_catch_element {
@@ -1296,6 +1335,20 @@ pub struct _zend_live_range {
     pub end: u32,
 }
 pub type zend_live_range = _zend_live_range;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_oparray_context {
+    pub opcodes_size: u32,
+    pub vars_size: ::std::os::raw::c_int,
+    pub literals_size: ::std::os::raw::c_int,
+    pub fast_call_var: u32,
+    pub try_catch_offset: u32,
+    pub current_brk_cont: ::std::os::raw::c_int,
+    pub last_brk_cont: ::std::os::raw::c_int,
+    pub brk_cont_array: *mut zend_brk_cont_element,
+    pub labels: *mut HashTable,
+}
+pub type zend_oparray_context = _zend_oparray_context;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct _zend_property_info {
@@ -1429,7 +1482,60 @@ pub struct __jmp_buf_tag {
     pub __saved_mask: __sigset_t,
 }
 pub type jmp_buf = [__jmp_buf_tag; 1usize];
+pub type zend_compiler_globals = _zend_compiler_globals;
 pub type zend_executor_globals = _zend_executor_globals;
+#[repr(C)]
+pub struct _zend_compiler_globals {
+    pub loop_var_stack: zend_stack,
+    pub active_class_entry: *mut zend_class_entry,
+    pub compiled_filename: *mut zend_string,
+    pub zend_lineno: ::std::os::raw::c_int,
+    pub active_op_array: *mut zend_op_array,
+    pub function_table: *mut HashTable,
+    pub class_table: *mut HashTable,
+    pub auto_globals: *mut HashTable,
+    pub parse_error: u8,
+    pub in_compilation: bool,
+    pub short_tags: bool,
+    pub unclean_shutdown: bool,
+    pub ini_parser_unbuffered_errors: bool,
+    pub open_files: zend_llist,
+    pub ini_parser_param: *mut _zend_ini_parser_param,
+    pub skip_shebang: bool,
+    pub increment_lineno: bool,
+    pub variable_width_locale: bool,
+    pub ascii_compatible_locale: bool,
+    pub doc_comment: *mut zend_string,
+    pub extra_fn_flags: u32,
+    pub compiler_options: u32,
+    pub context: zend_oparray_context,
+    pub file_context: zend_file_context,
+    pub arena: *mut zend_arena,
+    pub interned_strings: HashTable,
+    pub script_encoding_list: *mut *const zend_encoding,
+    pub script_encoding_list_size: usize,
+    pub multibyte: bool,
+    pub detect_unicode: bool,
+    pub encoding_declared: bool,
+    pub ast: *mut zend_ast,
+    pub ast_arena: *mut zend_arena,
+    pub delayed_oplines_stack: zend_stack,
+    pub memoized_exprs: *mut HashTable,
+    pub memoize_mode: zend_memoize_mode,
+    pub map_ptr_real_base: *mut ::std::os::raw::c_void,
+    pub map_ptr_base: *mut ::std::os::raw::c_void,
+    pub map_ptr_size: usize,
+    pub map_ptr_last: usize,
+    pub delayed_variance_obligations: *mut HashTable,
+    pub delayed_autoloads: *mut HashTable,
+    pub unlinked_uses: *mut HashTable,
+    pub current_linking_class: *mut zend_class_entry,
+    pub rtd_key_counter: u32,
+    pub short_circuiting_opnums: zend_stack,
+}
+extern "C" {
+    pub static mut compiler_globals: _zend_compiler_globals;
+}
 extern "C" {
     pub static mut executor_globals: zend_executor_globals;
 }
@@ -1477,6 +1583,20 @@ extern "C" {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct _zend_encoding {
+    _unused: [u8; 0],
+}
+pub type zend_encoding = _zend_encoding;
+pub type zend_arena = _zend_arena;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_arena {
+    pub ptr: *mut ::std::os::raw::c_char,
+    pub end: *mut ::std::os::raw::c_char,
+    pub prev: *mut zend_arena,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct _zend_call_stack {
     pub base: *mut ::std::os::raw::c_void,
     pub max_size: usize,
@@ -1496,6 +1616,10 @@ pub struct _zend_fiber {
     _unused: [u8; 0],
 }
 pub type zend_fiber = _zend_fiber;
+pub const zend_memoize_mode_ZEND_MEMOIZE_NONE: zend_memoize_mode = 0;
+pub const zend_memoize_mode_ZEND_MEMOIZE_COMPILE: zend_memoize_mode = 1;
+pub const zend_memoize_mode_ZEND_MEMOIZE_FETCH: zend_memoize_mode = 2;
+pub type zend_memoize_mode = ::std::os::raw::c_uint;
 #[repr(C)]
 pub struct _zend_executor_globals {
     pub uninitialized_zval: zval,
@@ -2390,6 +2514,21 @@ extern "C" {
         ini_entry: *const zend_ini_entry_def,
         module_number: ::std::os::raw::c_int,
     ) -> zend_result;
+}
+pub type zend_ini_parser_cb_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *mut zval,
+        arg2: *mut zval,
+        arg3: *mut zval,
+        callback_type: ::std::os::raw::c_int,
+        arg: *mut ::std::os::raw::c_void,
+    ),
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _zend_ini_parser_param {
+    pub ini_parser_cb: zend_ini_parser_cb_t,
+    pub arg: *mut ::std::os::raw::c_void,
 }
 extern "C" {
     pub fn zend_register_bool_constant(
