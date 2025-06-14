@@ -10,6 +10,7 @@ authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2021"
 categories = ["api-bindings"]
 exclude = ["/.github", "/.crates"]
+autotests = false
 
 [dependencies]
 bitflags = "2"
@@ -39,6 +40,7 @@ zip = "4.0"
 [features]
 closure = []
 embed = []
+anyhow = ["dep:anyhow"]
 
 [workspace]
 members = [
@@ -56,3 +58,16 @@ missing_docs = "warn"
 [[example]]
 name = "hello_world"
 crate-type = ["cdylib"]
+
+[[test]]
+name = "guide_tests"
+path = "tests/guide.rs"
+required-features = ["embed", "closure", "anyhow"]
+
+[[test]]
+name = "module_tests"
+path = "tests/module.rs"
+
+[[test]]
+name = "sapi_tests"
+path = "tests/sapi.rs"

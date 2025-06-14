@@ -6,7 +6,7 @@
 |---------------|----------------|-----------------| ---------------- |----------------------------------|
 | Yes           | No             | No              | No               | `ZendHashTable` or `ZendIterator` |
 
-Converting from a zval to a `Iterable` is valid when the value is either an array or an object 
+Converting from a zval to a `Iterable` is valid when the value is either an array or an object
 that implements the `Traversable` interface. This means that any value that can be used in a
 `foreach` loop can be converted into a `Iterable`.
 
