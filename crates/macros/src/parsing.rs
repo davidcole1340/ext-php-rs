@@ -1,3 +1,4 @@
+use convert_case::{Case, Casing};
 use darling::FromMeta;
 
 const MAGIC_METHOD: [&str; 17] = [
@@ -46,16 +47,20 @@ pub struct PhpRename {
 }
 
 impl PhpRename {
-    pub fn rename(&self, name: impl AsRef<str>) -> String {
-        self.name.as_ref().map_or_else(
-            || {
-                let name = name.as_ref();
-                self.rename
-                    .as_ref()
-                    .map_or_else(|| name.to_string(), |r| name.rename(*r))
-            },
-            ToString::to_string,
-        )
+    pub fn rename(&self, name: impl AsRef<str>, default: RenameRule) -> String {
+        if let Some(name) = self.name.as_ref() {
+            name.to_string()
+        } else {
+            name.as_ref().rename(self.rename.unwrap_or(default))
+        }
+    }
+
+    pub fn rename_method(&self, name: impl AsRef<str>, default: RenameRule) -> String {
+        if let Some(name) = self.name.as_ref() {
+            name.to_string()
+        } else {
+            name.as_ref().rename_method(self.rename.unwrap_or(default))
+        }
     }
 }
 
@@ -76,53 +81,45 @@ pub enum RenameRule {
     Pascal,
     /// Renames to `UPPER_SNAKE_CASE`.
     #[darling(rename = "UPPER_CASE")]
-    ScreamingSnakeCase,
+    ScreamingSnake,
 }
 
 impl RenameRule {
     fn rename(self, value: impl AsRef<str>) -> String {
         match self {
             Self::None => value.as_ref().to_string(),
-            Self::Camel => ident_case::RenameRule::CamelCase.apply_to_field(value.as_ref()),
-            Self::Pascal => ident_case::RenameRule::PascalCase.apply_to_field(value.as_ref()),
-            Self::Snake => ident_case::RenameRule::SnakeCase.apply_to_field(value.as_ref()),
-            Self::ScreamingSnakeCase => {
-                ident_case::RenameRule::ScreamingSnakeCase.apply_to_field(value.as_ref())
-            }
+            Self::Camel => value.as_ref().to_case(Case::Camel),
+            Self::Pascal => value.as_ref().to_case(Case::Pascal),
+            Self::Snake => value.as_ref().to_case(Case::Snake),
+            Self::ScreamingSnake => value.as_ref().to_case(Case::Constant),
         }
     }
 }
 
-impl Rename for &str {
+impl<T> Rename for T
+where
+    T: ToString,
+{
     fn rename(&self, rule: RenameRule) -> String {
-        rule.rename(self)
+        rule.rename(self.to_string())
     }
 }
 
-impl Rename for syn::Ident {
-    fn rename(&self, rule: RenameRule) -> String {
-        let s = self.to_string();
-        rule.rename(s)
-    }
-}
-
-impl MethodRename for syn::Ident {
+impl<T> MethodRename for T
+where
+    T: ToString + Rename,
+{
     fn rename_method(&self, rule: RenameRule) -> String {
-        self.to_string().as_str().rename_method(rule)
-    }
-}
-
-impl MethodRename for &str {
-    fn rename_method(&self, rule: RenameRule) -> String {
+        let original = self.to_string();
         match rule {
-            RenameRule::None => (*self).to_string(),
+            RenameRule::None => original,
             _ => {
-                if MAGIC_METHOD.contains(self) {
-                    match *self {
+                if MAGIC_METHOD.contains(&original.as_str()) {
+                    match original.as_str() {
                         "__to_string" => "__toString".to_string(),
                         "__debug_info" => "__debugInfo".to_string(),
                         "__call_static" => "__callStatic".to_string(),
-                        _ => (*self).to_string(),
+                        _ => original,
                     }
                 } else {
                     self.rename(rule)
@@ -144,33 +141,86 @@ mod tests {
             name: Some("test".to_string()),
             rename: None,
         };
-        assert_eq!(rename.rename("test"), "test");
-        assert_eq!(rename.rename("Test"), "test");
-        assert_eq!(rename.rename("TEST"), "test");
+        assert_eq!(rename.rename("testCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename("TestCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename("TEST_CASE", RenameRule::Snake), "test");
 
         let rename = PhpRename {
             name: None,
-            rename: Some(RenameRule::ScreamingSnakeCase),
+            rename: Some(RenameRule::ScreamingSnake),
         };
-        assert_eq!(rename.rename("test"), "TEST");
-        assert_eq!(rename.rename("Test"), "TEST");
-        assert_eq!(rename.rename("TEST"), "TEST");
+        assert_eq!(rename.rename("testCase", RenameRule::Snake), "TEST_CASE");
+        assert_eq!(rename.rename("TestCase", RenameRule::Snake), "TEST_CASE");
+        assert_eq!(rename.rename("TEST_CASE", RenameRule::Snake), "TEST_CASE");
 
         let rename = PhpRename {
             name: Some("test".to_string()),
-            rename: Some(RenameRule::ScreamingSnakeCase),
+            rename: Some(RenameRule::ScreamingSnake),
         };
-        assert_eq!(rename.rename("test"), "test");
-        assert_eq!(rename.rename("Test"), "test");
-        assert_eq!(rename.rename("TEST"), "test");
+        assert_eq!(rename.rename("testCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename("TestCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename("TEST_CASE", RenameRule::Snake), "test");
 
         let rename = PhpRename {
             name: None,
             rename: None,
         };
-        assert_eq!(rename.rename("test"), "test");
-        assert_eq!(rename.rename("Test"), "Test");
-        assert_eq!(rename.rename("TEST"), "TEST");
+        assert_eq!(rename.rename("testCase", RenameRule::Snake), "test_case");
+        assert_eq!(rename.rename("TestCase", RenameRule::Snake), "test_case");
+        assert_eq!(rename.rename("TEST_CASE", RenameRule::Snake), "test_case");
+    }
+
+    #[test]
+    fn php_rename_method() {
+        let rename = PhpRename {
+            name: Some("test".to_string()),
+            rename: None,
+        };
+        assert_eq!(rename.rename_method("testCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename_method("TestCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename_method("TEST_CASE", RenameRule::Snake), "test");
+
+        let rename = PhpRename {
+            name: None,
+            rename: Some(RenameRule::ScreamingSnake),
+        };
+        assert_eq!(
+            rename.rename_method("testCase", RenameRule::Snake),
+            "TEST_CASE"
+        );
+        assert_eq!(
+            rename.rename_method("TestCase", RenameRule::Snake),
+            "TEST_CASE"
+        );
+        assert_eq!(
+            rename.rename_method("TEST_CASE", RenameRule::Snake),
+            "TEST_CASE"
+        );
+
+        let rename = PhpRename {
+            name: Some("test".to_string()),
+            rename: Some(RenameRule::ScreamingSnake),
+        };
+        assert_eq!(rename.rename_method("testCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename_method("TestCase", RenameRule::Snake), "test");
+        assert_eq!(rename.rename_method("TEST_CASE", RenameRule::Snake), "test");
+
+        let rename = PhpRename {
+            name: None,
+            rename: None,
+        };
+        assert_eq!(
+            rename.rename_method("testCase", RenameRule::Snake),
+            "test_case"
+        );
+        assert_eq!(
+            rename.rename_method("TestCase", RenameRule::Snake),
+            "test_case"
+        );
+        assert_eq!(
+            rename.rename_method("TEST_CASE", RenameRule::Snake),
+            "test_case"
+        );
     }
 
     #[test]
@@ -195,12 +245,53 @@ mod tests {
             ("__debug_info", "__debugInfo"),
         ] {
             assert_eq!(magic, magic.rename_method(RenameRule::None));
+            assert_eq!(
+                magic,
+                PhpRename {
+                    name: None,
+                    rename: Some(RenameRule::None)
+                }
+                .rename_method(magic, RenameRule::ScreamingSnake)
+            );
+
             assert_eq!(expected, magic.rename_method(RenameRule::Camel));
+            assert_eq!(
+                expected,
+                PhpRename {
+                    name: None,
+                    rename: Some(RenameRule::Camel)
+                }
+                .rename_method(magic, RenameRule::ScreamingSnake)
+            );
+
             assert_eq!(expected, magic.rename_method(RenameRule::Pascal));
+            assert_eq!(
+                expected,
+                PhpRename {
+                    name: None,
+                    rename: Some(RenameRule::Pascal)
+                }
+                .rename_method(magic, RenameRule::ScreamingSnake)
+            );
+
             assert_eq!(expected, magic.rename_method(RenameRule::Snake));
             assert_eq!(
                 expected,
-                magic.rename_method(RenameRule::ScreamingSnakeCase)
+                PhpRename {
+                    name: None,
+                    rename: Some(RenameRule::Snake)
+                }
+                .rename_method(magic, RenameRule::ScreamingSnake)
+            );
+
+            assert_eq!(expected, magic.rename_method(RenameRule::ScreamingSnake));
+            assert_eq!(
+                expected,
+                PhpRename {
+                    name: None,
+                    rename: Some(RenameRule::ScreamingSnake)
+                }
+                .rename_method(magic, RenameRule::Camel)
             );
         }
     }
@@ -215,7 +306,7 @@ mod tests {
         assert_eq!(snake, original.rename_method(RenameRule::Snake));
         assert_eq!(
             screaming_snake,
-            original.rename_method(RenameRule::ScreamingSnakeCase)
+            original.rename_method(RenameRule::ScreamingSnake)
         );
     }
 
@@ -227,9 +318,6 @@ mod tests {
         assert_eq!(camel, original.rename(RenameRule::Camel));
         assert_eq!(pascal, original.rename(RenameRule::Pascal));
         assert_eq!(snake, original.rename(RenameRule::Snake));
-        assert_eq!(
-            screaming_snake,
-            original.rename(RenameRule::ScreamingSnakeCase)
-        );
+        assert_eq!(screaming_snake, original.rename(RenameRule::ScreamingSnake));
     }
 }

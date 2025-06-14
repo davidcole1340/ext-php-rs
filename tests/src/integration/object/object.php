@@ -8,7 +8,7 @@ $obj->array = [
     1, 2, 3
 ];
 
-$test = test_object($obj);
+$test = testObject($obj);
 
 assert($test->string === 'string');
 assert($test->bool === true);
