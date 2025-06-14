@@ -121,7 +121,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 To implement an interface, use `#[php(implements(ce = ce_fn, stub = "InterfaceName")]` where `ce_fn` is an function returning a `ClassEntry`.
 The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
 
-````rust,no_run
+```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::{
