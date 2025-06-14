@@ -342,6 +342,7 @@ mod tests {
         });
     }
 
+    #[cfg(feature = "anyhow")]
     #[test]
     fn test_from_anyhow() {
         Embed::run(|| {
