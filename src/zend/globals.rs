@@ -13,12 +13,12 @@ use crate::exception::PhpResult;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _sapi_module_struct, _zend_executor_globals, ext_php_rs_executor_globals,
-    ext_php_rs_file_globals, ext_php_rs_process_globals, ext_php_rs_sapi_globals,
-    ext_php_rs_sapi_module, php_core_globals, php_file_globals, sapi_globals_struct,
-    sapi_header_struct, sapi_headers_struct, sapi_request_info, zend_ini_entry,
-    zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET,
-    TRACK_VARS_POST, TRACK_VARS_SERVER,
+    _sapi_module_struct, _zend_compiler_globals, _zend_executor_globals,
+    ext_php_rs_compiler_globals, ext_php_rs_executor_globals, ext_php_rs_file_globals,
+    ext_php_rs_process_globals, ext_php_rs_sapi_globals, ext_php_rs_sapi_module, php_core_globals,
+    php_file_globals, sapi_globals_struct, sapi_header_struct, sapi_headers_struct,
+    sapi_request_info, zend_ini_entry, zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV,
+    TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_SERVER,
 };
 #[cfg(not(php81))]
 use crate::ffi::{_zend_hash_find_known_hash, _zend_string};
@@ -34,9 +34,6 @@ use super::linked_list::ZendLinkedListIterator;
 
 /// Stores global variables used in the PHP executor.
 pub type ExecutorGlobals = _zend_executor_globals;
-
-/// Stores the SAPI module used in the PHP executor.
-pub type SapiModule = _sapi_module_struct;
 
 impl ExecutorGlobals {
     /// Returns a reference to the PHP executor globals.
@@ -225,6 +222,69 @@ impl ExecutorGlobals {
         }
     }
 }
+
+pub type CompilerGlobals = _zend_compiler_globals;
+
+impl CompilerGlobals {
+    /// Returns a reference to the PHP compiler globals.
+    ///
+    /// The compiler globals are guarded by a [`RwLock`]. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    ///
+    /// # Panics
+    ///
+    /// * If static executor globals are not set
+    pub fn get() -> GlobalReadGuard<Self> {
+        // SAFETY: PHP compiler globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { ext_php_rs_compiler_globals().as_ref() }
+            .expect("Static compiler globals were invalid");
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::GLOBALS_LOCK.with(|l| l.read_arc());
+            } else {
+                let guard = lock::GLOBALS_LOCK.read_arc();
+            }
+        }
+
+        GlobalReadGuard { globals, guard }
+    }
+
+    /// Returns a mutable reference to the PHP compiler globals.
+    ///
+    /// The compiler globals are guarded by a [`RwLock`]. There can be multiple
+    /// immutable references at one time but only ever one mutable reference.
+    /// Attempting to retrieve the globals while already holding the global
+    /// guard will lead to a deadlock. Dropping the globals guard will release
+    /// the lock.
+    ///
+    /// # Panics
+    ///
+    /// * If static compiler globals are not set
+    pub fn get_mut() -> GlobalWriteGuard<Self> {
+        // SAFETY: PHP compiler globals are statically declared therefore should never
+        // return an invalid pointer.
+        let globals = unsafe { ext_php_rs_compiler_globals().as_mut() }
+            .expect("Static compiler globals were invalid");
+
+        cfg_if::cfg_if! {
+            if #[cfg(php_zts)] {
+                let guard = lock::GLOBALS_LOCK.with(|l| l.write_arc());
+            } else {
+                let guard = lock::GLOBALS_LOCK.write_arc();
+            }
+        }
+
+        GlobalWriteGuard { globals, guard }
+    }
+}
+
+/// Stores the SAPI module used in the PHP executor.
+pub type SapiModule = _sapi_module_struct;
 
 impl SapiModule {
     /// Returns a reference to the PHP SAPI module.
@@ -839,10 +899,9 @@ impl<T> DerefMut for GlobalWriteGuard<T> {
 #[cfg(feature = "embed")]
 #[cfg(test)]
 mod embed_tests {
+    use super::*;
     use crate::embed::Embed;
     use std::os::raw::c_char;
-
-    use super::SapiHeader;
 
     #[test]
     fn test_sapi_header() {
@@ -866,5 +925,23 @@ mod embed_tests {
                 );
             }
         });
+    }
+
+    #[test]
+    fn test_executor_globals() {
+        let state = ExecutorGlobals::get().active;
+        ExecutorGlobals::get_mut().active = !state;
+        let changed = ExecutorGlobals::get().active;
+        ExecutorGlobals::get_mut().active = state;
+        assert_eq!(changed, !state);
+    }
+
+    #[test]
+    fn test_compiler_globals() {
+        let state = CompilerGlobals::get().in_compilation;
+        CompilerGlobals::get_mut().in_compilation = !state;
+        let changed = CompilerGlobals::get().in_compilation;
+        CompilerGlobals::get_mut().in_compilation = state;
+        assert_eq!(changed, !state);
     }
 }
