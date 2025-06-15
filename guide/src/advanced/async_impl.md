@@ -18,7 +18,11 @@ This allows full compatibility with [amphp](https://amphp.org), [PSL](https://gi
 
 Make sure to require [php-tokio](https://github.com/danog/php-tokio) as a dependency before proceeding.
 
-```rust,ignore
+<!-- Must ignore because of circular dependency with php_tokio. Otherwise, this _should_ work. -->
+```rust,no_run,ignore
+# extern crate ext_php_rs;
+# extern crate php_tokio;
+# extern crate reqwest;
 use ext_php_rs::prelude::*;
 use php_tokio::{php_async_impl, EventLoop};
 
