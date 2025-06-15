@@ -19,7 +19,7 @@ void ext_php_rs_sapi_startup() {
     signal(SIGPIPE, SIG_IGN);
   #endif
 
-  #ifdef ZTS
+  #ifdef EXT_PHP_RS_ZTS
     php_tsrm_startup();
     #ifdef PHP_WIN32
       ZEND_TSRMLS_CACHE_UPDATE();

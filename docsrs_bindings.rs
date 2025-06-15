@@ -2871,3 +2871,42 @@ pub struct _sapi_post_entry {
         ),
     >,
 }
+#[doc = " A class which helps with constructing INI entries from the command\n line."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct php_ini_builder {
+    pub value: *mut ::std::os::raw::c_char,
+    pub length: usize,
+}
+extern "C" {
+    #[doc = " Prepend a string.\n\n @param src the source string\n @param length the size of the source string"]
+    pub fn php_ini_builder_prepend(
+        b: *mut php_ini_builder,
+        src: *const ::std::os::raw::c_char,
+        length: usize,
+    );
+}
+extern "C" {
+    #[doc = " Append an unquoted name/value pair."]
+    pub fn php_ini_builder_unquoted(
+        b: *mut php_ini_builder,
+        name: *const ::std::os::raw::c_char,
+        name_length: usize,
+        value: *const ::std::os::raw::c_char,
+        value_length: usize,
+    );
+}
+extern "C" {
+    #[doc = " Append a quoted name/value pair."]
+    pub fn php_ini_builder_quoted(
+        b: *mut php_ini_builder,
+        name: *const ::std::os::raw::c_char,
+        name_length: usize,
+        value: *const ::std::os::raw::c_char,
+        value_length: usize,
+    );
+}
+extern "C" {
+    #[doc = " Parse an INI entry from the command-line option \"--define\"."]
+    pub fn php_ini_builder_define(b: *mut php_ini_builder, arg: *const ::std::os::raw::c_char);
+}
