@@ -7,7 +7,7 @@ use syn::spanned::Spanned as _;
 use syn::{Expr, FnArg, GenericArgument, ItemFn, PatType, PathArguments, Type, TypePath};
 
 use crate::helpers::get_docs;
-use crate::parsing::{PhpRename, Visibility};
+use crate::parsing::{PhpRename, RenameRule, Visibility};
 use crate::prelude::*;
 use crate::syn_ext::DropLifetimes;
 
@@ -46,7 +46,9 @@ pub fn parser(mut input: ItemFn) -> Result<TokenStream> {
 
     let func = Function::new(
         &input.sig,
-        php_attr.rename.rename(input.sig.ident.to_string()),
+        php_attr
+            .rename
+            .rename(input.sig.ident.to_string(), RenameRule::Snake),
         args,
         php_attr.optional,
         docs,

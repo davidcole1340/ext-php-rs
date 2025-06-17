@@ -15,10 +15,11 @@ assert($class->getNumber() === 2022);
 $class->setNumber(2023);
 assert($class->getNumber() === 2023);
 
+var_dump($class);
 // Tests #prop decorator
-assert($class->boolean);
-$class->boolean = false;
-assert($class->boolean === false);
+assert($class->booleanProp);
+$class->booleanProp = false;
+assert($class->booleanProp === false);
 
 // Call regular from object
 assert($class->staticCall('Php') === 'Hello Php');
@@ -31,7 +32,7 @@ assert(TestClass::staticCall('Php') === 'Hello Php');
 
 $ex = new TestClassExtends();
 assert_exception_thrown(fn() => throw $ex);
-assert_exception_thrown(fn() => throw_exception());
+assert_exception_thrown(fn() => throwException());
 
 $arrayAccess = new TestClassArrayAccess();
 assert_exception_thrown(fn() => $arrayAccess[0] = 'foo');

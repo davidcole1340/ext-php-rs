@@ -5,7 +5,7 @@ use quote::quote;
 use syn::{Attribute, Expr, Fields, ItemStruct};
 
 use crate::helpers::get_docs;
-use crate::parsing::PhpRename;
+use crate::parsing::{PhpRename, RenameRule};
 use crate::prelude::*;
 
 #[derive(FromAttributes, Debug, Default)]
@@ -35,7 +35,7 @@ pub struct ClassEntryAttribute {
 pub fn parser(mut input: ItemStruct) -> Result<TokenStream> {
     let attr = StructAttributes::from_attributes(&input.attrs)?;
     let ident = &input.ident;
-    let name = attr.rename.rename(ident.to_string());
+    let name = attr.rename.rename(ident.to_string(), RenameRule::Pascal);
     let docs = get_docs(&attr.attrs)?;
     input.attrs.retain(|attr| !attr.path().is_ident("php"));
 
@@ -107,7 +107,9 @@ struct Property<'a> {
 
 impl Property<'_> {
     pub fn name(&self) -> String {
-        self.attr.rename.rename(self.ident.to_string())
+        self.attr
+            .rename
+            .rename(self.ident.to_string(), RenameRule::Camel)
     }
 }
 
