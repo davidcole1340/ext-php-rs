@@ -1,9 +1,9 @@
 # Functions & methods
 
-PHP functions and methods are represented by the `Function` struct.  
+PHP functions and methods are represented by the `Function` struct.
 
-You can use the `try_from_function` and `try_from_method` methods to obtain a Function struct corresponding to the passed function or static method name.  
-It's heavily recommended you reuse returned `Function` objects, to avoid the overhead of looking up the function/method name.  
+You can use the `try_from_function` and `try_from_method` methods to obtain a Function struct corresponding to the passed function or static method name.
+It's heavily recommended you reuse returned `Function` objects, to avoid the overhead of looking up the function/method name.
 
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]

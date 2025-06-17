@@ -306,6 +306,8 @@ impl<'a, 'b> ArgParser<'a, 'b> {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used)]
+    #[cfg(feature = "embed")]
+    use crate::embed::Embed;
 
     use super::*;
 
@@ -427,12 +429,14 @@ mod tests {
     #[test]
     #[cfg(feature = "embed")]
     fn test_try_call_not_callable() {
-        let mut arg = Arg::new("test", DataType::Long);
-        let mut zval = Zval::from(42);
-        arg.zval = Some(&mut zval);
+        Embed::run(|| {
+            let mut arg = Arg::new("test", DataType::Long);
+            let mut zval = Zval::from(42);
+            arg.zval = Some(&mut zval);
 
-        let result = arg.try_call(vec![]);
-        assert!(result.is_err());
+            let result = arg.try_call(vec![]);
+            assert!(result.is_err());
+        });
     }
 
     // TODO: Test the callable case
