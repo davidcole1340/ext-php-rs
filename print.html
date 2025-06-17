@@ -2330,6 +2330,18 @@ the following variants are equivalent:</p>
 </code></pre>
 <pre><code class="language-rs">#[php(rename = case, vis = "public")]
 </code></pre>
+<h3 id="renaming-and-case-changes"><a class="header" href="#renaming-and-case-changes">Renaming and Case Changes</a></h3>
+<p>Default case was adjusted to match PSR standards:</p>
+<ul>
+<li>Class names are now <code>PascalCase</code></li>
+<li>Property names are now <code>camelCase</code></li>
+<li>Method names are now <code>camelCase</code></li>
+<li>Constant names are now <code>UPPER_CASE</code></li>
+<li>Function names are now <code>snake_case</code></li>
+</ul>
+<p>This can be changed using the <code>rename</code> attribute on the item.
+Additionally, the <code>rename_methods</code> and <code>rename_consts</code> attributes can be used
+to change the case of all methods and constants in a class.</p>
 <h4 id="name-vs-rename"><a class="header" href="#name-vs-rename"><code>name</code> vs <code>rename</code></a></h4>
 <p>Previously the (re)name parameter was used to rename items. This has been
 unified to use <code>name</code> to set the name of an item to a string literal. The
