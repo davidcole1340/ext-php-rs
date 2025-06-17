@@ -27,6 +27,7 @@ bind! {
     _call_user_function_impl,
     _efree,
     _emalloc,
+    _estrdup,
     _zend_executor_globals,
     _zend_compiler_globals,
     _sapi_globals_struct,
