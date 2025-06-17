@@ -9,7 +9,7 @@ use std::{
     iter::FromIterator,
     ptr,
 };
-
+use std::str::FromStr;
 use crate::{
     boxed::{ZBox, ZBoxable},
     convert::{FromZval, IntoZval},
@@ -25,6 +25,7 @@ use crate::{
     flags::DataType,
     types::Zval,
 };
+use crate::ffi::zend_ulong;
 
 /// A PHP hashtable.
 ///
@@ -378,7 +379,11 @@ impl ZendHashTable {
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        unsafe { zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &mut val) };
+        if let Ok(idx) = zend_ulong::from_str(key) {
+            unsafe { zend_hash_index_update(self, idx, &mut val) };
+        } else {
+            unsafe { zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &mut val) };
+        }
         val.release();
         Ok(())
     }
