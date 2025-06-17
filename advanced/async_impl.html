@@ -176,7 +176,11 @@
 <p>In this example, we're exposing an async Rust HTTP client library called <a href="https://docs.rs/reqwest/latest/reqwest/">reqwest</a> to PHP, using <a href="https://www.php.net/manual/en/language.fibers.php">PHP fibers</a>, <a href="https://github.com/danog/php-tokio">php-tokio</a> and the <a href="https://revolt.run">PHP Revolt event loop</a> under the hood to handle async interoperability.</p>
 <p>This allows full compatibility with <a href="https://amphp.org">amphp</a>, <a href="https://github.com/azjezz/psl">PSL</a>, <a href="https://reactphp.org">reactphp</a> and any other async PHP library based on <a href="https://revolt.run">Revolt</a>.</p>
 <p>Make sure to require <a href="https://github.com/danog/php-tokio">php-tokio</a> as a dependency before proceeding.</p>
-<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
+<!-- Must ignore because of circular dependency with php_tokio. Otherwise, this _should_ work. -->
+<pre><code class="language-rust no_run ignore"><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">extern crate php_tokio;
+</span><span class="boring">extern crate reqwest;
+</span>use ext_php_rs::prelude::*;
 use php_tokio::{php_async_impl, EventLoop};
 
 #[php_class]

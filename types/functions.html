@@ -168,7 +168,7 @@
                     <main>
                         <h1 id="functions--methods"><a class="header" href="#functions--methods">Functions &amp; methods</a></h1>
 <p>PHP functions and methods are represented by the <code>Function</code> struct.</p>
-<p>You can use the <code>try_from_function</code> and <code>try_from_method</code> methods to obtain a Function struct corresponding to the passed function or static method name.<br />
+<p>You can use the <code>try_from_function</code> and <code>try_from_method</code> methods to obtain a Function struct corresponding to the passed function or static method name.
 It's heavily recommended you reuse returned <code>Function</code> objects, to avoid the overhead of looking up the function/method name.</p>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
