@@ -138,7 +138,7 @@ impl<'a> FunctionBuilder<'a> {
     pub fn returns(mut self, type_: DataType, as_ref: bool, allow_null: bool) -> Self {
         self.retval = Some(type_);
         self.ret_as_ref = as_ref;
-        self.ret_as_null = allow_null;
+        self.ret_as_null = allow_null && type_ != DataType::Void;
         self
     }
 
