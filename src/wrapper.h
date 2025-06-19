@@ -23,6 +23,9 @@
 #include "zend_inheritance.h"
 #include "zend_interfaces.h"
 #include "php_variables.h"
+#ifdef EXT_PHP_RS_PHP_82
+#include "php_ini_builder.h"
+#endif
 #include "zend_ini.h"
 #include "main/SAPI.h"
 

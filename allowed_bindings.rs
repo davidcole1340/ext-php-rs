@@ -319,5 +319,10 @@ bind! {
     php_module_shutdown,
     php_request_startup,
     php_request_shutdown,
-    instanceof_function_slow
+    instanceof_function_slow,
+    php_ini_builder,
+    php_ini_builder_prepend,
+    php_ini_builder_unquoted,
+    php_ini_builder_quoted,
+    php_ini_builder_define
 }
