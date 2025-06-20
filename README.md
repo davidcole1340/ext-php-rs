@@ -193,7 +193,7 @@ Contributions welcome include:
 When contributing, please keep in mind the following:
 - Create tests if possible.
 - Update the documentation if necessary.
-  - If your change is a [braking change](https://semver.org) a migration guide MUST be included. This
+  - If your change is a [breaking change](https://semver.org) a migration guide MUST be included. This
     should be placed in the `guide/src/migration-guides` directory.
 - Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/). We use these to automatically generate changelogs.
 
