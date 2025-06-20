@@ -27,7 +27,9 @@ impl ClassEntry {
         ExecutorGlobals::get().class_table()?;
         let mut name = ZendStr::new(name, false);
 
-        unsafe { crate::ffi::zend_lookup_class_ex(&raw mut *name, std::ptr::null_mut(), 0).as_ref() }
+        unsafe {
+            crate::ffi::zend_lookup_class_ex(&raw mut *name, std::ptr::null_mut(), 0).as_ref()
+        }
     }
 
     /// Creates a new [`ZendObject`], returned inside an [`ZBox<ZendObject>`]
