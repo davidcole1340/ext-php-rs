@@ -608,6 +608,8 @@ impl ZendHashTable {
     ///         }
     ///         ArrayKey::String(key) => {
     ///         }
+    ///         ArrayKey::Str(key) => {
+    ///         }
     ///     }
     ///     dbg!(key, val);
     /// }
