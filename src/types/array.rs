@@ -668,6 +668,7 @@ pub enum ArrayKey<'a> {
     Long(i64),
     /// A string key.
     String(String),
+    /// A string key by reference.
     Str(&'a str),
 }
 
