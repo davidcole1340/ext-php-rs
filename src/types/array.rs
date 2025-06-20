@@ -189,12 +189,19 @@ impl ZendHashTable {
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
     /// ```
     #[must_use]
-    pub fn get<'a, K>(&self, key: K) -> Option<&Zval> where K: Into<ArrayKeyRef<'a>>{
+    pub fn get<'a, K>(&self, key: K) -> Option<&Zval> where K: Into<ArrayKey<'a>>{
         match key.into() {
-            ArrayKeyRef::Long(index) => {
+            ArrayKey::Long(index) => {
                 unsafe { zend_hash_index_find(self, index as zend_ulong).as_ref() }
             }
-            ArrayKeyRef::String(key) => {
+            ArrayKey::String(key) => {
+                if let Ok(index) = i64::from_str(key.as_str()) {
+                    unsafe { zend_hash_index_find(self, index as zend_ulong).as_ref() }
+                } else {
+                    unsafe { zend_hash_str_find(self, CString::new(key.as_str()).ok()?.as_ptr(), key.len() as _).as_ref() }
+                }
+            }
+            ArrayKey::Str(key) => {
                 if let Ok(index) = i64::from_str(key) {
                     unsafe { zend_hash_index_find(self, index as zend_ulong).as_ref() }
                 } else {
@@ -310,12 +317,19 @@ impl ZendHashTable {
     /// ht.remove("test");
     /// assert_eq!(ht.len(), 0);
     /// ```
-    pub fn remove<'a, K>(&mut self, key: K) -> Option<()> where K: Into<ArrayKeyRef<'a>> {
+    pub fn remove<'a, K>(&mut self, key: K) -> Option<()> where K: Into<ArrayKey<'a>> {
         let result = match key.into() {
-            ArrayKeyRef::Long(index) => {
+            ArrayKey::Long(index) => {
                 unsafe { zend_hash_index_del(self, index as zend_ulong) }
             }
-            ArrayKeyRef::String(key) => {
+            ArrayKey::String(key) => {
+                if let Ok(index) = i64::from_str(key.as_str()) {
+                    unsafe { zend_hash_index_del(self, index as zend_ulong) }
+                } else {
+                    unsafe { zend_hash_str_del(self, CString::new(key.as_str()).ok()?.as_ptr(), key.len() as _) }
+                }
+            }
+            ArrayKey::Str(key) => {
                 if let Ok(index) = i64::from_str(key) {
                     unsafe { zend_hash_index_del(self, index as zend_ulong) }
                 } else {
@@ -396,15 +410,22 @@ impl ZendHashTable {
     /// ```
     pub fn insert<'a, K, V>(&mut self, key: K, val: V) -> Result<()>
     where
-        K: Into<ArrayKeyRef<'a>>,
+        K: Into<ArrayKey<'a>>,
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
         match key.into() {
-            ArrayKeyRef::Long(index) => {
+            ArrayKey::Long(index) => {
                 unsafe { zend_hash_index_update(self, index as zend_ulong, &mut val) };
             }
-            ArrayKeyRef::String(key) => {
+            ArrayKey::String(key) => {
+                if let Ok(idx) = i64::from_str(&key) {
+                    unsafe { zend_hash_index_update(self, idx as zend_ulong, &mut val) };
+                } else {
+                    unsafe { zend_hash_str_update(self, CString::new(key.as_str())?.as_ptr(), key.len(), &mut val) };
+                }
+            }
+            ArrayKey::Str(key) => {
                 if let Ok(idx) = i64::from_str(key) {
                     unsafe { zend_hash_index_update(self, idx as zend_ulong, &mut val) };
                 } else {
@@ -640,39 +661,15 @@ pub struct Iter<'a> {
 
 /// Represents the key of a PHP array, which can be either a long or a string.
 #[derive(Debug, PartialEq)]
-pub enum ArrayKey {
+pub enum ArrayKey<'a> {
     /// A numerical key.
     Long(i64),
     /// A string key.
     String(String),
+    Str(&'a str),
 }
 
-
-/// Represents the key of a PHP array, which can be either a long or a string.
-#[derive(Debug, PartialEq)]
-pub enum ArrayKeyRef<'a> {
-    /// A numerical key.
-    Long(i64),
-    /// A string key.
-    String(&'a str),
-}
-
-impl ArrayKeyRef<'_> {
-    /// Check if the key is an integer.
-    ///
-    /// # Returns
-    ///
-    /// Returns true if the key is an integer, false otherwise.
-    #[must_use]
-    pub fn is_long(&self) -> bool {
-        match self {
-            ArrayKeyRef::Long(_) => true,
-            ArrayKeyRef::String(_) => false,
-        }
-    }
-}
-
-impl ArrayKey {
+impl ArrayKey<'_> {
     /// Check if the key is an integer.
     ///
     /// # Returns
@@ -683,29 +680,34 @@ impl ArrayKey {
         match self {
             ArrayKey::Long(_) => true,
             ArrayKey::String(_) => false,
+            ArrayKey::Str(_) => false,
         }
     }
 }
 
-impl Display for ArrayKey {
+impl Display for ArrayKey<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ArrayKey::Long(key) => write!(f, "{key}"),
             ArrayKey::String(key) => write!(f, "{key}"),
+            ArrayKey::Str(key) => write!(f, "{key}"),
         }
     }
 }
 
-impl Display for ArrayKeyRef<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ArrayKeyRef::Long(key) => write!(f, "{key}"),
-            ArrayKeyRef::String(key) => write!(f, "{key}"),
-        }
+impl<'a> From<&'a str> for ArrayKey<'a> {
+    fn from(key: &'a str) -> ArrayKey<'a> {
+        ArrayKey::Str(key)
     }
 }
 
-impl<'a> FromZval<'a> for ArrayKey {
+impl<'a> From<i64> for ArrayKey<'a> {
+    fn from(index: i64) -> ArrayKey<'a> {
+        ArrayKey::Long(index)
+    }
+}
+
+impl<'a> FromZval<'a> for ArrayKey<'_> {
     const TYPE: DataType = DataType::String;
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
@@ -716,32 +718,6 @@ impl<'a> FromZval<'a> for ArrayKey {
             return Some(ArrayKey::String(key));
         }
         None
-    }
-}
-
-impl<'a> FromZval<'a> for ArrayKeyRef<'a> {
-    const TYPE: DataType = DataType::String;
-
-    fn from_zval(zval: &'a Zval) -> Option<ArrayKeyRef<'a>> {
-        if let Some(key) = zval.long() {
-            return Some(ArrayKeyRef::Long(key));
-        }
-        if let Some(key) = zval.str() {
-            return Some(ArrayKeyRef::String(key));
-        }
-        None
-    }
-}
-
-impl<'a> From<&'a str> for ArrayKeyRef<'a> {
-    fn from(key: &'a str) -> ArrayKeyRef<'a> {
-        ArrayKeyRef::String(key)
-    }
-}
-
-impl<'a> From<i64> for ArrayKeyRef<'a> {
-    fn from(index: i64) -> ArrayKeyRef<'a> {
-        ArrayKeyRef::Long(index)
     }
 }
 
@@ -773,7 +749,7 @@ impl<'a> Iter<'a> {
 }
 
 impl<'a> IntoIterator for &'a ZendHashTable {
-    type Item = (ArrayKey, &'a Zval);
+    type Item = (ArrayKey<'a>, &'a Zval);
     type IntoIter = Iter<'a>;
 
     /// Returns an iterator over the key(s) and value contained inside the
@@ -800,7 +776,7 @@ impl<'a> IntoIterator for &'a ZendHashTable {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (ArrayKey, &'a Zval);
+    type Item = (ArrayKey<'a>, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_zval()
