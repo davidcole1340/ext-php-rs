@@ -181,12 +181,12 @@ impl ZendObjectHandlers {
             let self_ = &mut *obj;
             let struct_props = T::get_metadata().get_properties();
 
-            for (name, val) in struct_props {
+            for (&name, val) in struct_props {
                 let mut zv = Zval::new();
                 if val.prop.get(self_, &mut zv).is_err() {
                     continue;
                 }
-                props.insert(*name, zv).map_err(|e| {
+                props.insert(name, zv).map_err(|e| {
                     format!("Failed to insert value into properties hashtable: {e:?}")
                 })?;
             }
