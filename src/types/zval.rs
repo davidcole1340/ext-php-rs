@@ -291,7 +291,7 @@ impl Zval {
 
     /// Returns the value of the zval if it is callable.
     #[must_use]
-    pub fn callable(&self) -> Option<ZendCallable> {
+    pub fn callable(&self) -> Option<ZendCallable<'_>> {
         // The Zval is checked if it is callable in the `new` function.
         ZendCallable::new(self).ok()
     }
@@ -309,7 +309,7 @@ impl Zval {
     /// Returns an iterable over the zval if it is an array or traversable. (is
     /// iterable)
     #[must_use]
-    pub fn iterable(&self) -> Option<Iterable> {
+    pub fn iterable(&self) -> Option<Iterable<'_>> {
         if self.is_iterable() {
             Iterable::from_zval(self)
         } else {

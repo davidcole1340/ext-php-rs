@@ -8,7 +8,7 @@ pub type ZendLinkedList = zend_llist;
 impl ZendLinkedList {
     /// Create an iterator over the linked list
     #[must_use]
-    pub fn iter<T>(&self) -> ZendLinkedListIterator<T> {
+    pub fn iter<T>(&self) -> ZendLinkedListIterator<'_, T> {
         ZendLinkedListIterator::new(self)
     }
 }

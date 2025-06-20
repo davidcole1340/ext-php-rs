@@ -534,7 +534,7 @@ impl ZendHashTable {
     /// }
     #[inline]
     #[must_use]
-    pub fn values(&self) -> Values {
+    pub fn values(&self) -> Values<'_> {
         Values::new(self)
     }
 
@@ -559,7 +559,7 @@ impl ZendHashTable {
     /// }
     #[inline]
     #[must_use]
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&self) -> Iter<'_> {
         self.into_iter()
     }
 }

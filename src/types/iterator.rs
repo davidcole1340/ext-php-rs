@@ -23,7 +23,7 @@ impl ZendIterator {
     /// iterator cannot be rewound.
     // TODO: Check iter not returning iterator
     #[allow(clippy::iter_not_returning_iterator)]
-    pub fn iter(&mut self) -> Option<Iter> {
+    pub fn iter(&mut self) -> Option<Iter<'_>> {
         self.index = 0;
 
         if self.rewind() {
