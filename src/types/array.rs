@@ -739,6 +739,12 @@ impl<'a> From<&'a str> for ArrayKeyRef<'a> {
     }
 }
 
+impl<'a> From<i64> for ArrayKeyRef<'a> {
+    fn from(index: i64) -> ArrayKeyRef<'a> {
+        ArrayKeyRef::Long(index)
+    }
+}
+
 impl<'a> Iter<'a> {
     /// Creates a new iterator over a hashtable.
     ///
