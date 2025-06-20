@@ -234,9 +234,26 @@ impl ZendHashTable {
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
     /// ```
     #[must_use]
-    pub fn get_mut(&self, key: &'_ str) -> Option<&mut Zval> {
-        let str = CString::new(key).ok()?;
-        unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_mut() }
+    pub fn get_mut<'a, K>(&self, key: K) -> Option<&mut Zval> where K: Into<ArrayKey<'a>>{
+        match key.into() {
+            ArrayKey::Long(index) => {
+                unsafe { zend_hash_index_find(self, index as zend_ulong).as_mut() }
+            }
+            ArrayKey::String(key) => {
+                if let Ok(index) = i64::from_str(key.as_str()) {
+                    unsafe { zend_hash_index_find(self, index as zend_ulong).as_mut() }
+                } else {
+                    unsafe { zend_hash_str_find(self, CString::new(key.as_str()).ok()?.as_ptr(), key.len() as _).as_mut() }
+                }
+            }
+            ArrayKey::Str(key) => {
+                if let Ok(index) = i64::from_str(key) {
+                    unsafe { zend_hash_index_find(self, index as zend_ulong).as_mut() }
+                } else {
+                    unsafe { zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _).as_mut() }
+                }
+            }
+        }
     }
 
     /// Attempts to retrieve a value from the hash table with an index.
@@ -662,7 +679,7 @@ pub struct Iter<'a> {
 }
 
 /// Represents the key of a PHP array, which can be either a long or a string.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ArrayKey<'a> {
     /// A numerical key.
     Long(i64),
