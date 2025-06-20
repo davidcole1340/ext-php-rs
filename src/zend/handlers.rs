@@ -186,7 +186,7 @@ impl ZendObjectHandlers {
                 if val.prop.get(self_, &mut zv).is_err() {
                     continue;
                 }
-                props.insert(name, zv).map_err(|e| {
+                props.insert(*name, zv).map_err(|e| {
                     format!("Failed to insert value into properties hashtable: {e:?}")
                 })?;
             }

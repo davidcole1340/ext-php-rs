@@ -189,9 +189,19 @@ impl ZendHashTable {
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
     /// ```
     #[must_use]
-    pub fn get(&self, key: &'_ str) -> Option<&Zval> {
-        let str = CString::new(key).ok()?;
-        unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_ref() }
+    pub fn get<'a, K>(&self, key: K) -> Option<&Zval> where K: Into<ArrayKeyRef<'a>>{
+        match key.into() {
+            ArrayKeyRef::Long(index) => {
+                unsafe { zend_hash_index_find(self, index as zend_ulong).as_ref() }
+            }
+            ArrayKeyRef::String(key) => {
+                if let Ok(index) = i64::from_str(key) {
+                    unsafe { zend_hash_index_find(self, index as zend_ulong).as_ref() }
+                } else {
+                    unsafe { zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _).as_ref() }
+                }
+            }
+        }
     }
 
     /// Attempts to retrieve a value from the hash table with a string key.
@@ -300,9 +310,19 @@ impl ZendHashTable {
     /// ht.remove("test");
     /// assert_eq!(ht.len(), 0);
     /// ```
-    pub fn remove(&mut self, key: &str) -> Option<()> {
-        let result =
-            unsafe { zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _) };
+    pub fn remove<'a, K>(&mut self, key: K) -> Option<()> where K: Into<ArrayKeyRef<'a>> {
+        let result = match key.into() {
+            ArrayKeyRef::Long(index) => {
+                unsafe { zend_hash_index_del(self, index as zend_ulong) }
+            }
+            ArrayKeyRef::String(key) => {
+                if let Ok(index) = i64::from_str(key) {
+                    unsafe { zend_hash_index_del(self, index as zend_ulong) }
+                } else {
+                    unsafe { zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _) }
+                }
+            }
+        };
 
         if result < 0 {
             None
@@ -374,15 +394,23 @@ impl ZendHashTable {
     /// ht.insert("c", "C");
     /// assert_eq!(ht.len(), 3);
     /// ```
-    pub fn insert<V>(&mut self, key: &str, val: V) -> Result<()>
+    pub fn insert<'a, K, V>(&mut self, key: K, val: V) -> Result<()>
     where
+        K: Into<ArrayKeyRef<'a>>,
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        if let Ok(idx) = zend_ulong::from_str(key) {
-            unsafe { zend_hash_index_update(self, idx, &mut val) };
-        } else {
-            unsafe { zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &mut val) };
+        match key.into() {
+            ArrayKeyRef::Long(index) => {
+                unsafe { zend_hash_index_update(self, index as zend_ulong, &mut val) };
+            }
+            ArrayKeyRef::String(key) => {
+                if let Ok(idx) = i64::from_str(key) {
+                    unsafe { zend_hash_index_update(self, idx as zend_ulong, &mut val) };
+                } else {
+                    unsafe { zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &mut val) };
+                }
+            }
         }
         val.release();
         Ok(())
@@ -619,6 +647,31 @@ pub enum ArrayKey {
     String(String),
 }
 
+
+/// Represents the key of a PHP array, which can be either a long or a string.
+#[derive(Debug, PartialEq)]
+pub enum ArrayKeyRef<'a> {
+    /// A numerical key.
+    Long(i64),
+    /// A string key.
+    String(&'a str),
+}
+
+impl ArrayKeyRef<'_> {
+    /// Check if the key is an integer.
+    ///
+    /// # Returns
+    ///
+    /// Returns true if the key is an integer, false otherwise.
+    #[must_use]
+    pub fn is_long(&self) -> bool {
+        match self {
+            ArrayKeyRef::Long(_) => true,
+            ArrayKeyRef::String(_) => false,
+        }
+    }
+}
+
 impl ArrayKey {
     /// Check if the key is an integer.
     ///
@@ -643,6 +696,15 @@ impl Display for ArrayKey {
     }
 }
 
+impl Display for ArrayKeyRef<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArrayKeyRef::Long(key) => write!(f, "{key}"),
+            ArrayKeyRef::String(key) => write!(f, "{key}"),
+        }
+    }
+}
+
 impl<'a> FromZval<'a> for ArrayKey {
     const TYPE: DataType = DataType::String;
 
@@ -654,6 +716,26 @@ impl<'a> FromZval<'a> for ArrayKey {
             return Some(ArrayKey::String(key));
         }
         None
+    }
+}
+
+impl<'a> FromZval<'a> for ArrayKeyRef<'a> {
+    const TYPE: DataType = DataType::String;
+
+    fn from_zval(zval: &'a Zval) -> Option<ArrayKeyRef<'a>> {
+        if let Some(key) = zval.long() {
+            return Some(ArrayKeyRef::Long(key));
+        }
+        if let Some(key) = zval.str() {
+            return Some(ArrayKeyRef::String(key));
+        }
+        None
+    }
+}
+
+impl<'a> From<&'a str> for ArrayKeyRef<'a> {
+    fn from(key: &'a str) -> ArrayKeyRef<'a> {
+        ArrayKeyRef::String(key)
     }
 }
 
