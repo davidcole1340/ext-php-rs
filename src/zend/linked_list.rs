@@ -41,7 +41,7 @@ impl<'a, T: 'a> Iterator for ZendLinkedListIterator<'a, T> {
         unsafe {
             zend_llist_get_next_ex(
                 ptr::from_ref::<ZendLinkedList>(self.list).cast_mut(),
-                &mut self.position,
+                &raw mut self.position,
             )
         };
         Some(value)

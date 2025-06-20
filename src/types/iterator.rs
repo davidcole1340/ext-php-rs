@@ -39,7 +39,7 @@ impl ZendIterator {
     /// `\Iterator` interface. see <https://www.php.net/manual/en/iterator.valid.php>
     pub fn valid(&mut self) -> bool {
         if let Some(valid) = unsafe { (*self.funcs).valid } {
-            let valid = unsafe { valid(&mut *self) == ZEND_RESULT_CODE_SUCCESS };
+            let valid = unsafe { valid(&raw mut *self) == ZEND_RESULT_CODE_SUCCESS };
 
             if ExecutorGlobals::has_exception() {
                 return false;
@@ -63,7 +63,7 @@ impl ZendIterator {
     pub fn rewind(&mut self) -> bool {
         if let Some(rewind) = unsafe { (*self.funcs).rewind } {
             unsafe {
-                rewind(&mut *self);
+                rewind(&raw mut *self);
             }
         }
 
@@ -82,7 +82,7 @@ impl ZendIterator {
     pub fn move_forward(&mut self) -> bool {
         if let Some(move_forward) = unsafe { (*self.funcs).move_forward } {
             unsafe {
-                move_forward(&mut *self);
+                move_forward(&raw mut *self);
             }
         }
 
@@ -97,7 +97,7 @@ impl ZendIterator {
     /// , [`None`] otherwise.
     pub fn get_current_data<'a>(&mut self) -> Option<&'a Zval> {
         let get_current_data = unsafe { (*self.funcs).get_current_data }?;
-        let value = unsafe { &*get_current_data(&mut *self) };
+        let value = unsafe { &*get_current_data(&raw mut *self) };
 
         if ExecutorGlobals::has_exception() {
             return None;
@@ -117,7 +117,7 @@ impl ZendIterator {
         let mut key = Zval::new();
 
         unsafe {
-            get_current_key(&mut *self, &mut key);
+            get_current_key(&raw mut *self, &raw mut key);
         }
 
         if ExecutorGlobals::has_exception() {
