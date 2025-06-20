@@ -200,8 +200,11 @@ extern crate proc_macro;
 /// # fn main() {}
 /// ````
 #[proc_macro_attribute]
-pub fn php_class(_args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
+    if !args.is_empty() {
+        return err!(input => "`#[php_class(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+    }
 
     class::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
@@ -363,8 +366,11 @@ pub fn php_class(_args: TokenStream, input: TokenStream) -> TokenStream {
 /// translated into an exception and thrown. See the section on
 /// [exceptions](../exceptions.md) for more details.
 #[proc_macro_attribute]
-pub fn php_function(_args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
+    if !args.is_empty() {
+        return err!(input => "`#[php_function(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+    }
 
     function::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
@@ -423,8 +429,11 @@ pub fn php_function(_args: TokenStream, input: TokenStream) -> TokenStream {
 /// var_dump(MANUAL_CONSTANT); // string(12) "Hello world!"
 /// ```
 #[proc_macro_attribute]
-pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_const(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemConst);
+    if !args.is_empty() {
+        return err!(input => "`#[php_const(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+    }
 
     constant::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
@@ -498,8 +507,11 @@ pub fn php_const(_args: TokenStream, input: TokenStream) -> TokenStream {
 /// # fn main() {}
 /// ```
 #[proc_macro_attribute]
-pub fn php_module(_args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
+    if !args.is_empty() {
+        return err!(input => "`#[php_module(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+    }
 
     module::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
@@ -685,8 +697,11 @@ pub fn php_module(_args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// [`php_async_impl`]: ./async_impl.md
 #[proc_macro_attribute]
-pub fn php_impl(_args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemImpl);
+    if !args.is_empty() {
+        return err!(input => "`#[php_impl(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+    }
 
     impl_::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
