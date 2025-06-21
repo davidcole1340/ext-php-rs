@@ -689,6 +689,12 @@ pub enum ArrayKey<'a> {
     Str(&'a str),
 }
 
+impl From<String> for ArrayKey<'_> {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
 impl ArrayKey<'_> {
     /// Check if the key is an integer.
     ///
