@@ -83,7 +83,7 @@ impl Function {
             None => None,
             Some(ce) => unsafe {
                 let res = zend_hash_str_find_ptr_lc(
-                    &ce.function_table,
+                    &raw const ce.function_table,
                     name.as_ptr().cast::<c_char>(),
                     name.len(),
                 )
@@ -139,12 +139,12 @@ impl Function {
         unsafe {
             zend_call_known_function(
                 ptr::from_ref(self).cast_mut(),
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
-                &mut retval,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                &raw mut retval,
                 len.try_into()?,
                 packed.as_ptr().cast_mut(),
-                std::ptr::null_mut(),
+                ptr::null_mut(),
             );
         };
 

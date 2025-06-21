@@ -55,7 +55,7 @@ impl ExecutorGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::GLOBALS_LOCK.with(|l| l.read_arc());
+                let guard = lock::GLOBALS_LOCK.with(RwLock::read_arc);
             } else {
                 let guard = lock::GLOBALS_LOCK.read_arc();
             }
@@ -83,7 +83,7 @@ impl ExecutorGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::GLOBALS_LOCK.with(|l| l.write_arc());
+                let guard = lock::GLOBALS_LOCK.with(RwLock::write_arc);
             } else {
                 let guard = lock::GLOBALS_LOCK.write_arc();
             }
@@ -201,7 +201,7 @@ impl ExecutorGlobals {
         cfg_if::cfg_if! {
             if #[cfg(php82)] {
                 unsafe {
-                    zend_atomic_bool_store(&mut self.vm_interrupt, true);
+                    zend_atomic_bool_store(&raw mut self.vm_interrupt, true);
                 }
             } else {
                 self.vm_interrupt = true;
@@ -214,7 +214,7 @@ impl ExecutorGlobals {
         cfg_if::cfg_if! {
             if #[cfg(php82)] {
                 unsafe {
-                    zend_atomic_bool_store(&mut self.vm_interrupt, false);
+                    zend_atomic_bool_store(&raw mut self.vm_interrupt, false);
                 }
             } else {
                 self.vm_interrupt = true;
@@ -245,7 +245,7 @@ impl CompilerGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::GLOBALS_LOCK.with(|l| l.read_arc());
+                let guard = lock::GLOBALS_LOCK.with(RwLock::read_arc);
             } else {
                 let guard = lock::GLOBALS_LOCK.read_arc();
             }
@@ -273,7 +273,7 @@ impl CompilerGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::GLOBALS_LOCK.with(|l| l.write_arc());
+                let guard = lock::GLOBALS_LOCK.with(RwLock::write_arc);
             } else {
                 let guard = lock::GLOBALS_LOCK.write_arc();
             }
@@ -346,7 +346,7 @@ impl ProcessGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::PROCESS_GLOBALS_LOCK.with(|l| l.read_arc());
+                let guard = lock::PROCESS_GLOBALS_LOCK.with(RwLock::read_arc);
             } else {
                 let guard = lock::PROCESS_GLOBALS_LOCK.read_arc();
             }
@@ -369,7 +369,7 @@ impl ProcessGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::PROCESS_GLOBALS_LOCK.with(|l| l.write_arc());
+                let guard = lock::PROCESS_GLOBALS_LOCK.with(RwLock::write_arc);
             } else {
                 let guard = lock::PROCESS_GLOBALS_LOCK.write_arc();
             }
@@ -506,6 +506,7 @@ impl SapiGlobals {
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
+    #[must_use]
     pub fn get() -> GlobalReadGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
@@ -513,7 +514,7 @@ impl SapiGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::SAPI_GLOBALS_LOCK.with(|l| l.read_arc());
+                let guard = lock::SAPI_GLOBALS_LOCK.with(RwLock::read_arc);
             } else {
                 let guard = lock::SAPI_GLOBALS_LOCK.read_arc();
             }
@@ -536,7 +537,7 @@ impl SapiGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::SAPI_GLOBALS_LOCK.with(|l| l.write_arc());
+                let guard = lock::SAPI_GLOBALS_LOCK.with(RwLock::write_arc);
             } else {
                 let guard = lock::SAPI_GLOBALS_LOCK.write_arc();
             }
@@ -777,7 +778,7 @@ impl FileGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::FILE_GLOBALS_LOCK.with(|l| l.read_arc());
+                let guard = lock::FILE_GLOBALS_LOCK.with(RwLock::read_arc);
             } else {
                 let guard = lock::FILE_GLOBALS_LOCK.read_arc();
             }
@@ -793,6 +794,7 @@ impl FileGlobals {
     /// Attempting to retrieve the globals while already holding the global
     /// guard will lead to a deadlock. Dropping the globals guard will release
     /// the lock.
+    #[must_use]
     pub fn get_mut() -> GlobalWriteGuard<Self> {
         // SAFETY: PHP executor globals are statically declared therefore should never
         // return an invalid pointer.
@@ -800,7 +802,7 @@ impl FileGlobals {
 
         cfg_if::cfg_if! {
             if #[cfg(php_zts)] {
-                let guard = lock::FILE_GLOBALS_LOCK.with(|l| l.write_arc());
+                let guard = lock::FILE_GLOBALS_LOCK.with(RwLock::write_arc);
             } else {
                 let guard = lock::FILE_GLOBALS_LOCK.write_arc();
             }

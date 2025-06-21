@@ -3,6 +3,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+#![warn(clippy::pedantic)]
 #![cfg_attr(docs, feature(doc_cfg))]
 #![cfg_attr(windows, feature(abi_vectorcall))]
 

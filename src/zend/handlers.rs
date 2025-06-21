@@ -23,7 +23,7 @@ impl ZendObjectHandlers {
         let mut this = MaybeUninit::uninit();
 
         // SAFETY: `this` is allocated on the stack and is a valid memory location.
-        unsafe { Self::init::<T>(&mut *this.as_mut_ptr()) };
+        unsafe { Self::init::<T>(&raw mut *this.as_mut_ptr()) };
 
         // SAFETY: We just initialized the handlers in the previous statement, therefore
         // we are returning a valid object.
@@ -46,7 +46,7 @@ impl ZendObjectHandlers {
     ///
     /// * If the offset of the `T` type is not a valid `i32` value.
     pub unsafe fn init<T: RegisteredClass>(ptr: *mut ZendObjectHandlers) {
-        std::ptr::copy_nonoverlapping(&std_object_handlers, ptr, 1);
+        ptr::copy_nonoverlapping(&raw const std_object_handlers, ptr, 1);
         let offset = ZendClassObject::<T>::std_offset();
         (*ptr).offset = offset.try_into().expect("Invalid offset");
         (*ptr).free_obj = Some(Self::free_obj::<T>);
@@ -63,7 +63,7 @@ impl ZendObjectHandlers {
             .expect("Invalid object pointer given for `free_obj`");
 
         // Manually drop the object as we don't want to free the underlying memory.
-        ptr::drop_in_place(&mut obj.obj);
+        ptr::drop_in_place(&raw mut obj.obj);
 
         zend_object_std_dtor(object);
     }
@@ -254,12 +254,12 @@ impl ZendObjectHandlers {
                         cfg_if::cfg_if! {
                             if #[cfg(php84)] {
                                 #[allow(clippy::unnecessary_mut_passed)]
-                                if zend_is_true(&mut zv) {
+                                if zend_is_true(&raw mut zv) {
                                     return Ok(1);
                                 }
                             } else {
                                 #[allow(clippy::unnecessary_mut_passed)]
-                                if zend_is_true(&mut zv) == 1 {
+                                if zend_is_true(&raw mut zv) == 1 {
                                     return Ok(1);
                                 }
                             }

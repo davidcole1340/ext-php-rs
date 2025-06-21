@@ -303,7 +303,7 @@ impl ClassBuilder {
 
         let class = unsafe {
             zend_register_internal_class_ex(
-                &mut self.ce,
+                &raw mut self.ce,
                 match self.extends {
                     Some((ptr, _)) => ptr::from_ref(ptr()).cast_mut(),
                     None => std::ptr::null_mut(),

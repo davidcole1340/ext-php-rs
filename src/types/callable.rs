@@ -131,12 +131,12 @@ impl<'a> ZendCallable<'a> {
         let result = unsafe {
             #[allow(clippy::used_underscore_items)]
             _call_user_function_impl(
-                std::ptr::null_mut(),
+                ptr::null_mut(),
                 ptr::from_ref(self.0.as_ref()).cast_mut(),
-                &mut retval,
+                &raw mut retval,
                 len.try_into()?,
                 packed.as_ptr().cast_mut(),
-                std::ptr::null_mut(),
+                ptr::null_mut(),
             )
         };
 
