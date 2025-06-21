@@ -1,6 +1,8 @@
 #![allow(clippy::unused_self)]
 use ext_php_rs::{convert::IntoZval, prelude::*, types::Zval, zend::ce};
 
+/// Doc comment
+/// Goes here
 #[php_class]
 pub struct TestClass {
     string: String,

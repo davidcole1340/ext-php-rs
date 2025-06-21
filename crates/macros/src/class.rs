@@ -153,7 +153,7 @@ fn generate_registered_class_impl(
     };
 
     let docs = quote! {
-        #(#docs)*
+        #(#docs,)*
     };
 
     let extends = if let Some(extends) = extends {
