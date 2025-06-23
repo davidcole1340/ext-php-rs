@@ -12,7 +12,7 @@ placed underneath the `#[php_class]` attribute.
 - `name` - Changes the name of the class when exported to PHP. The Rust struct
   name is kept the same. If no name is given, the name of the struct is used.
   Useful for namespacing classes.
-- `rename` - Changes the case of the class name when exported to PHP.
+- `change_case` - Changes the case of the class name when exported to PHP.
 - `#[php(extends(ce = ce_fn, stub = "ParentClass"))]` - Sets the parent class of the class. Can only be used once.
   `ce_fn` must be a function with the signature `fn() -> &'static ClassEntry`.
 - `#[php(implements(ce = ce_fn, stub = "InterfaceName"))]` - Implements the given interface on the class. Can be used
@@ -28,8 +28,8 @@ You can rename the property with options:
 
 - `name` - Allows you to rename the property, e.g.
   `#[php(name = "new_name")]`
-- `rename` - Allows you to rename the property using rename rules, e.g.
-  `#[php(rename = PascalCase)]`
+- `change_case` - Allows you to rename the property using rename rules, e.g.
+  `#[php(change_case = PascalCase)]`
 
 ## Restrictions
 
@@ -121,7 +121,7 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 To implement an interface, use `#[php(implements(ce = ce_fn, stub = "InterfaceName")]` where `ce_fn` is an function returning a `ClassEntry`.
 The following example implements [`ArrayAccess`](https://www.php.net/manual/en/class.arrayaccess.php):
 
-```rust,no_run
+````rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
 # extern crate ext_php_rs;
 use ext_php_rs::{
