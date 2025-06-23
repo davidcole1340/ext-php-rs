@@ -18,6 +18,7 @@ use syn::{
 
 extern crate proc_macro;
 
+// BEGIN DOCS FROM classes.md
 /// # `#[php_class]` Attribute
 ///
 /// Structs can be exported to PHP as classes with the `#[php_class]` attribute
@@ -33,7 +34,7 @@ extern crate proc_macro;
 /// - `name` - Changes the name of the class when exported to PHP. The Rust
 ///   struct name is kept the same. If no name is given, the name of the struct
 ///   is used. Useful for namespacing classes.
-/// - `rename` - Changes the case of the class name when exported to PHP.
+/// - `change_case` - Changes the case of the class name when exported to PHP.
 /// - `#[php(extends(ce = ce_fn, stub = "ParentClass"))]` - Sets the parent
 ///   class of the class. Can only be used once. `ce_fn` must be a function with
 ///   the signature `fn() -> &'static ClassEntry`.
@@ -50,8 +51,8 @@ extern crate proc_macro;
 ///
 /// - `name` - Allows you to rename the property, e.g. `#[php(name =
 ///   "new_name")]`
-/// - `rename` - Allows you to rename the property using rename rules, e.g.
-///   `#[php(rename = PascalCase)]`
+/// - `change_case` - Allows you to rename the property using rename rules, e.g.
+///   `#[php(change_case = PascalCase)]`
 ///
 /// ## Restrictions
 ///
@@ -199,6 +200,7 @@ extern crate proc_macro;
 /// }
 /// # fn main() {}
 /// ````
+// END DOCS FROM classes.md
 #[proc_macro_attribute]
 pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
@@ -211,6 +213,7 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// BEGIN DOCS FROM function.md
 /// # `#[php_function]` Attribute
 ///
 /// Used to annotate functions which should be exported to PHP. Note that this
@@ -365,6 +368,7 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 /// You can also return a `Result` from the function. The error variant will be
 /// translated into an exception and thrown. See the section on
 /// [exceptions](../exceptions.md) for more details.
+// END DOCS FROM function.md
 #[proc_macro_attribute]
 pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
@@ -377,6 +381,7 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// BEGIN DOCS FROM constant.md
 /// # `#[php_const]` Attribute
 ///
 /// Exports a Rust constant as a global PHP constant. The constant can be any
@@ -389,8 +394,8 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// - `name` - Allows you to rename the property, e.g. `#[php(name =
 ///   "new_name")]`
-/// - `rename` - Allows you to rename the property using rename rules, e.g.
-///   `#[php(rename = PascalCase)]`
+/// - `change_case` - Allows you to rename the property using rename rules, e.g.
+///   `#[php(change_case = PascalCase)]`
 ///
 /// ## Examples
 ///
@@ -428,6 +433,7 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
 /// var_dump(I_AM_RENAMED); // int(42)
 /// var_dump(MANUAL_CONSTANT); // string(12) "Hello world!"
 /// ```
+// END DOCS FROM constant.md
 #[proc_macro_attribute]
 pub fn php_const(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemConst);
@@ -440,6 +446,7 @@ pub fn php_const(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// BEGIN DOCS FROM module.md
 /// # `#[php_module]` Attribute
 ///
 /// The module macro is used to annotate the `get_module` function, which is
@@ -506,6 +513,7 @@ pub fn php_const(args: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// # fn main() {}
 /// ```
+// END DOCS FROM module.md
 #[proc_macro_attribute]
 pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
@@ -518,6 +526,7 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// BEGIN DOCS FROM impl.md
 /// # `#[php_impl]` Attribute
 ///
 /// You can export an entire `impl` block to PHP. This exports all methods as
@@ -532,6 +541,21 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 /// If you want to use async Rust, use `#[php_async_impl]`, instead: see [here
 /// &raquo;](./async_impl.md) for more info.
 ///
+/// ## Options
+///
+/// By default all constants are renamed to `UPPER_CASE` and all methods are
+/// renamed to camelCase. This can be changed by passing the
+/// `change_method_case` and `change_constant_case` as `#[php]` attributes on
+/// the `impl` block. The options are:
+///
+/// - `#[php(change_method_case = "snake_case")]` - Renames the method to snake
+///   case.
+/// - `#[php(change_constant_case = "snake_case")]` - Renames the constant to
+///   snake case.
+///
+/// See the [`name` and `change_case`](./php.md#name-and-change_case) section
+/// for a list of all available cases.
+///
 /// ## Methods
 ///
 /// Methods basically follow the same rules as functions, so read about the
@@ -545,17 +569,6 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 /// `ZendClassObject<T>` in place of the self parameter, where the parameter
 /// must be named `self_`. This can also be used to return a reference to
 /// `$this`.
-///
-/// By default, all methods are renamed in PHP to the camel-case variant of the
-/// Rust method name. This can be changed on the `#[php_impl]` attribute, by
-/// passing one of the following as the `rename_methods` option:
-///
-/// - `"none"` - does not rename the methods.
-/// - `"camelCase"` - renames all methods to camel case (default).
-/// - `"snake_case"` - renames all methods to snake case.
-///
-/// For example, to disable renaming, change the `#[php_impl]` attribute to
-/// `#[php_impl(rename_methods = "none")]`.
 ///
 /// The rest of the options are passed as separate attributes:
 ///
@@ -602,8 +615,9 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 /// attributes. By default, the `get_` or `set_` prefix is trimmed from the
 /// start of the function name, and the remainder is used as the property name.
 ///
-/// If you want to use a different name for the property, you can pass a
-/// `rename` option to the attribute which will change the property name.
+/// If you want to use a different name for the property, you can pass a `name`
+/// or `change_case` option to the `#[php]` attribute which will change the
+/// property name.
 ///
 /// Properties do not necessarily have to have both a getter and a setter, if
 /// the property is immutable the setter can be omitted, and vice versa for
@@ -696,6 +710,7 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// [`php_async_impl`]: ./async_impl.md
+// END DOCS FROM impl.md
 #[proc_macro_attribute]
 pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemImpl);
@@ -708,6 +723,7 @@ pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// BEGIN DOCS FROM extern.md
 /// # `#[php_extern]` Attribute
 ///
 /// Attribute used to annotate `extern` blocks which are deemed as PHP
@@ -771,6 +787,7 @@ pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
 /// [`strpos`]: https://www.php.net/manual/en/function.strpos.php
 /// [`IntoZval`]: crate::convert::IntoZval
 /// [`Zval`]: crate::types::Zval
+// END DOCS FROM extern.md
 #[proc_macro_attribute]
 pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemForeignMod);
@@ -780,6 +797,7 @@ pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
         .into()
 }
 
+// BEGIN DOCS FROM zval_convert.md
 /// # `ZvalConvert` Derive Macro
 ///
 /// The `#[derive(ZvalConvert)]` macro derives the `FromZval` and `IntoZval`
@@ -932,6 +950,7 @@ pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
 /// test_union(null); // UnionExample::None
 /// var_dump(give_union()); // int(5)
 /// ```
+// END DOCS FROM zval_convert.md
 #[proc_macro_derive(ZvalConvert)]
 pub fn zval_convert_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

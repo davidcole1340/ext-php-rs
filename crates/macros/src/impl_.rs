@@ -30,9 +30,9 @@ enum MethodTy {
 #[darling(attributes(php), default)]
 pub struct PhpImpl {
     /// Rename methods to match the given rule.
-    rename_methods: Option<RenameRule>,
+    change_method_case: Option<RenameRule>,
     /// Rename constants to match the given rule.
-    rename_constants: Option<RenameRule>,
+    change_constant_case: Option<RenameRule>,
 }
 
 pub fn parser(mut input: ItemImpl) -> Result<TokenStream> {
@@ -47,8 +47,9 @@ pub fn parser(mut input: ItemImpl) -> Result<TokenStream> {
 
     let mut parsed = ParsedImpl::new(
         path,
-        args.rename_methods.unwrap_or(RenameRule::Camel),
-        args.rename_constants.unwrap_or(RenameRule::ScreamingSnake),
+        args.change_method_case.unwrap_or(RenameRule::Camel),
+        args.change_constant_case
+            .unwrap_or(RenameRule::ScreamingSnake),
     );
     parsed.parse(input.items.iter_mut())?;
 
@@ -116,8 +117,8 @@ impl MethodArgs {
 #[derive(Debug)]
 struct ParsedImpl<'a> {
     path: &'a syn::Path,
-    rename_methods: RenameRule,
-    rename_constants: RenameRule,
+    change_method_case: RenameRule,
+    change_constant_case: RenameRule,
     functions: Vec<FnBuilder>,
     constructor: Option<Function<'a>>,
     constants: Vec<Constant<'a>>,
@@ -165,12 +166,13 @@ impl<'a> ParsedImpl<'a> {
     /// # Parameters
     ///
     /// * `path` - Path of the type the `impl` block is for.
-    /// * `rename` - Rename rule for methods.
+    /// * `rename_methods` - Rule to rename methods with.
+    /// * `rename_constants` - Rule to rename constants with.
     fn new(path: &'a syn::Path, rename_methods: RenameRule, rename_constants: RenameRule) -> Self {
         Self {
             path,
-            rename_methods,
-            rename_constants,
+            change_method_case: rename_methods,
+            change_constant_case: rename_constants,
             functions: Vec::default(),
             constructor: Option::default(),
             constants: Vec::default(),
@@ -185,7 +187,7 @@ impl<'a> ParsedImpl<'a> {
                     let attr = PhpConstAttribute::from_attributes(&c.attrs)?;
                     let name = attr
                         .rename
-                        .rename(c.ident.to_string(), self.rename_constants);
+                        .rename(c.ident.to_string(), self.change_constant_case);
                     let docs = get_docs(&attr.attrs)?;
                     c.attrs.retain(|attr| !attr.path().is_ident("php"));
 
@@ -199,7 +201,7 @@ impl<'a> ParsedImpl<'a> {
                     let attr = PhpFunctionImplAttribute::from_attributes(&method.attrs)?;
                     let name = attr
                         .rename
-                        .rename_method(method.sig.ident.to_string(), self.rename_methods);
+                        .rename_method(method.sig.ident.to_string(), self.change_method_case);
                     let docs = get_docs(&attr.attrs)?;
                     method.attrs.retain(|attr| !attr.path().is_ident("php"));
 
