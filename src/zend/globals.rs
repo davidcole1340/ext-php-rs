@@ -929,19 +929,23 @@ mod embed_tests {
 
     #[test]
     fn test_executor_globals() {
-        let state = ExecutorGlobals::get().active;
-        ExecutorGlobals::get_mut().active = !state;
-        let changed = ExecutorGlobals::get().active;
-        ExecutorGlobals::get_mut().active = state;
-        assert_eq!(changed, !state);
+        Embed::run(|| {
+            let state = ExecutorGlobals::get().active;
+            ExecutorGlobals::get_mut().active = !state;
+            let changed = ExecutorGlobals::get().active;
+            ExecutorGlobals::get_mut().active = state;
+            assert_eq!(changed, !state);
+        });
     }
 
     #[test]
     fn test_compiler_globals() {
-        let state = CompilerGlobals::get().in_compilation;
-        CompilerGlobals::get_mut().in_compilation = !state;
-        let changed = CompilerGlobals::get().in_compilation;
-        CompilerGlobals::get_mut().in_compilation = state;
-        assert_eq!(changed, !state);
+        Embed::run(|| {
+            let state = CompilerGlobals::get().in_compilation;
+            CompilerGlobals::get_mut().in_compilation = !state;
+            let changed = CompilerGlobals::get().in_compilation;
+            CompilerGlobals::get_mut().in_compilation = state;
+            assert_eq!(changed, !state);
+        });
     }
 }
