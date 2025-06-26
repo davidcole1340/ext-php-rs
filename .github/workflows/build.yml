@@ -94,11 +94,6 @@ jobs:
           # ext-php-rs requires nightly Rust when on Windows.
           - os: windows-latest
             rust: stable
-          # setup-php doesn't support thread safe PHP on Linux and macOS.
-          - os: macos-latest
-            phpts: ts
-          - os: ubuntu-latest
-            phpts: ts
           - os: macos-latest
             clang: "17"
           - os: ubuntu-latest
