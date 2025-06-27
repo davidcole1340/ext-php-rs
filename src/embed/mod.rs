@@ -22,7 +22,7 @@ use std::panic::{resume_unwind, RefUnwindSafe};
 use std::path::Path;
 use std::ptr::null_mut;
 
-pub use ffi::ext_php_rs_sapi_startup;
+pub use ffi::{ext_php_rs_php_error, ext_php_rs_sapi_startup};
 pub use sapi::SapiModule;
 
 /// The embed module provides a way to run php code from rust

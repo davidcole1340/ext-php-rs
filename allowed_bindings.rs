@@ -319,5 +319,11 @@ bind! {
     php_module_shutdown,
     php_request_startup,
     php_request_shutdown,
-    instanceof_function_slow
+    instanceof_function_slow,
+    uid_t,
+    gid_t,
+    php_default_post_reader,
+    php_default_treat_data,
+    php_default_input_filter,
+    php_error
 }
