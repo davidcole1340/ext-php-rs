@@ -262,6 +262,7 @@ impl Zval {
     /// Returns a mutable reference to the zval if it is an internal indirect
     /// reference.
     #[must_use]
+    #[allow(clippy::mut_from_ref)]
     pub fn indirect_mut(&self) -> Option<&mut Zval> {
         if self.is_indirect() {
             Some(unsafe { &mut *(self.value.zv.cast::<Zval>()) })

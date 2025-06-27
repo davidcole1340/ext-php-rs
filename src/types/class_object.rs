@@ -173,6 +173,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         Self::internal_from_zend_obj(std)
     }
 
+    #[allow(clippy::mut_from_ref)]
     fn internal_from_zend_obj(std: &zend_object) -> Option<&mut Self> {
         let std = ptr::from_ref(std).cast::<c_char>();
         let ptr = unsafe {
