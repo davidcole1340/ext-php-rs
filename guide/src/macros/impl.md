@@ -13,14 +13,14 @@ If you want to use async Rust, use `#[php_async_impl]`, instead: see [here &raqu
 
 ## Options
 
-By default all constants are renamed to UPPER_CASE and all methods are renamed to
-camelCase. This can be changed by passing the `rename_methods` and
-`rename_constants` as `#[php]` attributes on the `impl` block. The options are:
+By default all constants are renamed to `UPPER_CASE` and all methods are renamed to
+camelCase. This can be changed by passing the `change_method_case` and
+`change_constant_case` as `#[php]` attributes on the `impl` block. The options are:
 
-- `#[php(rename_methods = "snake_case")]` - Renames the method to snake case.
-- `#[php(rename_constants = "snake_case")]` - Renames the constant to snake case.
+- `#[php(change_method_case = "snake_case")]` - Renames the method to snake case.
+- `#[php(change_constant_case = "snake_case")]` - Renames the constant to snake case.
 
-See the [`name` and `rename`](./php.md#name-and-rename) section for a list of all
+See the [`name` and `change_case`](./php.md#name-and-change_case) section for a list of all
 available cases.
 
 ## Methods
@@ -79,8 +79,8 @@ setters. This is done with the `#[php(getter)]` and `#[php(setter)]` attributes.
 default, the `get_` or `set_` prefix is trimmed from the start of the function
 name, and the remainder is used as the property name.
 
-If you want to use a different name for the property, you can pass a `rename`
-option to the attribute which will change the property name.
+If you want to use a different name for the property, you can pass a `name` or
+`change_case` option to the `#[php]` attribute which will change the property name.
 
 Properties do not necessarily have to have both a getter and a setter, if the
 property is immutable the setter can be omitted, and vice versa for getters.

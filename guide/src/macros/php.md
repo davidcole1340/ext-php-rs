@@ -33,33 +33,33 @@ fn hello_world(a: i32, b: i32) -> i32 {
 
 Which attributes are available depends on the element you are annotating:
 
-| Attribute        | `const` | `fn` | `struct` | `struct` Field | `impl` | `impl` `const` | `impl` `fn` |
-| ---------------- | ------- | ---- | -------- | -------------- | ------ | -------------- | ----------- |
-| name             | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          |
-| rename           | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          |
-| rename_methods   | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          |
-| rename_constants | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          |
-| flags            | ❌      | ❌   | ✅       | ✅             | ❌     | ❌             | ❌          |
-| prop             | ❌      | ❌   | ❌       | ✅             | ❌     | ❌             | ❌          |
-| extends          | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
-| implements       | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
-| modifier         | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
-| defaults         | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| optional         | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| vis              | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| getter           | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| setter           | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| constructor      | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| abstract_method  | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| Attribute            | `const` | `fn` | `struct` | `struct` field | `impl` | `impl` `const` | `impl` `fn` |
+| -------------------- | ------- | ---- | -------- | -------------- | ------ | -------------- | ----------- |
+| name                 | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          |
+| change_case          | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          |
+| change_method_case   | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          |
+| change_constant_case | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          |
+| flags                | ❌      | ❌   | ✅       | ✅             | ❌     | ❌             | ❌          |
+| prop                 | ❌      | ❌   | ❌       | ✅             | ❌     | ❌             | ❌          |
+| extends              | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
+| implements           | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
+| modifier             | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
+| defaults             | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| optional             | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| vis                  | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| getter               | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| setter               | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| constructor          | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| abstract_method      | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
 
-## `name` and `rename`
+## `name` and `change_case`
 
-`name` and `rename` are mutually exclusive. The `name` attribute is used to set the name of
-an item to a string literal. The `rename` attribute is used to change the case of the name.
+`name` and `change_case` are mutually exclusive. The `name` attribute is used to set the name of
+an item to a string literal. The `change_case` attribute is used to change the case of the name.
 
 ```rs
 #[php(name = "NEW_NAME")]
-#[php(rename = snake_case)]]
+#[php(change_case = snake_case)]]
 ```
 
 Available cases are:
