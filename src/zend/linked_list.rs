@@ -8,7 +8,7 @@ pub type ZendLinkedList = zend_llist;
 impl ZendLinkedList {
     /// Create an iterator over the linked list
     #[must_use]
-    pub fn iter<T>(&self) -> ZendLinkedListIterator<T> {
+    pub fn iter<T>(&self) -> ZendLinkedListIterator<'_, T> {
         ZendLinkedListIterator::new(self)
     }
 }
@@ -41,7 +41,7 @@ impl<'a, T: 'a> Iterator for ZendLinkedListIterator<'a, T> {
         unsafe {
             zend_llist_get_next_ex(
                 ptr::from_ref::<ZendLinkedList>(self.list).cast_mut(),
-                &mut self.position,
+                &raw mut self.position,
             )
         };
         Some(value)

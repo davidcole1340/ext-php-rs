@@ -115,13 +115,13 @@ impl<T: RegisteredClass> ZendClassObject<T> {
             .as_mut()
             .expect("Failed to allocate for new Zend object");
 
-        zend_object_std_init(&mut obj.std, ce);
-        object_properties_init(&mut obj.std, ce);
+        zend_object_std_init(&raw mut obj.std, ce);
+        object_properties_init(&raw mut obj.std, ce);
 
         // SAFETY: `obj` is non-null and well aligned as it is a reference.
         // As the data in `obj.obj` is uninitialized, we don't want to drop
         // the data, but directly override it.
-        ptr::write(&mut obj.obj, val);
+        ptr::write(&raw mut obj.obj, val);
 
         obj.std.handlers = meta.handlers();
         ZBox::from_raw(obj)
@@ -239,7 +239,7 @@ unsafe impl<T: RegisteredClass> ZBoxable for ZendClassObject<T> {
         // SAFETY: All constructors guarantee that `self` contains a valid pointer.
         // Further, all constructors guarantee that the `std` field of
         // `ZendClassObject` will be initialized.
-        unsafe { ext_php_rs_zend_object_release(&mut self.std) }
+        unsafe { ext_php_rs_zend_object_release(&raw mut self.std) }
     }
 }
 
@@ -276,7 +276,7 @@ impl<T: RegisteredClass + Clone> Clone for ZBox<ZendClassObject<T>> {
         // therefore we can dereference both safely.
         unsafe {
             let mut new = ZendClassObject::new((***self).clone());
-            zend_objects_clone_members(&mut new.std, (&raw const self.std).cast_mut());
+            zend_objects_clone_members(&raw mut new.std, (&raw const self.std).cast_mut());
             new
         }
     }

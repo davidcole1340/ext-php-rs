@@ -179,7 +179,7 @@ impl ZendObject {
 
         unsafe {
             let res = zend_hash_str_find_ptr_lc(
-                &(*self.ce).function_table,
+                &raw const (*self.ce).function_table,
                 name.as_ptr().cast::<c_char>(),
                 name.len(),
             )
@@ -193,7 +193,7 @@ impl ZendObject {
                 res,
                 ptr::from_ref(self).cast_mut(),
                 self.ce,
-                &mut retval,
+                &raw mut retval,
                 len.try_into()?,
                 packed.as_ptr().cast_mut(),
                 std::ptr::null_mut(),
@@ -230,10 +230,10 @@ impl ZendObject {
         let zv = unsafe {
             self.handlers()?.read_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                &mut *name,
+                &raw mut *name,
                 1,
-                std::ptr::null_mut(),
-                &mut rv,
+                ptr::null_mut(),
+                &raw mut rv,
             )
             .as_ref()
         }
@@ -260,9 +260,9 @@ impl ZendObject {
         unsafe {
             self.handlers()?.write_property.ok_or(Error::InvalidScope)?(
                 self,
-                &mut *name,
-                &mut value,
-                std::ptr::null_mut(),
+                &raw mut *name,
+                &raw mut value,
+                ptr::null_mut(),
             )
             .as_ref()
         }
@@ -289,7 +289,7 @@ impl ZendObject {
         Ok(unsafe {
             self.handlers()?.has_property.ok_or(Error::InvalidScope)?(
                 self.mut_ptr(),
-                &mut *name,
+                &raw mut *name,
                 query as _,
                 std::ptr::null_mut(),
             )
@@ -440,10 +440,10 @@ impl FromZendObject<'_> for String {
                 (*obj.ce).__tostring,
                 ptr::from_ref(obj).cast_mut(),
                 obj.ce,
-                &mut ret,
+                &raw mut ret,
                 0,
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
             );
         }
 

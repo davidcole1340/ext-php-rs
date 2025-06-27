@@ -41,6 +41,7 @@ impl StreamWrapper {
 
     /// Get mutable wrapped stream by name
     #[must_use]
+    #[allow(clippy::mut_from_ref)]
     pub fn get_mut(name: &str) -> Option<&mut Self> {
         unsafe {
             let result = php_stream_locate_url_wrapper(name.as_ptr().cast(), ptr::null_mut(), 0);

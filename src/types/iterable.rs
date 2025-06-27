@@ -19,7 +19,7 @@ impl Iterable<'_> {
     /// May return None if a Traversable cannot be rewound.
     // TODO: Check iter not returning iterator
     #[allow(clippy::iter_not_returning_iterator)]
-    pub fn iter(&mut self) -> Option<Iter> {
+    pub fn iter(&mut self) -> Option<Iter<'_>> {
         match self {
             Iterable::Array(array) => Some(Iter::Array(array.iter())),
             Iterable::Traversable(traversable) => Some(Iter::Traversable(traversable.iter()?)),
