@@ -111,6 +111,12 @@ struct Install {
     /// the directory the command is called.
     #[arg(long)]
     manifest: Option<PathBuf>,
+    #[arg(short = 'F', long, num_args = 1..)]
+    features: Option<Vec<String>>,
+    #[arg(long)]
+    all_features: bool,
+    #[arg(long)]
+    no_default_features: bool,
     /// Whether to bypass the install prompt.
     #[clap(long)]
     yes: bool,
@@ -156,6 +162,12 @@ struct Stubs {
     /// provides a direct path to the extension shared library.
     #[arg(long, conflicts_with = "ext")]
     manifest: Option<PathBuf>,
+    #[arg(short = 'F', long, num_args = 1..)]
+    features: Option<Vec<String>>,
+    #[arg(long)]
+    all_features: bool,
+    #[arg(long)]
+    no_default_features: bool,
 }
 
 impl Args {
@@ -172,7 +184,13 @@ impl Args {
 impl Install {
     pub fn handle(self) -> CrateResult {
         let artifact = find_ext(self.manifest.as_ref())?;
-        let ext_path = build_ext(&artifact, self.release)?;
+        let ext_path = build_ext(
+            &artifact,
+            self.release,
+            self.features,
+            self.all_features,
+            self.no_default_features,
+        )?;
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
@@ -371,7 +389,14 @@ impl Stubs {
             ext_path
         } else {
             let target = find_ext(self.manifest.as_ref())?;
-            build_ext(&target, false)?.into()
+            build_ext(
+                &target,
+                false,
+                self.features,
+                self.all_features,
+                self.no_default_features,
+            )?
+            .into()
         };
 
         if !ext_path.is_file() {
@@ -469,16 +494,37 @@ fn find_ext(manifest: Option<&PathBuf>) -> AResult<cargo_metadata::Target> {
 ///
 /// * `target` - The target to compile.
 /// * `release` - Whether to compile the target in release mode.
+/// * `features` - Optional list of features.
 ///
 /// # Returns
 ///
 /// The path to the target artifact.
-fn build_ext(target: &Target, release: bool) -> AResult<Utf8PathBuf> {
+fn build_ext(
+    target: &Target,
+    release: bool,
+    features: Option<Vec<String>>,
+    all_features: bool,
+    no_default_features: bool,
+) -> AResult<Utf8PathBuf> {
     let mut cmd = Command::new("cargo");
     cmd.arg("build")
         .arg("--message-format=json-render-diagnostics");
     if release {
         cmd.arg("--release");
+    }
+    if let Some(features) = features {
+        cmd.arg("--features");
+        for feature in features {
+            cmd.arg(feature);
+        }
+    }
+
+    if all_features {
+        cmd.arg("--all-features");
+    }
+
+    if no_default_features {
+        cmd.arg("--no-default-features");
     }
 
     let mut spawn = cmd
