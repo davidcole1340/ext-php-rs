@@ -195,7 +195,7 @@ mod tests {
 
             let _ = try_catch(|| {
                 let mut result = "foo".to_string();
-                ptr = &mut result;
+                ptr = &raw mut result;
 
                 unsafe {
                     bailout();
