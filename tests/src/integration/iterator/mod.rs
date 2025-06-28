@@ -48,6 +48,11 @@ fn key_to_zval(key: ArrayKey) -> Zval {
             let _ = zval.set_string(s.as_str(), false);
             zval
         }
+        ArrayKey::Str(s) => {
+            let mut zval = Zval::new();
+            let _ = zval.set_string(s, false);
+            zval
+        }
         ArrayKey::Long(l) => {
             let mut zval = Zval::new();
             zval.set_long(l);

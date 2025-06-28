@@ -114,6 +114,7 @@ impl ClassEntry {
     ///
     /// Returns [`None`] if there is no associated iterator for the class.
     #[must_use]
+    #[allow(clippy::mut_from_ref)]
     pub fn get_iterator<'a>(&self, zval: &'a Zval, by_ref: bool) -> Option<&'a mut ZendIterator> {
         let ptr: *const Self = self;
         let zval_ptr: *const Zval = zval;

@@ -91,6 +91,7 @@ enum Args {
 }
 
 #[derive(Parser)]
+#[allow(clippy::struct_excessive_bools)]
 struct Install {
     /// Changes the path that the extension is copied to. This will not
     /// activate the extension unless `ini_path` is also passed.

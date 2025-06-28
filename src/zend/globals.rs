@@ -106,6 +106,7 @@ impl ExecutorGlobals {
 
     /// Attempts to retrieve the global functions hash table as mutable.
     #[must_use]
+    #[allow(clippy::mut_from_ref)]
     pub fn function_table_mut(&self) -> Option<&mut ZendHashTable> {
         unsafe { self.function_table.as_mut() }
     }
