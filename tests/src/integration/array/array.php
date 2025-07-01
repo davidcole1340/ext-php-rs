@@ -23,3 +23,11 @@ assert(array_key_exists('c', $assoc));
 assert(in_array('1', $assoc));
 assert(in_array('2', $assoc));
 assert(in_array('3', $assoc));
+
+$arrayKeys = test_array_keys();
+assert($arrayKeys[-42] === "foo");
+assert($arrayKeys[0] === "bar");
+assert($arrayKeys[5] === "baz");
+assert($arrayKeys[10] === "qux");
+assert($arrayKeys["10"] === "qux");
+assert($arrayKeys["quux"] === "quuux");

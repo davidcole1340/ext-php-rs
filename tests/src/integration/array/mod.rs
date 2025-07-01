@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use ext_php_rs::{php_function, prelude::ModuleBuilder, wrap_function};
+use ext_php_rs::{
+    convert::IntoZval, ffi::HashTable, php_function, prelude::ModuleBuilder, types::Zval,
+    wrap_function,
+};
 
 #[php_function]
 pub fn test_array(a: Vec<String>) -> Vec<String> {
@@ -12,10 +15,23 @@ pub fn test_array_assoc(a: HashMap<String, String>) -> HashMap<String, String> {
     a
 }
 
+#[php_function]
+pub fn test_array_keys() -> Zval {
+    let mut ht = HashTable::new();
+    ht.insert(-42, "foo").unwrap();
+    ht.insert(0, "bar").unwrap();
+    ht.insert(5, "baz").unwrap();
+    ht.insert("10", "qux").unwrap();
+    ht.insert("quux", "quuux").unwrap();
+
+    ht.into_zval(false).unwrap()
+}
+
 pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
     builder
         .function(wrap_function!(test_array))
         .function(wrap_function!(test_array_assoc))
+        .function(wrap_function!(test_array_keys))
 }
 
 #[cfg(test)]

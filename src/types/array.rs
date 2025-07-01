@@ -8,12 +8,14 @@ use std::{
     fmt::{Debug, Display},
     iter::FromIterator,
     ptr,
+    str::FromStr,
 };
 
 use crate::{
     boxed::{ZBox, ZBoxable},
     convert::{FromZval, IntoZval},
     error::{Error, Result},
+    ffi::zend_ulong,
     ffi::{
         _zend_new_array, zend_array_count, zend_array_destroy, zend_array_dup, zend_hash_clean,
         zend_hash_get_current_data_ex, zend_hash_get_current_key_type_ex,
@@ -188,9 +190,46 @@ impl ZendHashTable {
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
     /// ```
     #[must_use]
-    pub fn get(&self, key: &'_ str) -> Option<&Zval> {
-        let str = CString::new(key).ok()?;
-        unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_ref() }
+    pub fn get<'a, K>(&self, key: K) -> Option<&Zval>
+    where
+        K: Into<ArrayKey<'a>>,
+    {
+        match key.into() {
+            ArrayKey::Long(index) => unsafe {
+                #[allow(clippy::cast_sign_loss)]
+                zend_hash_index_find(self, index as zend_ulong).as_ref()
+            },
+            ArrayKey::String(key) => {
+                if let Ok(index) = i64::from_str(key.as_str()) {
+                    #[allow(clippy::cast_sign_loss)]
+                    unsafe {
+                        zend_hash_index_find(self, index as zend_ulong).as_ref()
+                    }
+                } else {
+                    unsafe {
+                        zend_hash_str_find(
+                            self,
+                            CString::new(key.as_str()).ok()?.as_ptr(),
+                            key.len() as _,
+                        )
+                        .as_ref()
+                    }
+                }
+            }
+            ArrayKey::Str(key) => {
+                if let Ok(index) = i64::from_str(key) {
+                    #[allow(clippy::cast_sign_loss)]
+                    unsafe {
+                        zend_hash_index_find(self, index as zend_ulong).as_ref()
+                    }
+                } else {
+                    unsafe {
+                        zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _)
+                            .as_ref()
+                    }
+                }
+            }
+        }
     }
 
     /// Attempts to retrieve a value from the hash table with a string key.
@@ -219,9 +258,46 @@ impl ZendHashTable {
     // hashtable while only having a reference to it. #461
     #[allow(clippy::mut_from_ref)]
     #[must_use]
-    pub fn get_mut(&self, key: &'_ str) -> Option<&mut Zval> {
-        let str = CString::new(key).ok()?;
-        unsafe { zend_hash_str_find(self, str.as_ptr(), key.len() as _).as_mut() }
+    pub fn get_mut<'a, K>(&self, key: K) -> Option<&mut Zval>
+    where
+        K: Into<ArrayKey<'a>>,
+    {
+        match key.into() {
+            ArrayKey::Long(index) => unsafe {
+                #[allow(clippy::cast_sign_loss)]
+                zend_hash_index_find(self, index as zend_ulong).as_mut()
+            },
+            ArrayKey::String(key) => {
+                if let Ok(index) = i64::from_str(key.as_str()) {
+                    #[allow(clippy::cast_sign_loss)]
+                    unsafe {
+                        zend_hash_index_find(self, index as zend_ulong).as_mut()
+                    }
+                } else {
+                    unsafe {
+                        zend_hash_str_find(
+                            self,
+                            CString::new(key.as_str()).ok()?.as_ptr(),
+                            key.len() as _,
+                        )
+                        .as_mut()
+                    }
+                }
+            }
+            ArrayKey::Str(key) => {
+                if let Ok(index) = i64::from_str(key) {
+                    #[allow(clippy::cast_sign_loss)]
+                    unsafe {
+                        zend_hash_index_find(self, index as zend_ulong).as_mut()
+                    }
+                } else {
+                    unsafe {
+                        zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _)
+                            .as_mut()
+                    }
+                }
+            }
+        }
     }
 
     /// Attempts to retrieve a value from the hash table with an index.
@@ -247,8 +323,11 @@ impl ZendHashTable {
     /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
     /// ```
     #[must_use]
-    pub fn get_index(&self, key: u64) -> Option<&Zval> {
-        unsafe { zend_hash_index_find(self, key).as_ref() }
+    pub fn get_index(&self, key: i64) -> Option<&Zval> {
+        #[allow(clippy::cast_sign_loss)]
+        unsafe {
+            zend_hash_index_find(self, key as zend_ulong).as_ref()
+        }
     }
 
     /// Attempts to retrieve a value from the hash table with an index.
@@ -277,8 +356,11 @@ impl ZendHashTable {
     // hashtable while only having a reference to it. #461
     #[allow(clippy::mut_from_ref)]
     #[must_use]
-    pub fn get_index_mut(&self, key: u64) -> Option<&mut Zval> {
-        unsafe { zend_hash_index_find(self, key).as_mut() }
+    pub fn get_index_mut(&self, key: i64) -> Option<&mut Zval> {
+        unsafe {
+            #[allow(clippy::cast_sign_loss)]
+            zend_hash_index_find(self, key as zend_ulong).as_mut()
+        }
     }
 
     /// Attempts to remove a value from the hash table with a string key.
@@ -305,9 +387,44 @@ impl ZendHashTable {
     /// ht.remove("test");
     /// assert_eq!(ht.len(), 0);
     /// ```
-    pub fn remove(&mut self, key: &str) -> Option<()> {
-        let result =
-            unsafe { zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _) };
+    pub fn remove<'a, K>(&mut self, key: K) -> Option<()>
+    where
+        K: Into<ArrayKey<'a>>,
+    {
+        let result = match key.into() {
+            ArrayKey::Long(index) => unsafe {
+                #[allow(clippy::cast_sign_loss)]
+                zend_hash_index_del(self, index as zend_ulong)
+            },
+            ArrayKey::String(key) => {
+                if let Ok(index) = i64::from_str(key.as_str()) {
+                    #[allow(clippy::cast_sign_loss)]
+                    unsafe {
+                        zend_hash_index_del(self, index as zend_ulong)
+                    }
+                } else {
+                    unsafe {
+                        zend_hash_str_del(
+                            self,
+                            CString::new(key.as_str()).ok()?.as_ptr(),
+                            key.len() as _,
+                        )
+                    }
+                }
+            }
+            ArrayKey::Str(key) => {
+                if let Ok(index) = i64::from_str(key) {
+                    #[allow(clippy::cast_sign_loss)]
+                    unsafe {
+                        zend_hash_index_del(self, index as zend_ulong)
+                    }
+                } else {
+                    unsafe {
+                        zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _)
+                    }
+                }
+            }
+        };
 
         if result < 0 {
             None
@@ -340,8 +457,11 @@ impl ZendHashTable {
     /// ht.remove_index(0);
     /// assert_eq!(ht.len(), 0);
     /// ```
-    pub fn remove_index(&mut self, key: u64) -> Option<()> {
-        let result = unsafe { zend_hash_index_del(self, key) };
+    pub fn remove_index(&mut self, key: i64) -> Option<()> {
+        let result = unsafe {
+            #[allow(clippy::cast_sign_loss)]
+            zend_hash_index_del(self, key as zend_ulong)
+        };
 
         if result < 0 {
             None
@@ -379,12 +499,54 @@ impl ZendHashTable {
     /// ht.insert("c", "C");
     /// assert_eq!(ht.len(), 3);
     /// ```
-    pub fn insert<V>(&mut self, key: &str, val: V) -> Result<()>
+    pub fn insert<'a, K, V>(&mut self, key: K, val: V) -> Result<()>
     where
+        K: Into<ArrayKey<'a>>,
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        unsafe { zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &raw mut val) };
+        match key.into() {
+            ArrayKey::Long(index) => {
+                unsafe {
+                    #[allow(clippy::cast_sign_loss)]
+                    zend_hash_index_update(self, index as zend_ulong, &raw mut val)
+                };
+            }
+            ArrayKey::String(key) => {
+                if let Ok(index) = i64::from_str(&key) {
+                    unsafe {
+                        #[allow(clippy::cast_sign_loss)]
+                        zend_hash_index_update(self, index as zend_ulong, &raw mut val)
+                    };
+                } else {
+                    unsafe {
+                        zend_hash_str_update(
+                            self,
+                            CString::new(key.as_str())?.as_ptr(),
+                            key.len(),
+                            &raw mut val,
+                        )
+                    };
+                }
+            }
+            ArrayKey::Str(key) => {
+                if let Ok(index) = i64::from_str(key) {
+                    unsafe {
+                        #[allow(clippy::cast_sign_loss)]
+                        zend_hash_index_update(self, index as zend_ulong, &raw mut val)
+                    };
+                } else {
+                    unsafe {
+                        zend_hash_str_update(
+                            self,
+                            CString::new(key)?.as_ptr(),
+                            key.len(),
+                            &raw mut val,
+                        )
+                    };
+                }
+            }
+        }
         val.release();
         Ok(())
     }
@@ -417,12 +579,15 @@ impl ZendHashTable {
     /// ht.insert_at_index(0, "C"); // notice overriding index 0
     /// assert_eq!(ht.len(), 2);
     /// ```
-    pub fn insert_at_index<V>(&mut self, key: u64, val: V) -> Result<()>
+    pub fn insert_at_index<V>(&mut self, key: i64, val: V) -> Result<()>
     where
         V: IntoZval,
     {
         let mut val = val.into_zval(false)?;
-        unsafe { zend_hash_index_update(self, key, &raw mut val) };
+        unsafe {
+            #[allow(clippy::cast_sign_loss)]
+            zend_hash_index_update(self, key as zend_ulong, &raw mut val)
+        };
         val.release();
         Ok(())
     }
@@ -560,6 +725,8 @@ impl ZendHashTable {
     ///         }
     ///         ArrayKey::String(key) => {
     ///         }
+    ///         ArrayKey::Str(key) => {
+    ///         }
     ///     }
     ///     dbg!(key, val);
     /// }
@@ -612,15 +779,25 @@ pub struct Iter<'a> {
 }
 
 /// Represents the key of a PHP array, which can be either a long or a string.
-#[derive(Debug, PartialEq)]
-pub enum ArrayKey {
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArrayKey<'a> {
     /// A numerical key.
+    /// In Zend API it's represented by `u64` (`zend_ulong`), so the value needs
+    /// to be cast to `zend_ulong` before passing into Zend functions.
     Long(i64),
     /// A string key.
     String(String),
+    /// A string key by reference.
+    Str(&'a str),
 }
 
-impl ArrayKey {
+impl From<String> for ArrayKey<'_> {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+impl ArrayKey<'_> {
     /// Check if the key is an integer.
     ///
     /// # Returns
@@ -630,21 +807,34 @@ impl ArrayKey {
     pub fn is_long(&self) -> bool {
         match self {
             ArrayKey::Long(_) => true,
-            ArrayKey::String(_) => false,
+            ArrayKey::String(_) | ArrayKey::Str(_) => false,
         }
     }
 }
 
-impl Display for ArrayKey {
+impl Display for ArrayKey<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ArrayKey::Long(key) => write!(f, "{key}"),
             ArrayKey::String(key) => write!(f, "{key}"),
+            ArrayKey::Str(key) => write!(f, "{key}"),
         }
     }
 }
 
-impl<'a> FromZval<'a> for ArrayKey {
+impl<'a> From<&'a str> for ArrayKey<'a> {
+    fn from(key: &'a str) -> ArrayKey<'a> {
+        ArrayKey::Str(key)
+    }
+}
+
+impl<'a> From<i64> for ArrayKey<'a> {
+    fn from(index: i64) -> ArrayKey<'a> {
+        ArrayKey::Long(index)
+    }
+}
+
+impl<'a> FromZval<'a> for ArrayKey<'_> {
     const TYPE: DataType = DataType::String;
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
@@ -686,7 +876,7 @@ impl<'a> Iter<'a> {
 }
 
 impl<'a> IntoIterator for &'a ZendHashTable {
-    type Item = (ArrayKey, &'a Zval);
+    type Item = (ArrayKey<'a>, &'a Zval);
     type IntoIter = Iter<'a>;
 
     /// Returns an iterator over the key(s) and value contained inside the
@@ -713,7 +903,7 @@ impl<'a> IntoIterator for &'a ZendHashTable {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (ArrayKey, &'a Zval);
+    type Item = (ArrayKey<'a>, &'a Zval);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_zval()
@@ -1052,8 +1242,8 @@ impl FromIterator<Zval> for ZBox<ZendHashTable> {
     }
 }
 
-impl FromIterator<(u64, Zval)> for ZBox<ZendHashTable> {
-    fn from_iter<T: IntoIterator<Item = (u64, Zval)>>(iter: T) -> Self {
+impl FromIterator<(i64, Zval)> for ZBox<ZendHashTable> {
+    fn from_iter<T: IntoIterator<Item = (i64, Zval)>>(iter: T) -> Self {
         let mut ht = ZendHashTable::new();
         for (key, val) in iter {
             // Inserting a zval cannot fail, as `push` only returns `Err` if converting
