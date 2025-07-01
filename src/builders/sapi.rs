@@ -11,6 +11,8 @@ use std::{ffi::CString, ptr};
 
 /// Builder for `SapiModule`s
 ///
+/// # Example
+///
 /// ```rust,no_run
 /// use std::ffi::{c_char, c_int, c_void};
 /// use ext_php_rs::{
