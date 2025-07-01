@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: fmt
+      run: rustfmt {staged_files}
+      glob: "*.rs"
+      stage_fixed: true
+    - name: clippy
+      run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+      glob: "*.rs"
+    - name: bindings
+      run: tools/update_bindings.sh && git diff --exit-code docsrs_bindings.rs
+      glob: "allowed_bindings.rs"
