@@ -17,7 +17,8 @@
       system = "x86_64-linux";
       overlays = [ (import rust-overlay) ];
       pkgs = import nixpkgs { inherit system overlays; };
-      php-dev = pkgs.php.unwrapped.dev;
+      php = pkgs.php.buildEnv { embedSupport = true; };
+      php-dev = php.unwrapped.dev;
     in
     {
       devShells.${system} = {
@@ -32,7 +33,7 @@
           nativeBuildInputs = [ pkgs.rust-bin.stable.latest.default ];
 
           shellHook = ''
-            export LIBCLANG_PATH="''$LIBCLANG_PATH ${pkgs.libclang.lib}/lib"
+            export LIBCLANG_PATH="${pkgs.libclang.lib}/lib"
           '';
         };
       };

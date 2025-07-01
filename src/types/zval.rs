@@ -261,6 +261,9 @@ impl Zval {
 
     /// Returns a mutable reference to the zval if it is an internal indirect
     /// reference.
+    // TODO: Verify if this is safe to use, as it allows mutating the
+    // hashtable while only having a reference to it. #461
+    #[allow(clippy::mut_from_ref)]
     #[must_use]
     pub fn indirect_mut(&self) -> Option<&mut Zval> {
         if self.is_indirect() {

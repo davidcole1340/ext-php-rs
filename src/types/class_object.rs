@@ -173,6 +173,9 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         Self::internal_from_zend_obj(std)
     }
 
+    // TODO: Verify if this is safe to use, as it allows mutating the
+    // hashtable while only having a reference to it. #461
+    #[allow(clippy::mut_from_ref)]
     fn internal_from_zend_obj(std: &zend_object) -> Option<&mut Self> {
         let std = ptr::from_ref(std).cast::<c_char>();
         let ptr = unsafe {

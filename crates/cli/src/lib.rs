@@ -90,6 +90,7 @@ enum Args {
     Stubs(Stubs),
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Parser)]
 struct Install {
     /// Changes the path that the extension is copied to. This will not

@@ -103,10 +103,10 @@ impl Embed {
         };
 
         unsafe {
-            zend_stream_init_filename(&mut file_handle, path.as_ptr());
+            zend_stream_init_filename(&raw mut file_handle, path.as_ptr());
         }
 
-        let exec_result = try_catch(|| unsafe { php_execute_script(&mut file_handle) });
+        let exec_result = try_catch(|| unsafe { php_execute_script(&raw mut file_handle) });
 
         match exec_result {
             Err(_) => Err(EmbedError::CatchError),
@@ -208,7 +208,7 @@ impl Embed {
         let exec_result = try_catch(|| unsafe {
             zend_eval_string(
                 cstr.as_ptr().cast::<c_char>(),
-                &mut result,
+                &raw mut result,
                 c"run".as_ptr().cast(),
             )
         });
