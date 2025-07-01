@@ -191,11 +191,11 @@ fn hello_world(a: i32, b: i32) -&gt; i32 {
 }
 <span class="boring">fn main() {}</span></code></pre></pre>
 <p>Which attributes are available depends on the element you are annotating:</p>
-<div class="table-wrapper"><table><thead><tr><th>Attribute</th><th><code>const</code></th><th><code>fn</code></th><th><code>struct</code></th><th><code>struct</code> Field</th><th><code>impl</code></th><th><code>impl</code> <code>const</code></th><th><code>impl</code> <code>fn</code></th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Attribute</th><th><code>const</code></th><th><code>fn</code></th><th><code>struct</code></th><th><code>struct</code> field</th><th><code>impl</code></th><th><code>impl</code> <code>const</code></th><th><code>impl</code> <code>fn</code></th></tr></thead><tbody>
 <tr><td>name</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
-<tr><td>rename</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
-<tr><td>rename_methods</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td></tr>
-<tr><td>rename_constants</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>change_case</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>✅</td><td>✅</td></tr>
+<tr><td>change_method_case</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td></tr>
+<tr><td>change_constant_case</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td></tr>
 <tr><td>flags</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
 <tr><td>prop</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
 <tr><td>extends</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
@@ -210,11 +210,11 @@ fn hello_world(a: i32, b: i32) -&gt; i32 {
 <tr><td>abstract_method</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
 </tbody></table>
 </div>
-<h2 id="name-and-rename"><a class="header" href="#name-and-rename"><code>name</code> and <code>rename</code></a></h2>
-<p><code>name</code> and <code>rename</code> are mutually exclusive. The <code>name</code> attribute is used to set the name of
-an item to a string literal. The <code>rename</code> attribute is used to change the case of the name.</p>
+<h2 id="name-and-change_case"><a class="header" href="#name-and-change_case"><code>name</code> and <code>change_case</code></a></h2>
+<p><code>name</code> and <code>change_case</code> are mutually exclusive. The <code>name</code> attribute is used to set the name of
+an item to a string literal. The <code>change_case</code> attribute is used to change the case of the name.</p>
 <pre><code class="language-rs">#[php(name = "NEW_NAME")]
-#[php(rename = snake_case)]]
+#[php(change_case = snake_case)]]
 </code></pre>
 <p>Available cases are:</p>
 <ul>

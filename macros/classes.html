@@ -177,7 +177,7 @@ placed underneath the <code>#[php_class]</code> attribute.</p>
 <li><code>name</code> - Changes the name of the class when exported to PHP. The Rust struct
 name is kept the same. If no name is given, the name of the struct is used.
 Useful for namespacing classes.</li>
-<li><code>rename</code> - Changes the case of the class name when exported to PHP.</li>
+<li><code>change_case</code> - Changes the case of the class name when exported to PHP.</li>
 <li><code>#[php(extends(ce = ce_fn, stub = "ParentClass"))]</code> - Sets the parent class of the class. Can only be used once.
 <code>ce_fn</code> must be a function with the signature <code>fn() -&gt; &amp;'static ClassEntry</code>.</li>
 <li><code>#[php(implements(ce = ce_fn, stub = "InterfaceName"))]</code> - Implements the given interface on the class. Can be used
@@ -192,8 +192,8 @@ the same name as the field. Property types must implement <code>IntoZval</code> 
 <ul>
 <li><code>name</code> - Allows you to rename the property, e.g.
 <code>#[php(name = "new_name")]</code></li>
-<li><code>rename</code> - Allows you to rename the property using rename rules, e.g.
-<code>#[php(rename = PascalCase)]</code></li>
+<li><code>change_case</code> - Allows you to rename the property using rename rules, e.g.
+<code>#[php(change_case = PascalCase)]</code></li>
 </ul>
 <h2 id="restrictions"><a class="header" href="#restrictions">Restrictions</a></h2>
 <h3 id="no-lifetime-parameters"><a class="header" href="#no-lifetime-parameters">No lifetime parameters</a></h3>

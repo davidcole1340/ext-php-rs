@@ -175,8 +175,8 @@ It sets the name and doc comments for the constant.</p>
 <ul>
 <li><code>name</code> - Allows you to rename the property, e.g.
 <code>#[php(name = "new_name")]</code></li>
-<li><code>rename</code> - Allows you to rename the property using rename rules, e.g.
-<code>#[php(rename = PascalCase)]</code></li>
+<li><code>change_case</code> - Allows you to rename the property using rename rules, e.g.
+<code>#[php(change_case = PascalCase)]</code></li>
 </ul>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]

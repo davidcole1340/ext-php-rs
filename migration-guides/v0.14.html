@@ -205,7 +205,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <p><strong>Supported <code>#[php]</code> attributes:</strong></p>
 <ul>
 <li><code>#[php(name = "NEW_NAME")]</code> - Renames the function</li>
-<li><code>#[php(rename = case)]</code> - Changes the case of the function name</li>
+<li><code>#[php(change_case = case)]</code> - Changes the case of the function name</li>
 <li><code>#[php(vis = "public")]</code> - Changes the visibility of the function</li>
 <li><code>#[php(defaults(a = 5, test = 100))]</code> - Sets default values for function arguments</li>
 <li><code>#[php(variadic)]</code> - Marks the function as variadic. The last argument must be a <code>&amp;[&amp;Zval]</code></li>
@@ -259,7 +259,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <p><strong>Supported <code>#[php]</code> attributes (<code>struct</code>):</strong></p>
 <ul>
 <li><code>#[php(name = "NEW_NAME")]</code> - Renames the class</li>
-<li><code>#[php(rename = case)]</code> - Changes the case of the class name</li>
+<li><code>#[php(change_case = case)]</code> - Changes the case of the class name</li>
 <li><code>#[php(vis = "public")]</code> - Changes the visibility of the class</li>
 <li><code>#[php(extends(ce = ce_fn, stub = "ParentClass")]</code> - Extends a parent class</li>
 <li><code>#[php(implements(ce = ce_fn, stub = "Interface"))]</code> - Implements an interface</li>
@@ -267,8 +267,8 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 </ul>
 <p><strong>Supported <code>#[php]</code> attributes (<code>impl</code>):</strong></p>
 <ul>
-<li><code>#[php(rename_consts = case)]</code> - Changes the case of the constant names. Can be overridden by attributes on the constants.</li>
-<li><code>#[php(rename_methods = case)]</code> - Changes the case of the method names. Can be overridden by attributes on the methods.</li>
+<li><code>#[php(change_constant_case = case)]</code> - Changes the case of the constant names. Can be overridden by attributes on the constants.</li>
+<li><code>#[php(change_method_case = case)]</code> - Changes the case of the method names. Can be overridden by attributes on the methods.</li>
 </ul>
 <p>For elements in the <code>#[php_impl]</code> block see the respective function and constant attributes.</p>
 <h4 id="extends-and-implements"><a class="header" href="#extends-and-implements">Extends and Implements</a></h4>
@@ -298,7 +298,7 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <p><strong>Supported <code>#[php]</code> attributes:</strong></p>
 <ul>
 <li><code>#[php(name = "NEW_NAME")]</code> - Renames the constant</li>
-<li><code>#[php(rename = case)]</code> - Changes the case of the constant name</li>
+<li><code>#[php(change_case = case)]</code> - Changes the case of the constant name</li>
 <li><code>#[php(vis = "public")]</code> - Changes the visibility of the constant</li>
 </ul>
 <h3 id="extern"><a class="header" href="#extern">Extern</a></h3>
@@ -334,10 +334,10 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <p>Attributes like <code>#[rename]</code> or <code>#[prop]</code> have been moved to the <code>#[php]</code> attribute.</p>
 <p>The <code>#[php]</code> attribute on an item are combined with each other. This means that
 the following variants are equivalent:</p>
-<pre><code class="language-rs">#[php(rename = case)]
+<pre><code class="language-rs">#[php(change_case = case)]
 #[php(vis = "public")]
 </code></pre>
-<pre><code class="language-rs">#[php(rename = case, vis = "public")]
+<pre><code class="language-rs">#[php(change_case = case, vis = "public")]
 </code></pre>
 <h3 id="renaming-and-case-changes"><a class="header" href="#renaming-and-case-changes">Renaming and Case Changes</a></h3>
 <p>Default case was adjusted to match PSR standards:</p>
@@ -348,15 +348,15 @@ the following variants are equivalent:</p>
 <li>Constant names are now <code>UPPER_CASE</code></li>
 <li>Function names are now <code>snake_case</code></li>
 </ul>
-<p>This can be changed using the <code>rename</code> attribute on the item.
-Additionally, the <code>rename_methods</code> and <code>rename_consts</code> attributes can be used
+<p>This can be changed using the <code>change_case</code> attribute on the item.
+Additionally, the <code>change_method_case</code> and <code>change_constant_case</code> attributes can be used
 to change the case of all methods and constants in a class.</p>
-<h4 id="name-vs-rename"><a class="header" href="#name-vs-rename"><code>name</code> vs <code>rename</code></a></h4>
+<h4 id="name-vs-change_case"><a class="header" href="#name-vs-change_case"><code>name</code> vs <code>change_case</code></a></h4>
 <p>Previously the (re)name parameter was used to rename items. This has been
 unified to use <code>name</code> to set the name of an item to a string literal. The
-<code>rename</code> parameter is now used to change the case of the name.</p>
+<code>change_case</code> parameter is now used to change the case of the name.</p>
 <pre><code class="language-rs">#[php(name = "NEW_NAME")]
-#[php(rename = snake_case)]]
+#[php(change_case = snake_case)]]
 </code></pre>
 <p>Available cases are:</p>
 <ul>

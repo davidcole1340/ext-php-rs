@@ -176,14 +176,14 @@ per class.</p>
 <code>impl</code> block.</p>
 <p>If you want to use async Rust, use <code>#[php_async_impl]</code>, instead: see <a href="./async_impl.html">here »</a> for more info.</p>
 <h2 id="options"><a class="header" href="#options">Options</a></h2>
-<p>By default all constants are renamed to UPPER_CASE and all methods are renamed to
-camelCase. This can be changed by passing the <code>rename_methods</code> and
-<code>rename_constants</code> as <code>#[php]</code> attributes on the <code>impl</code> block. The options are:</p>
+<p>By default all constants are renamed to <code>UPPER_CASE</code> and all methods are renamed to
+camelCase. This can be changed by passing the <code>change_method_case</code> and
+<code>change_constant_case</code> as <code>#[php]</code> attributes on the <code>impl</code> block. The options are:</p>
 <ul>
-<li><code>#[php(rename_methods = "snake_case")]</code> - Renames the method to snake case.</li>
-<li><code>#[php(rename_constants = "snake_case")]</code> - Renames the constant to snake case.</li>
+<li><code>#[php(change_method_case = "snake_case")]</code> - Renames the method to snake case.</li>
+<li><code>#[php(change_constant_case = "snake_case")]</code> - Renames the constant to snake case.</li>
 </ul>
-<p>See the <a href="./php.html#name-and-rename"><code>name</code> and <code>rename</code></a> section for a list of all
+<p>See the <a href="./php.html#name-and-change_case"><code>name</code> and <code>change_case</code></a> section for a list of all
 available cases.</p>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
 <p>Methods basically follow the same rules as functions, so read about the
@@ -227,8 +227,8 @@ the moment, and therefore no attributes are valid on constants.</p>
 setters. This is done with the <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes. By
 default, the <code>get_</code> or <code>set_</code> prefix is trimmed from the start of the function
 name, and the remainder is used as the property name.</p>
-<p>If you want to use a different name for the property, you can pass a <code>rename</code>
-option to the attribute which will change the property name.</p>
+<p>If you want to use a different name for the property, you can pass a <code>name</code> or
+<code>change_case</code> option to the <code>#[php]</code> attribute which will change the property name.</p>
 <p>Properties do not necessarily have to have both a getter and a setter, if the
 property is immutable the setter can be omitted, and vice versa for getters.</p>
 <p>The <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes are mutually exclusive on methods.
