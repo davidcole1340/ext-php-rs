@@ -179,27 +179,8 @@ Check out one of the example projects:
 
 ## Contributions
 
-Contributions are very much welcome. I am a novice Rust developer and any
-suggestions are wanted and welcome. Feel free to file issues and PRs through
-Github.
-
-Contributions welcome include:
-
-- Documentation expansion (examples in particular!)
-- Safety reviews (especially if you have experience with Rust and the Zend API).
-- Bug fixes and features.
-- Feature requests.
-
-When contributing, please keep in mind the following:
-- Create tests if possible.
-- Update the documentation if necessary.
-  - If your change is a [breaking change](https://semver.org) a migration guide MUST be included. This
-    should be placed in the `guide/src/migration-guides` directory.
-- Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/). We use these to automatically generate changelogs.
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
+We welcome contributions to the project! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file
+for more information on how to contribute.
 
 ## Development
 
