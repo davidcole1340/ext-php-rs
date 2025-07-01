@@ -215,6 +215,9 @@ impl ZendHashTable {
     /// ht.insert("test", "hello world");
     /// assert_eq!(ht.get("test").and_then(|zv| zv.str()), Some("hello world"));
     /// ```
+    // TODO: Verify if this is safe to use, as it allows mutating the
+    // hashtable while only having a reference to it. #461
+    #[allow(clippy::mut_from_ref)]
     #[must_use]
     pub fn get_mut(&self, key: &'_ str) -> Option<&mut Zval> {
         let str = CString::new(key).ok()?;
@@ -270,6 +273,9 @@ impl ZendHashTable {
     /// ht.push(100);
     /// assert_eq!(ht.get_index(0).and_then(|zv| zv.long()), Some(100));
     /// ```
+    // TODO: Verify if this is safe to use, as it allows mutating the
+    // hashtable while only having a reference to it. #461
+    #[allow(clippy::mut_from_ref)]
     #[must_use]
     pub fn get_index_mut(&self, key: u64) -> Option<&mut Zval> {
         unsafe { zend_hash_index_find(self, key).as_mut() }
