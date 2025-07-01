@@ -1,6 +1,16 @@
 //! Represents an array in PHP. As all arrays in PHP are associative arrays,
 //! they are represented by hash tables.
 
+use std::{
+    collections::HashMap,
+    convert::{TryFrom, TryInto},
+    ffi::CString,
+    fmt::{Debug, Display},
+    iter::FromIterator,
+    ptr,
+    str::FromStr,
+};
+
 use crate::{
     boxed::{ZBox, ZBoxable},
     convert::{FromZval, IntoZval},
@@ -16,15 +26,6 @@ use crate::{
     },
     flags::DataType,
     types::Zval,
-};
-use std::{
-    collections::HashMap,
-    convert::{TryFrom, TryInto},
-    ffi::CString,
-    fmt::{Debug, Display},
-    iter::FromIterator,
-    ptr,
-    str::FromStr,
 };
 
 /// A PHP hashtable.
