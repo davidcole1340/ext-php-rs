@@ -272,7 +272,7 @@ fn get_ext_dir() -> AResult<PathBuf> {
         bail!("Failed to call PHP: {:?}", cmd);
     }
     let stdout = String::from_utf8_lossy(&cmd.stdout);
-    let ext_dir = PathBuf::from(&*stdout);
+    let ext_dir = PathBuf::from(stdout.rsplit('\n').next().unwrap());
     if !ext_dir.is_dir() {
         if ext_dir.exists() {
             bail!(
@@ -302,7 +302,7 @@ fn get_php_ini() -> AResult<PathBuf> {
         bail!("Failed to call PHP: {:?}", cmd);
     }
     let stdout = String::from_utf8_lossy(&cmd.stdout);
-    let ini = PathBuf::from(&*stdout);
+    let ini = PathBuf::from(stdout.rsplit('\n').next().unwrap());
     if !ini.is_file() {
         bail!(
             "php.ini does not exist or is not a file at the given path: {:?}",
