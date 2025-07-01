@@ -28,3 +28,11 @@ void ext_php_rs_sapi_startup() {
 
   zend_signal_startup();
 }
+
+void ext_php_rs_php_error(int type, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  php_error(type, format, args);
+  vprintf(format, args);
+  va_end(args);
+}
