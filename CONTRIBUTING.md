@@ -28,6 +28,8 @@ lefthook install
 - When changing the `allowed_bindings.rs`, you need to have `docker` and `buildx` installed. This is required to
   build the bindings in a consistent environment. See the [installation guide](https://docs.docker.com/engine/install/)
   for instructions on how to install Docker.
+- When updating the macro guides (`guide/src/macros`), you need to have the `nightly` toolchain installed. This is required
+  to have the proper formatting in the documentation.
 
 ## Testing
 
