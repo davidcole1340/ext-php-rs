@@ -1,0 +1,30 @@
+name: macro docs
+on:
+  pull_request:
+    paths:
+      - "guide/src/macros/*.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-bindings:
+    name: Lint bindings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          components: rustfmt
+          toolchain: nightly
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.RUST_CACHE_PREFIX }}
+      - name: Macro docs
+        run: tools/update_lib_docs.sh && git diff --exit-code crates/macros/src/lib.rs
