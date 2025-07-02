@@ -327,6 +327,8 @@ fn main() -> Result<()> {
         println!("cargo:rustc-cfg=php_debug");
         println!("cargo:rustc-cfg=php81");
         println!("cargo:rustc-cfg=php82");
+        println!("cargo:rustc-cfg=php83");
+        println!("cargo:rustc-cfg=php84");
         std::fs::copy("docsrs_bindings.rs", out_path)
             .expect("failed to copy docs.rs stub bindings to out directory");
         return Ok(());
