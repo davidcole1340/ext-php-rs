@@ -200,9 +200,7 @@ impl Install {
         )?;
 
         if !self.bypass_root_check {
-            // use sudo and pass PATH for command like `cargo metadata` to keep working.
-            #[cfg(unix)]
-            sudo::with_env(&["PATH"]).expect("sudo failed, pass --bypass-root-check to disable.");
+            escalate_root();
         }
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
@@ -329,9 +327,7 @@ impl Remove {
         use std::env::consts;
 
         if !self.bypass_root_check {
-            // use sudo and pass PATH for command like `cargo metadata` to keep working.
-            #[cfg(unix)]
-            sudo::with_env(&["PATH"]).expect("sudo failed, pass --bypass-root-check to disable.");
+            escalate_root();
         }
 
         let artifact = find_ext(self.manifest.as_ref())?;
@@ -585,4 +581,14 @@ fn build_ext(
     }
 
     bail!("Failed to retrieve extension path from artifact")
+}
+
+fn escalate_root() {
+    // use sudo and pass PATH for command like `cargo metadata` to keep working.
+    #[cfg(unix)]
+    {
+        println!("Using sudo...");
+        sudo::with_env(&["CARGO", "PATH"])
+            .expect("sudo failed, pass --bypass-root-check to disable.");
+    }
 }
