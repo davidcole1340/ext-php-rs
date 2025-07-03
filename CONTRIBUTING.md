@@ -51,6 +51,7 @@ Our documentation is located in the `guide` directory.
 If you update functionality, please ensure that the documentation is updated accordingly.
 
 ### Breaking Changes
+
 If you make a breaking change, please
 If your change is a [breaking change](https://semver.org) a migration guide MUST be included. This
 MUST be placed in the `guide/src/migration-guides` directory and named `v<next-version>.md` (e.g. `v0.14.md`).

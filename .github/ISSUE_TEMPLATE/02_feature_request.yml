@@ -1,0 +1,29 @@
+name: 🚀 Feature request
+description: Suggest an idea for this project
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a feature! Please fill out the following sections to help us understand your request.
+  - type: textarea
+    attributes:
+      label: Description
+      description: "Please provide a clear and concise description of the feature you would like to see."
+      value: |
+        ## Description
+        <!-- Please provide a clear and concise description of the feature. -->
+
+        ## Use Case
+        <!-- Describe how this feature would be used and why it is needed. -->
+
+        ## Example
+        <!-- If applicable, provide an example of how this feature could be implemented or used. -->
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Additional Context
+      description: "Please select any additional context that applies to your feature request."
+      options:
+        - label: "I can try implementing this feature myself (please assign me to this issue)"
