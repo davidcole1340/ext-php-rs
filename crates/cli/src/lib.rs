@@ -200,8 +200,9 @@ impl Install {
         )?;
 
         if !self.bypass_root_check {
+            // use sudo and pass PATH for command like `cargo metadata` to keep working.
             #[cfg(unix)]
-            sudo::escalate_if_needed().expect("failed to escalate root privileges.");
+            sudo::with_env(&["PATH"]).expect("sudo failed, pass --bypass-root-check to disable.");
         }
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
@@ -328,8 +329,9 @@ impl Remove {
         use std::env::consts;
 
         if !self.bypass_root_check {
+            // use sudo and pass PATH for command like `cargo metadata` to keep working.
             #[cfg(unix)]
-            sudo::escalate_if_needed().expect("failed to escalate root privileges.");
+            sudo::with_env(&["PATH"]).expect("sudo failed, pass --bypass-root-check to disable.");
         }
 
         let artifact = find_ext(self.manifest.as_ref())?;
