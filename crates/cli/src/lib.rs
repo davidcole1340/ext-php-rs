@@ -221,9 +221,16 @@ impl Install {
             ext_dir.push(ext_name);
         }
 
-        std::fs::copy(&ext_path, &ext_dir).with_context(|| {
-            "Failed to copy extension from target directory to extension directory"
-        })?;
+        // We copying of file fails, escalate the privilege and try again.
+        if let Err(_) = std::fs::copy(&ext_path, &ext_dir) {
+            // failed to copy. escalate the privileges and try again.
+            #[cfg(unix)]
+            let _ = sudo::escalate_if_needed().ok();
+
+            std::fs::copy(&ext_path, &ext_dir).with_context(|| {
+                "Failed to copy extension from target directory to extension directory"
+            })?;
+        }
 
         if let Some(php_ini) = php_ini {
             let mut file = OpenOptions::new()
