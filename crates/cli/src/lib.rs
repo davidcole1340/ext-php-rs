@@ -251,7 +251,7 @@ impl Install {
 // Write to a temp file then move it to given path. Use `sudo` on unix to move
 // file if needed.
 fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Result<()> {
-    let current_ini_content = std::fs::read_to_string(&php_ini)?;
+    let current_ini_content = std::fs::read_to_string(php_ini)?;
     let mut ext_line = format!("extension={ext_name}");
 
     let mut new_lines = current_ini_content.lines().collect::<Vec<_>>();
@@ -267,7 +267,7 @@ fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::
     }
 
     new_lines.push(&ext_line);
-    write_to_file(new_lines.join("\n"), &php_ini)?;
+    write_to_file(new_lines.join("\n"), php_ini)?;
     Ok(())
 }
 
@@ -612,7 +612,7 @@ fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
     std::fs::write(&tempf, content)?;
 
     // Now move. `rename` will overwrite existing file.
-    if let Err(_) = std::fs::rename(&tempf, &filepath) {
+    if std::fs::rename(&tempf, filepath).is_err() {
         #[cfg(unix)]
         {
             // if not successful, try with sudo on unix.
