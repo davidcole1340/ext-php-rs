@@ -9,8 +9,7 @@ use clap::Parser;
 use dialoguer::{Confirm, Select};
 
 use std::{
-    fs::OpenOptions,
-    io::{BufRead, BufReader, Seek, Write},
+    io::BufReader,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -239,7 +238,7 @@ impl Install {
         })?;
 
         if let Some(php_ini) = php_ini {
-            copy_ini_file(&php_ini, ext_name, self.disable)
+            update_ini_file(&php_ini, ext_name, self.disable)
                 .with_context(|| "Failed to update `php.ini`")?;
         }
 
@@ -247,33 +246,19 @@ impl Install {
     }
 }
 
-// Copy ini file, if fails, try with sudo again.
-fn copy_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Result<()> {
-    let mut file = match OpenOptions::new().read(true).write(true).open(php_ini) {
-        Ok(x) => x,
-        Err(_e) => {
-            #[cfg(unix)]
-            {
-                elevate::escalate_if_needed().expect("sudo failed");
-            }
-            OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(php_ini)
-                .with_context(|| "Failed to open `php.ini`")?
-        }
-    };
-
+// Update extension information in the ini file, if fails, try with sudo again.
+//
+// Write to a temp file then move it to given path. Use `sudo` on unix to move
+// file if needed.
+fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Result<()> {
+    let current_ini_content = std::fs::read_to_string(php_ini)?;
     let mut ext_line = format!("extension={ext_name}");
 
-    let mut new_lines = vec![];
-    for line in BufReader::new(&file).lines() {
-        let line = line.with_context(|| "Failed to read line from `php.ini`")?;
+    let mut new_lines = current_ini_content.lines().collect::<Vec<_>>();
+    for line in &new_lines {
         if line.contains(&ext_line) {
             bail!("Extension already enabled.");
         }
-
-        new_lines.push(line);
     }
 
     // Comment out extension if user specifies disable flag
@@ -281,25 +266,26 @@ fn copy_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Re
         ext_line.insert(0, ';');
     }
 
-    new_lines.push(ext_line);
-    file.rewind()?;
-    file.set_len(0)?;
-    let _ = file.write(new_lines.join("\n").as_bytes())?;
+    new_lines.push(&ext_line);
+    write_to_file(new_lines.join("\n"), php_ini)?;
     Ok(())
 }
 
-// Copy extension, if fails, try with sudo again.
+// Copy extension, if fails, try with sudo cp.
 //
-// We can check if we have write permission for ext_dir but due to ACL, group
-// list and and other nuances, it may not be reliable. See
+// Checking if we have write permission for ext_dir may fail due to ACL, group
+// list and and other nuances. See
 // https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly
 fn copy_extension(ext_path: &Utf8PathBuf, ext_dir: &PathBuf) -> anyhow::Result<()> {
     if let Err(_e) = std::fs::copy(ext_path, ext_dir) {
         #[cfg(unix)]
         {
-            elevate::escalate_if_needed().expect("sudo failed");
+            let _ = std::process::Command::new("sudo")
+                .arg("cp")
+                .arg(ext_path)
+                .arg(ext_dir)
+                .status()?;
         }
-        std::fs::copy(ext_path, ext_dir)?;
     }
     Ok(())
 }
@@ -395,28 +381,28 @@ impl Remove {
             bail!("Installation cancelled.");
         }
 
-        std::fs::remove_file(ext_path).with_context(|| "Failed to remove extension")?;
-
-        if let Some(php_ini) = php_ini.filter(|path| path.is_file()) {
-            let mut file = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .create(true)
-                .truncate(false)
-                .open(php_ini)
-                .with_context(|| "Failed to open `php.ini`")?;
-
-            let mut new_lines = vec![];
-            for line in BufReader::new(&file).lines() {
-                let line = line.with_context(|| "Failed to read line from `php.ini`")?;
-                if !line.contains(&ext_file) {
-                    new_lines.push(line);
-                }
+        if let Err(_e) = std::fs::remove_file(&ext_path) {
+            #[cfg(unix)]
+            {
+                let _ = std::process::Command::new("sudo")
+                    .arg("rm")
+                    .arg("-f")
+                    .arg(&ext_path)
+                    .status()?;
             }
+        }
+        anyhow::ensure!(!ext_path.is_file(), "Failed to remove {ext_path:?}");
 
-            file.rewind()?;
-            file.set_len(0)?;
-            file.write(new_lines.join("\n").as_bytes())
+        // modify the ini file
+        if let Some(php_ini) = php_ini.filter(|path| path.is_file()) {
+            let ini_file_content = std::fs::read_to_string(&php_ini)?;
+
+            let new_ini_content = ini_file_content
+                .lines()
+                .filter(|x| x.contains(&ext_file))
+                .collect::<Vec<_>>()
+                .join("\n");
+            write_to_file(new_ini_content, &php_ini)
                 .with_context(|| "Failed to update `php.ini`")?;
         }
 
@@ -611,4 +597,35 @@ fn build_ext(
     }
 
     bail!("Failed to retrieve extension path from artifact")
+}
+
+// Write given string to a given filepath.
+//
+// - Write to a temp file first.
+// - Copy the temp file to the given filepath.
+// - If it fails, move tempfile using `sudo mv`.
+//
+// TODO: Try with sudo when error is permission related.
+fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
+    // write to a temp file
+    let tempf = std::env::temp_dir().join("__tmp_cargo_php");
+    std::fs::write(&tempf, content)?;
+
+    // Now move. `rename` will overwrite existing file.
+    if std::fs::rename(&tempf, filepath).is_err() {
+        #[cfg(unix)]
+        {
+            // if not successful, try with sudo on unix.
+            let _ = std::process::Command::new("sudo")
+                .arg("mv")
+                .arg(&tempf)
+                .arg(filepath)
+                .status()?;
+        }
+
+        #[cfg(not(unix))]
+        anyhow::bail!("failed to write to {filepath:?}");
+    }
+
+    Ok(())
 }
