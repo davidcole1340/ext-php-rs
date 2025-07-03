@@ -200,7 +200,10 @@ impl Install {
         )?;
 
         if !self.bypass_root_check {
-            escalate_root();
+            anyhow::ensure!(
+                elevate::check() == elevate::RunningAs::User,
+                "Running as root is not recommended. Use --bypass-root-check to override."
+            );
         }
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
@@ -231,43 +234,74 @@ impl Install {
             ext_dir.push(ext_name);
         }
 
-        std::fs::copy(&ext_path, &ext_dir).with_context(|| {
+        copy_extension(&ext_path, &ext_dir).with_context(|| {
             "Failed to copy extension from target directory to extension directory"
         })?;
 
         if let Some(php_ini) = php_ini {
-            let mut file = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(php_ini)
-                .with_context(|| "Failed to open `php.ini`")?;
-
-            let mut ext_line = format!("extension={ext_name}");
-
-            let mut new_lines = vec![];
-            for line in BufReader::new(&file).lines() {
-                let line = line.with_context(|| "Failed to read line from `php.ini`")?;
-                if line.contains(&ext_line) {
-                    bail!("Extension already enabled.");
-                }
-
-                new_lines.push(line);
-            }
-
-            // Comment out extension if user specifies disable flag
-            if self.disable {
-                ext_line.insert(0, ';');
-            }
-
-            new_lines.push(ext_line);
-            file.rewind()?;
-            file.set_len(0)?;
-            file.write(new_lines.join("\n").as_bytes())
+            copy_ini_file(&php_ini, ext_name, self.disable)
                 .with_context(|| "Failed to update `php.ini`")?;
         }
 
         Ok(())
     }
+}
+
+// Copy ini file, if fails, try with sudo again.
+fn copy_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Result<()> {
+    let mut file = match OpenOptions::new().read(true).write(true).open(php_ini) {
+        Ok(x) => x,
+        Err(_e) => {
+            #[cfg(unix)]
+            {
+                elevate::escalate_if_needed().expect("sudo failed");
+            }
+            OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(php_ini)
+                .with_context(|| "Failed to open `php.ini`")?
+        }
+    };
+
+    let mut ext_line = format!("extension={ext_name}");
+
+    let mut new_lines = vec![];
+    for line in BufReader::new(&file).lines() {
+        let line = line.with_context(|| "Failed to read line from `php.ini`")?;
+        if line.contains(&ext_line) {
+            bail!("Extension already enabled.");
+        }
+
+        new_lines.push(line);
+    }
+
+    // Comment out extension if user specifies disable flag
+    if disable {
+        ext_line.insert(0, ';');
+    }
+
+    new_lines.push(ext_line);
+    file.rewind()?;
+    file.set_len(0)?;
+    let _ = file.write(new_lines.join("\n").as_bytes())?;
+    Ok(())
+}
+
+// Copy extension, if fails, try with sudo again.
+//
+// We can check if we have write permission for ext_dir but due to ACL, group
+// list and and other nuances, it may not be reliable. See
+// https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly
+fn copy_extension(ext_path: &Utf8PathBuf, ext_dir: &PathBuf) -> anyhow::Result<()> {
+    if let Err(_e) = std::fs::copy(ext_path, ext_dir) {
+        #[cfg(unix)]
+        {
+            elevate::escalate_if_needed().expect("sudo failed");
+        }
+        std::fs::copy(ext_path, ext_dir)?;
+    }
+    Ok(())
 }
 
 /// Returns the path to the extension directory utilised by the PHP interpreter,
@@ -327,12 +361,6 @@ impl Remove {
         use std::env::consts;
 
         let artifact = find_ext(self.manifest.as_ref())?;
-
-        // Must be called after cargo_manifest call in find_path. Though we are setting PATHso that
-        // sudo can find cargo but cargo_manifest doesn't use PATH to locate cargo!
-        if !self.bypass_root_check {
-            escalate_root();
-        }
 
         let (mut ext_path, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
@@ -583,13 +611,4 @@ fn build_ext(
     }
 
     bail!("Failed to retrieve extension path from artifact")
-}
-
-fn escalate_root() {
-    // use sudo and pass PATH for command like `cargo metadata` to keep working.
-    #[cfg(unix)]
-    {
-        sudo::with_env(&["CARGO", "PATH"])
-            .expect("sudo failed! Use --bypass-root-check to disable.");
-    }
 }
