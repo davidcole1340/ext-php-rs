@@ -1,0 +1,82 @@
+name: 🐛 Bug report
+description: Something isn't working as expected?
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the following sections to help us understand the issue.
+  - type: textarea
+    attributes:
+      label: Description
+      description: "Please provide a minimal way to reproduce the problem and describe what the expected vs actual behavior is."
+      value: |
+        ## Description
+        <!-- Please provide a clear and concise description of the bug. -->
+
+        ## Steps to Reproduce
+        1. <!-- Step 1 -->
+        2. <!-- Step 2 -->
+        3. <!-- Step 3 -->
+
+        ## Example
+
+        **Extension Code:**
+        ```rs
+        ```
+
+        **PHP Code:**
+        ```php
+        <?php
+        ```
+
+        ### Actual Behavior
+        ```
+        ```
+
+        ### Expected Behavior
+        ```
+        ```
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Log Output
+      description: |
+        If applicable please provide the full output of the error message or log that you encountered.
+        If the output is too long, consider uploading it to a pastebin service and linking it here.
+      render: shell
+  - type: checkboxes
+    attributes:
+      label: Affected Components
+      description: "Please select all components that are affected by this bug. If you are unsure, leave ALL unchecked."
+      options:
+        - label: "ext-php-rs"
+        - label: "macros"
+        - label: "cli (cargo-php)"
+  - type: textarea
+    attributes:
+      label: PHP Version
+      description: |
+        Please run `php -v` and provide the full output of that command.
+      placeholder: |
+        PHP 8.4.8 (cli) (built: Jun  3 2025 16:29:26) (NTS)
+        Copyright (c) The PHP Group
+        Zend Engine v4.4.8, Copyright (c) Zend Technologies
+            with Zend OPcache v8.4.8, Copyright (c), by Zend Technologies
+            with Xdebug v3.4.4, Copyright (c) 2002-2025, by Derick Rethans
+      render: plain
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: "`ext-php-rs` Version"
+      description: "Please provide the exact version of the extension you are using."
+      placeholder: "0.1.2 or git commit hash"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Operating System
+      description: "The used operating system, if relevant."
+      placeholder: "Ubuntu 25.04"

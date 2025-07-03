@@ -1,0 +1,42 @@
+name: ⁉️ Help request
+description: Need help with something? Ask here!
+labels: ["question", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reaching out for help! Please fill out the following sections to help us understand your issue.
+  - type: textarea
+    attributes:
+      label: Description
+      description: "Please provide a clear and concise description of the problem you are facing."
+      value: |
+        ## Description
+        <!-- Please provide a clear and concise description of the issue. -->
+
+        ## Example
+
+        **Extension Code:**
+        ```rs
+        ```
+
+        **PHP Code:**
+        ```php
+        <?php
+        ```
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Repository
+      description: "If this issue is related to one of your repositories, please provide the repository link. (No advertising!)"
+      placeholder: "https://github.com/user/your-repo"
+  - type: checkboxes
+    attributes:
+      label: I have already tried
+      description: "Please make sure you have tried the following before asking for help."
+      options:
+        - label: "Searching the documentation and guide"
+          required: true
+        - label: "Searching existing issues"
+          required: true
