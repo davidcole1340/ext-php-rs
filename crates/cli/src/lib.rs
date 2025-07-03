@@ -326,11 +326,13 @@ impl Remove {
     pub fn handle(self) -> CrateResult {
         use std::env::consts;
 
+        let artifact = find_ext(self.manifest.as_ref())?;
+
+        // Must be called after cargo_manifest call in find_path. Though we are setting PATHso that
+        // sudo can find cargo but cargo_manifest doesn't use PATH to locate cargo!
         if !self.bypass_root_check {
             escalate_root();
         }
-
-        let artifact = find_ext(self.manifest.as_ref())?;
 
         let (mut ext_path, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
@@ -587,8 +589,7 @@ fn escalate_root() {
     // use sudo and pass PATH for command like `cargo metadata` to keep working.
     #[cfg(unix)]
     {
-        println!("Using sudo...");
         sudo::with_env(&["CARGO", "PATH"])
-            .expect("sudo failed, pass --bypass-root-check to disable.");
+            .expect("sudo failed! Use --bypass-root-check to disable.");
     }
 }
