@@ -121,6 +121,9 @@ struct Install {
     /// Whether to bypass the install prompt.
     #[clap(long)]
     yes: bool,
+    /// Whether to bypass the root check
+    #[clap(long)]
+    bypass_root_check: bool,
 }
 
 #[derive(Parser)]
@@ -140,6 +143,9 @@ struct Remove {
     /// Whether to bypass the remove prompt.
     #[clap(long)]
     yes: bool,
+    /// Whether to bypass the root check
+    #[clap(long)]
+    bypass_root_check: bool,
 }
 
 #[cfg(not(windows))]
@@ -193,6 +199,11 @@ impl Install {
             self.no_default_features,
         )?;
 
+        if !self.bypass_root_check {
+            #[cfg(unix)]
+            sudo::escalate_if_needed().expect("failed to escalate root privileges.");
+        }
+
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
         } else {
@@ -221,16 +232,9 @@ impl Install {
             ext_dir.push(ext_name);
         }
 
-        // We copying of file fails, escalate the privilege and try again.
-        if let Err(_) = std::fs::copy(&ext_path, &ext_dir) {
-            // failed to copy. escalate the privileges and try again.
-            #[cfg(unix)]
-            let _ = sudo::escalate_if_needed().ok();
-
-            std::fs::copy(&ext_path, &ext_dir).with_context(|| {
-                "Failed to copy extension from target directory to extension directory"
-            })?;
-        }
+        std::fs::copy(&ext_path, &ext_dir).with_context(|| {
+            "Failed to copy extension from target directory to extension directory"
+        })?;
 
         if let Some(php_ini) = php_ini {
             let mut file = OpenOptions::new()
@@ -322,6 +326,11 @@ fn get_php_ini() -> AResult<PathBuf> {
 impl Remove {
     pub fn handle(self) -> CrateResult {
         use std::env::consts;
+
+        if !self.bypass_root_check {
+            #[cfg(unix)]
+            sudo::escalate_if_needed().expect("failed to escalate root privileges.");
+        }
 
         let artifact = find_ext(self.manifest.as_ref())?;
 
