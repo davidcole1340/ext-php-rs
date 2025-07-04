@@ -142,6 +142,7 @@ struct Remove {
     /// Whether to bypass the remove prompt.
     #[clap(long)]
     yes: bool,
+    #[cfg(unix)]
     /// Whether to bypass the root check
     #[clap(long)]
     bypass_root_check: bool,
@@ -198,12 +199,11 @@ impl Install {
             self.no_default_features,
         )?;
 
-        if !self.bypass_root_check {
-            anyhow::ensure!(
-                elevate::check() == elevate::RunningAs::User,
-                "Running as root is not recommended. Use --bypass-root-check to override."
-            );
-        }
+        #[cfg(unix)]
+        anyhow::ensure!(
+            self.bypass_root_check || !is_root(),
+            "Running as root is not recommended. Use --bypass-root-check to override."
+        );
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
@@ -246,10 +246,10 @@ impl Install {
     }
 }
 
-// Update extension information in the ini file, if fails, try with sudo again.
-//
-// Write to a temp file then move it to given path. Use `sudo` on unix to move
-// file if needed.
+/// Update extension line in the ini file.
+///
+/// Write to a temp file then copy it to a given path. If this fails, then try
+/// `sudo mv` on unix.
 fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Result<()> {
     let current_ini_content = std::fs::read_to_string(php_ini)?;
     let mut ext_line = format!("extension={ext_name}");
@@ -267,25 +267,29 @@ fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::
     }
 
     new_lines.push(&ext_line);
+
     write_to_file(new_lines.join("\n"), php_ini)?;
     Ok(())
 }
 
-// Copy extension, if fails, try with sudo cp.
-//
-// Checking if we have write permission for ext_dir may fail due to ACL, group
-// list and and other nuances. See
-// https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly
+/// Copy extension, if fails, try with sudo cp.
+///
+/// Checking if we have write permission for ext_dir may fail due to ACL, group
+/// list and and other nuances. See
+/// https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly.
 fn copy_extension(ext_path: &Utf8PathBuf, ext_dir: &PathBuf) -> anyhow::Result<()> {
     if let Err(_e) = std::fs::copy(ext_path, ext_dir) {
         #[cfg(unix)]
         {
-            let _ = std::process::Command::new("sudo")
+            let s = std::process::Command::new("sudo")
                 .arg("cp")
                 .arg(ext_path)
                 .arg(ext_dir)
                 .status()?;
+            anyhow::ensure!(s.success(), "Failed to copy extension");
         }
+        #[cfg(not(unix))]
+        anyhow::bail!("Failed to copy extension: {_e}");
     }
     Ok(())
 }
@@ -599,28 +603,27 @@ fn build_ext(
     bail!("Failed to retrieve extension path from artifact")
 }
 
-// Write given string to a given filepath.
-//
-// - Write to a temp file first.
-// - Copy the temp file to the given filepath.
-// - If it fails, move tempfile using `sudo mv`.
-//
-// TODO: Try with sudo when error is permission related.
+/// Write content to a given filepath.
+///
+/// We may not have write permission but we may have sudo privilege on unix. So
+/// we write to a temp file and then try moving it to given filepath, and retry
+/// with sudo on unix.
 fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
     // write to a temp file
     let tempf = std::env::temp_dir().join("__tmp_cargo_php");
     std::fs::write(&tempf, content)?;
 
-    // Now move. `rename` will overwrite existing file.
+    // Now try moving, `rename` will overwrite existing file.
     if std::fs::rename(&tempf, filepath).is_err() {
         #[cfg(unix)]
         {
             // if not successful, try with sudo on unix.
-            let _ = std::process::Command::new("sudo")
+            let s = std::process::Command::new("sudo")
                 .arg("mv")
                 .arg(&tempf)
                 .arg(filepath)
                 .status()?;
+            anyhow::ensure!(s.success(), "Falied to write to {filepath:?}");
         }
 
         #[cfg(not(unix))]
@@ -628,4 +631,15 @@ fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(unix)]
+fn is_root() -> bool {
+    let uid = unsafe { libc::getuid() };
+    let euid = unsafe { libc::geteuid() };
+
+    match (uid, euid) {
+        (_, 0) => true, // suid set
+        (_, _) => false,
+    }
 }
