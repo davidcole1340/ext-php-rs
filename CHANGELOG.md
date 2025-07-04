@@ -1,5 +1,83 @@
 # Changelog
 
+## [0.14.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.1...ext-php-rs-v0.14.0) - 2025-07-04
+
+### BREAKING CHANGES
+
+- *(macro)* [**breaking**] Change rename defaults to match psr (by @Xenira) [[#189](https://github.com/davidcole1340/ext-php-rs/issues/189)] [[#436](https://github.com/davidcole1340/ext-php-rs/issues/436)] 
+> Methods and Properties are renamed to camelCase by default. Classes to PascalCase, constants to UPPER_CASE and functions to snake_case
+- *(class)* [**breaking**] Generate correct stubs for extends and implements (by @Xenira) [[#326](https://github.com/davidcole1340/ext-php-rs/issues/326)] 
+> `extends` and `implements` attributes now require the `stub` property containing the class/interface name to be used in stubs.
+- *(macro)* [**breaking**] Uinify attributes in `#[php]` attribute (by @Xenira) [[#391](https://github.com/davidcole1340/ext-php-rs/issues/391)] 
+> Attributes like `#[prop]`, `#[rename]`, etc. have been moved to `#[php]` attributes like `#[php(prop)]`,  have been moved to `#[php]` attributes like `#[php(prop)]`, `#[php(name = "Foo")]`, `#[php(rename = CamelCase)]`, etc.
+- *(macro)* [**breaking**] Switch to builder pattern (by @Xenira) [[#99](https://github.com/davidcole1340/ext-php-rs/issues/99)] [[#131](https://github.com/davidcole1340/ext-php-rs/issues/131)] [[#327](https://github.com/davidcole1340/ext-php-rs/issues/327)] [[#174](https://github.com/davidcole1340/ext-php-rs/issues/174)] [[#335](https://github.com/davidcole1340/ext-php-rs/issues/335)] 
+> The old macros were dependent on execution order and have been causing trouble with language servers. They are replaced by a builder. See the migration guide at https://davidcole1340.github.io/ext-php-rs/migration-guides/v0.14.html for information on how to migrate.
+
+### Added
+- *(alloc)* Add estrdup (by @Qard) [[#444](https://github.com/davidcole1340/ext-php-rs/issues/444)] 
+- *(builders)* Add IniBuilder (by @Qard) [[#442](https://github.com/davidcole1340/ext-php-rs/issues/442)] 
+- *(cargo-php)* --features, --all-features, --no-default-features (by @kakserpom)
+- *(ffi)* Allow definging additional bindings (by @Xenira) [[#403](https://github.com/davidcole1340/ext-php-rs/issues/403)] 
+- *(globals)* Add `CompilerGlobals` (by @Qard) [[#445](https://github.com/davidcole1340/ext-php-rs/issues/445)] 
+- *(sapi)* Expand `SapiBuilder` (by @Qard) [[#471](https://github.com/davidcole1340/ext-php-rs/issues/471)] 
+- *(zts)* Set lock per thread on zts build ([#408](https://github.com/davidcole1340/ext-php-rs/pull/408)) (by @joelwurtz) [[#408](https://github.com/davidcole1340/ext-php-rs/issues/408)] 
+- Argument defaults can be any expr valid in const scope (by @alekitto) [[#433](https://github.com/davidcole1340/ext-php-rs/issues/433)] 
+
+### Fixed
+- *(FunctionBuilder)* Remove `null` type from non-nullable types `void` and `mixed` (by @kakserpom) [[#457](https://github.com/davidcole1340/ext-php-rs/issues/457)] 
+- *(args)* Fix variadic args (by @Xenira) [[#337](https://github.com/davidcole1340/ext-php-rs/issues/337)] 
+- *(array)* Cast numeric string keys into `zend_ulong` and allow negative keys (by @kakserpom) [[#453](https://github.com/davidcole1340/ext-php-rs/issues/453)] [[#454](https://github.com/davidcole1340/ext-php-rs/issues/454)] [[#456](https://github.com/davidcole1340/ext-php-rs/issues/456)] 
+- *(build)* Take only the first line of which/where when searching for php executable (by @alekitto) [[#430](https://github.com/davidcole1340/ext-php-rs/issues/430)] 
+- *(cargo-php)* `get_ext_dir()`/`get_php_ini()` stdout noise tolerance (by @kakserpom) [[#459](https://github.com/davidcole1340/ext-php-rs/issues/459)] 
+- *(clippy)* Fix new clippy findings (by @Xenira)
+- *(globals)* Split sapi header value containing `:` correctly (by @Qard) [[#441](https://github.com/davidcole1340/ext-php-rs/issues/441)] 
+- *(macro)* Add missing static flags in `php_impl` macro (by @Norbytus) [[#419](https://github.com/davidcole1340/ext-php-rs/issues/419)] 
+- *(macro)* Add missing separator pipe in flags (by @Norbytus) [[#412](https://github.com/davidcole1340/ext-php-rs/issues/412)] 
+- Ensure update_bindings runs as amd64 (by @Qard) [[#446](https://github.com/davidcole1340/ext-php-rs/issues/446)] [[#448](https://github.com/davidcole1340/ext-php-rs/issues/448)] 
+- Fix object access in object write/read/has_property handlers (by @alekitto) [[#313](https://github.com/davidcole1340/ext-php-rs/issues/313)] [[#438](https://github.com/davidcole1340/ext-php-rs/issues/438)] 
+
+### Other
+- *(bindings)* Update `docsrs_bindings.rs` to PHP 8.4 (by @Xenira) [[#447](https://github.com/davidcole1340/ext-php-rs/issues/447)] 
+- *(bindings)* Add tooling to generate `docsrs_bindings.rs` (by @Xenira) [[#443](https://github.com/davidcole1340/ext-php-rs/issues/443)] 
+- *(build)* Fix typo in `build.rs` (by @Xenira) [[#439](https://github.com/davidcole1340/ext-php-rs/issues/439)] 
+- *(cargo-php)* Add locked option to install guide ([#370](https://github.com/davidcole1340/ext-php-rs/pull/370)) (by @Xenira) [[#370](https://github.com/davidcole1340/ext-php-rs/issues/370)] [[#314](https://github.com/davidcole1340/ext-php-rs/issues/314)] 
+- *(cli)* Enforce docs for cli (by @Xenira) [[#392](https://github.com/davidcole1340/ext-php-rs/issues/392)] 
+- *(clippy)* Apply pedantic rules (by @Xenira) [[#418](https://github.com/davidcole1340/ext-php-rs/issues/418)] 
+- *(coverage)* Add coverage badge (by @Xenira)
+- *(coverage)* Ignore release pr (by @Xenira)
+- *(coverage)* Add coverage reporting (by @Xenira) [[#415](https://github.com/davidcole1340/ext-php-rs/issues/415)] 
+- *(dependabot)* Remove redundant directories included in workspace ([#386](https://github.com/davidcole1340/ext-php-rs/pull/386)) (by @Xenira) [[#386](https://github.com/davidcole1340/ext-php-rs/issues/386)] 
+- *(dependabot)* Add cargo ecosystem ([#378](https://github.com/davidcole1340/ext-php-rs/pull/378)) (by @Xenira) [[#378](https://github.com/davidcole1340/ext-php-rs/issues/378)] 
+- *(deps)* Update cargo_metadata requirement from 0.19 to 0.20 ([#437](https://github.com/davidcole1340/ext-php-rs/pull/437)) (by @dependabot[bot]) [[#437](https://github.com/davidcole1340/ext-php-rs/issues/437)] 
+- *(deps)* Update zip requirement from 3.0 to 4.0 ([#435](https://github.com/davidcole1340/ext-php-rs/pull/435)) (by @dependabot[bot]) [[#435](https://github.com/davidcole1340/ext-php-rs/issues/435)] 
+- *(deps)* Update zip requirement from 2.2 to 3.0 ([#432](https://github.com/davidcole1340/ext-php-rs/pull/432)) (by @dependabot[bot]) [[#432](https://github.com/davidcole1340/ext-php-rs/issues/432)] 
+- *(deps)* Update cargo_metadata requirement from 0.15 to 0.19 ([#404](https://github.com/davidcole1340/ext-php-rs/pull/404)) (by @dependabot[bot]) [[#404](https://github.com/davidcole1340/ext-php-rs/issues/404)] 
+- *(deps)* Update syn and darling ([#400](https://github.com/davidcole1340/ext-php-rs/pull/400)) (by @Xenira) [[#400](https://github.com/davidcole1340/ext-php-rs/issues/400)] 
+- *(deps)* Update ureq requirement from 2.4 to 3.0 ([#379](https://github.com/davidcole1340/ext-php-rs/pull/379)) (by @dependabot[bot]) [[#379](https://github.com/davidcole1340/ext-php-rs/issues/379)] 
+- *(deps)* Update libloading requirement from 0.7 to 0.8 ([#389](https://github.com/davidcole1340/ext-php-rs/pull/389)) (by @dependabot[bot]) [[#389](https://github.com/davidcole1340/ext-php-rs/issues/389)] 
+- *(deps)* Update dialoguer requirement from 0.10 to 0.11 ([#387](https://github.com/davidcole1340/ext-php-rs/pull/387)) (by @dependabot[bot]) [[#387](https://github.com/davidcole1340/ext-php-rs/issues/387)] 
+- *(deps)* Update zip requirement from 0.6 to 2.2 ([#381](https://github.com/davidcole1340/ext-php-rs/pull/381)) (by @dependabot[bot]) [[#381](https://github.com/davidcole1340/ext-php-rs/issues/381)] 
+- *(deps)* Bump JamesIves/github-pages-deploy-action ([#374](https://github.com/davidcole1340/ext-php-rs/pull/374)) (by @dependabot[bot]) [[#374](https://github.com/davidcole1340/ext-php-rs/issues/374)] 
+- *(github)* Add issue and pr templates (by @Xenira) [[#455](https://github.com/davidcole1340/ext-php-rs/issues/455)] 
+- *(guide)* Directly include doc comments (by @Xenira)
+- *(hooks)* Add check for outdated macro documentation (by @Xenira) [[#466](https://github.com/davidcole1340/ext-php-rs/issues/466)] 
+- *(integration)* Reorganise integration tests (by @Xenira) [[#414](https://github.com/davidcole1340/ext-php-rs/issues/414)] 
+- *(macro)* Change `rename` to `change_case` (by @Xenira)
+- *(macro)* Improve `name` vs `rename` documentation (by @Xenira) [[#422](https://github.com/davidcole1340/ext-php-rs/issues/422)] 
+- *(macro)* Use `#[php]` attribute for startup function (by @Xenira) [[#423](https://github.com/davidcole1340/ext-php-rs/issues/423)] 
+- *(macro)* Trait rename for general and method names (by @Norbytus) [[#420](https://github.com/davidcole1340/ext-php-rs/issues/420)] 
+- *(macro)* Update documentation for builder pattern (by @Xenira)
+- *(macro)* Add stubs for new builder pattern (by @Xenira) [[#183](https://github.com/davidcole1340/ext-php-rs/issues/183)] 
+- *(php-tokio)* Move documentation into separate section (by @Xenira) [[#322](https://github.com/davidcole1340/ext-php-rs/issues/322)] 
+- *(release-plz)* Move breaking changes to section on top of changelog ([#393](https://github.com/davidcole1340/ext-php-rs/pull/393)) (by @Xenira) [[#393](https://github.com/davidcole1340/ext-php-rs/issues/393)] 
+- *(sapi)* Use builder pattern in sapi test (by @Xenira)
+- *(test)* Fix embed test on php 8.4 ([#396](https://github.com/davidcole1340/ext-php-rs/pull/396)) (by @joelwurtz) [[#396](https://github.com/davidcole1340/ext-php-rs/issues/396)] 
+- *(test)* Disable inline example tests for macos unstable ([#377](https://github.com/davidcole1340/ext-php-rs/pull/377)) (by @Xenira) [[#377](https://github.com/davidcole1340/ext-php-rs/issues/377)] 
+- Add git hooks and `CONTRIBUTING.md` (by @Xenira) [[#475](https://github.com/davidcole1340/ext-php-rs/issues/475)] 
+- Improve test reliability and ease of use (by @Qard) [[#450](https://github.com/davidcole1340/ext-php-rs/issues/450)] 
+- Add missing cfg gate to anyhow exception test (by @Qard) [[#449](https://github.com/davidcole1340/ext-php-rs/issues/449)] 
+- Enforce doc comments for `ext-php-rs` (by @Xenira) [[#392](https://github.com/davidcole1340/ext-php-rs/issues/392)] 
+
 ## [0.13.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.0...ext-php-rs-v0.13.1) - 2025-02-13
 
 ### Fixed
