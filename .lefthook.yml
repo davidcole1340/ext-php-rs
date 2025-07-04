@@ -2,7 +2,7 @@ pre-commit:
   parallel: true
   jobs:
     - name: fmt
-      run: rustfmt {staged_files}
+      run: rustfmt --edition 2021 {staged_files}
       glob: "*.rs"
       stage_fixed: true
     - name: clippy
