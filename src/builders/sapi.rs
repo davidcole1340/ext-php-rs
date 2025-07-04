@@ -6,8 +6,10 @@ use crate::ffi::{
 use crate::types::Zval;
 use crate::{embed::SapiModule, error::Result};
 
-use std::ffi::{c_char, c_int, c_void};
-use std::{ffi::CString, ptr};
+use std::{
+    ffi::{c_char, c_int, c_void, CString},
+    ptr,
+};
 
 /// Builder for `SapiModule`s
 ///
@@ -43,6 +45,7 @@ pub struct SapiBuilder {
     module: SapiModule,
     executable_location: Option<String>,
     php_ini_path_override: Option<String>,
+    ini_entries: Option<String>,
 }
 
 impl SapiBuilder {
@@ -95,6 +98,7 @@ impl SapiBuilder {
             },
             executable_location: None,
             php_ini_path_override: None,
+            ini_entries: None,
         }
     }
 
@@ -271,6 +275,16 @@ impl SapiBuilder {
         self
     }
 
+    /// Set the `ini_entries` for this SAPI
+    ///
+    /// # Parameters
+    ///
+    /// * `entries` - A pointer to the ini entries.
+    pub fn ini_entries<E: Into<String>>(mut self, entries: E) -> Self {
+        self.ini_entries = Some(entries.into());
+        self
+    }
+
     /// Sets the php ini path override for this SAPI
     ///
     /// # Parameters
@@ -324,6 +338,10 @@ impl SapiBuilder {
 
         if let Some(path) = self.executable_location {
             self.module.executable_location = CString::new(path)?.into_raw();
+        }
+
+        if let Some(entries) = self.ini_entries {
+            self.module.ini_entries = CString::new(entries)?.into_raw();
         }
 
         if let Some(path) = self.php_ini_path_override {
@@ -709,6 +727,26 @@ mod test {
         );
     }
 
+    #[cfg(php82)]
+    #[test]
+    fn test_sapi_ini_entries() {
+        let mut ini = crate::builders::IniBuilder::new();
+        ini.define("foo=bar").expect("should define ini entry");
+        ini.quoted("memory_limit", "128M")
+            .expect("should add quoted ini entry");
+
+        let sapi = SapiBuilder::new("test", "Test")
+            .ini_entries(ini)
+            .build()
+            .expect("should build sapi module");
+
+        assert!(!sapi.ini_entries.is_null());
+        assert_eq!(
+            unsafe { CStr::from_ptr(sapi.ini_entries) },
+            c"foo=bar\nmemory_limit=\"128M\"\n"
+        );
+    }
+
     #[test]
     fn test_php_ini_path_override() {
         let sapi = SapiBuilder::new("test", "Test")
@@ -718,10 +756,8 @@ mod test {
 
         assert!(!sapi.php_ini_path_override.is_null());
         assert_eq!(
-            unsafe { CStr::from_ptr(sapi.php_ini_path_override) }
-                .to_str()
-                .expect("should convert CStr to str"),
-            "/custom/path/php.ini"
+            unsafe { CStr::from_ptr(sapi.php_ini_path_override) },
+            c"/custom/path/php.ini"
         );
     }
 
@@ -754,10 +790,8 @@ mod test {
 
         assert!(!sapi.executable_location.is_null());
         assert_eq!(
-            unsafe { CStr::from_ptr(sapi.executable_location) }
-                .to_str()
-                .expect("should convert CStr to str"),
-            "/usr/bin/php"
+            unsafe { CStr::from_ptr(sapi.executable_location) },
+            c"/usr/bin/php"
         );
     }
 
@@ -790,18 +824,8 @@ mod test {
             .build()
             .expect("should build sapi module");
 
-        assert_eq!(
-            unsafe { CStr::from_ptr(sapi.name) }
-                .to_str()
-                .expect("should convert CStr to str"),
-            "chained"
-        );
-        assert_eq!(
-            unsafe { CStr::from_ptr(sapi.pretty_name) }
-                .to_str()
-                .expect("should convert CStr to str"),
-            "Chained SAPI"
-        );
+        assert_eq!(unsafe { CStr::from_ptr(sapi.name) }, c"chained");
+        assert_eq!(unsafe { CStr::from_ptr(sapi.pretty_name) }, c"Chained SAPI");
         assert!(sapi.startup.is_some());
         assert!(sapi.shutdown.is_some());
         assert!(sapi.activate.is_some());

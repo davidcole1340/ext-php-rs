@@ -58,7 +58,7 @@ pub unsafe fn efree(ptr: *mut u8) {
                 0,
                 std::ptr::null_mut(),
                 0,
-            )
+            );
         } else {
             #[allow(clippy::used_underscore_items)]
             _efree(ptr.cast::<c_void>());

@@ -1,5 +1,8 @@
 #include "zend.h"
 #include "sapi/embed/php_embed.h"
+#ifdef EXT_PHP_RS_PHP_82
+#include "php_ini_builder.h"
+#endif
 
 void* ext_php_rs_embed_callback(int argc, char** argv, void* (*callback)(void *), void *ctx);
 

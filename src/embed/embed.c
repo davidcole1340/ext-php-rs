@@ -36,3 +36,11 @@ void ext_php_rs_php_error(int type, const char *format, ...) {
   vprintf(format, args);
   va_end(args);
 }
+
+// Wrap `php_ini_builder_deinit` as it's `static inline` which gets discarded
+// by cbindgen.
+#ifdef EXT_PHP_RS_PHP_82
+void ext_php_rs_php_ini_builder_deinit(struct php_ini_builder *b) {
+  php_ini_builder_deinit(b);
+}
+#endif

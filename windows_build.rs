@@ -58,7 +58,7 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
             ("ZEND_DEBUG", if self.info.debug()? { "1" } else { "0" }),
         ];
         if self.info.thread_safety()? {
-            defines.push(("ZTS", ""));
+            defines.push(("ZTS", "1"));
         }
         Ok(defines)
     }
