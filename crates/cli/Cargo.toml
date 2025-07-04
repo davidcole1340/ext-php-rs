@@ -5,13 +5,13 @@ repository = "https://github.com/davidcole1340/ext-php-rs"
 homepage = "https://github.com/davidcole1340/ext-php-rs"
 license = "MIT OR Apache-2.0"
 keywords = ["php", "ffi", "zend"]
-version = "0.1.10"
+version = "0.1.11"
 authors = ["David Cole <david.cole1340@gmail.com>"]
 edition = "2018"
 categories = ["api-bindings", "command-line-interface"]
 
 [dependencies]
-ext-php-rs = { version = "0.13", path = "../../" }
+ext-php-rs = { version = "0.14", path = "../../" }
 
 clap = { version = "4.0", features = ["derive"] }
 anyhow = "1"
