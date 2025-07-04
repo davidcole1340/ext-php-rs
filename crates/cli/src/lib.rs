@@ -201,7 +201,7 @@ impl Install {
         #[cfg(unix)]
         if !self.bypass_root_check {
             anyhow::ensure!(
-                ! is_root(),
+                !is_root(),
                 "Running as root is not recommended. Use --bypass-root-check to override."
             );
         }
@@ -249,8 +249,8 @@ impl Install {
 
 // Update extension line in the ini file.
 //
-// Write to a temp file then copy it to a given path. If this fails, then try `sudo mv` 
-// on unix.
+// Write to a temp file then copy it to a given path. If this fails, then try
+// `sudo mv` on unix.
 fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Result<()> {
     let current_ini_content = std::fs::read_to_string(php_ini)?;
     let mut ext_line = format!("extension={ext_name}");
@@ -277,7 +277,7 @@ fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::
 //
 // Checking if we have write permission for ext_dir may fail due to ACL, group
 // list and and other nuances. See
-// https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly. 
+// https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly.
 fn copy_extension(ext_path: &Utf8PathBuf, ext_dir: &PathBuf) -> anyhow::Result<()> {
     if let Err(_e) = std::fs::copy(ext_path, ext_dir) {
         #[cfg(unix)]
@@ -606,8 +606,9 @@ fn build_ext(
 
 // Write content to a given filepath.
 //
-// We may not have write permission but we may have sudo privilege on unix. So we write to 
-// a temp file and then try moving it to given filepath, and retry with sudo on unix.
+// We may not have write permission but we may have sudo privilege on unix. So
+// we write to a temp file and then try moving it to given filepath, and retry
+// with sudo on unix.
 fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
     // write to a temp file
     let tempf = std::env::temp_dir().join("__tmp_cargo_php");
@@ -634,7 +635,14 @@ fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
 }
 
 #[cfg(unix)]
-fn is_root() -> bool 
-{
-    nix::unistd::Uid::effective().is_root()
+fn is_root() -> bool {
+    // nix::unistd::Uid::effective().is_root()
+    let uid = unsafe { libc::getuid() };
+    let euid = unsafe { libc::geteuid() };
+
+    match (uid, euid) {
+        (0, 0) => true,
+        (_, 0) => true, // suid set
+        (_, _) => false,
+    }
 }

@@ -21,7 +21,7 @@ cargo_metadata = "0.20"
 semver = "1.0"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.30", features=["user"]}
+libc = "0.2"
 
 [lints.rust]
 missing_docs = "warn"
