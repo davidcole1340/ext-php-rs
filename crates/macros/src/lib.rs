@@ -572,7 +572,7 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// The rest of the options are passed as separate attributes:
 ///
-/// - `#[php(defaults(i = 5, b = "hello")]` - Sets the default value for
+/// - `#[php(defaults(i = 5, b = "hello"))]` - Sets the default value for
 ///   parameter(s).
 /// - `#[php(optional = i)]` - Sets the first optional parameter. Note that this
 ///   also sets the remaining parameters as optional, so all optional parameters
