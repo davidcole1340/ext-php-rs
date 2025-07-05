@@ -196,7 +196,7 @@ consuming <code>self</code> parameter. Static methods can omit this <code>self</
 be named <code>self_</code>. This can also be used to return a reference to <code>$this</code>.</p>
 <p>The rest of the options are passed as separate attributes:</p>
 <ul>
-<li><code>#[php(defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
+<li><code>#[php(defaults(i = 5, b = "hello"))]</code> - Sets the default value for parameter(s).</li>
 <li><code>#[php(optional = i)]</code> - Sets the first optional parameter. Note that this also sets
 the remaining parameters as optional, so all optional parameters must be a
 variant of <code>Option&lt;T&gt;</code>.</li>
