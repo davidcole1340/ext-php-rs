@@ -38,7 +38,7 @@ be named `self_`. This can also be used to return a reference to `$this`.
 
 The rest of the options are passed as separate attributes:
 
-- `#[php(defaults(i = 5, b = "hello")]` - Sets the default value for parameter(s).
+- `#[php(defaults(i = 5, b = "hello"))]` - Sets the default value for parameter(s).
 - `#[php(optional = i)]` - Sets the first optional parameter. Note that this also sets
   the remaining parameters as optional, so all optional parameters must be a
   variant of `Option<T>`.
