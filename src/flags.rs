@@ -308,6 +308,7 @@ bitflags! {
         /// Compile warning
         const CompileWarning = E_COMPILE_WARNING;
         /// User error
+        #[cfg_attr(php84, deprecated = "`E_USER_ERROR` is deprecated since PHP 8.4. Throw an exception instead.")]
         const UserError = E_USER_ERROR;
         /// User warning
         const UserWarning = E_USER_WARNING;
