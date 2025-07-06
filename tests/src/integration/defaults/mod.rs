@@ -12,10 +12,20 @@ pub fn test_defaults_nullable_string(a: Option<String>) -> Option<String> {
     a
 }
 
+#[php_function]
+#[php(defaults(a = None, b = None))]
+pub fn test_defaults_multiple_option_arguments(
+    a: Option<String>,
+    b: Option<String>,
+) -> PhpResult<String> {
+    Ok(a.or(b).unwrap_or_else(|| "Default".to_string()))
+}
+
 pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
     builder
         .function(wrap_function!(test_defaults_integer))
         .function(wrap_function!(test_defaults_nullable_string))
+        .function(wrap_function!(test_defaults_multiple_option_arguments))
 }
 
 #[cfg(test)]

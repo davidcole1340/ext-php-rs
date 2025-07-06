@@ -168,6 +168,7 @@ impl<'a> Arg<'a> {
             )
             .ok_or(Error::InvalidCString)?,
             default_value: match &self.default_value {
+                Some(val) if val.as_str() == "None" => CString::new("null")?.into_raw(),
                 Some(val) => CString::new(val.as_str())?.into_raw(),
                 None => ptr::null(),
             },
