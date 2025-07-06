@@ -6,7 +6,11 @@ publish = false
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-ext-php-rs = { path = "../", features = ["closure"] }
+cfg-if = "1.0.1"
+ext-php-rs = { path = "../", default-features = false, features = ["closure"] }
+
+[features]
+enum = ["ext-php-rs/enum"]
 
 [lib]
 crate-type = ["cdylib"]
