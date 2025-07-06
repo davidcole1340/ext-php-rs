@@ -5,6 +5,8 @@ pub mod callable;
 pub mod class;
 pub mod closure;
 pub mod defaults;
+#[cfg(feature = "enum")]
+pub mod enum_;
 pub mod exception;
 pub mod globals;
 pub mod iterator;
@@ -28,8 +30,13 @@ mod test {
 
     fn setup() {
         BUILD.call_once(|| {
-            assert!(Command::new("cargo")
-                .arg("build")
+            let mut command = Command::new("cargo");
+            command.arg("build");
+            #[cfg(feature = "enum")]
+            {
+                command.arg("--features=enum");
+            }
+            assert!(command
                 .output()
                 .expect("failed to build extension")
                 .status

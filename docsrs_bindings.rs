@@ -146,6 +146,7 @@ pub const ZEND_ACC_PROMOTED: u32 = 256;
 pub const ZEND_ACC_INTERFACE: u32 = 1;
 pub const ZEND_ACC_TRAIT: u32 = 2;
 pub const ZEND_ACC_ANON_CLASS: u32 = 4;
+pub const ZEND_ACC_ENUM: u32 = 268435456;
 pub const ZEND_ACC_LINKED: u32 = 8;
 pub const ZEND_ACC_IMPLICIT_ABSTRACT_CLASS: u32 = 16;
 pub const ZEND_ACC_USE_GUARDS: u32 = 2048;
@@ -2699,6 +2700,28 @@ pub struct php_file_globals {
 }
 extern "C" {
     pub static mut file_globals: php_file_globals;
+}
+extern "C" {
+    pub fn zend_enum_new(
+        result: *mut zval,
+        ce: *mut zend_class_entry,
+        case_name: *mut zend_string,
+        backing_value_zv: *mut zval,
+    ) -> *mut zend_object;
+}
+extern "C" {
+    pub fn zend_register_internal_enum(
+        name: *const ::std::os::raw::c_char,
+        type_: u8,
+        functions: *const zend_function_entry,
+    ) -> *mut zend_class_entry;
+}
+extern "C" {
+    pub fn zend_enum_add_case(
+        ce: *mut zend_class_entry,
+        case_name: *mut zend_string,
+        value: *mut zval,
+    );
 }
 extern "C" {
     pub static mut zend_ce_throwable: *mut zend_class_entry;
