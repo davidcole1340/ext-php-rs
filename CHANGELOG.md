@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.14.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.0...ext-php-rs-v0.14.1) - 2025-07-06
+
+### Added
+- *(error)* Deprecate `E_USER_ERROR` in PHP 8.4 (by @Xenira) [[#476](https://github.com/davidcole1340/ext-php-rs/issues/476)] 
+
+### Fixed
+- Support defaults for calls with named arguments (by @Stranger6667) [[#490](https://github.com/davidcole1340/ext-php-rs/issues/490)] 
+
+### Other
+- Add missing parenthesis (by @Stranger6667) [[#486](https://github.com/davidcole1340/ext-php-rs/issues/486)] 
+
 ## [0.14.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.13.1...ext-php-rs-v0.14.0) - 2025-07-04
 
 ### BREAKING CHANGES

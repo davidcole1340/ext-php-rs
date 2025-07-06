@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.0...ext-php-rs-derive-v0.11.1) - 2025-07-06
+
+### Other
+- Add missing parenthesis (by @Stranger6667) [[#486](https://github.com/davidcole1340/ext-php-rs/issues/486)] 
+
 ## [0.11.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.10.2...ext-php-rs-derive-v0.11.0) - 2025-07-04
 
 ### BREAKING CHANGES
