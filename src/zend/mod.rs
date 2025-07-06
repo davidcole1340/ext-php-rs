@@ -28,6 +28,8 @@ pub use globals::ExecutorGlobals;
 pub use globals::FileGlobals;
 pub use globals::ProcessGlobals;
 pub use globals::SapiGlobals;
+pub use globals::SapiHeader;
+pub use globals::SapiHeaders;
 pub use globals::SapiModule;
 pub use handlers::ZendObjectHandlers;
 pub use ini_entry_def::IniEntryDef;

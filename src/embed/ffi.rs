@@ -18,6 +18,9 @@ extern "C" {
     ) -> *mut c_void;
 
     pub fn ext_php_rs_sapi_startup();
+    pub fn ext_php_rs_sapi_shutdown();
+    pub fn ext_php_rs_sapi_per_thread_init();
+
     pub fn ext_php_rs_php_error(
         type_: ::std::os::raw::c_int,
         error_msg: *const ::std::os::raw::c_char,

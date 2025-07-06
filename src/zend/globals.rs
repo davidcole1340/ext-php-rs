@@ -562,6 +562,7 @@ impl SapiGlobals {
     }
 }
 
+/// Stores SAPI headers. Exposed through SapiGlobals.
 pub type SapiHeaders = sapi_headers_struct;
 
 impl<'a> SapiHeaders {
@@ -571,6 +572,7 @@ impl<'a> SapiHeaders {
     }
 }
 
+/// Manage a key/value pair of SAPI headers.
 pub type SapiHeader = sapi_header_struct;
 
 impl<'a> SapiHeader {
