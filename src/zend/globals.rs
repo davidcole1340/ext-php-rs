@@ -562,7 +562,7 @@ impl SapiGlobals {
     }
 }
 
-/// Stores SAPI headers. Exposed through SapiGlobals.
+/// Stores SAPI headers. Exposed through `SapiGlobals`.
 pub type SapiHeaders = sapi_headers_struct;
 
 impl<'a> SapiHeaders {
