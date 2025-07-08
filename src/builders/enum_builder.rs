@@ -7,7 +7,7 @@ use crate::{
     ffi::{zend_enum_add_case, zend_register_internal_enum},
     flags::{DataType, MethodFlags},
     types::{ZendStr, Zval},
-    zend::FunctionEntry,
+    zend::{ClassEntry, FunctionEntry},
 };
 
 #[must_use]
@@ -16,6 +16,7 @@ pub struct EnumBuilder {
     pub(crate) methods: Vec<(FunctionBuilder<'static>, MethodFlags)>,
     pub(crate) cases: Vec<&'static EnumCase>,
     pub(crate) datatype: DataType,
+    register: Option<fn(&'static mut ClassEntry)>,
 }
 
 impl EnumBuilder {
@@ -25,6 +26,7 @@ impl EnumBuilder {
             methods: Vec::default(),
             cases: Vec::default(),
             datatype: DataType::Undef,
+            register: None,
         }
     }
 
@@ -45,6 +47,17 @@ impl EnumBuilder {
 
     pub fn add_method(mut self, method: FunctionBuilder<'static>, flags: MethodFlags) -> Self {
         self.methods.push((method, flags));
+        self
+    }
+
+    /// Function to register the class with PHP. This function is called after
+    /// the class is built.
+    ///
+    /// # Parameters
+    ///
+    /// * `register` - The function to call to register the class.
+    pub fn registration(mut self, register: fn(&'static mut ClassEntry)) -> Self {
+        self.register = Some(register);
         self
     }
 
@@ -82,6 +95,12 @@ impl EnumBuilder {
             unsafe {
                 zend_enum_add_case(class, name.into_raw(), value);
             }
+        }
+
+        if let Some(register) = self.register {
+            register(unsafe { &mut *class });
+        } else {
+            panic!("Enum was not registered with a registration function",);
         }
 
         Ok(())

@@ -2724,6 +2724,12 @@ extern "C" {
     );
 }
 extern "C" {
+    pub fn zend_enum_get_case(
+        ce: *mut zend_class_entry,
+        name: *mut zend_string,
+    ) -> *mut zend_object;
+}
+extern "C" {
     pub static mut zend_ce_throwable: *mut zend_class_entry;
 }
 extern "C" {

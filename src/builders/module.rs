@@ -2,7 +2,7 @@ use std::{convert::TryFrom, ffi::CString, mem, ptr};
 
 use super::{ClassBuilder, FunctionBuilder};
 #[cfg(feature = "enum")]
-use crate::{builders::enum_builder::EnumBuilder, enum_::PhpEnum};
+use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 use crate::{
     class::RegisteredClass,
     constant::IntoConst,
@@ -215,7 +215,7 @@ impl ModuleBuilder<'_> {
     #[cfg(feature = "enum")]
     pub fn r#enum<T>(mut self) -> Self
     where
-        T: RegisteredClass + PhpEnum,
+        T: RegisteredClass + RegisteredEnum,
     {
         self.enums.push(|| {
             let mut builder = EnumBuilder::new(T::CLASS_NAME);
@@ -226,7 +226,9 @@ impl ModuleBuilder<'_> {
                 builder = builder.add_method(method, flags);
             }
 
-            builder
+            builder.registration(|ce| {
+                T::get_metadata().set_ce(ce);
+            })
         });
 
         self

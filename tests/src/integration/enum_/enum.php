@@ -17,3 +17,5 @@ assert(StringBackedEnum::Variant1->value === 'foo');
 assert(StringBackedEnum::from('bar') === StringBackedEnum::Variant2);
 assert(StringBackedEnum::tryFrom('foo') === StringBackedEnum::Variant1);
 assert(StringBackedEnum::tryFrom('baz') === null);
+
+assert(test_enum(TestEnum::Variant2) === TestEnum::Variant1);
