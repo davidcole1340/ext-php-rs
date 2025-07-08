@@ -88,6 +88,7 @@ bind! {
     zend_declare_property,
     zend_do_implement_interface,
     zend_enum_add_case,
+    zend_enum_get_case,
     zend_enum_new,
     zend_execute_data,
     zend_function_entry,

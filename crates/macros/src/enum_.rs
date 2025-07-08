@@ -101,13 +101,13 @@ pub fn parser(mut input: ItemEnum) -> Result<TokenStream> {
         }
     }
 
-    let enum_props = Enum {
-        ident: &input.ident,
-        attrs: php_attr,
+    let enum_props = Enum::new(
+        &input.ident,
+        &php_attr,
         docs,
         cases,
-        flags: None, // TODO: Implement flags support
-    };
+        None, // TODO: Implement flags support
+    );
 
     Ok(quote! {
         #[allow(dead_code)]
@@ -120,28 +120,45 @@ pub fn parser(mut input: ItemEnum) -> Result<TokenStream> {
 #[derive(Debug)]
 pub struct Enum<'a> {
     ident: &'a Ident,
-    attrs: PhpEnumAttribute,
+    name: String,
     docs: Vec<String>,
     cases: Vec<EnumCase>,
-    // TODO: Implement flags support
-    #[allow(dead_code)]
     flags: Option<String>,
 }
 
-impl ToTokens for Enum<'_> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let ident = &self.ident;
-        let enum_name = self
-            .attrs
-            .rename
-            .rename(ident.to_string(), RenameRule::Pascal);
-        let flags = quote! { ::ext_php_rs::flags::ClassFlags::Enum };
-        let docs = &self.docs;
-        let cases = &self.cases;
+impl<'a> Enum<'a> {
+    fn new(
+        ident: &'a Ident,
+        attrs: &PhpEnumAttribute,
+        docs: Vec<String>,
+        cases: Vec<EnumCase>,
+        flags: Option<String>,
+    ) -> Self {
+        let name = attrs.rename.rename(ident.to_string(), RenameRule::Pascal);
 
-        let class = quote! {
+        Self {
+            ident,
+            name,
+            docs,
+            cases,
+            flags,
+        }
+    }
+
+    fn registered_class(&self) -> TokenStream {
+        let ident = &self.ident;
+        let name = &self.name;
+        let flags = self
+            .flags
+            .as_ref()
+            .map(|f| quote! { | #f })
+            .unwrap_or_default();
+        let flags = quote! { ::ext_php_rs::flags::ClassFlags::Enum #flags };
+        let docs = &self.docs;
+
+        quote! {
             impl ::ext_php_rs::class::RegisteredClass for #ident {
-                const CLASS_NAME: &'static str = #enum_name;
+                const CLASS_NAME: &'static str = #name;
                 const BUILDER_MODIFIER: ::std::option::Option<
                     fn(::ext_php_rs::builders::ClassBuilder) -> ::ext_php_rs::builders::ClassBuilder
                 > = None;
@@ -186,14 +203,54 @@ impl ToTokens for Enum<'_> {
                     ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
                 }
             }
-        };
-        let enum_impl = quote! {
-            impl ::ext_php_rs::enum_::PhpEnum for #ident {
+        }
+    }
+
+    fn registered_enum(&self) -> TokenStream {
+        let ident = &self.ident;
+        let cases = &self.cases;
+        let case_from_names = self.cases.iter().map(|case| {
+            let ident = &case.ident;
+            let name = &case.name;
+            quote! {
+                #name => Ok(Self::#ident)
+            }
+        });
+        let case_to_names = self.cases.iter().map(|case| {
+            let ident = &case.ident;
+            let name = &case.name;
+            quote! {
+                Self::#ident => #name
+            }
+        });
+
+        quote! {
+            impl ::ext_php_rs::enum_::RegisteredEnum for #ident {
                 const CASES: &'static [::ext_php_rs::enum_::EnumCase] = &[
                     #(#cases,)*
                 ];
+
+                fn from_name(name: &str) -> ::ext_php_rs::error::Result<Self> {
+                    match name {
+                        #(#case_from_names,)*
+                        _ => Err(::ext_php_rs::error::Error::InvalidProperty),
+                    }
+                }
+
+                fn to_name(&self) -> &'static str {
+                    match self {
+                        #(#case_to_names,)*
+                    }
+                }
             }
-        };
+        }
+    }
+}
+
+impl ToTokens for Enum<'_> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let class = self.registered_class();
+        let enum_impl = self.registered_enum();
 
         tokens.extend(quote! {
             #class
