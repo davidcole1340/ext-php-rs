@@ -1,6 +1,10 @@
 //! This module defines the `PhpEnum` trait and related types for Rust enums that are exported to PHP.
 use crate::{
-    convert::IntoZval, describe::DocComments, error::Result, flags::DataType, types::Zval,
+    convert::IntoZval,
+    describe::DocComments,
+    error::{Error, Result},
+    flags::DataType,
+    types::Zval,
 };
 
 /// Implemented on Rust enums which are exported to PHP.
@@ -39,17 +43,13 @@ pub enum Discriminant {
     String(&'static str),
 }
 
-impl Discriminant {
-    /// Converts the discriminant to a PHP value.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the conversion fails. See [`String`] and [`i64`] [`IntoZval`] implementations
-    /// for more details on potential errors.
-    pub fn into_zval(&self, persistent: bool) -> Result<Zval> {
-        match self {
-            Discriminant::Int(i) => i.into_zval(persistent),
-            Discriminant::String(s) => s.into_zval(persistent),
+impl TryFrom<&Discriminant> for Zval {
+    type Error = Error;
+
+    fn try_from(value: &Discriminant) -> Result<Self> {
+        match value {
+            Discriminant::Int(i) => i.into_zval(false),
+            Discriminant::String(s) => s.into_zval(true),
         }
     }
 }

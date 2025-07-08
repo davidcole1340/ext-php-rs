@@ -6,7 +6,7 @@ use crate::{
     error::Result,
     ffi::{zend_enum_add_case, zend_register_internal_enum},
     flags::{DataType, MethodFlags},
-    types::ZendStr,
+    types::{ZendStr, Zval},
     zend::FunctionEntry,
 };
 
@@ -73,7 +73,7 @@ impl EnumBuilder {
             let name = ZendStr::new(case.name, true);
             let value = match &case.discriminant {
                 Some(value) => {
-                    let value = value.into_zval(false)?;
+                    let value: Zval = value.try_into()?;
                     let mut zv = core::mem::ManuallyDrop::new(value);
                     (&raw mut zv).cast()
                 }

@@ -1,10 +1,10 @@
 use std::convert::TryFrom;
 
-use darling::FromAttributes;
+use darling::{util::Flag, FromAttributes};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{Expr, Fields, Ident, ItemEnum, Lit};
+use syn::{Fields, Ident, ItemEnum, Lit};
 
 use crate::{
     helpers::get_docs,
@@ -18,7 +18,7 @@ struct PhpEnumAttribute {
     #[darling(flatten)]
     rename: PhpRename,
     #[darling(default)]
-    allow_discriminants: bool,
+    allow_native_discriminants: Flag,
     rename_cases: Option<RenameRule>,
     vis: Option<Visibility>,
     attrs: Vec<syn::Attribute>,
@@ -29,7 +29,7 @@ struct PhpEnumAttribute {
 struct PhpEnumVariantAttribute {
     #[darling(flatten)]
     rename: PhpRename,
-    discriminant: Option<Expr>,
+    discriminant: Option<Lit>,
     // TODO: Implement doc support for enum variants
     #[allow(dead_code)]
     attrs: Vec<syn::Attribute>,
@@ -47,8 +47,8 @@ pub fn parser(mut input: ItemEnum) -> Result<TokenStream> {
         if variant.fields != Fields::Unit {
             bail!("Enum cases must be unit variants, found: {:?}", variant);
         }
-        if !php_attr.allow_discriminants && variant.discriminant.is_some() {
-            bail!(variant => "Native discriminants are currently not exported to PHP. To set a discriminant, use the `#[php(allow_discriminants)]` attribute on the enum. To export discriminants, set the #[php(discriminant = ...)] attribute on the enum case.");
+        if !php_attr.allow_native_discriminants.is_present() && variant.discriminant.is_some() {
+            bail!(variant => "Native discriminants are currently not exported to PHP. To set a discriminant, use the `#[php(allow_native_discriminants)]` attribute on the enum. To export discriminants, set the #[php(discriminant = ...)] attribute on the enum case.");
         }
 
         let variant_attr = PhpEnumVariantAttribute::from_attributes(&variant.attrs)?;
@@ -219,21 +219,17 @@ enum Discriminant {
     Integer(i64),
 }
 
-impl TryFrom<&Expr> for Discriminant {
+impl TryFrom<&Lit> for Discriminant {
     type Error = syn::Error;
 
-    fn try_from(expr: &Expr) -> Result<Self> {
-        match expr {
-            Expr::Lit(expr) => match &expr.lit {
-                Lit::Str(s) => Ok(Discriminant::String(s.value())),
-                Lit::Int(i) => i.base10_parse::<i64>().map(Discriminant::Integer).map_err(
-                    |_| err!(expr => "Invalid integer literal for enum case: {:?}", expr.lit),
-                ),
-                _ => bail!(expr => "Unsupported discriminant type: {:?}", expr.lit),
-            },
-            _ => {
-                bail!(expr => "Unsupported discriminant type, expected a literal of type string or i64, found: {:?}", expr);
-            }
+    fn try_from(lit: &Lit) -> Result<Self> {
+        match lit {
+            Lit::Str(s) => Ok(Discriminant::String(s.value())),
+            Lit::Int(i) => i
+                .base10_parse::<i64>()
+                .map(Discriminant::Integer)
+                .map_err(|_| err!(lit => "Invalid integer literal for enum case: {:?}", lit)),
+            _ => bail!(lit => "Unsupported discriminant type: {:?}", lit),
         }
     }
 }
@@ -242,7 +238,7 @@ impl ToTokens for Discriminant {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(match self {
             Discriminant::String(s) => {
-                quote! { ::ext_php_rs::enum_::Discriminant::String(#s.to_string()) }
+                quote! { ::ext_php_rs::enum_::Discriminant::String(#s) }
             }
             Discriminant::Integer(i) => {
                 quote! { ::ext_php_rs::enum_::Discriminant::Int(#i) }
