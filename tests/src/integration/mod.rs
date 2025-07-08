@@ -31,7 +31,7 @@ mod test {
     fn setup() {
         BUILD.call_once(|| {
             let mut command = Command::new("cargo");
-            command.arg("build");
+            command.arg("build").arg("--no-default-features");
             #[cfg(feature = "enum")]
             {
                 command.arg("--features=enum");

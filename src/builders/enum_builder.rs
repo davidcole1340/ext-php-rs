@@ -70,7 +70,7 @@ impl EnumBuilder {
         };
 
         for case in self.cases {
-            let name = ZendStr::new(case.name, true);
+            let name = ZendStr::new_interned(case.name, true);
             let value = match &case.discriminant {
                 Some(value) => {
                     let value: Zval = value.try_into()?;
