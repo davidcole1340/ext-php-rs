@@ -1,7 +1,7 @@
 use ext_php_rs::{php_enum, prelude::ModuleBuilder};
 
 #[php_enum]
-#[php(allow_discriminants)]
+#[php(allow_native_discriminants)]
 pub enum TestEnum {
     // #[php(discriminant = 2)]
     Variant1,
@@ -17,16 +17,19 @@ pub enum IntBackedEnum {
     Variant2,
 }
 
-// #[php_enum]
-// pub enum StringBackedEnum {
-//     #[php(discriminant = "foo")]
-//     Variant1,
-//     #[php(discriminant = "bar")]
-//     Variant2,
-// }
+#[php_enum]
+pub enum StringBackedEnum {
+    #[php(discriminant = "foo")]
+    Variant1,
+    #[php(discriminant = "bar")]
+    Variant2,
+}
 
 pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
-    builder.r#enum::<TestEnum>().r#enum::<IntBackedEnum>()
+    builder
+        .r#enum::<TestEnum>()
+        .r#enum::<IntBackedEnum>()
+        .r#enum::<StringBackedEnum>()
 }
 
 #[cfg(test)]
