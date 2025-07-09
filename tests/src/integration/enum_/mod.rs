@@ -1,4 +1,4 @@
-use ext_php_rs::{php_enum, php_function, prelude::ModuleBuilder, wrap_function};
+use ext_php_rs::{error::Result, php_enum, php_function, prelude::ModuleBuilder, wrap_function};
 
 #[php_enum]
 #[php(allow_native_discriminants)]
@@ -26,10 +26,11 @@ pub enum StringBackedEnum {
 }
 
 #[php_function]
-pub fn test_enum(a: TestEnum) -> TestEnum {
+pub fn test_enum(a: TestEnum) -> Result<StringBackedEnum> {
+    let str: &str = StringBackedEnum::Variant2.into();
     match a {
-        TestEnum::Variant1 => TestEnum::Variant2,
-        TestEnum::Variant2 => TestEnum::Variant1,
+        TestEnum::Variant1 => str.try_into(),
+        TestEnum::Variant2 => Ok(StringBackedEnum::Variant1),
     }
 }
 
