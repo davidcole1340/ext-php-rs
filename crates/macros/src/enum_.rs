@@ -107,6 +107,7 @@ pub fn parser(mut input: ItemEnum) -> Result<TokenStream> {
         docs,
         cases,
         None, // TODO: Implement flags support
+        discriminant_type,
     );
 
     Ok(quote! {
@@ -121,6 +122,7 @@ pub fn parser(mut input: ItemEnum) -> Result<TokenStream> {
 pub struct Enum<'a> {
     ident: &'a Ident,
     name: String,
+    discriminant_type: DiscriminantType,
     docs: Vec<String>,
     cases: Vec<EnumCase>,
     flags: Option<String>,
@@ -133,12 +135,14 @@ impl<'a> Enum<'a> {
         docs: Vec<String>,
         cases: Vec<EnumCase>,
         flags: Option<String>,
+        discriminant_type: DiscriminantType,
     ) -> Self {
         let name = attrs.rename.rename(ident.to_string(), RenameRule::Pascal);
 
         Self {
             ident,
             name,
+            discriminant_type,
             docs,
             cases,
             flags,
@@ -245,16 +249,93 @@ impl<'a> Enum<'a> {
             }
         }
     }
+
+    pub fn impl_try_from(&self) -> TokenStream {
+        if self.discriminant_type == DiscriminantType::None {
+            return quote! {};
+        }
+        let discriminant_type = match self.discriminant_type {
+            DiscriminantType::Integer => quote! { i64 },
+            DiscriminantType::String => quote! { &str },
+            DiscriminantType::None => unreachable!("Discriminant type should not be None here"),
+        };
+        let ident = &self.ident;
+        let cases = self.cases.iter().map(|case| {
+            let ident = &case.ident;
+            match case
+                .discriminant
+                .as_ref()
+                .expect("Discriminant should be set")
+            {
+                Discriminant::String(s) => quote! { #s => Ok(Self::#ident) },
+                Discriminant::Integer(i) => quote! { #i => Ok(Self::#ident) },
+            }
+        });
+
+        quote! {
+            impl TryFrom<#discriminant_type> for #ident {
+                type Error = ::ext_php_rs::error::Error;
+
+                fn try_from(value: #discriminant_type) -> ::ext_php_rs::error::Result<Self> {
+                    match value {
+                        #(
+                            #cases,
+                        )*
+                        _ => Err(::ext_php_rs::error::Error::InvalidProperty),
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn impl_into(&self) -> TokenStream {
+        if self.discriminant_type == DiscriminantType::None {
+            return quote! {};
+        }
+        let discriminant_type = match self.discriminant_type {
+            DiscriminantType::Integer => quote! { i64 },
+            DiscriminantType::String => quote! { &'static str },
+            DiscriminantType::None => unreachable!("Discriminant type should not be None here"),
+        };
+        let ident = &self.ident;
+        let cases = self.cases.iter().map(|case| {
+            let ident = &case.ident;
+            match case
+                .discriminant
+                .as_ref()
+                .expect("Discriminant should be set")
+            {
+                Discriminant::String(s) => quote! { Self::#ident => #s },
+                Discriminant::Integer(i) => quote! { Self::#ident => #i },
+            }
+        });
+
+        quote! {
+            impl Into<#discriminant_type> for #ident {
+                fn into(self) -> #discriminant_type {
+                    match self {
+                        #(
+                            #cases,
+                        )*
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl ToTokens for Enum<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let class = self.registered_class();
         let enum_impl = self.registered_enum();
+        let impl_try_from = self.impl_try_from();
+        let impl_into = self.impl_into();
 
         tokens.extend(quote! {
             #class
             #enum_impl
+            #impl_try_from
+            #impl_into
         });
     }
 }

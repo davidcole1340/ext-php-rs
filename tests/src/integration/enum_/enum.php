@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 $enum_variant = TestEnum::Variant1;
-var_dump($enum_variant);
 assert($enum_variant === TestEnum::Variant1);
 assert($enum_variant !== TestEnum::Variant2);
 assert(TestEnum::cases() === [TestEnum::Variant1, TestEnum::Variant2]);
@@ -18,4 +17,4 @@ assert(StringBackedEnum::from('bar') === StringBackedEnum::Variant2);
 assert(StringBackedEnum::tryFrom('foo') === StringBackedEnum::Variant1);
 assert(StringBackedEnum::tryFrom('baz') === null);
 
-assert(test_enum(TestEnum::Variant2) === TestEnum::Variant1);
+assert(test_enum(TestEnum::Variant1) === StringBackedEnum::Variant2);
