@@ -2,6 +2,7 @@ use std::{ffi::CString, ptr};
 
 use crate::{
     builders::FunctionBuilder,
+    describe::DocComments,
     enum_::EnumCase,
     error::Result,
     ffi::{zend_enum_add_case, zend_register_internal_enum},
@@ -10,6 +11,7 @@ use crate::{
     zend::{ClassEntry, FunctionEntry},
 };
 
+/// A builder for PHP enums.
 #[must_use]
 pub struct EnumBuilder {
     pub(crate) name: String,
@@ -17,9 +19,11 @@ pub struct EnumBuilder {
     pub(crate) cases: Vec<&'static EnumCase>,
     pub(crate) datatype: DataType,
     register: Option<fn(&'static mut ClassEntry)>,
+    pub(crate) docs: DocComments,
 }
 
 impl EnumBuilder {
+    /// Creates a new enum builder with the given name.
     pub fn new<T: Into<String>>(name: T) -> Self {
         Self {
             name: name.into(),
@@ -27,9 +31,15 @@ impl EnumBuilder {
             cases: Vec::default(),
             datatype: DataType::Undef,
             register: None,
+            docs: DocComments::default(),
         }
     }
 
+    /// Adds an enum case to the enum.
+    ///
+    /// # Panics
+    ///
+    /// If the case's data type does not match the enum's data type
     pub fn case(mut self, case: &'static EnumCase) -> Self {
         let data_type = case.data_type();
         assert!(
@@ -45,7 +55,8 @@ impl EnumBuilder {
         self
     }
 
-    pub fn add_method(mut self, method: FunctionBuilder<'static>, flags: MethodFlags) -> Self {
+    /// Adds a method to the enum.
+    pub fn method(mut self, method: FunctionBuilder<'static>, flags: MethodFlags) -> Self {
         self.methods.push((method, flags));
         self
     }
@@ -61,6 +72,23 @@ impl EnumBuilder {
         self
     }
 
+    /// Add documentation comments to the enum.
+    pub fn docs(mut self, docs: DocComments) -> Self {
+        self.docs = docs;
+        self
+    }
+
+    /// Registers the enum with PHP.
+    ///
+    /// # Panics
+    ///
+    /// If the registration function was not set prior to calling this
+    /// method.
+    ///
+    /// # Errors
+    ///
+    /// If the enum could not be registered, e.g. due to an invalid name or
+    /// data type.
     pub fn register(self) -> Result<()> {
         let mut methods = self
             .methods

@@ -12,6 +12,8 @@ mod module;
 mod sapi;
 
 pub use class::ClassBuilder;
+#[cfg(feature = "enum")]
+pub use enum_builder::EnumBuilder;
 pub use function::FunctionBuilder;
 #[cfg(all(php82, feature = "embed"))]
 pub use ini::IniBuilder;

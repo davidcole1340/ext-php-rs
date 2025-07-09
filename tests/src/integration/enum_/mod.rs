@@ -2,10 +2,14 @@ use ext_php_rs::{error::Result, php_enum, php_function, prelude::ModuleBuilder, 
 
 #[php_enum]
 #[php(allow_native_discriminants)]
+/// An example enum that demonstrates how to use PHP enums with Rust.
+/// This enum has two variants, `Variant1` and `Variant2`.
 pub enum TestEnum {
-    // #[php(discriminant = 2)]
+    /// Represents the first variant of the enum.
+    /// This variant has a discriminant of 0.
+    /// But PHP does not know about it.
     Variant1,
-    // #[php(discriminant = 1)]
+    /// Represents the second variant of the enum.
     Variant2 = 1,
 }
 
