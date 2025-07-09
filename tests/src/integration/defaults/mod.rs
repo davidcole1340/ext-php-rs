@@ -12,6 +12,7 @@ pub fn test_defaults_nullable_string(a: Option<String>) -> Option<String> {
     a
 }
 
+#[allow(clippy::unnecessary_wraps)]
 #[php_function]
 #[php(defaults(a = None, b = None))]
 pub fn test_defaults_multiple_option_arguments(
