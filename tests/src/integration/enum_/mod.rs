@@ -40,9 +40,9 @@ pub fn test_enum(a: TestEnum) -> Result<StringBackedEnum> {
 
 pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
     builder
-        .r#enum::<TestEnum>()
-        .r#enum::<IntBackedEnum>()
-        .r#enum::<StringBackedEnum>()
+        .enumeration::<TestEnum>()
+        .enumeration::<IntBackedEnum>()
+        .enumeration::<StringBackedEnum>()
         .function(wrap_function!(test_enum))
 }
 

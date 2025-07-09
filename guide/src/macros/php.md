@@ -33,24 +33,26 @@ fn hello_world(a: i32, b: i32) -> i32 {
 
 Which attributes are available depends on the element you are annotating:
 
-| Attribute            | `const` | `fn` | `struct` | `struct` field | `impl` | `impl` `const` | `impl` `fn` |
-| -------------------- | ------- | ---- | -------- | -------------- | ------ | -------------- | ----------- |
-| name                 | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          |
-| change_case          | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          |
-| change_method_case   | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          |
-| change_constant_case | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          |
-| flags                | ❌      | ❌   | ✅       | ✅             | ❌     | ❌             | ❌          |
-| prop                 | ❌      | ❌   | ❌       | ✅             | ❌     | ❌             | ❌          |
-| extends              | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
-| implements           | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
-| modifier             | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          |
-| defaults             | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| optional             | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| vis                  | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| getter               | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| setter               | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| constructor          | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
-| abstract_method      | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          |
+| Attribute                  | `const` | `fn` | `struct` | `struct` field | `impl` | `impl` `const` | `impl` `fn` | `enum` | `enum` case |
+| -------------------------- | ------- | ---- | -------- | -------------- | ------ | -------------- | ----------- | ------ | ----------- |
+| name                       | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          | ✅     | ✅          |
+| change_case                | ✅      | ✅   | ✅       | ✅             | ❌     | ✅             | ✅          | ✅     | ✅          |
+| change_method_case         | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          | ❌     | ❌          |
+| change_constant_case       | ❌      | ❌   | ❌       | ❌             | ✅     | ❌             | ❌          | ❌     | ❌          |
+| flags                      | ❌      | ❌   | ✅       | ✅             | ❌     | ❌             | ❌          | ❌     | ❌          |
+| prop                       | ❌      | ❌   | ❌       | ✅             | ❌     | ❌             | ❌          | ❌     | ❌          |
+| extends                    | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          | ❌     | ❌          |
+| implements                 | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          | ❌     | ❌          |
+| modifier                   | ❌      | ❌   | ✅       | ❌             | ❌     | ❌             | ❌          | ❌     | ❌          |
+| defaults                   | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          | ❌     | ❌          |
+| optional                   | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          | ❌     | ❌          |
+| vis                        | ❌      | ✅   | ❌       | ❌             | ❌     | ❌             | ✅          | ❌     | ❌          |
+| getter                     | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          | ❌     | ❌          |
+| setter                     | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          | ❌     | ❌          |
+| constructor                | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          | ❌     | ❌          |
+| abstract_method            | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ✅          | ❌     | ❌          |
+| allow_native_discriminants | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ❌          | ✅     | ❌          |
+| discriminant               | ❌      | ❌   | ❌       | ❌             | ❌     | ❌             | ❌          | ❌     | ✅          |
 
 ## `name` and `change_case`
 
