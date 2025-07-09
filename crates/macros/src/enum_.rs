@@ -20,6 +20,7 @@ struct PhpEnumAttribute {
     #[darling(default)]
     allow_native_discriminants: Flag,
     rename_cases: Option<RenameRule>,
+    // TODO: Implement visibility support
     vis: Option<Visibility>,
     attrs: Vec<syn::Attribute>,
 }
@@ -30,8 +31,6 @@ struct PhpEnumVariantAttribute {
     #[darling(flatten)]
     rename: PhpRename,
     discriminant: Option<Lit>,
-    // TODO: Implement doc support for enum variants
-    #[allow(dead_code)]
     attrs: Vec<syn::Attribute>,
 }
 
@@ -342,7 +341,6 @@ impl ToTokens for Enum<'_> {
 
 #[derive(Debug)]
 struct EnumCase {
-    #[allow(dead_code)]
     ident: Ident,
     name: String,
     #[allow(dead_code)]

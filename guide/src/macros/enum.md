@@ -2,18 +2,23 @@
 
 Enums can be exported to PHP as enums with the `#[php_enum]` attribute macro.
 This attribute derives the `RegisteredClass` and `PhpEnum` traits on your enum.
-To register the enum use the `r#enum::<EnumName>()` method on the `ModuleBuilder`
+To register the enum use the `enumeration::<EnumName>()` method on the `ModuleBuilder`
 in the `#[php_module]` macro.
 
 ## Options
 
-tbd
+The `#[php_enum]` attribute can be configured with the following options:
+- `#[php(name = "EnumName")]` or `#[php(change_case = snake_case)]`: Sets the name of the enum in PHP.
+  The default is the `PascalCase` name of the enum.
+- `#[php(allow_native_discriminants)]`: Allows the use of native Rust discriminants (e.g., `Hearts = 1`).
 
-## Restrictions
+The cases of the enum can be configured with the following options:
+- `#[php(name = "CaseName")]` or `#[php(change_case = snake_case)]`: Sets the name of the enum case in PHP.
+  The default is the `PascalCase` name of the case.
+- `#[php(discriminant = "value")]` or `#[php(discriminant = 123)]`: Sets the discriminant value for the enum case.
+  This can be a string or an integer. If not set, the case will be exported as a simple enum case without a discriminant.
 
-tbd
-
-## Example
+### Example
 
 This example creates a PHP enum `Suit`.
 
@@ -32,9 +37,66 @@ pub enum Suit {
 
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    module.r#enum::<Suit>()
+    module.enumeration::<Suit>()
 }
 # fn main() {}
 ```
+
+## Backed Enums
+Enums can also be backed by either `i64` or `&'static str`. Those values can be set using the
+`#[php(discriminant = "value")]` or `#[php(discriminant = 123)]` attributes on the enum variants.
+
+All variants must have a discriminant of the same type, either all `i64` or all `&'static str`.
+
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
+# extern crate ext_php_rs;
+use ext_php_rs::prelude::*;
+
+#[php_enum]
+pub enum Suit {
+    #[php(discriminant = "hearts")]
+    Hearts,
+    #[php(discriminant = "diamonds")]
+    Diamonds,
+    #[php(discriminant = "clubs")]
+    Clubs,
+    #[php(discriminant = "spades")]
+    Spades,
+}
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.enumeration::<Suit>()
+}
+# fn main() {}
+```
+
+### 'Native' Discriminators
+Native rust discriminants are currently not supported and will not be exported to PHP.
+
+To avoid confusion a compiler error will be raised if you try to use a native discriminant.
+You can ignore this error by adding the `#[php(allow_native_discriminants)]` attribute to your enum.
+
+```rust,no_run
+# #![cfg_attr(windows, feature(abi_vectorcall))]
+# extern crate ext_php_rs;
+use ext_php_rs::prelude::*;
+
+#[php_enum]
+#[php(allow_native_discriminants)]
+pub enum Suit {
+    Hearts = 1,
+    Diamonds = 2,
+    Clubs = 3,
+    Spades = 4,
+}
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+    module.enumeration::<Suit>()
+}
+# fn main() {}
+```
+
 
 TODO: Add backed enums example

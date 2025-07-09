@@ -213,7 +213,7 @@ impl ModuleBuilder<'_> {
 
     /// Adds an enum to the extension.
     #[cfg(feature = "enum")]
-    pub fn r#enum<T>(mut self) -> Self
+    pub fn enumeration<T>(mut self) -> Self
     where
         T: RegisteredClass + RegisteredEnum,
     {
