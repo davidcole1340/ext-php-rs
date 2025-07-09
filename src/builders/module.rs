@@ -223,12 +223,14 @@ impl ModuleBuilder<'_> {
                 builder = builder.case(case);
             }
             for (method, flags) in T::method_builders() {
-                builder = builder.add_method(method, flags);
+                builder = builder.method(method, flags);
             }
 
-            builder.registration(|ce| {
-                T::get_metadata().set_ce(ce);
-            })
+            builder
+                .registration(|ce| {
+                    T::get_metadata().set_ce(ce);
+                })
+                .docs(T::DOC_COMMENTS)
         });
 
         self
