@@ -53,6 +53,9 @@ pub struct TestClassArrayAccess {}
 
 #[php_impl]
 impl TestClassArrayAccess {
+    /// Constructor
+    /// doc
+    /// comment
     pub fn __construct() -> Self {
         Self {}
     }

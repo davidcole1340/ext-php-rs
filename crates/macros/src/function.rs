@@ -337,6 +337,7 @@ impl<'a> Function<'a> {
                 .variadic()
             }
         });
+        let docs = &self.docs;
 
         quote! {
             ::ext_php_rs::class::ConstructorMeta {
@@ -359,6 +360,7 @@ impl<'a> Function<'a> {
                 build_fn: {
                     fn inner(func: ::ext_php_rs::builders::FunctionBuilder) -> ::ext_php_rs::builders::FunctionBuilder {
                         func
+                            .docs(&[#(#docs),*])
                             #(.arg(#required_args))*
                             .not_required()
                             #(.arg(#not_required_args))*
