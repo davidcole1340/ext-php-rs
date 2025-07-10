@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.1...ext-php-rs-derive-v0.11.2) - 2025-07-10
+
+### Fixed
+- *(stubs)* Include doc comments in `__construct()` stubs (by @Xenira) [[#497](https://github.com/davidcole1340/ext-php-rs/issues/497)] 
+
 ## [0.11.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.0...ext-php-rs-derive-v0.11.1) - 2025-07-06
 
 ### Other

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.1...ext-php-rs-v0.14.2) - 2025-07-10
+
+### Added
+- Make Sapi work with ZTS builds (by @Qard) [[#488](https://github.com/davidcole1340/ext-php-rs/issues/488)] 
+
+### Fixed
+- *(clippy)* Fix new clippy rule (by @Xenira)
+- *(stubs)* Include doc comments in `__construct()` stubs (by @Xenira) [[#497](https://github.com/davidcole1340/ext-php-rs/issues/497)] 
+
+### Other
+- *(deps)* Upgrade bindgen to `v0.70` (by @Xenira)
+
 ## [0.14.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.0...ext-php-rs-v0.14.1) - 2025-07-06
 
 ### Added
