@@ -1,15 +1,22 @@
 //! Traits and implementations to convert describe units into PHP stub code.
 
-use crate::flags::DataType;
-use std::{cmp::Ordering, collections::HashMap};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    fmt::{Error as FmtError, Result as FmtResult, Write},
+    option::Option as StdOption,
+    vec::Vec as StdVec,
+};
 
 use super::{
     abi::{Option, RString},
     Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
     Visibility,
 };
-use std::fmt::{Error as FmtError, Result as FmtResult, Write};
-use std::{option::Option as StdOption, vec::Vec as StdVec};
+
+#[cfg(feature = "enum")]
+use crate::describe::{Enum, EnumCase};
+use crate::flags::DataType;
 
 /// Implemented on types which can be converted into PHP stubs.
 pub trait ToStub {
@@ -76,6 +83,12 @@ impl ToStub for Module {
         for class in &*self.classes {
             let (ns, _) = split_namespace(class.name.as_ref());
             insert(ns, class.to_stub()?);
+        }
+
+        #[cfg(feature = "enum")]
+        for r#enum in &*self.enums {
+            let (ns, _) = split_namespace(r#enum.name.as_ref());
+            insert(ns, r#enum.to_stub()?);
         }
 
         let mut entries: StdVec<_> = entries.iter().collect();
@@ -238,6 +251,41 @@ impl ToStub for Class {
         );
 
         writeln!(buf, "}}")
+    }
+}
+
+#[cfg(feature = "enum")]
+impl ToStub for Enum {
+    fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        self.docs.fmt_stub(buf)?;
+
+        let (_, name) = split_namespace(self.name.as_ref());
+        write!(buf, "enum {name}")?;
+
+        if let Option::Some(backing_type) = &self.backing_type {
+            write!(buf, ": {backing_type}")?;
+        }
+
+        writeln!(buf, " {{")?;
+
+        for case in self.cases.iter() {
+            case.fmt_stub(buf)?;
+        }
+
+        writeln!(buf, "}}")
+    }
+}
+
+#[cfg(feature = "enum")]
+impl ToStub for EnumCase {
+    fn fmt_stub(&self, buf: &mut String) -> FmtResult {
+        self.docs.fmt_stub(buf)?;
+
+        write!(buf, "  case {}", self.name)?;
+        if let Option::Some(value) = &self.value {
+            write!(buf, " = {value}")?;
+        }
+        writeln!(buf, ";")
     }
 }
 

@@ -19,6 +19,9 @@
 #include "ext/standard/info.h"
 #include "ext/standard/php_var.h"
 #include "ext/standard/file.h"
+#ifdef EXT_PHP_RS_PHP_81
+#include "zend_enum.h"
+#endif
 #include "zend_exceptions.h"
 #include "zend_inheritance.h"
 #include "zend_interfaces.h"

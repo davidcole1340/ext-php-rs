@@ -261,7 +261,7 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
     Ok(bindings)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum ApiVersion {
     Php80 = 2020_09_30,
     Php81 = 2021_09_02,
@@ -272,8 +272,15 @@ enum ApiVersion {
 
 impl ApiVersion {
     /// Returns the minimum API version supported by ext-php-rs.
-    pub const fn min() -> Self {
-        ApiVersion::Php80
+    pub fn min() -> Self {
+        [
+            ApiVersion::Php80,
+            #[cfg(feature = "enum")]
+            ApiVersion::Php81,
+        ]
+        .into_iter()
+        .max()
+        .unwrap_or(Self::max())
     }
 
     /// Returns the maximum API version supported by ext-php-rs.
