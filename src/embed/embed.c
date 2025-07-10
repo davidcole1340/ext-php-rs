@@ -29,6 +29,21 @@ void ext_php_rs_sapi_startup() {
   zend_signal_startup();
 }
 
+SAPI_API void ext_php_rs_sapi_shutdown() {
+  #ifdef ZTS
+    tsrm_shutdown();
+  #endif
+}
+
+SAPI_API void ext_php_rs_sapi_per_thread_init() {
+  #ifdef ZTS
+    (void)ts_resource(0);
+    #ifdef PHP_WIN32
+      ZEND_TSRMLS_CACHE_UPDATE();
+    #endif
+  #endif
+}
+
 void ext_php_rs_php_error(int type, const char *format, ...) {
   va_list args;
   va_start(args, format);
