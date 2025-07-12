@@ -420,6 +420,7 @@ mod tests {
         assert_eq!(result.unwrap().dereference_mut().long(), Some(42));
     }
 
+    #[cfg(feature = "embed")]
     #[test]
     fn test_try_call_no_value() {
         let arg = Arg::new("test", DataType::Long);
