@@ -229,7 +229,7 @@ impl<'a> ParsedImpl<'a> {
                             {
                                 // `self_: &[mut] ZendClassObject<Self>`
                                 // Need to remove arg from argument list
-                                func.args.typed.pop();
+                                func.args.typed.remove(0);
                                 MethodReceiver::ZendClassObject
                             } else {
                                 modifiers.insert(MethodModifier::Static);
