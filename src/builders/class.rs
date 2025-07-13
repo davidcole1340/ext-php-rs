@@ -386,6 +386,79 @@ impl ClassBuilder {
     }
 }
 
+pub struct InterfaceBuilder {
+    class_builder: ClassBuilder,
+}
+
+impl InterfaceBuilder {
+    pub fn new<T: Into<String>>(name: T) -> Self {
+        Self {
+            class_builder: ClassBuilder::new(name),
+        }
+    }
+
+    pub fn implements(mut self, interface: ClassEntryInfo) -> Self {
+        self.class_builder = self.class_builder.implements(interface);
+
+        self
+    }
+
+    pub fn method(mut self, func: FunctionBuilder<'static>, flags: MethodFlags) -> Self {
+        self.class_builder = self.class_builder.method(func, flags);
+
+        self
+    }
+
+    pub fn constant<T: Into<String>>(
+        mut self,
+        name: T,
+        value: impl IntoZval + 'static,
+        docs: DocComments,
+    ) -> Result<Self> {
+        self.class_builder = self.class_builder.constant(name, value, docs)?;
+
+        Ok(self)
+    }
+
+    pub fn dyn_constant<T: Into<String>>(
+        mut self,
+        name: T,
+        value: &'static dyn IntoZvalDyn,
+        docs: DocComments,
+    ) -> Result<Self> {
+        self.class_builder = self.class_builder.dyn_constant(name, value, docs)?;
+
+        Ok(self)
+    }
+
+    pub fn flags(mut self, flags: ClassFlags) -> Self {
+        self.class_builder = self.class_builder.flags(flags);
+        self
+    }
+
+    pub fn object_override<T: RegisteredClass>(mut self) -> Self {
+        self.class_builder = self.class_builder.object_override::<T>();
+
+        self
+    }
+
+    pub fn registration(mut self, register: fn(&'static mut ClassEntry)) -> Self {
+        self.class_builder = self.class_builder.registration(register);
+
+        self
+    }
+
+    pub fn docs(mut self, docs: DocComments) -> Self {
+        self.class_builder = self.class_builder.docs(docs);
+        self
+    }
+
+    pub fn builder(mut self) -> ClassBuilder {
+        self.class_builder = self.class_builder.flags(ClassFlags::Interface);
+        self.class_builder
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test::test_function;
