@@ -17,6 +17,7 @@ pub mod object;
 pub mod string;
 pub mod types;
 pub mod variadic_args;
+pub mod interface;
 
 #[cfg(test)]
 mod test {
