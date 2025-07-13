@@ -24,3 +24,13 @@ pub fn get_docs(attrs: &[Attribute]) -> Result<Vec<String>> {
         })
         .collect::<Result<Vec<_>>>()
 }
+
+pub trait CleanPhpAttr {
+    fn clean_php(&mut self);
+}
+
+impl CleanPhpAttr for Vec<Attribute> {
+    fn clean_php(&mut self) {
+        self.retain(|attr| !attr.path().is_ident("php"));
+    }
+}
