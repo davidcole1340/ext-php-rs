@@ -2,11 +2,14 @@
 name = "cargo-php"
 description = "Installs extensions and generates stub files for PHP extensions generated with `ext-php-rs`."
 repository = "https://github.com/davidcole1340/ext-php-rs"
-homepage = "https://github.com/davidcole1340/ext-php-rs"
+homepage = "https://ext-php.rs"
 license = "MIT OR Apache-2.0"
 keywords = ["php", "ffi", "zend"]
 version = "0.1.11"
-authors = ["David Cole <david.cole1340@gmail.com>"]
+authors = [
+    "Xenira <xenira@php.rs>",
+    "David Cole <david.cole1340@gmail.com>"
+]
 edition = "2018"
 categories = ["api-bindings", "command-line-interface"]
 

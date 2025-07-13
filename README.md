@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/ext-php-rs)](https://lib.rs/ext-php-rs)
 [![docs.rs](https://img.shields.io/docsrs/ext-php-rs/latest)](https://docs.rs/ext-php-rs)
-[![Guide Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/docs.yml?branch=master&label=guide)](https://davidcole1340.github.io/ext-php-rs)
+[![Guide Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/docs.yml?branch=master&label=guide)](https://ext-php.rs)
 ![CI Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/build.yml?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/davidcole1340/ext-php-rs/badge.svg)](https://coveralls.io/github/davidcole1340/ext-php-rs)
 [![Discord](https://img.shields.io/discord/115233111977099271)](https://discord.gg/dphp)
@@ -11,7 +11,7 @@ Bindings and abstractions for the Zend API to build PHP extensions natively in
 Rust.
 
 - Documentation: <https://docs.rs/ext-php-rs>
-- Guide: <https://davidcole1340.github.io/ext-php-rs>
+- Guide: <https://ext-php.rs>
 
 ## Example
 
@@ -77,7 +77,7 @@ var_dump(hello_world("David")); // string(13) "Hello, David!"
 ```
 
 For more examples read the library
-[guide](https://davidcole1340.github.io/ext-php-rs).
+[guide](https://ext-php.rs).
 
 [`cargo-php`]: https://crates.io/crates/cargo-php
 
@@ -107,7 +107,7 @@ Our main goal is to **make extension development easier.**
 ## Documentation
 
 The library guide can be read
-[here](https://davidcole1340.github.io/ext-php-rs).
+[here](https://ext-php.rs).
 
 The project is documented in-line, so viewing the `cargo` documentation is the
 best resource at the moment. This can be viewed at [docs.rs].

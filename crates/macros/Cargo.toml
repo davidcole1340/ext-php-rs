@@ -2,10 +2,13 @@
 name = "ext-php-rs-derive"
 description = "Derive macros for ext-php-rs."
 repository = "https://github.com/davidcole1340/ext-php-rs"
-homepage = "https://github.com/davidcole1340/ext-php-rs"
+homepage = "https://ext-php.rs"
 license = "MIT OR Apache-2.0"
 version = "0.11.2"
-authors = ["David Cole <david.cole1340@gmail.com>"]
+authors = [
+    "Xenira <xenira@php.rs>",
+    "David Cole <david.cole1340@gmail.com>"
+]
 edition = "2021"
 
 [lib]
