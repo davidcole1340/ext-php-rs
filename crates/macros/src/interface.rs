@@ -1,10 +1,9 @@
-use darling::util::Flag;
-use darling::{FromAttributes, FromMeta, ToTokens};
+use darling::{FromAttributes};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Attribute, Expr, Fields, ItemStruct, ItemTrait};
+use syn::{ItemTrait, TraitItem, TraitItemFn};
+use crate::helpers::CleanPhpAttr;
 
-use crate::helpers::get_docs;
 use crate::parsing::{PhpRename, RenameRule};
 use crate::prelude::*;
 
@@ -21,6 +20,20 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
 
     let interface_name = format_ident!("PhpInterface{ident}");
     let name = attr.rename.rename(ident.to_string(), RenameRule::Pascal);
+    input.attrs.clean_php();
+
+    let mut interface_methods: Vec<TraitItemFn> = Vec::new();
+    for i in input.items.clone().into_iter() {
+        match i {
+            TraitItem::Fn(f) => {
+                if f.default.is_some() {
+                    bail!("Interface could not have default impl");
+                }
+                interface_methods.push(f);
+            }
+            _ => {}
+        }
+    };
 
     Ok(quote! {
         #input
@@ -66,7 +79,7 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
                 &[]
             }
 
-            fn get_properties<'a>() -> std::collections::HashMap<&'static str, PropertyInfo<'a, Self>> {
+            fn get_properties<'a>() -> std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
                 HashMap::new()
             }
 
