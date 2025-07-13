@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.1...ext-php-rs-derive-v0.11.2) - 2025-07-13
+
+### Fixed
+- *(macro)* Allow multiple refs with `self_` (by @Xenira) [[#506](https://github.com/davidcole1340/ext-php-rs/issues/506)] 
+- *(macro)* Fix `self_` reference when multiple method arguments supplied (by @Xenira) [[#504](https://github.com/davidcole1340/ext-php-rs/issues/504)] 
+- *(stubs)* Include doc comments in `__construct()` stubs (by @Xenira) [[#497](https://github.com/davidcole1340/ext-php-rs/issues/497)] 
+
 ## [0.11.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.0...ext-php-rs-derive-v0.11.1) - 2025-07-06
 
 ### Other

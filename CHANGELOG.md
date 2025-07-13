@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.14.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.1...ext-php-rs-v0.14.2) - 2025-07-13
+
+### Added
+- Make Sapi work with ZTS builds (by @Qard) [[#488](https://github.com/davidcole1340/ext-php-rs/issues/488)] 
+
+### Fixed
+- *(clippy)* Fix new clippy rule (by @Xenira)
+- *(macro)* Allow multiple refs with `self_` (by @Xenira) [[#506](https://github.com/davidcole1340/ext-php-rs/issues/506)] 
+- *(macro)* Fix `self_` reference when multiple method arguments supplied (by @Xenira) [[#504](https://github.com/davidcole1340/ext-php-rs/issues/504)] 
+- *(stubs)* Include doc comments in `__construct()` stubs (by @Xenira) [[#497](https://github.com/davidcole1340/ext-php-rs/issues/497)] 
+
+### Other
+- *(args)* Add missing `embed` feature guard (by @Xenira) [[#501](https://github.com/davidcole1340/ext-php-rs/issues/501)] 
+- *(deps)* Upgrade bindgen to `v0.70` (by @Xenira)
+- *(release-plz)* Only run release workflow on build and lint success (by @Xenira)
+
 ## [0.14.1](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.0...ext-php-rs-v0.14.1) - 2025-07-06
 
 ### Added
