@@ -12,6 +12,8 @@ $class->setString('dolor et');
 assert($class->getString() === 'dolor et');
 $class->selfRef("foo");
 assert($class->getString() === 'Changed to foo');
+$class->selfMultiRef("bar");
+assert($class->getString() === 'Changed to bar');
 
 assert($class->getNumber() === 2022);
 $class->setNumber(2023);
