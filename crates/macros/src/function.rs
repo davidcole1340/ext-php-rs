@@ -196,7 +196,8 @@ impl<'a> Function<'a> {
     }
 
     fn build_returns(&self) -> Option<TokenStream> {
-        self.output.as_ref().map(|output| {
+        self.output.cloned().map(|mut output| {
+            output.drop_lifetimes();
             quote! {
                 .returns(
                     <#output as ::ext_php_rs::convert::IntoZval>::TYPE,

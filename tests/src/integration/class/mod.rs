@@ -49,6 +49,14 @@ impl TestClass {
         self_.string = format!("Changed to {val}");
         self_
     }
+
+    pub fn self_multi_ref<'a>(
+        self_: &'a mut ZendClassObject<TestClass>,
+        val: &str,
+    ) -> &'a mut ZendClassObject<TestClass> {
+        self_.string = format!("Changed to {val}");
+        self_
+    }
 }
 
 #[php_function]
