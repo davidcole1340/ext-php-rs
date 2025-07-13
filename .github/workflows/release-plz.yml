@@ -15,6 +15,7 @@ jobs:
   release-plz-release:
     name: Release-plz release
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       clang: '17'
       php_version: '8.2'
@@ -60,6 +61,7 @@ jobs:
   release-plz-pr:
     name: Release-plz PR
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     concurrency:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
