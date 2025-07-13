@@ -192,6 +192,34 @@ impl ModuleBuilder<'_> {
         self
     }
 
+    pub fn interface<T: RegisteredClass>(mut self) -> Self {
+        self.classes.push(|| {
+            let mut builder = InterfaceBuilder::new(T::CLASS_NAME);
+            for (method, flags) in T::method_builders() {
+                builder = builder.method(method, flags);
+            }
+            for (name, value, docs) in T::constants() {
+                builder = builder
+                    .dyn_constant(*name, *value, docs)
+                    .expect("Failed to register constant");
+            }
+
+            let mut class_builder = builder.builder();
+
+            if let Some(modifier) = T::BUILDER_MODIFIER {
+                class_builder = modifier(class_builder);
+            }
+
+            class_builder
+                .object_override::<T>()
+                .registration(|ce| {
+                    T::get_metadata().set_ce(ce);
+                })
+                .docs(T::DOC_COMMENTS)
+        });
+        self
+    }
+
     /// Adds a class to the extension.
     ///
     /// # Panics
