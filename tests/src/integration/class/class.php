@@ -10,6 +10,8 @@ assert($class instanceof TestClass);
 assert($class->getString() === 'lorem ipsum');
 $class->setString('dolor et');
 assert($class->getString() === 'dolor et');
+$class->selfRef("foo");
+assert($class->getString() === 'Changed to foo');
 
 assert($class->getNumber() === 2022);
 $class->setNumber(2023);

@@ -1,5 +1,10 @@
 #![allow(clippy::unused_self)]
-use ext_php_rs::{convert::IntoZval, prelude::*, types::Zval, zend::ce};
+use ext_php_rs::{
+    convert::IntoZval,
+    prelude::*,
+    types::{ZendClassObject, Zval},
+    zend::ce,
+};
 
 /// Doc comment
 /// Goes here
@@ -35,6 +40,14 @@ impl TestClass {
 
     pub fn static_call(name: String) -> String {
         format!("Hello {name}")
+    }
+
+    pub fn self_ref(
+        self_: &mut ZendClassObject<TestClass>,
+        val: String,
+    ) -> &mut ZendClassObject<TestClass> {
+        self_.string = format!("Changed to {val}");
+        self_
     }
 }
 
