@@ -203,7 +203,6 @@ impl From<Arg<'_>> for Parameter {
             name: val.name.into(),
             ty: Some(val.r#type).into(),
             nullable: val.allow_null,
-            variadic: val.variadic,
             default: val.default_value.map(abi::RString::from).into(),
         }
     }

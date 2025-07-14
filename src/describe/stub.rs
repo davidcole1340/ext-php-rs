@@ -154,10 +154,6 @@ impl ToStub for Parameter {
             write!(buf, " ")?;
         }
 
-        if self.variadic {
-            write!(buf, "...")?;
-        }
-
         write!(buf, "${}", self.name)
     }
 }
