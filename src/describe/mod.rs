@@ -81,6 +81,17 @@ pub struct Module {
 impl From<ModuleBuilder<'_>> for Module {
     fn from(builder: ModuleBuilder) -> Self {
         let functions = builder.functions;
+
+        #[allow(unused_mut)]
+        let mut classes = builder
+            .classes
+            .into_iter()
+            .map(|c| c().into())
+            .collect::<StdVec<_>>();
+
+        #[cfg(feature = "closure")]
+        classes.push(Class::closure());
+
         Self {
             name: builder.name.into(),
             functions: functions
@@ -88,12 +99,7 @@ impl From<ModuleBuilder<'_>> for Module {
                 .map(Function::from)
                 .collect::<StdVec<_>>()
                 .into(),
-            classes: builder
-                .classes
-                .into_iter()
-                .map(|c| c().into())
-                .collect::<StdVec<_>>()
-                .into(),
+            classes: classes.into(),
             constants: builder
                 .constants
                 .into_iter()
@@ -163,6 +169,8 @@ pub struct Parameter {
     pub ty: Option<DataType>,
     /// Whether the parameter is nullable.
     pub nullable: bool,
+    /// Whether the parameter is variadic.
+    pub variadic: bool,
     /// Default value of the parameter.
     pub default: Option<RString>,
 }
@@ -185,6 +193,43 @@ pub struct Class {
     pub methods: Vec<Method>,
     /// Constants of the class.
     pub constants: Vec<Constant>,
+}
+
+#[cfg(feature = "closure")]
+impl Class {
+    /// Creates a new class representing a Rust closure used for generating
+    /// the stubs if the `closure` feature is enabled.
+    #[must_use]
+    pub fn closure() -> Self {
+        Self {
+            name: "RustClosure".into(),
+            docs: DocBlock(StdVec::new().into()),
+            extends: Option::None,
+            implements: StdVec::new().into(),
+            properties: StdVec::new().into(),
+            methods: vec![Method {
+                name: "__invoke".into(),
+                docs: DocBlock(StdVec::new().into()),
+                ty: MethodType::Member,
+                params: vec![Parameter {
+                    name: "args".into(),
+                    ty: Option::Some(DataType::Mixed),
+                    nullable: false,
+                    variadic: true,
+                    default: Option::None,
+                }]
+                .into(),
+                retval: Option::Some(Retval {
+                    ty: DataType::Mixed,
+                    nullable: false,
+                }),
+                r#static: false,
+                visibility: Visibility::Public,
+            }]
+            .into(),
+            constants: StdVec::new().into(),
+        }
+    }
 }
 
 impl From<ClassBuilder> for Class {
@@ -518,6 +563,8 @@ impl From<(String, Box<dyn IntoConst + Send>, DocComments)> for Constant {
 #[cfg(test)]
 mod tests {
     #![cfg_attr(windows, feature(abi_vectorcall))]
+    use cfg_if::cfg_if;
+
     use super::*;
 
     use crate::{args::Arg, test::test_function};
@@ -554,7 +601,13 @@ mod tests {
         let module: Module = builder.into();
         assert_eq!(module.name, "test".into());
         assert_eq!(module.functions.len(), 1);
-        assert_eq!(module.classes.len(), 0);
+        cfg_if! {
+            if #[cfg(feature = "closure")] {
+                assert_eq!(module.classes.len(), 1);
+            } else {
+                assert_eq!(module.classes.len(), 0);
+            }
+        }
         assert_eq!(module.constants.len(), 0);
     }
 
@@ -573,6 +626,7 @@ mod tests {
                 name: "foo".into(),
                 ty: Option::Some(DataType::Long),
                 nullable: false,
+                variadic: false,
                 default: Option::None,
             }]
             .into()
@@ -662,6 +716,7 @@ mod tests {
                 name: "foo".into(),
                 ty: Option::Some(DataType::Long),
                 nullable: false,
+                variadic: false,
                 default: Option::None,
             }]
             .into()
