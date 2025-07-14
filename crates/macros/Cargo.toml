@@ -13,7 +13,7 @@ proc-macro = true
 
 [dependencies]
 syn = { version = "2.0.100", features = ["full", "extra-traits", "printing"] }
-darling = "0.20"
+darling = "0.21"
 quote = "1.0.9"
 proc-macro2 = "1.0.26"
 lazy_static = "1.4.0"
