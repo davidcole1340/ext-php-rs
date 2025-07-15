@@ -31,3 +31,21 @@ assert($arrayKeys[5] === "baz");
 assert($arrayKeys[10] === "qux");
 assert($arrayKeys["10"] === "qux");
 assert($arrayKeys["quux"] === "quuux");
+
+$assoc_keys = test_array_assoc_array_keys([
+    'a' => '1',
+    2 => '2',
+    '3' => '3',
+]);
+assert($assoc_keys === [
+    'a' => '1',
+    2 => '2',
+    '3' => '3',
+]);
+
+$assoc_keys = test_array_assoc_array_keys(['foo', 'bar', 'baz']);
+assert($assoc_keys === [
+    0 => 'foo',
+    1 => 'bar',
+    2 => 'baz',
+]);

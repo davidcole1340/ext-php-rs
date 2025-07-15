@@ -1,5 +1,8 @@
 #![allow(clippy::unused_self)]
-use ext_php_rs::{prelude::*, types::Zval};
+use ext_php_rs::{
+    prelude::*,
+    types::{ArrayKey, Zval},
+};
 use std::collections::HashMap;
 
 #[php_class]
@@ -26,7 +29,7 @@ impl MagicMethod {
         }
     }
 
-    pub fn __call_static(name: String, arguments: HashMap<String, &Zval>) -> Zval {
+    pub fn __call_static(name: String, arguments: Vec<(ArrayKey<'_>, &Zval)>) -> Zval {
         let mut zval = Zval::new();
         if name == "callStaticSomeMagic" {
             let concat_args = format!(
@@ -34,10 +37,9 @@ impl MagicMethod {
                 arguments
                     .iter()
                     .filter(|(_, v)| v.is_long())
-                    .map(|(_, s)| s.long().unwrap())
+                    .map(|(_, s)| s.long().unwrap().to_string())
                     .collect::<Vec<_>>()
-                    .iter()
-                    .sum::<i64>()
+                    .join(", ")
             );
 
             let _ = zval.set_string(&concat_args, false);
