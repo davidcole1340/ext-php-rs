@@ -635,7 +635,6 @@ fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
 
 #[cfg(unix)]
 fn is_root() -> bool {
-    // nix::unistd::Uid::effective().is_root()
     let uid = unsafe { libc::getuid() };
     let euid = unsafe { libc::geteuid() };
 
