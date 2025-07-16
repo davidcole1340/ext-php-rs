@@ -200,12 +200,10 @@ impl Install {
         )?;
 
         #[cfg(unix)]
-        if !self.bypass_root_check {
-            anyhow::ensure!(
-                !is_root(),
-                "Running as root is not recommended. Use --bypass-root-check to override."
-            );
-        }
+        anyhow::ensure!(
+            self.bypass_root_check || !is_root(),
+            "Running as root is not recommended. Use --bypass-root-check to override."
+        );
 
         let (mut ext_dir, mut php_ini) = if let Some(install_dir) = self.install_dir {
             (install_dir, None)
