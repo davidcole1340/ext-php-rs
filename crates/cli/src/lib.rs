@@ -603,11 +603,11 @@ fn build_ext(
     bail!("Failed to retrieve extension path from artifact")
 }
 
-// Write content to a given filepath.
-//
-// We may not have write permission but we may have sudo privilege on unix. So
-// we write to a temp file and then try moving it to given filepath, and retry
-// with sudo on unix.
+/// Write content to a given filepath.
+///
+/// We may not have write permission but we may have sudo privilege on unix. So
+/// we write to a temp file and then try moving it to given filepath, and retry
+/// with sudo on unix.
 fn write_to_file(content: String, filepath: &PathBuf) -> anyhow::Result<()> {
     // write to a temp file
     let tempf = std::env::temp_dir().join("__tmp_cargo_php");
