@@ -639,7 +639,6 @@ fn is_root() -> bool {
     let euid = unsafe { libc::geteuid() };
 
     match (uid, euid) {
-        (0, 0) => true,
         (_, 0) => true, // suid set
         (_, _) => false,
     }
