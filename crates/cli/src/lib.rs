@@ -272,11 +272,11 @@ fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::
     Ok(())
 }
 
-// Copy extension, if fails, try with sudo cp.
-//
-// Checking if we have write permission for ext_dir may fail due to ACL, group
-// list and and other nuances. See
-// https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly.
+/// Copy extension, if fails, try with sudo cp.
+///
+/// Checking if we have write permission for ext_dir may fail due to ACL, group
+/// list and and other nuances. See
+/// https://doc.rust-lang.org/std/fs/struct.Permissions.html#method.readonly.
 fn copy_extension(ext_path: &Utf8PathBuf, ext_dir: &PathBuf) -> anyhow::Result<()> {
     if let Err(_e) = std::fs::copy(ext_path, ext_dir) {
         #[cfg(unix)]
