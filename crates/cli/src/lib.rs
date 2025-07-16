@@ -248,10 +248,10 @@ impl Install {
     }
 }
 
-// Update extension line in the ini file.
-//
-// Write to a temp file then copy it to a given path. If this fails, then try
-// `sudo mv` on unix.
+/// Update extension line in the ini file.
+///
+/// Write to a temp file then copy it to a given path. If this fails, then try
+/// `sudo mv` on unix.
 fn update_ini_file(php_ini: &PathBuf, ext_name: &str, disable: bool) -> anyhow::Result<()> {
     let current_ini_content = std::fs::read_to_string(php_ini)?;
     let mut ext_line = format!("extension={ext_name}");
