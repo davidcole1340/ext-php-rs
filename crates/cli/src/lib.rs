@@ -142,6 +142,7 @@ struct Remove {
     /// Whether to bypass the remove prompt.
     #[clap(long)]
     yes: bool,
+    #[cfg(unix)]
     /// Whether to bypass the root check
     #[clap(long)]
     bypass_root_check: bool,
