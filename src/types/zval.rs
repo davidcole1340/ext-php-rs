@@ -54,6 +54,14 @@ impl Zval {
         }
     }
 
+    /// Creates a null zval
+    #[must_use]
+    pub fn null() -> Zval {
+        let mut zval = Zval::new();
+        zval.set_null();
+        zval
+    }
+
     /// Dereference the zval, if it is a reference.
     #[must_use]
     pub fn dereference(&self) -> &Self {
