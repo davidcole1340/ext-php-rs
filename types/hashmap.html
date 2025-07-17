@@ -36,6 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
@@ -92,10 +93,13 @@
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -146,7 +150,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -178,6 +187,16 @@ before being inserted into the <code>HashMap</code>. If one of the key-value pai
 numeric key, the key is represented as a string before being inserted.</p>
 <p>Converting from a <code>HashMap</code> to a zval is valid when the key implements
 <code>AsRef&lt;str&gt;</code>, and the value implements <code>IntoZval</code>.</p>
+<div class="warning">
+<pre><code>When using `HashMap` the order of the elements it not preserved.
+
+HashMaps are unordered collections, so the order of elements may not be the same
+when converting from PHP to Rust and back.
+
+If you need to preserve the order of elements, consider using `Vec&lt;(K, V)&gt;` or
+`Vec&lt;ArrayKey, V)&gt;` instead.
+</code></pre>
+</div>
 <h2 id="rust-example"><a class="header" href="#rust-example">Rust example</a></h2>
 <pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
 </span><span class="boring">extern crate ext_php_rs;
@@ -204,9 +223,78 @@ var_dump(test_hashmap([
 ]));
 </code></pre>
 <p>Output:</p>
+<pre><code class="language-text">k: rust v: php
+k: hello v: world
+k: 0 v: okk
+array(3) {
+    [0] =&gt; string(3) "php",
+    [1] =&gt; string(5) "world",
+    [2] =&gt; string(3) "okk"
+}
+</code></pre>
+<h2 id="veck-v-and-vecarraykey-v"><a class="header" href="#veck-v-and-vecarraykey-v"><code>Vec&lt;(K, V)&gt;</code> and <code>Vec&lt;ArrayKey, V&gt;</code></a></h2>
+<p><code>Vec&lt;(K, V)&gt;</code> and <code>Vec&lt;ArrayKey, V&gt;</code> are used to represent associative arrays in PHP
+where the keys can be strings or integers.</p>
+<p>If using <code>String</code> or <code>&amp;str</code> as the key type, only string keys will be accepted.</p>
+<p>For <code>i64</code> keys, string keys that can be parsed as integers will be accepted, and
+converted to <code>i64</code>.</p>
+<p>If you need to accept both string and integer keys, use <code>ArrayKey</code> as the key type.</p>
+<h3 id="rust-example-1"><a class="header" href="#rust-example-1">Rust example</a></h3>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
+</span><span class="boring">use ext_php_rs::prelude::*;
+</span><span class="boring">use ext_php_rs::types::ArrayKey;
+</span>#[php_function]
+pub fn test_vec_kv(vec: Vec&lt;(String, String)&gt;) -&gt; Vec&lt;String&gt; {
+    for (k, v) in vec.iter() {
+        println!("k: {} v: {}", k, v);
+    }
+
+    vec.into_iter()
+        .map(|(_, v)| v)
+        .collect::&lt;Vec&lt;_&gt;&gt;()
+}
+
+#[php_function]
+pub fn test_vec_arraykey(vec: Vec&lt;(ArrayKey, String)&gt;) -&gt; Vec&lt;String&gt; {
+    for (k, v) in vec.iter() {
+        println!("k: {} v: {}", k, v);
+    }
+
+    vec.into_iter()
+        .map(|(_, v)| v)
+        .collect::&lt;Vec&lt;_&gt;&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
+<h2 id="php-example-1"><a class="header" href="#php-example-1">PHP example</a></h2>
+<pre><code class="language-php">&lt;?php
+
+declare(strict_types=1);
+
+var_dump(test_vec_kv([
+    ['hello', 'world'],
+    ['rust', 'php'],
+    ['okk', 'okk'],
+]));
+
+var_dump(test_vec_arraykey([
+    ['hello', 'world'],
+    [1, 'php'],
+    ["2", 'okk'],
+]));
+</code></pre>
+<p>Output:</p>
 <pre><code class="language-text">k: hello v: world
 k: rust v: php
-k: 0 v: okk
+k: okk v: okk
+array(3) {
+    [0] =&gt; string(5) "world",
+    [1] =&gt; string(3) "php",
+    [2] =&gt; string(3) "okk"
+}
+k: hello v: world
+k: 1 v: php
+k: 2 v: okk
 array(3) {
     [0] =&gt; string(5) "world",
     [1] =&gt; string(3) "php",
@@ -260,6 +348,7 @@ array(3) {
         <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>
