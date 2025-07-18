@@ -798,3 +798,18 @@ impl<'a> FromZvalMut<'a> for &'a mut Zval {
         Some(zval)
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "embed")]
+mod tests {
+    use super::*;
+    use crate::embed::Embed;
+
+    #[test]
+    fn test_zval_null() {
+        Embed::run(|| {
+            let zval = Zval::null();
+            assert!(zval.is_null());
+        });
+    }
+}
