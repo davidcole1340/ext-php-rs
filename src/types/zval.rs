@@ -54,6 +54,14 @@ impl Zval {
         }
     }
 
+    /// Creates a null zval
+    #[must_use]
+    pub fn null() -> Zval {
+        let mut zval = Zval::new();
+        zval.set_null();
+        zval
+    }
+
     /// Dereference the zval, if it is a reference.
     #[must_use]
     pub fn dereference(&self) -> &Self {
@@ -788,5 +796,20 @@ impl<'a> FromZvalMut<'a> for &'a mut Zval {
 
     fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
         Some(zval)
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "embed")]
+mod tests {
+    use super::*;
+    use crate::embed::Embed;
+
+    #[test]
+    fn test_zval_null() {
+        Embed::run(|| {
+            let zval = Zval::null();
+            assert!(zval.is_null());
+        });
     }
 }
