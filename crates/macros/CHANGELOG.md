@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.3](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.2...ext-php-rs-derive-v0.11.3) - 2025-07-18
+
+### Other
+- *(deps)* Update darling requirement from 0.20 to 0.21 (by @dependabot[bot])
+
 ## [0.11.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.1...ext-php-rs-derive-v0.11.2) - 2025-07-13
 
 ### Fixed
