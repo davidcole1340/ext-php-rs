@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.14.3](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.2...ext-php-rs-v0.14.3) - 2025-07-18
+
+### Added
+- *(array)* Support `Vec<(K,V)>` for hashtables (by @Xenira) [[#425](https://github.com/davidcole1340/ext-php-rs/issues/425)] 
+- *(zval)* Add `Zval::null()` (by @kakserpom) [[#521](https://github.com/davidcole1340/ext-php-rs/issues/521)] 
+
 ## [0.14.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.1...ext-php-rs-v0.14.2) - 2025-07-13
 
 ### Added
