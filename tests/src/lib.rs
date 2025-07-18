@@ -18,6 +18,10 @@ pub fn build_module(module: ModuleBuilder) -> ModuleBuilder {
     module = integration::class::build_module(module);
     module = integration::closure::build_module(module);
     module = integration::defaults::build_module(module);
+    #[cfg(feature = "enum")]
+    {
+        module = integration::enum_::build_module(module);
+    }
     module = integration::exception::build_module(module);
     module = integration::globals::build_module(module);
     module = integration::iterator::build_module(module);

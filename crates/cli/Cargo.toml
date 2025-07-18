@@ -11,7 +11,7 @@ edition = "2018"
 categories = ["api-bindings", "command-line-interface"]
 
 [dependencies]
-ext-php-rs = { version = "0.14", path = "../../" }
+ext-php-rs = { version = "0.14", default-features = false, path = "../../" }
 
 clap = { version = "4.0", features = ["derive"] }
 anyhow = "1"
@@ -22,3 +22,7 @@ semver = "1.0"
 
 [lints.rust]
 missing_docs = "warn"
+
+[features]
+default = ["enum"]
+enum = ["ext-php-rs/enum"]

@@ -38,9 +38,11 @@ native-tls = "0.2"
 zip = "4.0"
 
 [features]
+default = ["enum"]
 closure = []
 embed = []
 anyhow = ["dep:anyhow"]
+enum = []
 
 [workspace]
 members = [
