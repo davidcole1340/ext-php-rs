@@ -3,7 +3,7 @@ use crate::ffi::{
     php_ini_builder, php_ini_builder_define, php_ini_builder_prepend, php_ini_builder_quoted,
     php_ini_builder_unquoted,
 };
-use crate::util::CStringScope;
+use crate::util::cstring_scope::CStringScope;
 use std::ffi::{CStr, NulError};
 use std::fmt::Display;
 use std::ops::Deref;
