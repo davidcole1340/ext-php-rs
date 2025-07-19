@@ -126,6 +126,12 @@ jobs:
         with:
           # increment this manually to force cache eviction
           prefix-key: ${{ env.RUST_CACHE_PREFIX }}
+      - name: Install Cargo expand
+        run: cargo install cargo-expand --locked
+        if: "!contains(matrix.os, 'ubuntu')"
+      - name: Install Cargo expand
+        uses: dtolnay/install@cargo-expand
+        if: "contains(matrix.os, 'ubuntu')"
       # LLVM & Clang
       - name: Cache LLVM and Clang
         id: cache-llvm
