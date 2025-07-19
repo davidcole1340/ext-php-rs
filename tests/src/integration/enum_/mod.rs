@@ -15,17 +15,17 @@ pub enum TestEnum {
 
 #[php_enum]
 pub enum IntBackedEnum {
-    #[php(discriminant = 1)]
+    #[php(value = 1)]
     Variant1,
-    #[php(discriminant = 2)]
+    #[php(value = 2)]
     Variant2,
 }
 
 #[php_enum]
 pub enum StringBackedEnum {
-    #[php(discriminant = "foo")]
+    #[php(value = "foo")]
     Variant1,
-    #[php(discriminant = "bar")]
+    #[php(value = "bar")]
     Variant2,
 }
 

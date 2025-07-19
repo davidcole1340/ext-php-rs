@@ -30,6 +30,7 @@ struct PhpEnumAttribute {
 struct PhpEnumVariantAttribute {
     #[darling(flatten)]
     rename: PhpRename,
+    #[darling(rename = "value")]
     discriminant: Option<Lit>,
     attrs: Vec<syn::Attribute>,
 }
@@ -47,7 +48,7 @@ pub fn parser(mut input: ItemEnum) -> Result<TokenStream> {
             bail!("Enum cases must be unit variants, found: {:?}", variant);
         }
         if !php_attr.allow_native_discriminants.is_present() && variant.discriminant.is_some() {
-            bail!(variant => "Native discriminants are currently not exported to PHP. To set a discriminant, use the `#[php(allow_native_discriminants)]` attribute on the enum. To export discriminants, set the #[php(discriminant = ...)] attribute on the enum case.");
+            bail!(variant => "Native discriminants are currently not exported to PHP. To set a discriminant, use the `#[php(allow_native_discriminants)]` attribute on the enum. To export discriminants, set the #[php(value = ...)] attribute on the enum case.");
         }
 
         let variant_attr = PhpEnumVariantAttribute::from_attributes(&variant.attrs)?;

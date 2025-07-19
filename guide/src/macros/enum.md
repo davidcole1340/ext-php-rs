@@ -15,7 +15,7 @@ The `#[php_enum]` attribute can be configured with the following options:
 The cases of the enum can be configured with the following options:
 - `#[php(name = "CaseName")]` or `#[php(change_case = snake_case)]`: Sets the name of the enum case in PHP.
   The default is the `PascalCase` name of the case.
-- `#[php(discriminant = "value")]` or `#[php(discriminant = 123)]`: Sets the discriminant value for the enum case.
+- `#[php(value = "value")]` or `#[php(value = 123)]`: Sets the discriminant value for the enum case.
   This can be a string or an integer. If not set, the case will be exported as a simple enum case without a discriminant.
 
 ### Example
@@ -44,9 +44,9 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 
 ## Backed Enums
 Enums can also be backed by either `i64` or `&'static str`. Those values can be set using the
-`#[php(discriminant = "value")]` or `#[php(discriminant = 123)]` attributes on the enum variants.
+`#[php(value = "value")]` or `#[php(value = 123)]` attributes on the enum variants.
 
-All variants must have a discriminant of the same type, either all `i64` or all `&'static str`.
+All variants must have a value of the same type, either all `i64` or all `&'static str`.
 
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -55,13 +55,13 @@ use ext_php_rs::prelude::*;
 
 #[php_enum]
 pub enum Suit {
-    #[php(discriminant = "hearts")]
+    #[php(value = "hearts")]
     Hearts,
-    #[php(discriminant = "diamonds")]
+    #[php(value = "diamonds")]
     Diamonds,
-    #[php(discriminant = "clubs")]
+    #[php(value = "clubs")]
     Clubs,
-    #[php(discriminant = "spades")]
+    #[php(value = "spades")]
     Spades,
 }
 #[php_module]
