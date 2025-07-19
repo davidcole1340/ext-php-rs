@@ -1,3 +1,1 @@
-mod cstring_scope;
-
-pub use cstring_scope::CStringScope;
+pub mod cstring_scope;
