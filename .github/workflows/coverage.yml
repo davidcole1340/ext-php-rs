@@ -55,6 +55,8 @@ jobs:
           echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/lib" >> $GITHUB_ENV
           echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
           echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/bin/llvm-config" >> $GITHUB_ENV
+      - name: Install Cargo expand
+        uses: dtolnay/install@cargo-expand
       - name: Install tarpaulin
         run: |
           cargo install cargo-tarpaulin --locked

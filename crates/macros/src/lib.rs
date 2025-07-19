@@ -12,9 +12,8 @@ mod syn_ext;
 mod zval;
 
 use proc_macro::TokenStream;
-use syn::{
-    parse_macro_input, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
-};
+use proc_macro2::TokenStream as TokenStream2;
+use syn::{DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct};
 
 extern crate proc_macro;
 
@@ -203,14 +202,17 @@ extern crate proc_macro;
 // END DOCS FROM classes.md
 #[proc_macro_attribute]
 pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemStruct);
+    php_class_internal(args.into(), input.into()).into()
+}
+
+#[allow(clippy::needless_pass_by_value)]
+fn php_class_internal(args: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemStruct);
     if !args.is_empty() {
-        return err!(input => "`#[php_class(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+        return err!(input => "`#[php_class(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error();
     }
 
-    class::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+    class::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM function.md
@@ -371,14 +373,17 @@ pub fn php_class(args: TokenStream, input: TokenStream) -> TokenStream {
 // END DOCS FROM function.md
 #[proc_macro_attribute]
 pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemFn);
+    php_function_internal(args.into(), input.into()).into()
+}
+
+#[allow(clippy::needless_pass_by_value)]
+fn php_function_internal(args: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemFn);
     if !args.is_empty() {
-        return err!(input => "`#[php_function(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+        return err!(input => "`#[php_function(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error();
     }
 
-    function::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+    function::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM constant.md
@@ -436,14 +441,17 @@ pub fn php_function(args: TokenStream, input: TokenStream) -> TokenStream {
 // END DOCS FROM constant.md
 #[proc_macro_attribute]
 pub fn php_const(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemConst);
+    php_const_internal(args.into(), input.into()).into()
+}
+
+#[allow(clippy::needless_pass_by_value)]
+fn php_const_internal(args: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemConst);
     if !args.is_empty() {
-        return err!(input => "`#[php_const(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+        return err!(input => "`#[php_const(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error();
     }
 
-    constant::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+    constant::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM module.md
@@ -516,14 +524,17 @@ pub fn php_const(args: TokenStream, input: TokenStream) -> TokenStream {
 // END DOCS FROM module.md
 #[proc_macro_attribute]
 pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemFn);
+    php_module_internal(args.into(), input.into()).into()
+}
+
+#[allow(clippy::needless_pass_by_value)]
+fn php_module_internal(args: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemFn);
     if !args.is_empty() {
-        return err!(input => "`#[php_module(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+        return err!(input => "`#[php_module(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error();
     }
 
-    module::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+    module::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM impl.md
@@ -713,14 +724,17 @@ pub fn php_module(args: TokenStream, input: TokenStream) -> TokenStream {
 // END DOCS FROM impl.md
 #[proc_macro_attribute]
 pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemImpl);
+    php_impl_internal(args.into(), input.into()).into()
+}
+
+#[allow(clippy::needless_pass_by_value)]
+fn php_impl_internal(args: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemImpl);
     if !args.is_empty() {
-        return err!(input => "`#[php_impl(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error().into();
+        return err!(input => "`#[php_impl(<args>)]` args are no longer supported. Please use `#[php(<args>)]` instead.").to_compile_error();
     }
 
-    impl_::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+    impl_::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM extern.md
@@ -789,12 +803,15 @@ pub fn php_impl(args: TokenStream, input: TokenStream) -> TokenStream {
 /// [`Zval`]: crate::types::Zval
 // END DOCS FROM extern.md
 #[proc_macro_attribute]
-pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemForeignMod);
+pub fn php_extern(args: TokenStream, input: TokenStream) -> TokenStream {
+    php_extern_internal(args.into(), input.into()).into()
+}
 
-    extern_::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+#[allow(clippy::needless_pass_by_value)]
+fn php_extern_internal(_: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemForeignMod);
+
+    extern_::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM zval_convert.md
@@ -953,11 +970,13 @@ pub fn php_extern(_: TokenStream, input: TokenStream) -> TokenStream {
 // END DOCS FROM zval_convert.md
 #[proc_macro_derive(ZvalConvert)]
 pub fn zval_convert_derive(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+    zval_convert_derive_internal(input.into()).into()
+}
 
-    zval::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+fn zval_convert_derive_internal(input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as DeriveInput);
+
+    zval::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 /// Defines an `extern` function with the Zend fastcall convention based on
@@ -992,34 +1011,60 @@ pub fn zval_convert_derive(input: TokenStream) -> TokenStream {
 /// Rust and the `abi_vectorcall` feature enabled.
 #[proc_macro]
 pub fn zend_fastcall(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemFn);
+    zend_fastcall_internal(input.into()).into()
+}
 
-    fastcall::parser(input).into()
+fn zend_fastcall_internal(input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemFn);
+
+    fastcall::parser(input)
 }
 
 /// Wraps a function to be used in the [`Module::function`] method.
 #[proc_macro]
 pub fn wrap_function(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as syn::Path);
+    wrap_function_internal(input.into()).into()
+}
+
+fn wrap_function_internal(input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as syn::Path);
 
     match function::wrap(&input) {
         Ok(parsed) => parsed,
         Err(e) => e.to_compile_error(),
     }
-    .into()
 }
 
 /// Wraps a constant to be used in the [`ModuleBuilder::constant`] method.
 #[proc_macro]
 pub fn wrap_constant(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as syn::Path);
+    wrap_constant_internal(input.into()).into()
+}
+
+fn wrap_constant_internal(input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as syn::Path);
 
     match constant::wrap(&input) {
         Ok(parsed) => parsed,
         Err(e) => e.to_compile_error(),
     }
-    .into()
 }
+
+macro_rules! parse_macro_input2 {
+    ($tokenstream:ident as $ty:ty) => {
+        match syn::parse2::<$ty>($tokenstream) {
+            Ok(data) => data,
+            Err(err) => {
+                return proc_macro2::TokenStream::from(err.to_compile_error());
+            }
+        }
+    };
+    ($tokenstream:ident) => {
+        $crate::parse_macro_input!($tokenstream as _)
+    };
+}
+
+pub(crate) use parse_macro_input2;
 
 macro_rules! err {
     ($span:expr => $($msg:tt)*) => {
@@ -1060,4 +1105,63 @@ pub(crate) mod prelude {
 
     pub(crate) use crate::{bail, err};
     pub(crate) type Result<T> = std::result::Result<T, syn::Error>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    type AttributeFn =
+        fn(proc_macro2::TokenStream, proc_macro2::TokenStream) -> proc_macro2::TokenStream;
+    type FunctionLikeFn = fn(proc_macro2::TokenStream) -> proc_macro2::TokenStream;
+
+    #[test]
+    pub fn test_expand() {
+        macrotest::expand("tests/expand/*.rs");
+        for entry in glob::glob("tests/expand/*.rs").expect("Failed to read expand tests glob") {
+            let entry = entry.expect("Failed to read expand test file");
+            runtime_expand_attr(&entry);
+            runtime_expand_func(&entry);
+            runtime_expand_derive(&entry);
+        }
+    }
+
+    fn runtime_expand_attr(path: &PathBuf) {
+        let file = std::fs::File::open(path).expect("Failed to open expand test file");
+        runtime_macros::emulate_attributelike_macro_expansion(
+            file,
+            &[
+                ("php_class", php_class_internal as AttributeFn),
+                ("php_const", php_const_internal as AttributeFn),
+                ("php_extern", php_extern_internal as AttributeFn),
+                ("php_function", php_function_internal as AttributeFn),
+                ("php_impl", php_impl_internal as AttributeFn),
+                ("php_module", php_module_internal as AttributeFn),
+            ],
+        )
+        .expect("Failed to expand attribute macros in test file");
+    }
+
+    fn runtime_expand_func(path: &PathBuf) {
+        let file = std::fs::File::open(path).expect("Failed to open expand test file");
+        runtime_macros::emulate_functionlike_macro_expansion(
+            file,
+            &[
+                ("zend_fastcall", zend_fastcall_internal as FunctionLikeFn),
+                ("wrap_function", wrap_function_internal as FunctionLikeFn),
+                ("wrap_constant", wrap_constant_internal as FunctionLikeFn),
+            ],
+        )
+        .expect("Failed to expand function-like macros in test file");
+    }
+
+    fn runtime_expand_derive(path: &PathBuf) {
+        let file = std::fs::File::open(path).expect("Failed to open expand test file");
+        runtime_macros::emulate_derive_macro_expansion(
+            file,
+            &[("ZvalConvert", zval_convert_derive_internal)],
+        )
+        .expect("Failed to expand derive macros in test file");
+    }
 }

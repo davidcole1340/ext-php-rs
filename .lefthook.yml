@@ -4,6 +4,8 @@ pre-commit:
     - name: fmt
       run: rustfmt --edition 2021 {staged_files}
       glob: "*.rs"
+      exclude:
+        - "crates/macros/tests/expand/*.expanded.rs"
       stage_fixed: true
     - name: clippy
       run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings

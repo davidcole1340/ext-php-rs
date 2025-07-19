@@ -37,6 +37,17 @@ We have both unit and integration tests. When contributing, please ensure that y
 covered by an integration test. If possible, add unit tests as well. This might not always be possible
 due to the need of a running PHP interpreter.
 
+### Testing macros
+
+To test macro expansion, we use [`runtime-macros`](https://github.com/jeremydavis519/runtime-macros) in conjunction
+with the [`macro-test`](https://github.com/eupn/macrotest) crate.
+
+To add new tests add a file inside the `tests/expand` directory. After running the tests, a new `<name>.expanded.rs`
+file will be created in the same directory. This file contains the expanded macro code. Verify that the
+expanded code is correct and that it matches the expected output. Commit the expanded file as well.
+
+If creating a new macro it needs to be added to the test contained at the bottom of the `crates/macros/src/lib.rs` file.
+
 ### State of unit tests
 There are still large parts of the library that are not covered by unit tests. We strive to cover
 as much as possible, but this is a work in progress. If you make changes to untested code, we would
