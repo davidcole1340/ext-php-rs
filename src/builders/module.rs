@@ -198,6 +198,14 @@ impl ModuleBuilder<'_> {
             for (method, flags) in T::method_builders() {
                 builder = builder.method(method, flags);
             }
+            for interface in T::IMPLEMENTS {
+                builder = builder.implements(*interface);
+            }
+            for (name, value, docs) in T::constants() {
+                builder = builder
+                    .dyn_constant(*name, *value, docs)
+                    .expect("Failed to register constant");
+            }
             for (name, value, docs) in T::constants() {
                 builder = builder
                     .dyn_constant(*name, *value, docs)
