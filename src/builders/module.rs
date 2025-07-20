@@ -1,6 +1,8 @@
 use std::{convert::TryFrom, ffi::CString, mem, ptr};
 
 use super::{ClassBuilder, FunctionBuilder};
+#[cfg(feature = "enum")]
+use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 use crate::{
     class::RegisteredClass,
     constant::IntoConst,
@@ -46,6 +48,8 @@ pub struct ModuleBuilder<'a> {
     pub(crate) functions: Vec<FunctionBuilder<'a>>,
     pub(crate) constants: Vec<(String, Box<dyn IntoConst + Send>, DocComments)>,
     pub(crate) classes: Vec<fn() -> ClassBuilder>,
+    #[cfg(feature = "enum")]
+    pub(crate) enums: Vec<fn() -> EnumBuilder>,
     startup_func: Option<StartupShutdownFunc>,
     shutdown_func: Option<StartupShutdownFunc>,
     request_startup_func: Option<StartupShutdownFunc>,
@@ -206,6 +210,31 @@ impl ModuleBuilder<'_> {
         });
         self
     }
+
+    /// Adds an enum to the extension.
+    #[cfg(feature = "enum")]
+    pub fn enumeration<T>(mut self) -> Self
+    where
+        T: RegisteredClass + RegisteredEnum,
+    {
+        self.enums.push(|| {
+            let mut builder = EnumBuilder::new(T::CLASS_NAME);
+            for case in T::CASES {
+                builder = builder.case(case);
+            }
+            for (method, flags) in T::method_builders() {
+                builder = builder.method(method, flags);
+            }
+
+            builder
+                .registration(|ce| {
+                    T::get_metadata().set_ce(ce);
+                })
+                .docs(T::DOC_COMMENTS)
+        });
+
+        self
+    }
 }
 
 /// Artifacts from the [`ModuleBuilder`] that should be revisited inside the
@@ -213,6 +242,8 @@ impl ModuleBuilder<'_> {
 pub struct ModuleStartup {
     constants: Vec<(String, Box<dyn IntoConst + Send>)>,
     classes: Vec<fn() -> ClassBuilder>,
+    #[cfg(feature = "enum")]
+    enums: Vec<fn() -> EnumBuilder>,
 }
 
 impl ModuleStartup {
@@ -234,6 +265,15 @@ impl ModuleStartup {
         self.classes.into_iter().map(|c| c()).for_each(|c| {
             c.register().expect("Failed to build class");
         });
+
+        #[cfg(feature = "enum")]
+        self.enums
+            .into_iter()
+            .map(|builder| builder())
+            .for_each(|e| {
+                e.register().expect("Failed to build enum");
+            });
+
         Ok(())
     }
 }
@@ -268,6 +308,8 @@ impl TryFrom<ModuleBuilder<'_>> for (ModuleEntry, ModuleStartup) {
                 .map(|(n, v, _)| (n, v))
                 .collect(),
             classes: builder.classes,
+            #[cfg(feature = "enum")]
+            enums: builder.enums,
         };
 
         Ok((
@@ -327,6 +369,8 @@ mod tests {
         assert!(builder.request_shutdown_func.is_none());
         assert!(builder.post_deactivate_func.is_none());
         assert!(builder.info_func.is_none());
+        #[cfg(feature = "enum")]
+        assert!(builder.enums.is_empty());
     }
 
     #[test]

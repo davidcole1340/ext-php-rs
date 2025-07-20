@@ -2,6 +2,8 @@
 //! CLI application to generate PHP stub files used by IDEs.
 use std::vec::Vec as StdVec;
 
+#[cfg(feature = "enum")]
+use crate::builders::EnumBuilder;
 use crate::{
     builders::{ClassBuilder, FunctionBuilder},
     constant::IntoConst,
@@ -67,6 +69,9 @@ pub struct Module {
     pub functions: Vec<Function>,
     /// Classes exported by the extension.
     pub classes: Vec<Class>,
+    #[cfg(feature = "enum")]
+    /// Enums exported by the extension.
+    pub enums: Vec<Enum>,
     /// Constants exported by the extension.
     pub constants: Vec<Constant>,
 }
@@ -93,6 +98,13 @@ impl From<ModuleBuilder<'_>> for Module {
                 .constants
                 .into_iter()
                 .map(Constant::from)
+                .collect::<StdVec<_>>()
+                .into(),
+            #[cfg(feature = "enum")]
+            enums: builder
+                .enums
+                .into_iter()
+                .map(|e| e().into())
                 .collect::<StdVec<_>>()
                 .into(),
         }
@@ -211,6 +223,86 @@ impl From<ClassBuilder> for Class {
                 .map(|(name, _, docs)| (name, docs))
                 .map(Constant::from)
                 .collect::<StdVec<_>>()
+                .into(),
+        }
+    }
+}
+
+#[cfg(feature = "enum")]
+/// Represents an exported enum.
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub struct Enum {
+    /// Name of the enum.
+    pub name: RString,
+    /// Documentation comments for the enum.
+    pub docs: DocBlock,
+    /// Cases of the enum.
+    pub cases: Vec<EnumCase>,
+    /// Backing type of the enum.
+    pub backing_type: Option<RString>,
+}
+
+#[cfg(feature = "enum")]
+impl From<EnumBuilder> for Enum {
+    fn from(val: EnumBuilder) -> Self {
+        Self {
+            name: val.name.into(),
+            docs: DocBlock(
+                val.docs
+                    .iter()
+                    .map(|d| (*d).into())
+                    .collect::<StdVec<_>>()
+                    .into(),
+            ),
+            cases: val
+                .cases
+                .into_iter()
+                .map(EnumCase::from)
+                .collect::<StdVec<_>>()
+                .into(),
+            backing_type: match val.datatype {
+                DataType::Long => Some("int".into()),
+                DataType::String => Some("string".into()),
+                _ => None,
+            }
+            .into(),
+        }
+    }
+}
+
+#[cfg(feature = "enum")]
+/// Represents a case in an exported enum.
+#[repr(C)]
+#[derive(Debug, PartialEq)]
+pub struct EnumCase {
+    /// Name of the enum case.
+    pub name: RString,
+    /// Documentation comments for the enum case.
+    pub docs: DocBlock,
+    /// Value of the enum case.
+    pub value: Option<RString>,
+}
+
+#[cfg(feature = "enum")]
+impl From<&'static crate::enum_::EnumCase> for EnumCase {
+    fn from(val: &'static crate::enum_::EnumCase) -> Self {
+        Self {
+            name: val.name.into(),
+            docs: DocBlock(
+                val.docs
+                    .iter()
+                    .map(|d| (*d).into())
+                    .collect::<StdVec<_>>()
+                    .into(),
+            ),
+            value: val
+                .discriminant
+                .as_ref()
+                .map(|v| match v {
+                    crate::enum_::Discriminant::Int(i) => i.to_string().into(),
+                    crate::enum_::Discriminant::String(s) => format!("'{s}'").into(),
+                })
                 .into(),
         }
     }
@@ -437,6 +529,8 @@ mod tests {
             functions: vec![].into(),
             classes: vec![].into(),
             constants: vec![].into(),
+            #[cfg(feature = "enum")]
+            enums: vec![].into(),
         };
 
         let description = Description::new(module);

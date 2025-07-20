@@ -28,6 +28,8 @@ pub mod constant;
 pub mod describe;
 #[cfg(feature = "embed")]
 pub mod embed;
+#[cfg(feature = "enum")]
+pub mod enum_;
 #[doc(hidden)]
 pub mod internal;
 pub mod props;
@@ -47,6 +49,8 @@ pub mod prelude {
     #[cfg_attr(docs, doc(cfg(feature = "closure")))]
     pub use crate::closure::Closure;
     pub use crate::exception::{PhpException, PhpResult};
+    #[cfg(feature = "enum")]
+    pub use crate::php_enum;
     pub use crate::php_print;
     pub use crate::php_println;
     pub use crate::types::ZendCallable;
@@ -65,6 +69,8 @@ pub const PHP_DEBUG: bool = cfg!(php_debug);
 /// Whether the extension is compiled for PHP thread-safe mode.
 pub const PHP_ZTS: bool = cfg!(php_zts);
 
+#[cfg(feature = "enum")]
+pub use ext_php_rs_derive::php_enum;
 pub use ext_php_rs_derive::{
     php_class, php_const, php_extern, php_function, php_impl, php_module, wrap_constant,
     wrap_function, zend_fastcall, ZvalConvert,

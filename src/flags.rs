@@ -2,6 +2,8 @@
 
 use bitflags::bitflags;
 
+#[cfg(php81)]
+use crate::ffi::ZEND_ACC_ENUM;
 #[cfg(not(php82))]
 use crate::ffi::ZEND_ACC_REUSE_GET_ITERATOR;
 use crate::ffi::{
@@ -113,6 +115,9 @@ bitflags! {
         const Trait = ZEND_ACC_TRAIT;
         /// Anonymous class
         const AnonymousClass = ZEND_ACC_ANON_CLASS;
+        /// Class is an Enum
+        #[cfg(php81)]
+        const Enum = ZEND_ACC_ENUM;
         /// Class linked with parent, interfaces and traits
         const Linked = ZEND_ACC_LINKED;
         /// Class is abstract, since it is set by any abstract method

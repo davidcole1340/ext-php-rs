@@ -2,6 +2,8 @@
 //! Generally zero-cost abstractions.
 
 mod class;
+#[cfg(feature = "enum")]
+mod enum_builder;
 mod function;
 #[cfg(all(php82, feature = "embed"))]
 mod ini;
@@ -10,6 +12,8 @@ mod module;
 mod sapi;
 
 pub use class::ClassBuilder;
+#[cfg(feature = "enum")]
+pub use enum_builder::EnumBuilder;
 pub use function::FunctionBuilder;
 #[cfg(all(php82, feature = "embed"))]
 pub use ini::IniBuilder;

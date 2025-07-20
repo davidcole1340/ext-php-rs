@@ -17,8 +17,8 @@ pre-commit:
         The `docsrs_bindings.rs` file seems to be out of date.
         Please check the updated bindings in `docsrs_bindings.rs` and commit the changes.
     - name: "macro docs"
-      run: tools/update_lib_docs.sh && git diff --exit-code crates/macros/src/lib.rs
-      glob: "guide/src/macros/*.md"
-      fail_text: |
-        The macro crates documentation seems to be out of date.
-        Please check the updated documentation in `crates/macros/src/lib.rs` and commit the changes.
+      run: tools/update_lib_docs.sh
+      glob:
+        - "guide/src/macros/*.md"
+        - "crates/macros/src/lib.rs"
+      stage_fixed: true
