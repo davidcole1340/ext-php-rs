@@ -131,6 +131,41 @@ impl<'a> Function<'a> {
         format_ident!("_internal_{}", &self.ident)
     }
 
+    pub fn abstract_function_builder(&self) -> TokenStream {
+        let name = &self.name;
+        let (required, not_required) = self.args.split_args(self.optional.as_ref());
+
+        // `entry` impl
+        let required_args = required
+            .iter()
+            .map(TypedArg::arg_builder)
+            .collect::<Vec<_>>();
+        let not_required_args = not_required
+            .iter()
+            .map(TypedArg::arg_builder)
+            .collect::<Vec<_>>();
+
+        let returns = self.build_returns();
+        let docs = if self.docs.is_empty() {
+            quote! {}
+        } else {
+            let docs = &self.docs;
+            quote! {
+                .docs(&[#(#docs),*])
+            }
+        };
+
+        quote! {
+            ::ext_php_rs::builders::FunctionBuilder::new_abstract(#name)
+            #(.arg(#required_args))*
+            .not_required()
+            #(.arg(#not_required_args))*
+            #returns
+            #docs
+        }
+
+    }
+
     /// Generates the function builder for the function.
     pub fn function_builder(&self, call_type: CallType) -> TokenStream {
         let name = &self.name;
