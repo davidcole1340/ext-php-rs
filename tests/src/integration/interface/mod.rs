@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use ext_php_rs::types::ZendClassObject;
-use ext_php_rs::php_interface;
+use ext_php_rs::{php_class, php_impl, php_interface};
 use ext_php_rs::{php_module, prelude::ModuleBuilder};
 use ext_php_rs::zend::ce;
 
@@ -23,9 +23,14 @@ pub trait EmptyObjectTrait
     ) -> String;
 }
 
-#[php_module]
-pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    module
-        .interface::<PhpInterfaceEmptyObjectTrait>()
+pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
+    builder.interface::<PhpInterfaceEmptyObjectTrait>()
 }
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn interface_work() {
+        assert!(crate::integration::test::run_php("interface/interface.php"));
+    }
+}
