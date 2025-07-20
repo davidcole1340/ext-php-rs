@@ -125,7 +125,7 @@ struct ParsedImpl<'a> {
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
-enum MethodModifier {
+pub enum MethodModifier {
     Abstract,
     Static,
 }
@@ -141,7 +141,7 @@ impl quote::ToTokens for MethodModifier {
 }
 
 #[derive(Debug)]
-struct FnBuilder {
+pub struct FnBuilder {
     /// Tokens which represent the `FunctionBuilder` for this function.
     pub builder: TokenStream,
     /// The visibility of this method.
@@ -151,13 +151,19 @@ struct FnBuilder {
 }
 
 #[derive(Debug)]
-struct Constant<'a> {
+pub struct Constant<'a> {
     /// Name of the constant in PHP land.
-    name: String,
+    pub name: String,
     /// Identifier of the constant in Rust land.
-    ident: &'a syn::Ident,
+    pub ident: &'a syn::Ident,
     /// Documentation for the constant.
-    docs: Vec<String>,
+    pub docs: Vec<String>,
+}
+
+impl<'a> Constant<'a> {
+    pub fn new(name: String, ident: &'a syn::Ident, docs: Vec<String>) -> Self {
+        Self {name, ident, docs}
+    }
 }
 
 impl<'a> ParsedImpl<'a> {
