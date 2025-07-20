@@ -4,7 +4,7 @@ use crate::{
     builders::FunctionBuilder,
     convert::IntoZval,
     describe::DocComments,
-    enum_::EnumCase,
+    enum_::{Discriminant, EnumCase},
     error::Result,
     ffi::{zend_enum_add_case, zend_register_internal_enum},
     flags::{DataType, MethodFlags},
@@ -114,14 +114,7 @@ impl EnumBuilder {
         for case in self.cases {
             let name = ZendStr::new_interned(case.name, true);
             let value = match &case.discriminant {
-                Some(value) => {
-                    let value: Zval = match value {
-                        crate::enum_::Discriminant::Int(i) => i.into_zval(false)?,
-                        crate::enum_::Discriminant::String(s) => s.into_zval(true)?,
-                    };
-                    let mut zv = core::mem::ManuallyDrop::new(value);
-                    (&raw mut zv).cast()
-                }
+                Some(value) => Self::create_enum_value(value)?,
                 None => ptr::null_mut(),
             };
             unsafe {
@@ -136,6 +129,16 @@ impl EnumBuilder {
         }
 
         Ok(())
+    }
+
+    fn create_enum_value(discriminant: &Discriminant) -> Result<*mut Zval> {
+        let value: Zval = match discriminant {
+            Discriminant::Int(i) => i.into_zval(false)?,
+            Discriminant::String(s) => s.into_zval(true)?,
+        };
+
+        let boxed_value = Box::new(value);
+        Ok(Box::into_raw(boxed_value).cast())
     }
 }
 
