@@ -1,18 +1,35 @@
 <?php
 
+declare(strict_types=1);
 
-/* assert(interface_exists('ExtPhpRs\Interface\EmptyObjectInterface'), 'Interface not exist'); */
+assert(interface_exists('ExtPhpRs\Interface\EmptyObjectInterface'), 'Interface not exist');
 
-final readonly class InterfaceExampleUsage implements ExtPhpRs\Interface\EmptyObjectInterface
+assert(is_a('ExtPhpRs\Interface\EmptyObjectInterface', Throwable::class, true), 'Interface sould extend Throwable');
+
+
+final class Test extends Exception implements ExtPhpRs\Interface\EmptyObjectInterface
 {
+	public static function void(): void
+	{
+	}
 
+	public function nonStatic(string $data): string
+	{
+		return sprintf('%s - TEST', $data);
+	}
+
+	public function refToLikeThisClass(
+		string $data,
+		ExtPhpRs\Interface\EmptyObjectInterface $other,
+	): string {
+		return sprintf('%s | %s', $this->nonStatic($data), $other->nonStatic($data));
+	}
 }
+$f = new Test();
 
-/* $example = new InterfaceExampleUsage; */
-/* assert( */
-/* 	is_a($example, ExtPhpRs\Interface\EmptyObjectInterface::class), */
-/* 	\sprintf( */
-/* 		'Class should be implements of interface: %s', */
-/* 		Test\TestInterface::class */
-/* 	) */
-/* ); */
+assert(is_a($f, Throwable::class));
+assert($f->nonStatic('Rust') === 'Rust - TEST');
+assert(ExtPhpRs\Interface\EmptyObjectInterface::HELLO === "HELLO");
+assert($f::HELLO === "HELLO");
+assert(Test::HELLO === "HELLO");
+assert($f->refToLikeThisClass('TEST', $f) === 'TEST - TEST | TEST - TEST');

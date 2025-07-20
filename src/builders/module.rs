@@ -206,11 +206,6 @@ impl ModuleBuilder<'_> {
                     .dyn_constant(*name, *value, docs)
                     .expect("Failed to register constant");
             }
-            for (name, value, docs) in T::constants() {
-                builder = builder
-                    .dyn_constant(*name, *value, docs)
-                    .expect("Failed to register constant");
-            }
 
             let mut class_builder = builder.builder();
 
