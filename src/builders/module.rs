@@ -369,6 +369,8 @@ mod tests {
         assert!(builder.request_shutdown_func.is_none());
         assert!(builder.post_deactivate_func.is_none());
         assert!(builder.info_func.is_none());
+        #[cfg(feature = "enum")]
+        assert!(builder.enums.is_empty());
     }
 
     #[test]

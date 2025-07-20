@@ -1258,6 +1258,7 @@ mod tests {
             &[
                 ("php_class", php_class_internal as AttributeFn),
                 ("php_const", php_const_internal as AttributeFn),
+                ("php_enum", php_enum_internal as AttributeFn),
                 ("php_extern", php_extern_internal as AttributeFn),
                 ("php_function", php_function_internal as AttributeFn),
                 ("php_impl", php_impl_internal as AttributeFn),

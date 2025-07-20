@@ -126,6 +126,7 @@ impl EnumCase {
 }
 
 /// Represents the discriminant of an enum case in PHP, which can be either an integer or a string.
+#[derive(Debug, PartialEq, Eq)]
 pub enum Discriminant {
     /// An integer discriminant.
     Int(i64),
@@ -139,7 +140,28 @@ impl TryFrom<&Discriminant> for Zval {
     fn try_from(value: &Discriminant) -> Result<Self> {
         match value {
             Discriminant::Int(i) => i.into_zval(false),
-            Discriminant::String(s) => s.into_zval(true),
+            Discriminant::String(s) => s.into_zval(false),
         }
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "embed")]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+    use crate::embed::Embed;
+
+    #[test]
+    fn test_zval_try_from_discriminant() {
+        Embed::run(|| {
+            let zval_int: Zval = Zval::try_from(&Discriminant::Int(42)).unwrap();
+            assert!(zval_int.is_long());
+            assert_eq!(zval_int.long().unwrap(), 42);
+
+            let zval_str: Zval = Zval::try_from(&Discriminant::String("foo")).unwrap();
+            assert!(zval_str.is_string());
+            assert_eq!(zval_str.string().unwrap().to_string(), "foo");
+        });
     }
 }

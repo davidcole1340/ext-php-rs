@@ -2,6 +2,7 @@ use std::{ffi::CString, ptr};
 
 use crate::{
     builders::FunctionBuilder,
+    convert::IntoZval,
     describe::DocComments,
     enum_::EnumCase,
     error::Result,
@@ -114,7 +115,10 @@ impl EnumBuilder {
             let name = ZendStr::new_interned(case.name, true);
             let value = match &case.discriminant {
                 Some(value) => {
-                    let value: Zval = value.try_into()?;
+                    let value: Zval = match value {
+                        crate::enum_::Discriminant::Int(i) => i.into_zval(false)?,
+                        crate::enum_::Discriminant::String(s) => s.into_zval(true)?,
+                    };
                     let mut zv = core::mem::ManuallyDrop::new(value);
                     (&raw mut zv).cast()
                 }
@@ -132,5 +136,75 @@ impl EnumBuilder {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::enum_::Discriminant;
+
+    const case1: EnumCase = EnumCase {
+        name: "Variant1",
+        discriminant: None,
+        docs: &[],
+    };
+    const case2: EnumCase = EnumCase {
+        name: "Variant2",
+        discriminant: Some(Discriminant::Int(42)),
+        docs: &[],
+    };
+    const case3: EnumCase = EnumCase {
+        name: "Variant3",
+        discriminant: Some(Discriminant::String("foo")),
+        docs: &[],
+    };
+
+    #[test]
+    fn test_new_enum_builder() {
+        let builder = EnumBuilder::new("MyEnum");
+        assert_eq!(builder.name, "MyEnum");
+        assert!(builder.methods.is_empty());
+        assert!(builder.cases.is_empty());
+        assert_eq!(builder.datatype, DataType::Undef);
+        assert!(builder.register.is_none());
+    }
+
+    #[test]
+    fn test_enum_case() {
+        let builder = EnumBuilder::new("MyEnum").case(&case1);
+        assert_eq!(builder.cases.len(), 1);
+        assert_eq!(builder.cases[0].name, "Variant1");
+        assert_eq!(builder.datatype, DataType::Undef);
+
+        let builder = EnumBuilder::new("MyEnum").case(&case2);
+        assert_eq!(builder.cases.len(), 1);
+        assert_eq!(builder.cases[0].name, "Variant2");
+        assert_eq!(builder.cases[0].discriminant, Some(Discriminant::Int(42)));
+        assert_eq!(builder.datatype, DataType::Long);
+
+        let builder = EnumBuilder::new("MyEnum").case(&case3);
+        assert_eq!(builder.cases.len(), 1);
+        assert_eq!(builder.cases[0].name, "Variant3");
+        assert_eq!(
+            builder.cases[0].discriminant,
+            Some(Discriminant::String("foo"))
+        );
+        assert_eq!(builder.datatype, DataType::String);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot add case with data type Long to enum with data type Undef")]
+    fn test_enum_case_mismatch() {
+        #[allow(unused_must_use)]
+        EnumBuilder::new("MyEnum").case(&case1).case(&case2); // This should panic because case2 has a different data type
+    }
+
+    const docs: DocComments = &["This is a test enum"];
+    #[test]
+    fn test_docs() {
+        let builder = EnumBuilder::new("MyEnum").docs(docs);
+        assert_eq!(builder.docs.len(), 1);
+        assert_eq!(builder.docs[0], "This is a test enum");
     }
 }
