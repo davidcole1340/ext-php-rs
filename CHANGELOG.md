@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.15.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.2...ext-php-rs-v0.15.0) - 2025-07-21
+
+### BREAKING CHANGES
+
+- *(stubs)* [**breaking**] Add stubs for `RustClosure` (by @Xenira) [[#373](https://github.com/davidcole1340/ext-php-rs/issues/373)] 
+> New field `variadic` added to `Parameter` struct.
+
+### Added
+- *(array)* Support `Vec<(K,V)>` for hashtables (by @Xenira) [[#425](https://github.com/davidcole1340/ext-php-rs/issues/425)] 
+- *(enum)* Add basic enum support (by @Xenira) [[#178](https://github.com/davidcole1340/ext-php-rs/issues/178)] [[#302](https://github.com/davidcole1340/ext-php-rs/issues/302)] 
+- *(zval)* Add `Zval::null()` (by @kakserpom) [[#521](https://github.com/davidcole1340/ext-php-rs/issues/521)] 
+
+### Other
+- *(array)* Split `array.rs` types into smaller files (by @ptondereau) [[#524](https://github.com/davidcole1340/ext-php-rs/issues/524)] 
+- *(macro)* Add test infrastructure for macro crate (by @Xenira) [[#530](https://github.com/davidcole1340/ext-php-rs/issues/530)] 
+
 ## [0.14.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.1...ext-php-rs-v0.14.2) - 2025-07-13
 
 ### Added
