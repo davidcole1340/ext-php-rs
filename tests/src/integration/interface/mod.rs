@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
 use ext_php_rs::types::ZendClassObject;
+use ext_php_rs::zend::ce;
 use ext_php_rs::{php_class, php_impl, php_interface};
 use ext_php_rs::{php_module, prelude::ModuleBuilder};
-use ext_php_rs::zend::ce;
 
 #[php_interface]
 #[php(extends(ce = ce::throwable, stub = "\\Throwable"))]
 #[php(name = "ExtPhpRs\\Interface\\EmptyObjectInterface")]
-pub trait EmptyObjectTrait
-{
+pub trait EmptyObjectTrait {
     const HELLO: &'static str = "HELLO";
 
     fn void();
@@ -19,7 +18,7 @@ pub trait EmptyObjectTrait
     fn ref_to_like_this_class(
         &self,
         data: String,
-        other: &ZendClassObject<PhpInterfaceEmptyObjectTrait>
+        other: &ZendClassObject<PhpInterfaceEmptyObjectTrait>,
     ) -> String;
 }
 
