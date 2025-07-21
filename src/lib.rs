@@ -22,6 +22,7 @@ pub mod flags;
 pub mod macros;
 pub mod boxed;
 pub mod class;
+pub mod interface;
 #[cfg(any(docs, feature = "closure"))]
 #[cfg_attr(docs, doc(cfg(feature = "closure")))]
 pub mod closure;
