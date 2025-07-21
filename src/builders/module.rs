@@ -2,7 +2,7 @@ use std::{convert::TryFrom, ffi::CString, mem, ptr};
 
 use super::{ClassBuilder, FunctionBuilder};
 use crate::{
-    builders::class::InterfaceBuilder,
+    builders::interface::InterfaceBuilder,
     class::RegisteredClass,
     constant::IntoConst,
     describe::DocComments,

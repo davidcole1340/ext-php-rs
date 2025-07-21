@@ -34,48 +34,9 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
     let name = attr.rename.rename(ident.to_string(), RenameRule::Pascal);
     input.attrs.clean_php();
 
-    let methods: Vec<FnBuilder> = input
-        .items
-        .iter_mut()
-        .flat_map(|item: &mut TraitItem| match item {
-            TraitItem::Fn(f) => Some(f),
-            _ => None,
-        })
-        .flat_map(|f| f.parse())
-        .collect();
+    let methods: Vec<FnBuilder> = input.parse()?;
 
-    let constants: Vec<_> = input
-        .items
-        .iter_mut()
-        .flat_map(|item: &mut TraitItem| match item {
-            TraitItem::Const(c) => Some(c),
-            _ => None,
-        })
-        .flat_map(|c| c.parse())
-        .map(|c| {
-            let name = &c.name;
-            let ident = c.ident;
-            let docs = &c.docs;
-            quote! {
-                (#name, &#path::#ident, &[#(#docs),*])
-            }
-        })
-        .collect();
-
-    let impl_const: Vec<&TraitItemConst> = input
-        .items
-        .iter()
-        .flat_map(|item| match item {
-            TraitItem::Const(c) => Some(c),
-            _ => None,
-        })
-        .flat_map(|c| {
-            if c.default.is_none() {
-                bail!("Interface const cannot be empty");
-            }
-            Ok(c)
-        })
-        .collect();
+    let constants: Vec<Constant> = input.parse()?;
 
     let implements = attr.extends;
 
@@ -83,10 +44,6 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
         #input
 
         pub struct #interface_name;
-
-        impl #interface_name {
-            #(pub #impl_const)*
-        }
 
         impl ::ext_php_rs::class::RegisteredClass for #interface_name {
             const CLASS_NAME: &'static str = #name;
@@ -153,7 +110,7 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
                 }
 
                 fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn, &'static [&'static str])] {
-                    &[#(#constants),*]
+                    &[]
                 }
             }
 
@@ -240,6 +197,33 @@ pub struct PhpFunctionInterfaceAttribute {
 
 trait Parse<'a, T> {
     fn parse(&'a mut self) -> Result<T>;
+}
+
+impl<'a> Parse<'a, Vec<FnBuilder>> for ItemTrait {
+    fn parse(&'a mut self) -> Result<Vec<FnBuilder>> {
+    Ok(self
+        .items
+        .iter_mut()
+        .filter_map(|item: &mut TraitItem| match item {
+            TraitItem::Fn(f) => Some(f),
+            _ => None,
+        })
+        .flat_map(Parse::parse)
+        .collect())
+    }
+}
+
+impl<'a> Parse<'a, Vec<Constant<'a>>> for ItemTrait {
+    fn parse(&'a mut self) -> Result<Vec<Constant<'a>>> {
+        Ok(self.items
+        .iter_mut()
+        .filter_map(|item: &mut TraitItem| match item {
+            TraitItem::Const(c) => Some(c),
+            _ => None,
+        })
+        .flat_map(Parse::parse)
+        .collect())
+    }
 }
 
 impl<'a> Parse<'a, Constant<'a>> for TraitItemConst {
