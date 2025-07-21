@@ -14,15 +14,8 @@ mod syn_ext;
 mod zval;
 
 use proc_macro::TokenStream;
-<<<<<<< HEAD
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{DeriveInput, ItemConst, ItemEnum, ItemFn, ItemForeignMod, ItemImpl, ItemStruct};
-=======
-use syn::{
-    parse_macro_input, DeriveInput, ItemConst, ItemFn, ItemForeignMod, ItemImpl, ItemStruct,
-    ItemTrait,
-};
->>>>>>> 1a0a9d6 (feat(macro): Add macro to declare interface from trait)
+use syn::{DeriveInput, ItemConst, ItemEnum, ItemFn, ItemForeignMod, ItemImpl, ItemStruct, ItemTrait};
 
 extern crate proc_macro;
 
@@ -336,13 +329,11 @@ fn php_enum_internal(_args: TokenStream2, input: TokenStream2) -> TokenStream2 {
 
 #[proc_macro_attribute]
 pub fn php_interface(args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as ItemTrait);
+    php_interface_internal(args.into(), input.into()).into()
+}
 
-    if !args.is_empty() {
-        return err!(input => "`#[php_interface]` not apply args")
-            .to_compile_error()
-            .into();
-    }
+fn php_interface_internal(_args: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemTrait).into();
 
     interface::parser(input)
         .unwrap_or_else(|e| e.to_compile_error())
