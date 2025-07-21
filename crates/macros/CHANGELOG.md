@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.3](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.2...ext-php-rs-derive-v0.11.3) - 2025-07-21
+
+### Added
+- *(enum)* Add basic enum support (by @Xenira) [[#178](https://github.com/davidcole1340/ext-php-rs/issues/178)] [[#302](https://github.com/davidcole1340/ext-php-rs/issues/302)] 
+
+### Other
+- *(deps)* Update darling requirement from 0.20 to 0.21 (by @dependabot[bot])
+- *(macro)* Add test infrastructure for macro crate (by @Xenira) [[#530](https://github.com/davidcole1340/ext-php-rs/issues/530)] 
+
 ## [0.11.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.1...ext-php-rs-derive-v0.11.2) - 2025-07-13
 
 ### Fixed
