@@ -327,6 +327,46 @@ fn php_enum_internal(_args: TokenStream2, input: TokenStream2) -> TokenStream2 {
     enum_::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
+// BEGIN DOCS FROM interface.md
+/// # `#[php_interface]` Attribute
+///
+/// Traits can be exported to PHP as interface with the `#[php_interface]` attribute
+/// macro. This attribute generate empty struct and derives the `RegisteredClass`.
+/// To register the interface use the `interface::<PhpInterface{TraitName}>()` method
+/// on the `ModuleBuilder` in the `#[php_module]` macro.
+///
+/// ## Options
+///
+/// The `#[php_interface]` attribute can be configured with the following options:
+/// - `#[php(name = "InterfaceName")]` or `#[php(change_case = snake_case)]`: Sets
+///   the name of the interface in PHP. The default is the `PascalCase` name of the
+///   interface.
+/// - `#[php(extends(ce = ce::throwable, stub = "\\Throwable"))]`
+///   to extends interface from other interface
+///
+/// ### Example
+///
+/// This example creates a PHP interface extend from php buildin Throwable.
+///
+/// ```rust,no_run,ignore
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
+/// # extern crate ext_php_rs;
+/// use ext_php_rs::prelude::*;
+///
+/// #[php_interface]
+/// #[php(extends(ce = ce::throwable, stub = "\\Throwable"))]
+/// #[php(name = "LibName\\Exception\\MyCustomDomainException")]
+/// pub trait MyCustomDomainException {
+///     fn createWithMessage(message: String) -> Self;
+/// }
+///
+/// #[php_module]
+/// pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
+///     module.interface::<PhpInterfaceMyCustomDomainException>()
+/// }
+/// # fn main() {}
+/// ```
+// END DOCS FROM interface.md
 #[proc_macro_attribute]
 pub fn php_interface(args: TokenStream, input: TokenStream) -> TokenStream {
     php_interface_internal(args.into(), input.into()).into()
@@ -1244,6 +1284,7 @@ mod tests {
     }
 
     fn runtime_expand_attr(path: &PathBuf) {
+        dbg!(path);
         let file = std::fs::File::open(path).expect("Failed to open expand test file");
         runtime_macros::emulate_attributelike_macro_expansion(
             file,
@@ -1251,6 +1292,7 @@ mod tests {
                 ("php_class", php_class_internal as AttributeFn),
                 ("php_const", php_const_internal as AttributeFn),
                 ("php_enum", php_enum_internal as AttributeFn),
+                ("php_interface", php_interface_internal as AttributeFn),
                 ("php_extern", php_extern_internal as AttributeFn),
                 ("php_function", php_function_internal as AttributeFn),
                 ("php_impl", php_impl_internal as AttributeFn),

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 assert(interface_exists('ExtPhpRs\Interface\EmptyObjectInterface'), 'Interface not exist');
 
-assert(is_a('ExtPhpRs\Interface\EmptyObjectInterface', Throwable::class, true), 'Interface sould extend Throwable');
+assert(is_a('ExtPhpRs\Interface\EmptyObjectInterface', Throwable::class, true), 'Interface could extend Throwable');
 
 
 final class Test extends Exception implements ExtPhpRs\Interface\EmptyObjectInterface
