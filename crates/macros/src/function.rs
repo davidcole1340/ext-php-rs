@@ -163,7 +163,6 @@ impl<'a> Function<'a> {
             #returns
             #docs
         }
-
     }
 
     /// Generates the function builder for the function.

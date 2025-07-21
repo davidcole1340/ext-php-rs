@@ -9,6 +9,7 @@ pub mod defaults;
 pub mod enum_;
 pub mod exception;
 pub mod globals;
+pub mod interface;
 pub mod iterator;
 pub mod magic_method;
 pub mod nullable;
@@ -17,7 +18,6 @@ pub mod object;
 pub mod string;
 pub mod types;
 pub mod variadic_args;
-pub mod interface;
 
 #[cfg(test)]
 mod test {
