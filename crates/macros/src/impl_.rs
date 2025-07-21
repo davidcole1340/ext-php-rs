@@ -162,7 +162,7 @@ pub struct Constant<'a> {
 
 impl<'a> Constant<'a> {
     pub fn new(name: String, ident: &'a syn::Ident, docs: Vec<String>) -> Self {
-        Self {name, ident, docs}
+        Self { name, ident, docs }
     }
 }
 
