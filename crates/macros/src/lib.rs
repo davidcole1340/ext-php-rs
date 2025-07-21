@@ -15,7 +15,9 @@ mod zval;
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{DeriveInput, ItemConst, ItemEnum, ItemFn, ItemForeignMod, ItemImpl, ItemStruct, ItemTrait};
+use syn::{
+    DeriveInput, ItemConst, ItemEnum, ItemFn, ItemForeignMod, ItemImpl, ItemStruct, ItemTrait,
+};
 
 extern crate proc_macro;
 
@@ -373,11 +375,9 @@ pub fn php_interface(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 fn php_interface_internal(_args: TokenStream2, input: TokenStream2) -> TokenStream2 {
-    let input = parse_macro_input2!(input as ItemTrait).into();
+    let input = parse_macro_input2!(input as ItemTrait);
 
-    interface::parser(input)
-        .unwrap_or_else(|e| e.to_compile_error())
-        .into()
+    interface::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM function.md

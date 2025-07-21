@@ -1,14 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
-use darling::util::Flag;
-use darling::{FromAttributes};
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::{Expr, Ident, ItemTrait, Path, TraitItem, TraitItemConst, TraitItemFn};
 use crate::class::ClassEntryAttribute;
 use crate::constant::PhpConstAttribute;
 use crate::function::{Args, Function};
 use crate::helpers::{get_docs, CleanPhpAttr};
+use darling::util::Flag;
+use darling::FromAttributes;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use syn::{Expr, Ident, ItemTrait, Path, TraitItem, TraitItemConst, TraitItemFn};
 
 use crate::impl_::{Constant, FnBuilder, MethodModifier};
 use crate::parsing::{PhpRename, RenameRule, Visibility};
@@ -34,23 +34,22 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
     let name = attr.rename.rename(ident.to_string(), RenameRule::Pascal);
     input.attrs.clean_php();
 
-    let methods: Vec<FnBuilder> = input.items.iter_mut()
-        .flat_map(
-            |item: &mut TraitItem| {
-                match item {
-                    TraitItem::Fn(f) => Some(f),
-                    _ => None,
-                }
-            })
+    let methods: Vec<FnBuilder> = input
+        .items
+        .iter_mut()
+        .flat_map(|item: &mut TraitItem| match item {
+            TraitItem::Fn(f) => Some(f),
+            _ => None,
+        })
         .flat_map(|f| f.parse())
         .collect();
 
-    let constants: Vec<_> = input.items.iter_mut()
-        .flat_map(|item: &mut TraitItem| {
-            match item {
-                TraitItem::Const(c) => Some(c),
-                _ => None,
-            }
+    let constants: Vec<_> = input
+        .items
+        .iter_mut()
+        .flat_map(|item: &mut TraitItem| match item {
+            TraitItem::Const(c) => Some(c),
+            _ => None,
         })
         .flat_map(|c| c.parse())
         .map(|c| {
@@ -63,19 +62,19 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
         })
         .collect();
 
-    let impl_const: Vec<&TraitItemConst> = input.items.iter().flat_map(|item| {
-        match item {
+    let impl_const: Vec<&TraitItemConst> = input
+        .items
+        .iter()
+        .flat_map(|item| match item {
             TraitItem::Const(c) => Some(c),
             _ => None,
-        }
-    })
-    .map(|c| {
+        })
+        .flat_map(|c| {
             if c.default.is_none() {
                 bail!("Interface const cannot be empty");
             }
             Ok(c)
         })
-        .flat_map(|c| c)
         .collect();
 
     let implements = attr.extends;
@@ -256,17 +255,12 @@ impl<'a> Parse<'a, Constant<'a>> for TraitItemConst {
 
 impl<'a> Parse<'a, FnBuilder> for TraitItemFn {
     fn parse(&'a mut self) -> Result<FnBuilder> {
-        let php_attr = PhpFunctionInterfaceAttribute::from_attributes(
-            &self.attrs
-        )?;
+        let php_attr = PhpFunctionInterfaceAttribute::from_attributes(&self.attrs)?;
         if self.default.is_some() {
             bail!("Interface could not have default impl");
         }
 
-        let mut args = Args::parse_from_fnargs(
-            self.sig.inputs.iter(),
-            php_attr.defaults
-        )?;
+        let mut args = Args::parse_from_fnargs(self.sig.inputs.iter(), php_attr.defaults)?;
         let docs = get_docs(&php_attr.attrs)?;
 
         self.attrs.clean_php();

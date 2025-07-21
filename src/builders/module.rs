@@ -192,6 +192,11 @@ impl ModuleBuilder<'_> {
         self
     }
 
+    /// Adds a interface to the extension.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if a constant could not be registered.
     pub fn interface<T: RegisteredClass>(mut self) -> Self {
         self.classes.push(|| {
             let mut builder = InterfaceBuilder::new(T::CLASS_NAME);

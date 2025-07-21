@@ -308,7 +308,7 @@ impl ClassBuilder {
 
         let class = if self.ce.flags().contains(ClassFlags::Interface) {
             unsafe {
-                zend_register_internal_interface(&mut self.ce)
+                zend_register_internal_interface(&raw mut self.ce)
                     .as_mut()
                     .ok_or(Error::InvalidPointer)?
             }
