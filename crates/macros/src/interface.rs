@@ -71,7 +71,7 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
     })
     .map(|c| {
             if c.default.is_none() {
-                bail!("Interface const canot be empty");
+                bail!("Interface const cannot be empty");
             }
             Ok(c)
         })
