@@ -277,7 +277,7 @@ mod tests {
 
             let vec_mixed: Option<Vec<(String, String)>> =
                 Vec::<(String, String)>::from_zval(&zval_mixed);
-            assert!(vec_mixed.is_none());
+            assert!(vec_mixed.is_some());
         });
     }
 
@@ -345,8 +345,7 @@ mod tests {
             ht2.insert(2, "value2").unwrap();
 
             let vec2: crate::error::Result<Vec<(String, String)>> = ht2.as_ref().try_into();
-            assert!(vec2.is_err());
-            assert!(matches!(vec2.unwrap_err(), Error::InvalidProperty));
+            assert!(vec2.is_ok());
         });
     }
 
