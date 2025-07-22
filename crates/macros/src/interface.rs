@@ -7,10 +7,10 @@ use crate::helpers::{get_docs, CleanPhpAttr};
 use darling::util::Flag;
 use darling::FromAttributes;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use syn::{Expr, Ident, ItemTrait, Path, TraitItem, TraitItemConst, TraitItemFn};
 
-use crate::impl_::{Constant, FnBuilder, MethodModifier};
+use crate::impl_::{FnBuilder, MethodModifier};
 use crate::parsing::{PhpRename, RenameRule, Visibility};
 use crate::prelude::*;
 
@@ -110,7 +110,7 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
                 }
 
                 fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn, &'static [&'static str])] {
-                    &[]
+                    &[#(#constants),*]
                 }
             }
 
@@ -195,8 +195,30 @@ pub struct PhpFunctionInterfaceAttribute {
     constructor: Flag,
 }
 
+#[derive(Default)]
+struct InterfaceData<'a> {
+    attrs: StructAttributes,
+    methods: Vec<FnBuilder>,
+    constants: Vec<Constant<'a>>
+}
+
 trait Parse<'a, T> {
     fn parse(&'a mut self) -> Result<T>;
+}
+
+impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
+    fn parse(&'a mut self) -> Result<InterfaceData<'a>> {
+        let mut data = InterfaceData::default();
+        for item in self.items.iter_mut() {
+            match item {
+                TraitItem::Fn(f) => data.methods.push(f.parse()?),
+                TraitItem::Const(c) => data.constants.push(c.parse()?),
+                _ => {}
+            }
+        }
+
+        Ok(data)
+    }
 }
 
 impl<'a> Parse<'a, Vec<FnBuilder>> for ItemTrait {
@@ -226,14 +248,42 @@ impl<'a> Parse<'a, Vec<Constant<'a>>> for ItemTrait {
     }
 }
 
+struct Constant<'a> {
+    name: String,
+    expr: &'a Expr,
+    docs: Vec<String>,
+}
+
+impl ToTokens for Constant<'_> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let name = &self.name;
+        let expr = &self.expr;
+        let docs = &self.docs;
+        quote! {
+            (#name, #expr, &[#(#docs),*])
+        }.to_tokens(tokens);
+    }
+}
+
+impl<'a> Constant<'a> {
+    fn new(name: String, expr: &'a Expr, docs: Vec<String>) -> Self {
+        Self {name, expr, docs}
+    }
+}
+
 impl<'a> Parse<'a, Constant<'a>> for TraitItemConst {
     fn parse(&'a mut self) -> Result<Constant<'a>> {
+        if self.default.is_none() {
+            bail!("Interface const could not be empty");
+        }
+
         let attr = PhpConstAttribute::from_attributes(&self.attrs)?;
         let name = self.ident.to_string();
         let docs = get_docs(&attr.attrs)?;
         self.attrs.clean_php();
 
-        Ok(Constant::new(name, &self.ident, docs))
+        let (_, expr) = self.default.as_ref().unwrap();
+        Ok(Constant::new(name, expr, docs))
     }
 }
 
