@@ -1,7 +1,7 @@
 //! Represents an array in PHP. As all arrays in PHP are associative arrays,
 //! they are represented by hash tables.
 
-use std::{convert::TryFrom, ffi::CString, fmt::Debug, ptr, str::FromStr};
+use std::{convert::TryFrom, ffi::CString, fmt::Debug, ptr};
 
 use crate::{
     boxed::{ZBox, ZBoxable},
@@ -196,36 +196,17 @@ impl ZendHashTable {
                 #[allow(clippy::cast_sign_loss)]
                 zend_hash_index_find(self, index as zend_ulong).as_ref()
             },
-            ArrayKey::String(key) => {
-                if let Ok(index) = i64::from_str(key.as_str()) {
-                    #[allow(clippy::cast_sign_loss)]
-                    unsafe {
-                        zend_hash_index_find(self, index as zend_ulong).as_ref()
-                    }
-                } else {
-                    unsafe {
-                        zend_hash_str_find(
-                            self,
-                            CString::new(key.as_str()).ok()?.as_ptr(),
-                            key.len() as _,
-                        )
-                        .as_ref()
-                    }
-                }
-            }
-            ArrayKey::Str(key) => {
-                if let Ok(index) = i64::from_str(key) {
-                    #[allow(clippy::cast_sign_loss)]
-                    unsafe {
-                        zend_hash_index_find(self, index as zend_ulong).as_ref()
-                    }
-                } else {
-                    unsafe {
-                        zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _)
-                            .as_ref()
-                    }
-                }
-            }
+            ArrayKey::String(key) => unsafe {
+                zend_hash_str_find(
+                    self,
+                    CString::new(key.as_str()).ok()?.as_ptr(),
+                    key.len() as _,
+                )
+                .as_ref()
+            },
+            ArrayKey::Str(key) => unsafe {
+                zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _).as_ref()
+            },
         }
     }
 
@@ -264,36 +245,17 @@ impl ZendHashTable {
                 #[allow(clippy::cast_sign_loss)]
                 zend_hash_index_find(self, index as zend_ulong).as_mut()
             },
-            ArrayKey::String(key) => {
-                if let Ok(index) = i64::from_str(key.as_str()) {
-                    #[allow(clippy::cast_sign_loss)]
-                    unsafe {
-                        zend_hash_index_find(self, index as zend_ulong).as_mut()
-                    }
-                } else {
-                    unsafe {
-                        zend_hash_str_find(
-                            self,
-                            CString::new(key.as_str()).ok()?.as_ptr(),
-                            key.len() as _,
-                        )
-                        .as_mut()
-                    }
-                }
-            }
-            ArrayKey::Str(key) => {
-                if let Ok(index) = i64::from_str(key) {
-                    #[allow(clippy::cast_sign_loss)]
-                    unsafe {
-                        zend_hash_index_find(self, index as zend_ulong).as_mut()
-                    }
-                } else {
-                    unsafe {
-                        zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _)
-                            .as_mut()
-                    }
-                }
-            }
+            ArrayKey::String(key) => unsafe {
+                zend_hash_str_find(
+                    self,
+                    CString::new(key.as_str()).ok()?.as_ptr(),
+                    key.len() as _,
+                )
+                .as_mut()
+            },
+            ArrayKey::Str(key) => unsafe {
+                zend_hash_str_find(self, CString::new(key).ok()?.as_ptr(), key.len() as _).as_mut()
+            },
         }
     }
 
@@ -393,34 +355,16 @@ impl ZendHashTable {
                 #[allow(clippy::cast_sign_loss)]
                 zend_hash_index_del(self, index as zend_ulong)
             },
-            ArrayKey::String(key) => {
-                if let Ok(index) = i64::from_str(key.as_str()) {
-                    #[allow(clippy::cast_sign_loss)]
-                    unsafe {
-                        zend_hash_index_del(self, index as zend_ulong)
-                    }
-                } else {
-                    unsafe {
-                        zend_hash_str_del(
-                            self,
-                            CString::new(key.as_str()).ok()?.as_ptr(),
-                            key.len() as _,
-                        )
-                    }
-                }
-            }
-            ArrayKey::Str(key) => {
-                if let Ok(index) = i64::from_str(key) {
-                    #[allow(clippy::cast_sign_loss)]
-                    unsafe {
-                        zend_hash_index_del(self, index as zend_ulong)
-                    }
-                } else {
-                    unsafe {
-                        zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _)
-                    }
-                }
-            }
+            ArrayKey::String(key) => unsafe {
+                zend_hash_str_del(
+                    self,
+                    CString::new(key.as_str()).ok()?.as_ptr(),
+                    key.len() as _,
+                )
+            },
+            ArrayKey::Str(key) => unsafe {
+                zend_hash_str_del(self, CString::new(key).ok()?.as_ptr(), key.len() as _)
+            },
         };
 
         if result < 0 {
@@ -510,38 +454,19 @@ impl ZendHashTable {
                 };
             }
             ArrayKey::String(key) => {
-                if let Ok(index) = i64::from_str(&key) {
-                    unsafe {
-                        #[allow(clippy::cast_sign_loss)]
-                        zend_hash_index_update(self, index as zend_ulong, &raw mut val)
-                    };
-                } else {
-                    unsafe {
-                        zend_hash_str_update(
-                            self,
-                            CString::new(key.as_str())?.as_ptr(),
-                            key.len(),
-                            &raw mut val,
-                        )
-                    };
-                }
+                unsafe {
+                    zend_hash_str_update(
+                        self,
+                        CString::new(key.as_str())?.as_ptr(),
+                        key.len(),
+                        &raw mut val,
+                    )
+                };
             }
             ArrayKey::Str(key) => {
-                if let Ok(index) = i64::from_str(key) {
-                    unsafe {
-                        #[allow(clippy::cast_sign_loss)]
-                        zend_hash_index_update(self, index as zend_ulong, &raw mut val)
-                    };
-                } else {
-                    unsafe {
-                        zend_hash_str_update(
-                            self,
-                            CString::new(key)?.as_ptr(),
-                            key.len(),
-                            &raw mut val,
-                        )
-                    };
-                }
+                unsafe {
+                    zend_hash_str_update(self, CString::new(key)?.as_ptr(), key.len(), &raw mut val)
+                };
             }
         }
         val.release();
