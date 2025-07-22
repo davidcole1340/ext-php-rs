@@ -1,3 +1,5 @@
+use std::{collections::BTreeMap, convert::TryFrom};
+
 use super::super::ZendHashTable;
 use crate::types::ArrayKey;
 use crate::{
@@ -7,19 +9,16 @@ use crate::{
     flags::DataType,
     types::Zval,
 };
-use std::hash::{BuildHasher, Hash};
-use std::{collections::HashMap, convert::TryFrom};
 
-impl<'a, K, V, H> TryFrom<&'a ZendHashTable> for HashMap<K, V, H>
+impl<'a, K, V> TryFrom<&'a ZendHashTable> for BTreeMap<K, V>
 where
-    K: TryFrom<ArrayKey<'a>, Error = Error> + Eq + Hash,
+    K: TryFrom<ArrayKey<'a>, Error = Error> + Ord,
     V: FromZval<'a>,
-    H: BuildHasher + Default,
 {
     type Error = Error;
 
     fn try_from(value: &'a ZendHashTable) -> Result<Self> {
-        let mut hm = Self::with_capacity_and_hasher(value.len(), H::default());
+        let mut hm = Self::new();
 
         for (key, val) in value {
             hm.insert(
@@ -32,15 +31,14 @@ where
     }
 }
 
-impl<K, V, H> TryFrom<HashMap<K, V, H>> for ZBox<ZendHashTable>
+impl<K, V> TryFrom<BTreeMap<K, V>> for ZBox<ZendHashTable>
 where
     K: AsRef<str>,
     V: IntoZval,
-    H: BuildHasher,
 {
     type Error = Error;
 
-    fn try_from(value: HashMap<K, V, H>) -> Result<Self> {
+    fn try_from(value: BTreeMap<K, V>) -> Result<Self> {
         let mut ht = ZendHashTable::with_capacity(
             value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
         );
@@ -53,11 +51,10 @@ where
     }
 }
 
-impl<K, V, H> IntoZval for HashMap<K, V, H>
+impl<K, V> IntoZval for BTreeMap<K, V>
 where
     K: AsRef<str>,
     V: IntoZval,
-    H: BuildHasher,
 {
     const TYPE: DataType = DataType::Array;
     const NULLABLE: bool = false;
@@ -69,10 +66,9 @@ where
     }
 }
 
-impl<'a, V, H> FromZval<'a> for HashMap<String, V, H>
+impl<'a, T> FromZval<'a> for BTreeMap<String, T>
 where
-    V: FromZval<'a>,
-    H: BuildHasher + Default,
+    T: FromZval<'a>,
 {
     const TYPE: DataType = DataType::Array;
 
