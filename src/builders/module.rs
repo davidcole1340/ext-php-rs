@@ -1,6 +1,8 @@
 use std::{convert::TryFrom, ffi::CString, mem, ptr};
 
 use super::{ClassBuilder, FunctionBuilder};
+#[cfg(feature = "enum")]
+use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 use crate::{
     builders::interface::InterfaceBuilder,
     class::RegisteredClass,
@@ -11,8 +13,6 @@ use crate::{
     zend::{FunctionEntry, ModuleEntry},
     PHP_DEBUG, PHP_ZTS,
 };
-#[cfg(feature = "enum")]
-use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 
 /// Builds a Zend module extension to be registered with PHP. Must be called
 /// from within an external function called `get_module`, returning a mutable

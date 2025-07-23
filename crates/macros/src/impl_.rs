@@ -160,12 +160,6 @@ pub struct Constant<'a> {
     pub docs: Vec<String>,
 }
 
-impl<'a> Constant<'a> {
-    pub fn new(name: String, ident: &'a syn::Ident, docs: Vec<String>) -> Self {
-        Self { name, ident, docs }
-    }
-}
-
 impl<'a> ParsedImpl<'a> {
     /// Create a new, empty parsed impl block.
     ///
