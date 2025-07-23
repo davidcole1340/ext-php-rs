@@ -4,6 +4,7 @@ use super::{ClassBuilder, FunctionBuilder};
 #[cfg(feature = "enum")]
 use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 use crate::{
+    builders::interface::InterfaceBuilder,
     class::RegisteredClass,
     constant::IntoConst,
     describe::DocComments,
@@ -169,6 +170,42 @@ impl ModuleBuilder<'_> {
             Box::new(val) as Box<dyn IntoConst + Send>,
             docs,
         ));
+        self
+    }
+
+    /// Adds a interface to the extension.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if a constant could not be registered.
+    pub fn interface<T: RegisteredClass>(mut self) -> Self {
+        self.classes.push(|| {
+            let mut builder = InterfaceBuilder::new(T::CLASS_NAME);
+            for (method, flags) in T::method_builders() {
+                builder = builder.method(method, flags);
+            }
+            for interface in T::IMPLEMENTS {
+                builder = builder.implements(*interface);
+            }
+            for (name, value, docs) in T::constants() {
+                builder = builder
+                    .dyn_constant(*name, *value, docs)
+                    .expect("Failed to register constant");
+            }
+
+            let mut class_builder = builder.builder();
+
+            if let Some(modifier) = T::BUILDER_MODIFIER {
+                class_builder = modifier(class_builder);
+            }
+
+            class_builder
+                .object_override::<T>()
+                .registration(|ce| {
+                    T::get_metadata().set_ce(ce);
+                })
+                .docs(T::DOC_COMMENTS)
+        });
         self
     }
 
