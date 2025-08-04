@@ -9,6 +9,10 @@ assert(is_a('ExtPhpRs\Interface\EmptyObjectInterface', Throwable::class, true), 
 
 final class Test extends Exception implements ExtPhpRs\Interface\EmptyObjectInterface
 {
+    public function __construct()
+    {
+    }
+
 	public static function void(): void
 	{
 	}
@@ -24,6 +28,10 @@ final class Test extends Exception implements ExtPhpRs\Interface\EmptyObjectInte
 	): string {
 		return sprintf('%s | %s', $this->nonStatic($data), $other->nonStatic($data));
 	}
+
+    public function setValue(?int $value = 0) {
+
+    }
 }
 $f = new Test();
 

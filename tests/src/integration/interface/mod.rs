@@ -1,7 +1,7 @@
 use ext_php_rs::types::ZendClassObject;
 use ext_php_rs::zend::ce;
-use ext_php_rs::{php_class, php_impl, php_interface};
-use ext_php_rs::{php_module, prelude::ModuleBuilder};
+use ext_php_rs::php_interface;
+use ext_php_rs::prelude::ModuleBuilder;
 
 #[php_interface]
 #[php(extends(ce = ce::throwable, stub = "\\Throwable"))]
@@ -20,6 +20,9 @@ pub trait EmptyObjectTrait {
         data: String,
         other: &ZendClassObject<PhpInterfaceEmptyObjectTrait>,
     ) -> String;
+
+    #[php(defaults(value = 0))]
+    fn set_value(&mut self, value: i32);
 }
 
 pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
