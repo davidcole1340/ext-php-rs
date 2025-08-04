@@ -54,6 +54,7 @@ impl ToTokens for InterfaceData<'_> {
         let implements = &self.attrs.extends;
         let methods_sig = &self.methods;
         let path = &self.path;
+        let constants = &self.constants;
         quote! {
             pub struct #interface_name;
 
@@ -89,6 +90,7 @@ impl ToTokens for InterfaceData<'_> {
                 fn constructor() -> Option<::ext_php_rs::class::ConstructorMeta<Self>> {
                     None
                 }
+
                 fn constants() -> &'static [(
                     &'static str,
                     &'static dyn ext_php_rs::convert::IntoZvalDyn,
@@ -99,7 +101,7 @@ impl ToTokens for InterfaceData<'_> {
                 }
 
                 fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
-                    ::std::collections::HashMap::new()
+                    panic!("Non supported for Interface");
                 }
             }
 
@@ -107,11 +109,11 @@ impl ToTokens for InterfaceData<'_> {
                 fn get_methods(self) -> ::std::vec::Vec<
                 (::ext_php_rs::builders::FunctionBuilder<'static>, ::ext_php_rs::flags::MethodFlags)
                 > {
-                    vec![]
+                    panic!("Non supported for Interface");
                 }
 
                 fn get_method_props<'a>(self) -> ::std::collections::HashMap<&'static str, ::ext_php_rs::props::Property<'a, #path>> {
-                    todo!()
+                    panic!("Non supported for Interface");
                 }
 
                 fn get_constructor(self) -> ::std::option::Option<::ext_php_rs::class::ConstructorMeta<#path>> {
@@ -119,7 +121,7 @@ impl ToTokens for InterfaceData<'_> {
                 }
 
                 fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn, &'static [&'static str])] {
-                    &[]
+                    &[#(#constants),*]
                 }
             }
 
@@ -299,6 +301,7 @@ impl<'a> Parse<'a, Vec<FnBuilder>> for ItemTrait {
     }
 }
 
+#[derive(Debug)]
 struct Constant<'a> {
     name: String,
     expr: &'a Expr,
@@ -311,7 +314,7 @@ impl ToTokens for Constant<'_> {
         let expr = &self.expr;
         let docs = &self.docs;
         quote! {
-            (#name, #expr, &[#(#docs),*])
+            (#name, &#expr, &[#(#docs),*])
         }
         .to_tokens(tokens);
     }
