@@ -9,8 +9,6 @@ use ext_php_rs::{php_module, prelude::ModuleBuilder};
 #[php(extends(ce = ce::throwable, stub = "\\Throwable"))]
 #[php(name = "ExtPhpRs\\Interface\\EmptyObjectInterface")]
 pub trait EmptyObjectTrait {
-    const HELLO: &'static str = "HELLO";
-
     fn void();
 
     fn non_static(&self, data: String) -> String;

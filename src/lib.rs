@@ -21,7 +21,6 @@ pub mod flags;
 pub mod macros;
 pub mod boxed;
 pub mod class;
-pub mod interface;
 #[cfg(any(docs, feature = "closure"))]
 #[cfg_attr(docs, doc(cfg(feature = "closure")))]
 pub mod closure;
@@ -31,6 +30,7 @@ pub mod describe;
 pub mod embed;
 #[cfg(feature = "enum")]
 pub mod enum_;
+pub mod interface;
 #[doc(hidden)]
 pub mod internal;
 pub mod props;
