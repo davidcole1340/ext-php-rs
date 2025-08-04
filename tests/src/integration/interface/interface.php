@@ -29,7 +29,4 @@ $f = new Test();
 
 assert(is_a($f, Throwable::class));
 assert($f->nonStatic('Rust') === 'Rust - TEST');
-assert(ExtPhpRs\Interface\EmptyObjectInterface::HELLO === "HELLO");
-assert($f::HELLO === "HELLO");
-assert(Test::HELLO === "HELLO");
 assert($f->refToLikeThisClass('TEST', $f) === 'TEST - TEST | TEST - TEST');

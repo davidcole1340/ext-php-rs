@@ -5,9 +5,9 @@ mod class;
 #[cfg(feature = "enum")]
 mod enum_builder;
 mod function;
-mod interface;
 #[cfg(all(php82, feature = "embed"))]
 mod ini;
+mod interface;
 mod module;
 #[cfg(feature = "embed")]
 mod sapi;

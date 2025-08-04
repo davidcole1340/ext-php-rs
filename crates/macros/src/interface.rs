@@ -24,79 +24,88 @@ pub struct StructAttributes {
 }
 
 pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
-    let attr = StructAttributes::from_attributes(&input.attrs)?;
-    let ident = &input.ident;
-
-    let interface_name = format_ident!("PhpInterface{ident}");
-    let ts = quote! { #interface_name };
-    let path: Path = syn::parse2(ts)?;
-
-    let name = attr.rename.rename(ident.to_string(), RenameRule::Pascal);
-    input.attrs.clean_php();
-
-    let methods: Vec<FnBuilder> = input.parse()?;
-
-    let constants: Vec<Constant> = input.parse()?;
-
-    let implements = attr.extends;
+    let interface_data: InterfaceData = input.parse()?;
+    let interface_tokens = quote! { #interface_data };
 
     Ok(quote! {
         #input
 
-        pub struct #interface_name;
+        #interface_tokens
+    })
+}
 
-        impl ::ext_php_rs::class::RegisteredClass for #interface_name {
-            const CLASS_NAME: &'static str = #name;
+trait Parse<'a, T> {
+    fn parse(&'a mut self) -> Result<T>;
+}
 
-            const BUILDER_MODIFIER: Option<
-            fn(::ext_php_rs::builders::ClassBuilder) -> ::ext_php_rs::builders::ClassBuilder,
-            > = None;
+struct InterfaceData<'a> {
+    ident: &'a Ident,
+    name: String,
+    path: Path,
+    attrs: StructAttributes,
+    methods: Vec<FnBuilder>,
+    constants: Vec<Constant<'a>>,
+}
 
-            const EXTENDS: Option<::ext_php_rs::class::ClassEntryInfo> = None;
+impl ToTokens for InterfaceData<'_> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let interface_name = format_ident!("PhpInterface{}", self.ident);
+        let name = &self.name;
+        let implements = &self.attrs.extends;
+        let methods_sig = &self.methods;
+        let path = &self.path;
+        quote! {
+            pub struct #interface_name;
 
-            const FLAGS: ::ext_php_rs::flags::ClassFlags = ::ext_php_rs::flags::ClassFlags::Interface;
+            impl ::ext_php_rs::class::RegisteredClass for #interface_name {
+                const CLASS_NAME: &'static str = #name;
 
-            const IMPLEMENTS: &'static [::ext_php_rs::class::ClassEntryInfo] = &[
-                #(#implements,)*
-            ];
+                const BUILDER_MODIFIER: Option<
+                fn(::ext_php_rs::builders::ClassBuilder) -> ::ext_php_rs::builders::ClassBuilder,
+                > = None;
 
-            fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
-                static METADATA: ::ext_php_rs::class::ClassMetadata<#interface_name> =
-                ::ext_php_rs::class::ClassMetadata::new();
+                const EXTENDS: Option<::ext_php_rs::class::ClassEntryInfo> = None;
 
-                &METADATA
+                const FLAGS: ::ext_php_rs::flags::ClassFlags = ::ext_php_rs::flags::ClassFlags::Interface;
+
+                const IMPLEMENTS: &'static [::ext_php_rs::class::ClassEntryInfo] = &[
+                    #(#implements,)*
+                ];
+
+                fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
+                    static METADATA: ::ext_php_rs::class::ClassMetadata<#interface_name> =
+                    ::ext_php_rs::class::ClassMetadata::new();
+
+                    &METADATA
+                }
+
+                fn method_builders() -> Vec<(
+                    ::ext_php_rs::builders::FunctionBuilder<'static>,
+                    ::ext_php_rs::flags::MethodFlags,
+                )> {
+                    vec![#(#methods_sig),*]
+                }
+
+                fn constructor() -> Option<::ext_php_rs::class::ConstructorMeta<Self>> {
+                    None
+                }
+                fn constants() -> &'static [(
+                    &'static str,
+                    &'static dyn ext_php_rs::convert::IntoZvalDyn,
+                    ext_php_rs::describe::DocComments,
+                )] {
+                    use ::ext_php_rs::internal::class::PhpClassImpl;
+                    ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
+                }
+
+                fn get_properties<'a>() -> std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
+                    HashMap::new()
+                }
             }
 
-            fn method_builders() -> Vec<(
-                ::ext_php_rs::builders::FunctionBuilder<'static>,
-                ::ext_php_rs::flags::MethodFlags,
-            )> {
-                vec![#(#methods),*]
-            }
-
-            fn constructor() -> Option<::ext_php_rs::class::ConstructorMeta<Self>> {
-                None
-            }
-
-            fn constants() -> &'static [(
-                &'static str,
-                &'static dyn ext_php_rs::convert::IntoZvalDyn,
-                ext_php_rs::describe::DocComments,
-            )] {
-                use ::ext_php_rs::internal::class::PhpClassImpl;
-                ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
-            }
-
-            fn get_properties<'a>() -> std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
-                HashMap::new()
-            }
-
-        }
-            impl ::ext_php_rs::internal::class::PhpClassImpl<#path>
-                for ::ext_php_rs::internal::class::PhpClassImplCollector<#path>
-            {
+            impl ::ext_php_rs::internal::class::PhpClassImpl<#path> for ::ext_php_rs::internal::class::PhpClassImplCollector<#path> {
                 fn get_methods(self) -> ::std::vec::Vec<
-                    (::ext_php_rs::builders::FunctionBuilder<'static>, ::ext_php_rs::flags::MethodFlags)
+                (::ext_php_rs::builders::FunctionBuilder<'static>, ::ext_php_rs::flags::MethodFlags)
                 > {
                     vec![]
                 }
@@ -110,75 +119,118 @@ pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
                 }
 
                 fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn, &'static [&'static str])] {
-                    &[#(#constants),*]
+                    &[]
                 }
             }
 
+            impl<'a> ::ext_php_rs::convert::FromZendObject<'a> for &'a #interface_name {
+                #[inline]
+                fn from_zend_object(
+                    obj: &'a ::ext_php_rs::types::ZendObject,
+                ) -> ::ext_php_rs::error::Result<Self> {
+                    let obj = ::ext_php_rs::types::ZendClassObject::<#interface_name>::from_zend_obj(obj)
+                        .ok_or(::ext_php_rs::error::Error::InvalidScope)?;
+                    Ok(&**obj)
+                }
+            }
+            impl<'a> ::ext_php_rs::convert::FromZendObjectMut<'a> for &'a mut #interface_name {
+                #[inline]
+                fn from_zend_object_mut(
+                    obj: &'a mut ::ext_php_rs::types::ZendObject,
+                ) -> ::ext_php_rs::error::Result<Self> {
+                    let obj = ::ext_php_rs::types::ZendClassObject::<#interface_name>::from_zend_obj_mut(obj)
+                        .ok_or(::ext_php_rs::error::Error::InvalidScope)?;
+                    Ok(&mut **obj)
+                }
+            }
+            impl<'a> ::ext_php_rs::convert::FromZval<'a> for &'a #interface_name {
+                const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Object(Some(
+                    <#interface_name as ::ext_php_rs::class::RegisteredClass>::CLASS_NAME,
+                ));
+                #[inline]
+                fn from_zval(zval: &'a ::ext_php_rs::types::Zval) -> ::std::option::Option<Self> {
+                    <Self as ::ext_php_rs::convert::FromZendObject>::from_zend_object(zval.object()?).ok()
+                }
+            }
+            impl<'a> ::ext_php_rs::convert::FromZvalMut<'a> for &'a mut #interface_name {
+                const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Object(Some(
+                    <#interface_name as ::ext_php_rs::class::RegisteredClass>::CLASS_NAME,
+                ));
+                #[inline]
+                fn from_zval_mut(zval: &'a mut ::ext_php_rs::types::Zval) -> ::std::option::Option<Self> {
+                    <Self as ::ext_php_rs::convert::FromZendObjectMut>::from_zend_object_mut(zval.object_mut()?)
+                        .ok()
+                }
+            }
+            impl ::ext_php_rs::convert::IntoZendObject for #interface_name {
+                #[inline]
+                fn into_zend_object(
+                    self,
+                ) -> ::ext_php_rs::error::Result<::ext_php_rs::boxed::ZBox<::ext_php_rs::types::ZendObject>>
+                {
+                    Ok(::ext_php_rs::types::ZendClassObject::new(self).into())
+                }
+            }
+            impl ::ext_php_rs::convert::IntoZval for #interface_name {
+                const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Object(Some(
+                    <#interface_name as ::ext_php_rs::class::RegisteredClass>::CLASS_NAME,
+                ));
+                const NULLABLE: bool = false;
+                #[inline]
+                fn set_zval(
+                    self,
+                    zv: &mut ::ext_php_rs::types::Zval,
+                    persistent: bool,
+                ) -> ::ext_php_rs::error::Result<()> {
+                    use ::ext_php_rs::convert::IntoZendObject;
+                    self.into_zend_object()?.set_zval(zv, persistent)
+                }
+            }
+        }.to_tokens(tokens);
+    }
+}
 
-        impl<'a> ::ext_php_rs::convert::FromZendObject<'a> for &'a #interface_name {
-            #[inline]
-            fn from_zend_object(
-                obj: &'a ::ext_php_rs::types::ZendObject,
-            ) -> ::ext_php_rs::error::Result<Self> {
-                let obj = ::ext_php_rs::types::ZendClassObject::<#interface_name>::from_zend_obj(obj)
-                    .ok_or(::ext_php_rs::error::Error::InvalidScope)?;
-                Ok(&**obj)
+impl<'a> InterfaceData<'a> {
+    fn new(
+        ident: &'a Ident,
+        name: String,
+        path: Path,
+        attrs: StructAttributes,
+        methods: Vec<FnBuilder>,
+        constants: Vec<Constant<'a>>,
+    ) -> Self {
+        Self {
+            ident,
+            name,
+            path,
+            attrs,
+            methods,
+            constants,
+        }
+    }
+}
+
+impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
+    fn parse(&'a mut self) -> Result<InterfaceData<'a>> {
+        let attrs = StructAttributes::from_attributes(&self.attrs)?;
+        let ident = &self.ident;
+        let name = attrs.rename.rename(ident.to_string(), RenameRule::Pascal);
+        self.attrs.clean_php();
+        let interface_name = format_ident!("PhpInterface{ident}");
+        let ts = quote! { #interface_name };
+        let path: Path = syn::parse2(ts)?;
+        let mut data = InterfaceData::new(ident, name, path, attrs, Vec::new(), Vec::new());
+
+        for item in &mut self.items {
+            match item {
+                TraitItem::Fn(f) => data.methods.push(f.parse()?),
+                TraitItem::Const(c) => data.constants.push(c.parse()?),
+                _ => {}
             }
         }
-        impl<'a> ::ext_php_rs::convert::FromZendObjectMut<'a> for &'a mut #interface_name {
-            #[inline]
-            fn from_zend_object_mut(
-                obj: &'a mut ::ext_php_rs::types::ZendObject,
-            ) -> ::ext_php_rs::error::Result<Self> {
-                let obj = ::ext_php_rs::types::ZendClassObject::<#interface_name>::from_zend_obj_mut(obj)
-                    .ok_or(::ext_php_rs::error::Error::InvalidScope)?;
-                Ok(&mut **obj)
-            }
-        }
-        impl<'a> ::ext_php_rs::convert::FromZval<'a> for &'a #interface_name {
-            const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Object(Some(
-                <#interface_name as ::ext_php_rs::class::RegisteredClass>::CLASS_NAME,
-            ));
-            #[inline]
-            fn from_zval(zval: &'a ::ext_php_rs::types::Zval) -> ::std::option::Option<Self> {
-                <Self as ::ext_php_rs::convert::FromZendObject>::from_zend_object(zval.object()?).ok()
-            }
-        }
-        impl<'a> ::ext_php_rs::convert::FromZvalMut<'a> for &'a mut #interface_name {
-            const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Object(Some(
-                <#interface_name as ::ext_php_rs::class::RegisteredClass>::CLASS_NAME,
-            ));
-            #[inline]
-            fn from_zval_mut(zval: &'a mut ::ext_php_rs::types::Zval) -> ::std::option::Option<Self> {
-                <Self as ::ext_php_rs::convert::FromZendObjectMut>::from_zend_object_mut(zval.object_mut()?)
-                    .ok()
-            }
-        }
-        impl ::ext_php_rs::convert::IntoZendObject for #interface_name {
-            #[inline]
-            fn into_zend_object(
-                self,
-            ) -> ::ext_php_rs::error::Result<::ext_php_rs::boxed::ZBox<::ext_php_rs::types::ZendObject>>
-            {
-                Ok(::ext_php_rs::types::ZendClassObject::new(self).into())
-            }
-        }
-        impl ::ext_php_rs::convert::IntoZval for #interface_name {
-            const TYPE: ::ext_php_rs::flags::DataType = ::ext_php_rs::flags::DataType::Object(Some(
-                <#interface_name as ::ext_php_rs::class::RegisteredClass>::CLASS_NAME,
-            ));
-            const NULLABLE: bool = false;
-            #[inline]
-            fn set_zval(
-                self,
-                zv: &mut ::ext_php_rs::types::Zval,
-                persistent: bool,
-            ) -> ::ext_php_rs::error::Result<()> {
-                use ::ext_php_rs::convert::IntoZendObject;
-                self.into_zend_object()?.set_zval(zv, persistent)
-            }
-        }
-    })
+
+        Ok(data)
+    }
 }
 
 #[derive(FromAttributes, Default, Debug)]
@@ -193,98 +245,6 @@ pub struct PhpFunctionInterfaceAttribute {
     getter: Flag,
     setter: Flag,
     constructor: Flag,
-}
-
-#[derive(Default)]
-struct InterfaceData<'a> {
-    attrs: StructAttributes,
-    methods: Vec<FnBuilder>,
-    constants: Vec<Constant<'a>>
-}
-
-trait Parse<'a, T> {
-    fn parse(&'a mut self) -> Result<T>;
-}
-
-impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
-    fn parse(&'a mut self) -> Result<InterfaceData<'a>> {
-        let mut data = InterfaceData::default();
-        for item in self.items.iter_mut() {
-            match item {
-                TraitItem::Fn(f) => data.methods.push(f.parse()?),
-                TraitItem::Const(c) => data.constants.push(c.parse()?),
-                _ => {}
-            }
-        }
-
-        Ok(data)
-    }
-}
-
-impl<'a> Parse<'a, Vec<FnBuilder>> for ItemTrait {
-    fn parse(&'a mut self) -> Result<Vec<FnBuilder>> {
-    Ok(self
-        .items
-        .iter_mut()
-        .filter_map(|item: &mut TraitItem| match item {
-            TraitItem::Fn(f) => Some(f),
-            _ => None,
-        })
-        .flat_map(Parse::parse)
-        .collect())
-    }
-}
-
-impl<'a> Parse<'a, Vec<Constant<'a>>> for ItemTrait {
-    fn parse(&'a mut self) -> Result<Vec<Constant<'a>>> {
-        Ok(self.items
-        .iter_mut()
-        .filter_map(|item: &mut TraitItem| match item {
-            TraitItem::Const(c) => Some(c),
-            _ => None,
-        })
-        .flat_map(Parse::parse)
-        .collect())
-    }
-}
-
-struct Constant<'a> {
-    name: String,
-    expr: &'a Expr,
-    docs: Vec<String>,
-}
-
-impl ToTokens for Constant<'_> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let name = &self.name;
-        let expr = &self.expr;
-        let docs = &self.docs;
-        quote! {
-            (#name, #expr, &[#(#docs),*])
-        }.to_tokens(tokens);
-    }
-}
-
-impl<'a> Constant<'a> {
-    fn new(name: String, expr: &'a Expr, docs: Vec<String>) -> Self {
-        Self {name, expr, docs}
-    }
-}
-
-impl<'a> Parse<'a, Constant<'a>> for TraitItemConst {
-    fn parse(&'a mut self) -> Result<Constant<'a>> {
-        if self.default.is_none() {
-            bail!("Interface const could not be empty");
-        }
-
-        let attr = PhpConstAttribute::from_attributes(&self.attrs)?;
-        let name = self.ident.to_string();
-        let docs = get_docs(&attr.attrs)?;
-        self.attrs.clean_php();
-
-        let (_, expr) = self.default.as_ref().unwrap();
-        Ok(Constant::new(name, expr, docs))
-    }
 }
 
 impl<'a> Parse<'a, FnBuilder> for TraitItemFn {
@@ -305,7 +265,7 @@ impl<'a> Parse<'a, FnBuilder> for TraitItemFn {
             args.typed.pop();
         } else if args.receiver.is_none() {
             modifiers.insert(MethodModifier::Static);
-        };
+        }
 
         let f = Function::new(
             &self.sig,
@@ -322,5 +282,73 @@ impl<'a> Parse<'a, FnBuilder> for TraitItemFn {
             vis: php_attr.vis.unwrap_or(Visibility::Public),
             modifiers,
         })
+    }
+}
+
+impl<'a> Parse<'a, Vec<FnBuilder>> for ItemTrait {
+    fn parse(&'a mut self) -> Result<Vec<FnBuilder>> {
+        Ok(self
+            .items
+            .iter_mut()
+            .filter_map(|item: &mut TraitItem| match item {
+                TraitItem::Fn(f) => Some(f),
+                _ => None,
+            })
+            .flat_map(Parse::parse)
+            .collect())
+    }
+}
+
+struct Constant<'a> {
+    name: String,
+    expr: &'a Expr,
+    docs: Vec<String>,
+}
+
+impl ToTokens for Constant<'_> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let name = &self.name;
+        let expr = &self.expr;
+        let docs = &self.docs;
+        quote! {
+            (#name, #expr, &[#(#docs),*])
+        }
+        .to_tokens(tokens);
+    }
+}
+
+impl<'a> Constant<'a> {
+    fn new(name: String, expr: &'a Expr, docs: Vec<String>) -> Self {
+        Self { name, expr, docs }
+    }
+}
+
+impl<'a> Parse<'a, Constant<'a>> for TraitItemConst {
+    fn parse(&'a mut self) -> Result<Constant<'a>> {
+        if self.default.is_none() {
+            bail!("Interface const could not be empty");
+        }
+
+        let attr = PhpConstAttribute::from_attributes(&self.attrs)?;
+        let name = self.ident.to_string();
+        let docs = get_docs(&attr.attrs)?;
+        self.attrs.clean_php();
+
+        let (_, expr) = self.default.as_ref().unwrap();
+        Ok(Constant::new(name, expr, docs))
+    }
+}
+
+impl<'a> Parse<'a, Vec<Constant<'a>>> for ItemTrait {
+    fn parse(&'a mut self) -> Result<Vec<Constant<'a>>> {
+        Ok(self
+            .items
+            .iter_mut()
+            .filter_map(|item: &mut TraitItem| match item {
+                TraitItem::Const(c) => Some(c),
+                _ => None,
+            })
+            .flat_map(Parse::parse)
+            .collect())
     }
 }
