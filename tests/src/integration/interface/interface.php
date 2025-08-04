@@ -30,3 +30,5 @@ $f = new Test();
 assert(is_a($f, Throwable::class));
 assert($f->nonStatic('Rust') === 'Rust - TEST');
 assert($f->refToLikeThisClass('TEST', $f) === 'TEST - TEST | TEST - TEST');
+assert(ExtPhpRs\Interface\EmptyObjectInterface::STRING_CONST === 'STRING_CONST');
+assert(ExtPhpRs\Interface\EmptyObjectInterface::USIZE_CONST === 200);
