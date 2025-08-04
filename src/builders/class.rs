@@ -58,6 +58,10 @@ impl ClassBuilder {
         }
     }
 
+    pub fn get_flags(&self) -> u32 {
+        self.ce.ce_flags
+    }
+
     /// Sets the class builder to extend another class.
     ///
     /// # Parameters
