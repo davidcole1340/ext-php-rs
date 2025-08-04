@@ -1,7 +1,9 @@
 use crate::builders::FunctionBuilder;
-use crate::flags::{ClassFlags, MethodFlags};
-use crate::{builders::ClassBuilder, class::ClassEntryInfo, convert::IntoZvalDyn, describe::DocComments};
 use crate::error::Result;
+use crate::flags::{ClassFlags, MethodFlags};
+use crate::{
+    builders::ClassBuilder, class::ClassEntryInfo, convert::IntoZvalDyn, describe::DocComments,
+};
 
 pub struct InterfaceBuilder {
     class_builder: ClassBuilder,
@@ -42,4 +44,3 @@ impl InterfaceBuilder {
         self.class_builder
     }
 }
-
