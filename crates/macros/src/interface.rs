@@ -88,7 +88,8 @@ impl ToTokens for InterfaceData<'_> {
                 }
 
                 fn constructor() -> Option<::ext_php_rs::class::ConstructorMeta<Self>> {
-                    None
+                    use ::ext_php_rs::internal::class::PhpClassImpl;
+                    ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constructor()
                 }
 
                 fn constants() -> &'static [(
@@ -96,32 +97,11 @@ impl ToTokens for InterfaceData<'_> {
                     &'static dyn ext_php_rs::convert::IntoZvalDyn,
                     ext_php_rs::describe::DocComments,
                 )] {
-                    use ::ext_php_rs::internal::class::PhpClassImpl;
-                    ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
+                    &[#(#constants),*]
                 }
 
                 fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
                     panic!("Non supported for Interface");
-                }
-            }
-
-            impl ::ext_php_rs::internal::class::PhpClassImpl<#path> for ::ext_php_rs::internal::class::PhpClassImplCollector<#path> {
-                fn get_methods(self) -> ::std::vec::Vec<
-                (::ext_php_rs::builders::FunctionBuilder<'static>, ::ext_php_rs::flags::MethodFlags)
-                > {
-                    panic!("Non supported for Interface");
-                }
-
-                fn get_method_props<'a>(self) -> ::std::collections::HashMap<&'static str, ::ext_php_rs::props::Property<'a, #path>> {
-                    panic!("Non supported for Interface");
-                }
-
-                fn get_constructor(self) -> ::std::option::Option<::ext_php_rs::class::ConstructorMeta<#path>> {
-                    None
-                }
-
-                fn get_constants(self) -> &'static [(&'static str, &'static dyn ::ext_php_rs::convert::IntoZvalDyn, &'static [&'static str])] {
-                    &[#(#constants),*]
                 }
             }
 
