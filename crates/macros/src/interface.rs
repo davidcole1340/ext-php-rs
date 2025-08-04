@@ -98,8 +98,8 @@ impl ToTokens for InterfaceData<'_> {
                     ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constants()
                 }
 
-                fn get_properties<'a>() -> std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
-                    HashMap::new()
+                fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
+                    ::std::collections::HashMap::new()
                 }
             }
 
