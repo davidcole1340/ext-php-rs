@@ -43,6 +43,7 @@ struct InterfaceData<'a> {
     name: String,
     path: Path,
     attrs: StructAttributes,
+    constructor: Option<Function<'a>>,
     methods: Vec<FnBuilder>,
     constants: Vec<Constant<'a>>,
 }
@@ -55,6 +56,12 @@ impl ToTokens for InterfaceData<'_> {
         let methods_sig = &self.methods;
         let path = &self.path;
         let constants = &self.constants;
+
+        let constructor = self.constructor
+            .as_ref()
+            .map(|func| func.constructor_meta(&path))
+            .option_tokens();
+
         quote! {
             pub struct #interface_name;
 
@@ -88,8 +95,7 @@ impl ToTokens for InterfaceData<'_> {
                 }
 
                 fn constructor() -> Option<::ext_php_rs::class::ConstructorMeta<Self>> {
-                    use ::ext_php_rs::internal::class::PhpClassImpl;
-                    ::ext_php_rs::internal::class::PhpClassImplCollector::<Self>::default().get_constructor()
+                    None
                 }
 
                 fn constants() -> &'static [(
@@ -178,6 +184,7 @@ impl<'a> InterfaceData<'a> {
         name: String,
         path: Path,
         attrs: StructAttributes,
+        constructor: Option<Function<'a>>,
         methods: Vec<FnBuilder>,
         constants: Vec<Constant<'a>>,
     ) -> Self {
@@ -186,6 +193,7 @@ impl<'a> InterfaceData<'a> {
             name,
             path,
             attrs,
+            constructor,
             methods,
             constants,
         }
@@ -201,11 +209,28 @@ impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
         let interface_name = format_ident!("PhpInterface{ident}");
         let ts = quote! { #interface_name };
         let path: Path = syn::parse2(ts)?;
-        let mut data = InterfaceData::new(ident, name, path, attrs, Vec::new(), Vec::new());
+        let mut data = InterfaceData::new(
+            ident,
+            name,
+            path,
+            attrs,
+            None,
+            Vec::new(),
+            Vec::new()
+        );
 
         for item in &mut self.items {
             match item {
-                TraitItem::Fn(f) => data.methods.push(f.parse()?),
+                TraitItem::Fn(f) => {
+                    match f.parse()? {
+                        MethodKind::Method(builder) => data.methods.push(builder),
+                        MethodKind::Constructor(builder) => {
+                            if data.constructor.replace(builder).is_some() {
+                                bail!("Only one constructor can be provided per class.");
+                            }
+                        }
+                    };
+                },
                 TraitItem::Const(c) => data.constants.push(c.parse()?),
                 _ => {}
             }
@@ -229,20 +254,32 @@ pub struct PhpFunctionInterfaceAttribute {
     constructor: Flag,
 }
 
-impl<'a> Parse<'a, FnBuilder> for TraitItemFn {
-    fn parse(&'a mut self) -> Result<FnBuilder> {
-        let php_attr = PhpFunctionInterfaceAttribute::from_attributes(&self.attrs)?;
+enum MethodKind<'a> {
+    Method(FnBuilder),
+    Constructor(Function<'a>),
+}
+
+impl<'a> Parse<'a, MethodKind<'a>> for TraitItemFn {
+    fn parse(&'a mut self) -> Result<MethodKind<'a>> {
         if self.default.is_some() {
-            bail!("Interface could not have default impl");
+            bail!(self => "Interface could not have default impl");
         }
 
-        let mut args = Args::parse_from_fnargs(self.sig.inputs.iter(), php_attr.defaults)?;
-        let docs = get_docs(&php_attr.attrs)?;
-
+        let php_attr = PhpFunctionInterfaceAttribute::from_attributes(
+            &self.attrs
+        )?;
         self.attrs.clean_php();
+
+        let mut args = Args::parse_from_fnargs(
+            self.sig.inputs.iter(),
+            php_attr.defaults
+        )?;
+
+        let docs = get_docs(&php_attr.attrs)?;
 
         let mut modifiers: HashSet<MethodModifier> = HashSet::new();
         modifiers.insert(MethodModifier::Abstract);
+
         if args.typed.first().is_some_and(|arg| arg.name == "self_") {
             args.typed.pop();
         } else if args.receiver.is_none() {
@@ -259,20 +296,26 @@ impl<'a> Parse<'a, FnBuilder> for TraitItemFn {
             docs,
         );
 
-        Ok(FnBuilder {
-            builder: f.abstract_function_builder(),
-            vis: php_attr.vis.unwrap_or(Visibility::Public),
-            modifiers,
-        })
+        if php_attr.constructor.is_present() {
+            Ok(MethodKind::Constructor(f))
+        } else {
+            let builder = FnBuilder {
+                builder: f.abstract_function_builder(),
+                vis: php_attr.vis.unwrap_or(Visibility::Public),
+                modifiers,
+            };
+
+            Ok(MethodKind::Method(builder))
+        }
     }
 }
 
-impl<'a> Parse<'a, Vec<FnBuilder>> for ItemTrait {
-    fn parse(&'a mut self) -> Result<Vec<FnBuilder>> {
+impl<'a> Parse<'a, Vec<MethodKind<'a>>> for ItemTrait {
+    fn parse(&'a mut self) -> Result<Vec<MethodKind<'a>>> {
         Ok(self
             .items
             .iter_mut()
-            .filter_map(|item: &mut TraitItem| match item {
+            .filter_map(|item| match item {
                 TraitItem::Fn(f) => Some(f),
                 _ => None,
             })
@@ -309,7 +352,7 @@ impl<'a> Constant<'a> {
 impl<'a> Parse<'a, Constant<'a>> for TraitItemConst {
     fn parse(&'a mut self) -> Result<Constant<'a>> {
         if self.default.is_none() {
-            bail!("Interface const could not be empty");
+            bail!(self => "Interface const could not be empty");
         }
 
         let attr = PhpConstAttribute::from_attributes(&self.attrs)?;
@@ -327,7 +370,7 @@ impl<'a> Parse<'a, Vec<Constant<'a>>> for ItemTrait {
         Ok(self
             .items
             .iter_mut()
-            .filter_map(|item: &mut TraitItem| match item {
+            .filter_map(|item| match item {
                 TraitItem::Const(c) => Some(c),
                 _ => None,
             })
