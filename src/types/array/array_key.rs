@@ -1,9 +1,9 @@
+use crate::{convert::FromZval, error::Error, flags::DataType, types::Zval};
+use std::str::FromStr;
 use std::{convert::TryFrom, fmt::Display};
 
-use crate::{convert::FromZval, error::Error, flags::DataType, types::Zval};
-
 /// Represents the key of a PHP array, which can be either a long or a string.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ArrayKey<'a> {
     /// A numerical key.
     /// In Zend API it's represented by `u64` (`zend_ulong`), so the value needs
@@ -17,18 +17,22 @@ pub enum ArrayKey<'a> {
 
 impl From<String> for ArrayKey<'_> {
     fn from(value: String) -> Self {
-        Self::String(value)
+        if let Ok(index) = i64::from_str(value.as_str()) {
+            Self::Long(index)
+        } else {
+            Self::String(value)
+        }
     }
 }
 
 impl TryFrom<ArrayKey<'_>> for String {
     type Error = Error;
 
-    fn try_from(value: ArrayKey<'_>) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: ArrayKey<'_>) -> Result<Self, Self::Error> {
         match value {
             ArrayKey::String(s) => Ok(s),
             ArrayKey::Str(s) => Ok(s.to_string()),
-            ArrayKey::Long(_) => Err(Error::InvalidProperty),
+            ArrayKey::Long(l) => Ok(l.to_string()),
         }
     }
 }
@@ -36,7 +40,7 @@ impl TryFrom<ArrayKey<'_>> for String {
 impl TryFrom<ArrayKey<'_>> for i64 {
     type Error = Error;
 
-    fn try_from(value: ArrayKey<'_>) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: ArrayKey<'_>) -> Result<Self, Self::Error> {
         match value {
             ArrayKey::Long(i) => Ok(i),
             ArrayKey::String(s) => s.parse::<i64>().map_err(|_| Error::InvalidProperty),
@@ -71,8 +75,12 @@ impl Display for ArrayKey<'_> {
 }
 
 impl<'a> From<&'a str> for ArrayKey<'a> {
-    fn from(key: &'a str) -> ArrayKey<'a> {
-        ArrayKey::Str(key)
+    fn from(value: &'a str) -> ArrayKey<'a> {
+        if let Ok(index) = i64::from_str(value) {
+            Self::Long(index)
+        } else {
+            ArrayKey::Str(value)
+        }
     }
 }
 
@@ -117,8 +125,7 @@ mod tests {
 
         let key = ArrayKey::Long(42);
         let result: crate::error::Result<String, _> = key.try_into();
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Error::InvalidProperty));
+        assert_eq!(result.unwrap(), "42".to_string());
 
         let key = ArrayKey::String("42".to_string());
         let result: crate::error::Result<String, _> = key.try_into();

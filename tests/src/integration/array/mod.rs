@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use ext_php_rs::{
     convert::IntoZval,
@@ -25,6 +25,11 @@ pub fn test_array_assoc_array_keys(a: Vec<(ArrayKey, String)>) -> Vec<(ArrayKey,
 }
 
 #[php_function]
+pub fn test_btree_map(a: BTreeMap<ArrayKey, String>) -> BTreeMap<ArrayKey, String> {
+    a
+}
+
+#[php_function]
 pub fn test_array_keys() -> Zval {
     let mut ht = HashTable::new();
     ht.insert(-42, "foo").unwrap();
@@ -41,6 +46,7 @@ pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(test_array))
         .function(wrap_function!(test_array_assoc))
         .function(wrap_function!(test_array_assoc_array_keys))
+        .function(wrap_function!(test_btree_map))
         .function(wrap_function!(test_array_keys))
 }
 

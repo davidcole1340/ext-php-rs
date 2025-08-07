@@ -1,5 +1,5 @@
-use std::{collections::HashMap, convert::TryFrom};
-
+use super::super::ZendHashTable;
+use crate::types::ArrayKey;
 use crate::{
     boxed::ZBox,
     convert::{FromZval, IntoZval},
@@ -7,23 +7,23 @@ use crate::{
     flags::DataType,
     types::Zval,
 };
+use std::hash::{BuildHasher, Hash};
+use std::{collections::HashMap, convert::TryFrom};
 
-use super::super::ZendHashTable;
-
-// TODO: Generalize hasher
-#[allow(clippy::implicit_hasher)]
-impl<'a, V> TryFrom<&'a ZendHashTable> for HashMap<String, V>
+impl<'a, K, V, H> TryFrom<&'a ZendHashTable> for HashMap<K, V, H>
 where
+    K: TryFrom<ArrayKey<'a>, Error = Error> + Eq + Hash,
     V: FromZval<'a>,
+    H: BuildHasher + Default,
 {
     type Error = Error;
 
     fn try_from(value: &'a ZendHashTable) -> Result<Self> {
-        let mut hm = HashMap::with_capacity(value.len());
+        let mut hm = Self::with_capacity_and_hasher(value.len(), H::default());
 
         for (key, val) in value {
             hm.insert(
-                key.to_string(),
+                key.try_into()?,
                 V::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?,
             );
         }
@@ -32,14 +32,15 @@ where
     }
 }
 
-impl<K, V> TryFrom<HashMap<K, V>> for ZBox<ZendHashTable>
+impl<K, V, H> TryFrom<HashMap<K, V, H>> for ZBox<ZendHashTable>
 where
     K: AsRef<str>,
     V: IntoZval,
+    H: BuildHasher,
 {
     type Error = Error;
 
-    fn try_from(value: HashMap<K, V>) -> Result<Self> {
+    fn try_from(value: HashMap<K, V, H>) -> Result<Self> {
         let mut ht = ZendHashTable::with_capacity(
             value.len().try_into().map_err(|_| Error::IntegerOverflow)?,
         );
@@ -52,12 +53,11 @@ where
     }
 }
 
-// TODO: Generalize hasher
-#[allow(clippy::implicit_hasher)]
-impl<K, V> IntoZval for HashMap<K, V>
+impl<K, V, H> IntoZval for HashMap<K, V, H>
 where
     K: AsRef<str>,
     V: IntoZval,
+    H: BuildHasher,
 {
     const TYPE: DataType = DataType::Array;
     const NULLABLE: bool = false;
@@ -69,11 +69,10 @@ where
     }
 }
 
-// TODO: Generalize hasher
-#[allow(clippy::implicit_hasher)]
-impl<'a, T> FromZval<'a> for HashMap<String, T>
+impl<'a, V, H> FromZval<'a> for HashMap<String, V, H>
 where
-    T: FromZval<'a>,
+    V: FromZval<'a>,
+    H: BuildHasher + Default,
 {
     const TYPE: DataType = DataType::Array;
 

@@ -42,9 +42,24 @@ assert($assoc_keys === [
     2 => '2',
     '3' => '3',
 ]);
+$assoc_keys = test_btree_map([
+    'a' => '1',
+    2 => '2',
+    '3' => '3',
+]);
+assert($assoc_keys === [
+    2 => '2',
+    '3' => '3',
+    'a' => '1',
+]);
 
 $assoc_keys = test_array_assoc_array_keys(['foo', 'bar', 'baz']);
 assert($assoc_keys === [
+    0 => 'foo',
+    1 => 'bar',
+    2 => 'baz',
+]);
+assert(test_btree_map(['foo', 'bar', 'baz']) === [
     0 => 'foo',
     1 => 'bar',
     2 => 'baz',
