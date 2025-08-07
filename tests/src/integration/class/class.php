@@ -43,3 +43,11 @@ assert_exception_thrown(fn() => $arrayAccess[0] = 'foo');
 assert_exception_thrown(fn() => $arrayAccess['foo']);
 assert($arrayAccess[0] === true);
 assert($arrayAccess[1] === false);
+
+$classReflection = new ReflectionClass(TestClassMethodVisibility::class);
+assert($classReflection->getMethod('__construct')->isPrivate());
+assert($classReflection->getMethod('private')->isPrivate());
+assert($classReflection->getMethod('protected')->isProtected());
+
+$classReflection = new ReflectionClass(TestClassProtectedConstruct::class);
+assert($classReflection->getMethod('__construct')->isProtected());

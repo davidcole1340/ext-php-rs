@@ -120,7 +120,7 @@ struct ParsedImpl<'a> {
     change_method_case: RenameRule,
     change_constant_case: RenameRule,
     functions: Vec<FnBuilder>,
-    constructor: Option<Function<'a>>,
+    constructor: Option<(Function<'a>, Option<Visibility>)>,
     constants: Vec<Constant<'a>>,
 }
 
@@ -212,7 +212,7 @@ impl<'a> ParsedImpl<'a> {
                     let mut modifiers: HashSet<MethodModifier> = HashSet::new();
 
                     if matches!(opts.ty, MethodTy::Constructor) {
-                        if self.constructor.replace(func).is_some() {
+                        if self.constructor.replace((func, opts.vis.into())).is_some() {
                             bail!(method => "Only one constructor can be provided per class.");
                         }
                     } else {
@@ -264,7 +264,7 @@ impl<'a> ParsedImpl<'a> {
         let constructor = self
             .constructor
             .as_ref()
-            .map(|func| func.constructor_meta(self.path))
+            .map(|(func, vis)| func.constructor_meta(self.path, vis.as_ref()))
             .option_tokens();
         let constants = self.constants.iter().map(|c| {
             let name = &c.name;
@@ -306,11 +306,8 @@ impl quote::ToTokens for FnBuilder {
         let builder = &self.builder;
         // TODO(cole_d): allow more flags via attributes
         let mut flags = vec![];
-        flags.push(match self.vis {
-            Visibility::Public => quote! { ::ext_php_rs::flags::MethodFlags::Public },
-            Visibility::Protected => quote! { ::ext_php_rs::flags::MethodFlags::Protected },
-            Visibility::Private => quote! { ::ext_php_rs::flags::MethodFlags::Private },
-        });
+        let vis = &self.vis;
+        flags.push(quote! { #vis });
         for flag in &self.modifiers {
             flags.push(quote! { #flag });
         }

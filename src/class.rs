@@ -82,6 +82,8 @@ pub struct ConstructorMeta<T> {
     /// Function called to build the constructor function. Usually adds
     /// arguments.
     pub build_fn: fn(FunctionBuilder) -> FunctionBuilder,
+    /// Add constructor modification
+    pub flags: Option<MethodFlags>,
 }
 
 /// Result returned from a constructor of a class.

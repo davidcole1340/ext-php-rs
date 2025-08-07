@@ -308,7 +308,11 @@ impl<'a> Function<'a> {
 
     /// Returns a constructor metadata object for this function. This doesn't
     /// check if the function is a constructor, however.
-    pub fn constructor_meta(&self, class: &syn::Path) -> TokenStream {
+    pub fn constructor_meta(
+        &self,
+        class: &syn::Path,
+        visibility: Option<&Visibility>,
+    ) -> TokenStream {
         let ident = self.ident;
         let (required, not_required) = self.args.split_args(self.optional.as_ref());
         let required_args = required
@@ -339,6 +343,7 @@ impl<'a> Function<'a> {
             }
         });
         let docs = &self.docs;
+        let flags = visibility.option_tokens();
 
         quote! {
             ::ext_php_rs::class::ConstructorMeta {
@@ -368,7 +373,8 @@ impl<'a> Function<'a> {
                             #variadic
                     }
                     inner
-                }
+                },
+                flags: #flags
             }
         }
     }
