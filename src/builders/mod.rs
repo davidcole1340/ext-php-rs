@@ -7,6 +7,7 @@ mod enum_builder;
 mod function;
 #[cfg(all(php82, feature = "embed"))]
 mod ini;
+mod interface;
 mod module;
 #[cfg(feature = "embed")]
 mod sapi;

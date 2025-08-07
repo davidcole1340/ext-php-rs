@@ -4,6 +4,7 @@ use super::{ClassBuilder, FunctionBuilder};
 #[cfg(feature = "enum")]
 use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 use crate::{
+    builders::interface::InterfaceBuilder,
     class::RegisteredClass,
     constant::IntoConst,
     describe::DocComments,
@@ -48,6 +49,7 @@ pub struct ModuleBuilder<'a> {
     pub(crate) functions: Vec<FunctionBuilder<'a>>,
     pub(crate) constants: Vec<(String, Box<dyn IntoConst + Send>, DocComments)>,
     pub(crate) classes: Vec<fn() -> ClassBuilder>,
+    pub(crate) interfaces: Vec<fn() -> ClassBuilder>,
     #[cfg(feature = "enum")]
     pub(crate) enums: Vec<fn() -> EnumBuilder>,
     startup_func: Option<StartupShutdownFunc>,
@@ -192,6 +194,42 @@ impl ModuleBuilder<'_> {
         self
     }
 
+    /// Adds a interface to the extension.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if a constant could not be registered.
+    pub fn interface<T: RegisteredClass>(mut self) -> Self {
+        self.interfaces.push(|| {
+            let mut builder = InterfaceBuilder::new(T::CLASS_NAME);
+            for (method, flags) in T::method_builders() {
+                builder = builder.method(method, flags);
+            }
+            for interface in T::IMPLEMENTS {
+                builder = builder.implements(*interface);
+            }
+            for (name, value, docs) in T::constants() {
+                builder = builder
+                    .dyn_constant(*name, *value, docs)
+                    .expect("Failed to register constant");
+            }
+
+            let mut class_builder = builder.builder();
+
+            if let Some(modifier) = T::BUILDER_MODIFIER {
+                class_builder = modifier(class_builder);
+            }
+
+            class_builder
+                .object_override::<T>()
+                .registration(|ce| {
+                    T::get_metadata().set_ce(ce);
+                })
+                .docs(T::DOC_COMMENTS)
+        });
+        self
+    }
+
     /// Adds a class to the extension.
     ///
     /// # Panics
@@ -262,6 +300,7 @@ impl ModuleBuilder<'_> {
 pub struct ModuleStartup {
     constants: Vec<(String, Box<dyn IntoConst + Send>)>,
     classes: Vec<fn() -> ClassBuilder>,
+    interfaces: Vec<fn() -> ClassBuilder>,
     #[cfg(feature = "enum")]
     enums: Vec<fn() -> EnumBuilder>,
 }
@@ -284,6 +323,10 @@ impl ModuleStartup {
 
         self.classes.into_iter().map(|c| c()).for_each(|c| {
             c.register().expect("Failed to build class");
+        });
+
+        self.interfaces.into_iter().map(|c| c()).for_each(|c| {
+            c.register().expect("Failed to build interface");
         });
 
         #[cfg(feature = "enum")]
@@ -328,6 +371,7 @@ impl TryFrom<ModuleBuilder<'_>> for (ModuleEntry, ModuleStartup) {
                 .map(|(n, v, _)| (n, v))
                 .collect(),
             classes: builder.classes,
+            interfaces: builder.interfaces,
             #[cfg(feature = "enum")]
             enums: builder.enums,
         };
@@ -383,6 +427,7 @@ mod tests {
         assert!(builder.functions.is_empty());
         assert!(builder.constants.is_empty());
         assert!(builder.classes.is_empty());
+        assert!(builder.interfaces.is_empty());
         assert!(builder.startup_func.is_none());
         assert!(builder.shutdown_func.is_none());
         assert!(builder.request_startup_func.is_none());
