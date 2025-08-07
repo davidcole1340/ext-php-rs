@@ -76,6 +76,26 @@ impl ModuleBuilder<'_> {
         }
     }
 
+    /// Overrides module name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the extension.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
+        self
+    }
+
+    /// Overrides module version.
+    ///
+    /// # Arguments
+    ///
+    /// * `version` - The current version of the extension.
+    pub fn version(mut self, version: impl Into<String>) -> Self {
+        self.version = version.into();
+        self
+    }
+
     /// Sets the startup function for the extension.
     ///
     /// # Arguments
@@ -371,6 +391,18 @@ mod tests {
         assert!(builder.info_func.is_none());
         #[cfg(feature = "enum")]
         assert!(builder.enums.is_empty());
+    }
+
+    #[test]
+    fn test_name() {
+        let builder = ModuleBuilder::new("test", "1.0").name("new_test");
+        assert_eq!(builder.name, "new_test");
+    }
+
+    #[test]
+    fn test_version() {
+        let builder = ModuleBuilder::new("test", "1.0").version("2.0");
+        assert_eq!(builder.version, "2.0");
     }
 
     #[test]
