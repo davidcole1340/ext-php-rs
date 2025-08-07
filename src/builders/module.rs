@@ -394,6 +394,18 @@ mod tests {
     }
 
     #[test]
+    fn test_name() {
+        let builder = ModuleBuilder::new("test", "1.0").name("new_test");
+        assert_eq!(builder.name, "new_test");
+    }
+
+    #[test]
+    fn test_version() {
+        let builder = ModuleBuilder::new("test", "1.0").version("2.0");
+        assert_eq!(builder.version, "2.0");
+    }
+
+    #[test]
     fn test_startup_function() {
         let builder =
             ModuleBuilder::new("test", "1.0").startup_function(test_startup_shutdown_function);
