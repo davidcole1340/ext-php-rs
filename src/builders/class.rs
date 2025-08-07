@@ -380,6 +380,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(unpredictable_function_pointer_comparisons)]
     fn test_new() {
         let class = ClassBuilder::new("Foo");
         assert_eq!(class.name, "Foo");

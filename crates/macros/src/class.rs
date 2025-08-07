@@ -74,12 +74,6 @@ struct PropAttributes {
 }
 
 fn parse_fields<'a>(fields: impl Iterator<Item = &'a mut syn::Field>) -> Result<Vec<Property<'a>>> {
-    #[derive(Debug, Default, FromMeta)]
-    #[darling(default)]
-    struct FieldAttr {
-        rename: Option<String>,
-    }
-
     let mut result = vec![];
     for field in fields {
         let attr = PropAttributes::from_attributes(&field.attrs)?;
