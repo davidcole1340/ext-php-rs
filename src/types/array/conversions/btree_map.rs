@@ -18,22 +18,42 @@ where
     type Error = Error;
 
     fn try_from(value: &'a ZendHashTable) -> Result<Self> {
-        let mut hm = Self::new();
+        let mut map = Self::new();
 
         for (key, val) in value {
-            hm.insert(
+            map.insert(
                 key.try_into()?,
                 V::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?,
             );
         }
 
-        Ok(hm)
+        Ok(map)
     }
 }
 
-impl<K, V> TryFrom<BTreeMap<K, V>> for ZBox<ZendHashTable>
+impl<'a, V> TryFrom<&'a ZendHashTable> for BTreeMap<ArrayKey<'a>, V>
 where
-    K: AsRef<str>,
+    V: FromZval<'a>,
+{
+    type Error = Error;
+
+    fn try_from(value: &'a ZendHashTable) -> Result<Self> {
+        let mut map = Self::new();
+
+        for (key, val) in value {
+            map.insert(
+                key,
+                V::from_zval(val).ok_or_else(|| Error::ZvalConversion(val.get_type()))?,
+            );
+        }
+
+        Ok(map)
+    }
+}
+
+impl<'a, K, V> TryFrom<BTreeMap<K, V>> for ZBox<ZendHashTable>
+where
+    K: Into<ArrayKey<'a>>,
     V: IntoZval,
 {
     type Error = Error;
@@ -44,16 +64,16 @@ where
         );
 
         for (k, v) in value {
-            ht.insert(k.as_ref(), v)?;
+            ht.insert(k, v)?;
         }
 
         Ok(ht)
     }
 }
 
-impl<K, V> IntoZval for BTreeMap<K, V>
+impl<'a, K, V> IntoZval for BTreeMap<K, V>
 where
-    K: AsRef<str>,
+    K: Into<ArrayKey<'a>>,
     V: IntoZval,
 {
     const TYPE: DataType = DataType::Array;
@@ -66,9 +86,21 @@ where
     }
 }
 
-impl<'a, T> FromZval<'a> for BTreeMap<String, T>
+impl<'a, K, V> FromZval<'a> for BTreeMap<K, V>
 where
-    T: FromZval<'a>,
+    K: TryFrom<ArrayKey<'a>, Error = Error> + Ord,
+    V: FromZval<'a>,
+{
+    const TYPE: DataType = DataType::Array;
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        zval.array().and_then(|arr| arr.try_into().ok())
+    }
+}
+
+impl<'a, V> FromZval<'a> for BTreeMap<ArrayKey<'a>, V>
+where
+    V: FromZval<'a>,
 {
     const TYPE: DataType = DataType::Array;
 
