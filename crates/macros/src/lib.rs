@@ -712,8 +712,8 @@ fn php_module_internal(args: TokenStream2, input: TokenStream2) -> TokenStream2 
 /// - `#[php(optional = i)]` - Sets the first optional parameter. Note that this
 ///   also sets the remaining parameters as optional, so all optional parameters
 ///   must be a variant of `Option<T>`.
-/// - `#[php(public)]`, `#[php(protected)]` and `#[php(private)]` - Sets the
-///   visibility of the method.
+/// - `#[php(vis = "public")]`, `#[php(vis = "protected")]` and `#[php(vis =
+///   "private")]` - Sets the visibility of the method.
 /// - `#[php(name = "method_name")]` - Renames the PHP method to a different
 ///   identifier, without renaming the Rust method name.
 ///
