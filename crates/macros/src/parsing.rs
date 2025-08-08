@@ -1,5 +1,6 @@
 use convert_case::{Case, Casing};
 use darling::FromMeta;
+use quote::{quote, ToTokens};
 
 const MAGIC_METHOD: [&str; 17] = [
     "__construct",
@@ -29,6 +30,17 @@ pub enum Visibility {
     Private,
     #[darling(rename = "protected")]
     Protected,
+}
+
+impl ToTokens for Visibility {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            Visibility::Public => quote! { ::ext_php_rs::flags::MethodFlags::Public },
+            Visibility::Protected => quote! { ::ext_php_rs::flags::MethodFlags::Protected },
+            Visibility::Private => quote! { ::ext_php_rs::flags::MethodFlags::Private },
+        }
+        .to_tokens(tokens);
+    }
 }
 
 pub trait Rename {

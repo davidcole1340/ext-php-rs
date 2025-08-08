@@ -238,16 +238,21 @@ impl ClassBuilder {
             "Class name in builder does not match class name in `impl RegisteredClass`."
         );
         self.object_override = Some(create_object::<T>);
-        self.method(
-            {
-                let mut func = FunctionBuilder::new("__construct", constructor::<T>);
-                if let Some(ConstructorMeta { build_fn, .. }) = T::constructor() {
-                    func = build_fn(func);
-                }
-                func
-            },
-            MethodFlags::Public,
-        )
+
+        let (func, visibility) = if let Some(ConstructorMeta {
+            build_fn, flags, ..
+        }) = T::constructor()
+        {
+            let func = FunctionBuilder::new("__construct", constructor::<T>);
+            (build_fn(func), flags.unwrap_or(MethodFlags::Public))
+        } else {
+            (
+                FunctionBuilder::new("__construct", constructor::<T>),
+                MethodFlags::Public,
+            )
+        };
+
+        self.method(func, visibility)
     }
 
     /// Function to register the class with PHP. This function is called after

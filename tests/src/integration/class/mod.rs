@@ -144,12 +144,45 @@ impl TestClassExtendsImpl {
     }
 }
 
+#[php_class]
+struct TestClassMethodVisibility;
+
+#[php_impl]
+impl TestClassMethodVisibility {
+    #[php(vis = "private")]
+    fn __construct() -> Self {
+        Self
+    }
+
+    #[php(vis = "private")]
+    fn private() -> u32 {
+        3
+    }
+
+    #[php(vis = "protected")]
+    fn protected() -> u32 {
+        3
+    }
+}
+#[php_class]
+struct TestClassProtectedConstruct;
+
+#[php_impl]
+impl TestClassProtectedConstruct {
+    #[php(vis = "protected")]
+    fn __construct() -> Self {
+        Self
+    }
+}
+
 pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
     builder
         .class::<TestClass>()
         .class::<TestClassArrayAccess>()
         .class::<TestClassExtends>()
         .class::<TestClassExtendsImpl>()
+        .class::<TestClassMethodVisibility>()
+        .class::<TestClassProtectedConstruct>()
         .function(wrap_function!(test_class))
         .function(wrap_function!(throw_exception))
 }
