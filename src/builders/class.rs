@@ -58,6 +58,8 @@ impl ClassBuilder {
         }
     }
 
+    /// Return PHP class flags
+    #[must_use]
     pub fn get_flags(&self) -> u32 {
         self.ce.ce_flags
     }
