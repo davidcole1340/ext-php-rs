@@ -31,7 +31,6 @@ pub mod describe;
 pub mod embed;
 #[cfg(feature = "enum")]
 pub mod enum_;
-pub mod interface;
 #[doc(hidden)]
 pub mod internal;
 pub mod props;
