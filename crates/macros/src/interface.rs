@@ -54,12 +54,11 @@ impl ToTokens for InterfaceData<'_> {
         let name = &self.name;
         let implements = &self.attrs.extends;
         let methods_sig = &self.methods;
-        let path = &self.path;
         let constants = &self.constants;
 
-        let constructor = self.constructor
+        let _constructor = self.constructor
             .as_ref()
-            .map(|func| func.constructor_meta(&path))
+            .map(|func| func.constructor_meta(&self.path))
             .option_tokens();
 
         quote! {
@@ -209,15 +208,7 @@ impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
         let interface_name = format_ident!("PhpInterface{ident}");
         let ts = quote! { #interface_name };
         let path: Path = syn::parse2(ts)?;
-        let mut data = InterfaceData::new(
-            ident,
-            name,
-            path,
-            attrs,
-            None,
-            Vec::new(),
-            Vec::new()
-        );
+        let mut data = InterfaceData::new(ident, name, path, attrs, None, Vec::new(), Vec::new());
 
         for item in &mut self.items {
             match item {
@@ -230,7 +221,7 @@ impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
                             }
                         }
                     };
-                },
+                }
                 TraitItem::Const(c) => data.constants.push(c.parse()?),
                 _ => {}
             }
@@ -265,15 +256,10 @@ impl<'a> Parse<'a, MethodKind<'a>> for TraitItemFn {
             bail!(self => "Interface could not have default impl");
         }
 
-        let php_attr = PhpFunctionInterfaceAttribute::from_attributes(
-            &self.attrs
-        )?;
+        let php_attr = PhpFunctionInterfaceAttribute::from_attributes(&self.attrs)?;
         self.attrs.clean_php();
 
-        let mut args = Args::parse_from_fnargs(
-            self.sig.inputs.iter(),
-            php_attr.defaults
-        )?;
+        let mut args = Args::parse_from_fnargs(self.sig.inputs.iter(), php_attr.defaults)?;
 
         let docs = get_docs(&php_attr.attrs)?;
 

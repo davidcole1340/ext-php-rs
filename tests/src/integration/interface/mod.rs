@@ -1,7 +1,7 @@
-use ext_php_rs::types::ZendClassObject;
-use ext_php_rs::zend::ce;
 use ext_php_rs::php_interface;
 use ext_php_rs::prelude::ModuleBuilder;
+use ext_php_rs::types::ZendClassObject;
+use ext_php_rs::zend::ce;
 
 #[php_interface]
 #[php(extends(ce = ce::throwable, stub = "\\Throwable"))]

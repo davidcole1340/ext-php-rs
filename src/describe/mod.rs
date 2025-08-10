@@ -227,7 +227,7 @@ impl Class {
                 }),
                 r#static: false,
                 visibility: Visibility::Public,
-                r#abstract: false
+                r#abstract: false,
             }]
             .into(),
             constants: StdVec::new().into(),
@@ -274,7 +274,7 @@ impl From<ClassBuilder> for Class {
                 .map(Constant::from)
                 .collect::<StdVec<_>>()
                 .into(),
-            flags: flags
+            flags: flags,
         }
     }
 }

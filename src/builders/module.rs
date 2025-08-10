@@ -200,7 +200,7 @@ impl ModuleBuilder<'_> {
     /// * Panics if a constant could not be registered.
     pub fn interface<T: RegisteredClass>(mut self) -> Self {
         self.interfaces.push(|| {
-            let mut builder = InterfaceBuilder::new(T::CLASS_NAME);
+            let mut builder = ClassBuilder::new(T::CLASS_NAME);
             for (method, flags) in T::method_builders() {
                 builder = builder.method(method, flags);
             }
@@ -213,13 +213,12 @@ impl ModuleBuilder<'_> {
                     .expect("Failed to register constant");
             }
 
-            let mut class_builder = builder.builder();
-
             if let Some(modifier) = T::BUILDER_MODIFIER {
-                class_builder = modifier(class_builder);
+                builder = modifier(builder);
             }
 
-            class_builder
+            builder = builder.flags(ClassFlags::Interface);
+            builder
                 .object_override::<T>()
                 .registration(|ce| {
                     T::get_metadata().set_ce(ce);
