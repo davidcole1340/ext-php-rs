@@ -13,6 +13,7 @@ used from PHP without fiddling around with zvals.
   methods and constants.
 - [`php_const`] - Used to export a Rust constant to PHP as a global constant.
 - [`php_extern`] - Attribute used to annotate `extern` blocks which are deemed as
+- [`php_interface`] - Attribute used to export Rust Trait to PHP interface
   PHP functions.
 - [`php`] - Used to modify the default behavior of the above macros. This is a
     generic attribute that can be used on most of the above macros.
@@ -23,4 +24,5 @@ used from PHP without fiddling around with zvals.
 [`php_impl`]: ./impl.md
 [`php_const`]: ./constant.md
 [`php_extern`]: ./extern.md
+[`php_interface`]: ./interface.md
 [`php`]: ./php.md
