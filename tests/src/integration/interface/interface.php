@@ -9,10 +9,6 @@ assert(is_a('ExtPhpRs\Interface\EmptyObjectInterface', Throwable::class, true), 
 
 final class Test extends Exception implements ExtPhpRs\Interface\EmptyObjectInterface
 {
-    public function __construct()
-    {
-    }
-
 	public static function void(): void
 	{
 	}
