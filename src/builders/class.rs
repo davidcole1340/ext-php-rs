@@ -258,7 +258,6 @@ impl ClassBuilder {
             },
             MethodFlags::Public,
         )
-
     }
 
     /// Function to register the class with PHP. This function is called after
