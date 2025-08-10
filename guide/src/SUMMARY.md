@@ -27,6 +27,7 @@
 - [Macros](./macros/index.md)
   - [Module](./macros/module.md)
   - [Function](./macros/function.md)
+  - [Interfaces](./macros/interface.md)
   - [Classes](./macros/classes.md)
     - [`impl`s](./macros/impl.md)
   - [Constants](./macros/constant.md)
