@@ -6,6 +6,7 @@ use ext_php_rs::zend::ce;
 #[php_interface]
 #[php(extends(ce = ce::throwable, stub = "\\Throwable"))]
 #[php(name = "ExtPhpRs\\Interface\\EmptyObjectInterface")]
+#[allow(dead_code)]
 pub trait EmptyObjectTrait {
     const STRING_CONST: &'static str = "STRING_CONST";
 

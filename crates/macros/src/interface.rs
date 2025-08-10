@@ -49,6 +49,7 @@ struct InterfaceData<'a> {
 }
 
 impl ToTokens for InterfaceData<'_> {
+    #[allow(clippy::too_many_lines)]
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let interface_name = format_ident!("PhpInterface{}", self.ident);
         let name = &self.name;
@@ -56,7 +57,8 @@ impl ToTokens for InterfaceData<'_> {
         let methods_sig = &self.methods;
         let constants = &self.constants;
 
-        let _constructor = self.constructor
+        let _constructor = self
+            .constructor
             .as_ref()
             .map(|func| func.constructor_meta(&self.path))
             .option_tokens();

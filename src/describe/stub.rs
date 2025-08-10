@@ -226,7 +226,7 @@ impl ToStub for Class {
         self.docs.fmt_stub(buf)?;
 
         let (_, name) = split_namespace(self.name.as_ref());
-        let flags = ClassFlags::from_bits(self.flags).unwrap();
+        let flags = ClassFlags::from_bits(self.flags).unwrap_or(ClassFlags::empty());
         let is_interface = flags.contains(ClassFlags::Interface);
 
         if is_interface {
@@ -379,10 +379,10 @@ impl ToStub for Method {
             retval.ty.fmt_stub(buf)?;
         }
 
-        if !self.r#abstract {
-            writeln!(buf, " {{}}")
-        } else {
+        if self.r#abstract {
             writeln!(buf, ";")
+        } else {
+            writeln!(buf, " {{}}")
         }
     }
 }
