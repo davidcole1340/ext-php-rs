@@ -7,7 +7,7 @@ use crate::builders::EnumBuilder;
 use crate::{
     builders::{ClassBuilder, FunctionBuilder},
     constant::IntoConst,
-    flags::{ClassFlags, DataType, MethodFlags, PropertyFlags},
+    flags::{DataType, MethodFlags, PropertyFlags},
     prelude::ModuleBuilder,
 };
 use abi::{Option, RString, Str, Vec};
@@ -274,7 +274,7 @@ impl From<ClassBuilder> for Class {
                 .map(Constant::from)
                 .collect::<StdVec<_>>()
                 .into(),
-            flags: flags,
+            flags,
         }
     }
 }
