@@ -4,12 +4,12 @@ use super::{ClassBuilder, FunctionBuilder};
 #[cfg(feature = "enum")]
 use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 use crate::{
-    builders::interface::InterfaceBuilder,
     class::RegisteredClass,
     constant::IntoConst,
     describe::DocComments,
     error::Result,
     ffi::{ext_php_rs_php_build_id, ZEND_MODULE_API_NO},
+    flags::ClassFlags,
     zend::{FunctionEntry, ModuleEntry},
     PHP_DEBUG, PHP_ZTS,
 };
@@ -201,7 +201,7 @@ impl ModuleBuilder<'_> {
     /// * Panics if a constant could not be registered.
     pub fn interface<T: RegisteredClass>(mut self) -> Self {
         self.interfaces.push(|| {
-            let mut builder = InterfaceBuilder::new(T::CLASS_NAME);
+            let mut builder = ClassBuilder::new(T::CLASS_NAME);
             for (method, flags) in T::method_builders() {
                 builder = builder.method(method, flags);
             }
@@ -214,13 +214,12 @@ impl ModuleBuilder<'_> {
                     .expect("Failed to register constant");
             }
 
-            let mut class_builder = builder.builder();
-
             if let Some(modifier) = T::BUILDER_MODIFIER {
-                class_builder = modifier(class_builder);
+                builder = modifier(builder);
             }
 
-            class_builder
+            builder = builder.flags(ClassFlags::Interface);
+            builder
                 .object_override::<T>()
                 .registration(|ce| {
                     T::get_metadata().set_ce(ce);
