@@ -60,7 +60,7 @@ impl ToTokens for InterfaceData<'_> {
         let _constructor = self
             .constructor
             .as_ref()
-            .map(|func| func.constructor_meta(&self.path))
+            .map(|func| func.constructor_meta(&self.path, Some(&Visibility::Public)))
             .option_tokens();
 
         quote! {

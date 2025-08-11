@@ -244,16 +244,26 @@ impl ClassBuilder {
             "Class name in builder does not match class name in `impl RegisteredClass`."
         );
         self.object_override = Some(create_object::<T>);
+        let is_interface = T::FLAGS.contains(ClassFlags::Interface);
 
         let (func, visibility) = if let Some(ConstructorMeta {
             build_fn, flags, ..
         }) = T::constructor()
         {
-            let func = FunctionBuilder::new("__construct", constructor::<T>);
+            let func = if is_interface {
+                FunctionBuilder::new_abstract("__construct")
+            } else {
+                FunctionBuilder::new("__construct", constructor::<T>)
+            };
+
             (build_fn(func), flags.unwrap_or(MethodFlags::Public))
         } else {
             (
-                FunctionBuilder::new("__construct", constructor::<T>),
+                if is_interface {
+                    FunctionBuilder::new_abstract("__construct")
+                } else {
+                    FunctionBuilder::new("__construct", constructor::<T>)
+                },
                 MethodFlags::Public,
             )
         };
