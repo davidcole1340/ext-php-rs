@@ -1899,6 +1899,11 @@ extern "C" {
     ) -> *mut zend_class_entry;
 }
 extern "C" {
+    pub fn zend_register_internal_interface(
+        orig_class_entry: *mut zend_class_entry,
+    ) -> *mut zend_class_entry;
+}
+extern "C" {
     pub fn zend_is_callable(
         callable: *mut zval,
         check_flags: u32,
