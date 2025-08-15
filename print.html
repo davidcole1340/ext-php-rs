@@ -1645,7 +1645,7 @@ be named <code>self_</code>. This can also be used to return a reference to <cod
 <li><code>#[php(optional = i)]</code> - Sets the first optional parameter. Note that this also sets
 the remaining parameters as optional, so all optional parameters must be a
 variant of <code>Option&lt;T&gt;</code>.</li>
-<li><code>#[php(public)]</code>, <code>#[php(protected)]</code> and <code>#[php(private)]</code> - Sets the visibility of the
+<li><code>#[php(vis = "public")]</code>, <code>#[php(vis = "protected")]</code> and <code>#[php(vis = "private")]</code> - Sets the visibility of the
 method.</li>
 <li><code>#[php(name = "method_name")]</code> - Renames the PHP method to a different identifier,
 without renaming the Rust method name.</li>
