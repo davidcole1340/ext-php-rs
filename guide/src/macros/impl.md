@@ -42,7 +42,7 @@ The rest of the options are passed as separate attributes:
 - `#[php(optional = i)]` - Sets the first optional parameter. Note that this also sets
   the remaining parameters as optional, so all optional parameters must be a
   variant of `Option<T>`.
-- `#[php(public)]`, `#[php(protected)]` and `#[php(private)]` - Sets the visibility of the
+- `#[php(vis = "public")]`, `#[php(vis = "protected")]` and `#[php(vis = "private")]` - Sets the visibility of the
   method.
 - `#[php(name = "method_name")]` - Renames the PHP method to a different identifier,
   without renaming the Rust method name.
