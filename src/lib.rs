@@ -55,8 +55,8 @@ pub mod prelude {
     pub use crate::php_println;
     pub use crate::types::ZendCallable;
     pub use crate::{
-        php_class, php_const, php_extern, php_function, php_impl, php_module, wrap_constant,
-        wrap_function, zend_fastcall, ZvalConvert,
+        php_class, php_const, php_extern, php_function, php_impl, php_interface, php_module,
+        wrap_constant, wrap_function, zend_fastcall, ZvalConvert,
     };
 }
 
@@ -72,6 +72,6 @@ pub const PHP_ZTS: bool = cfg!(php_zts);
 #[cfg(feature = "enum")]
 pub use ext_php_rs_derive::php_enum;
 pub use ext_php_rs_derive::{
-    php_class, php_const, php_extern, php_function, php_impl, php_module, wrap_constant,
-    wrap_function, zend_fastcall, ZvalConvert,
+    php_class, php_const, php_extern, php_function, php_impl, php_interface, php_module,
+    wrap_constant, wrap_function, zend_fastcall, ZvalConvert,
 };
