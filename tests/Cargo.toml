@@ -6,7 +6,6 @@ publish = false
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-cfg-if = "1.0.1"
 ext-php-rs = { path = "../", default-features = false, features = ["closure"] }
 
 [features]
