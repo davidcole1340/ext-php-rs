@@ -10,6 +10,9 @@ pre-commit:
     - name: clippy
       run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
       glob: "*.rs"
+    - name: machete
+      run: cargo machete
+      glob: "*Cargo.toml"
     - name: bindings
       run: tools/update_bindings.sh && git diff --exit-code docsrs_bindings.rs
       glob: "allowed_bindings.rs"
