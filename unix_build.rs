@@ -18,7 +18,7 @@ impl Provider<'_> {
         let stdout = String::from_utf8_lossy(&cmd.stdout);
         if !cmd.status.success() {
             let stderr = String::from_utf8_lossy(&cmd.stderr);
-            bail!("Failed to run `php-config`: {} {}", stdout, stderr);
+            bail!("Failed to run `php-config`: {stdout} {stderr}");
         }
         Ok(stdout.to_string())
     }
@@ -28,7 +28,7 @@ impl Provider<'_> {
         if let Some(path) = path_from_env("PHP_CONFIG") {
             if !path.try_exists()? {
                 // If path was explicitly given and it can't be found, this is a hard error
-                bail!("php-config executable not found at {:?}", path);
+                bail!("php-config executable not found at {}", path.display());
             }
             return Ok(path);
         }
