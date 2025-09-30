@@ -74,7 +74,7 @@ fn find_php() -> Result<PathBuf> {
     if let Some(path) = path_from_env("PHP") {
         if !path.try_exists()? {
             // If path was explicitly given and it can't be found, this is a hard error
-            bail!("php executable not found at {:?}", path);
+            bail!("php executable not found at {}", path.display());
         }
         return Ok(path);
     }

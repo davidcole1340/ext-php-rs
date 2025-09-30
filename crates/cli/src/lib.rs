@@ -269,15 +269,15 @@ fn get_ext_dir() -> AResult<PathBuf> {
         .output()
         .context("Failed to call PHP")?;
     if !cmd.status.success() {
-        bail!("Failed to call PHP: {:?}", cmd);
+        bail!("Failed to call PHP: {cmd:?}");
     }
     let stdout = String::from_utf8_lossy(&cmd.stdout);
     let ext_dir = PathBuf::from(stdout.rsplit('\n').next().unwrap());
     if !ext_dir.is_dir() {
         if ext_dir.exists() {
             bail!(
-                "Extension directory returned from PHP is not a valid directory: {:?}",
-                ext_dir
+                "Extension directory returned from PHP is not a valid directory: {}",
+                ext_dir.display()
             );
         }
 
@@ -299,14 +299,14 @@ fn get_php_ini() -> AResult<PathBuf> {
         .output()
         .context("Failed to call PHP")?;
     if !cmd.status.success() {
-        bail!("Failed to call PHP: {:?}", cmd);
+        bail!("Failed to call PHP: {cmd:?}");
     }
     let stdout = String::from_utf8_lossy(&cmd.stdout);
     let ini = PathBuf::from(stdout.rsplit('\n').next().unwrap());
     if !ini.is_file() {
         bail!(
-            "php.ini does not exist or is not a file at the given path: {:?}",
-            ini
+            "php.ini does not exist or is not a file at the given path: {}",
+            ini.display()
         );
     }
     Ok(ini)
@@ -416,7 +416,7 @@ impl Stubs {
         })?;
 
         if !cli_version.matches(&ext_version) {
-            bail!("Extension was compiled with an incompatible version of `ext-php-rs` - Extension: {}, CLI: {}", ext_version, cli_version);
+            bail!("Extension was compiled with an incompatible version of `ext-php-rs` - Extension: {ext_version}, CLI: {cli_version}");
         }
 
         let stubs = result
