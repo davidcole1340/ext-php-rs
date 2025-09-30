@@ -10,8 +10,8 @@ mod sapi;
 
 use crate::boxed::ZBox;
 use crate::ffi::{
-    _zend_file_handle__bindgen_ty_1, php_execute_script, zend_eval_string, zend_file_handle,
-    zend_stream_init_filename, ZEND_RESULT_CODE_SUCCESS,
+    _zend_file_handle__bindgen_ty_1, php_execute_script, zend_destroy_file_handle,
+    zend_eval_string, zend_file_handle, zend_stream_init_filename, ZEND_RESULT_CODE_SUCCESS,
 };
 use crate::types::{ZendObject, Zval};
 use crate::zend::{panic_wrapper, try_catch, ExecutorGlobals};
@@ -106,6 +106,8 @@ impl Embed {
         }
 
         let exec_result = try_catch(|| unsafe { php_execute_script(&raw mut file_handle) });
+
+        unsafe { zend_destroy_file_handle(&raw mut file_handle) }
 
         match exec_result {
             Err(_) => Err(EmbedError::CatchError),
