@@ -7,6 +7,7 @@ mod fastcall;
 mod function;
 mod helpers;
 mod impl_;
+mod interface;
 mod module;
 mod parsing;
 mod syn_ext;
@@ -14,7 +15,9 @@ mod zval;
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use syn::{DeriveInput, ItemConst, ItemEnum, ItemFn, ItemForeignMod, ItemImpl, ItemStruct};
+use syn::{
+    DeriveInput, ItemConst, ItemEnum, ItemFn, ItemForeignMod, ItemImpl, ItemStruct, ItemTrait,
+};
 
 extern crate proc_macro;
 
@@ -337,6 +340,94 @@ fn php_enum_internal(_args: TokenStream2, input: TokenStream2) -> TokenStream2 {
     let input = parse_macro_input2!(input as ItemEnum);
 
     enum_::parser(input).unwrap_or_else(|e| e.to_compile_error())
+}
+
+// BEGIN DOCS FROM interface.md
+/// # `#[php_interface]` Attribute
+///
+/// You can export a `Trait` block to PHP. This exports all methods as well as
+/// constants to PHP on the interface. Trait method SHOULD NOT contain default
+/// implementations, as these are not supported in PHP interfaces.
+///
+/// ## Options
+///
+/// By default all constants are renamed to `UPPER_CASE` and all methods are
+/// renamed to `camelCase`. This can be changed by passing the
+/// `change_method_case` and `change_constant_case` as `#[php]` attributes on
+/// the `impl` block. The options are:
+///
+/// - `#[php(change_method_case = "snake_case")]` - Renames the method to snake
+///   case.
+/// - `#[php(change_constant_case = "snake_case")]` - Renames the constant to
+///   snake case.
+///
+/// See the [`name` and `change_case`](./php.md#name-and-change_case) section
+/// for a list of all available cases.
+///
+/// ## Methods
+///
+/// See the [`php_impl`](./impl.md#)
+///
+/// ## Constants
+///
+/// See the [`php_impl`](./impl.md#)
+///
+/// ## Example
+///
+/// Define an example trait with methods and constant:
+///
+/// ```rust,no_run,ignore
+/// # #![cfg_attr(windows, feature(abi_vectorcall))]
+/// # extern crate ext_php_rs;
+/// use ext_php_rs::{prelude::*, types::ZendClassObject};
+///
+///
+/// #[php_interface]
+/// #[php(name = "Rust\\TestInterface")]
+/// trait Test {
+///     const TEST: &'static str = "TEST";
+///
+///     fn co();
+///
+///     #[php(defaults(value = 0))]
+///     fn set_value(&mut self, value: i32);
+/// }
+///
+/// #[php_module]
+/// pub fn module(module: ModuleBuilder) -> ModuleBuilder {
+///     module
+///         .interface::<PhpInterfaceTest>()
+/// }
+///
+/// # fn main() {}
+/// ```
+///
+/// Using our newly created interface in PHP:
+///
+/// ```php
+/// <?php
+///
+/// assert(interface_exists("Rust\TestInterface"));
+///
+/// class B implements Rust\TestInterface {
+///
+///     public static function co() {}
+///
+///     public function setValue(?int $value = 0) {
+///
+///     }
+/// }
+/// ```
+// END DOCS FROM interface.md
+#[proc_macro_attribute]
+pub fn php_interface(args: TokenStream, input: TokenStream) -> TokenStream {
+    php_interface_internal(args.into(), input.into()).into()
+}
+
+fn php_interface_internal(_args: TokenStream2, input: TokenStream2) -> TokenStream2 {
+    let input = parse_macro_input2!(input as ItemTrait);
+
+    interface::parser(input).unwrap_or_else(|e| e.to_compile_error())
 }
 
 // BEGIN DOCS FROM function.md
@@ -1259,6 +1350,7 @@ mod tests {
                 ("php_class", php_class_internal as AttributeFn),
                 ("php_const", php_const_internal as AttributeFn),
                 ("php_enum", php_enum_internal as AttributeFn),
+                ("php_interface", php_interface_internal as AttributeFn),
                 ("php_extern", php_extern_internal as AttributeFn),
                 ("php_function", php_function_internal as AttributeFn),
                 ("php_impl", php_impl_internal as AttributeFn),
