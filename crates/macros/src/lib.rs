@@ -332,19 +332,21 @@ fn php_enum_internal(_args: TokenStream2, input: TokenStream2) -> TokenStream2 {
 // BEGIN DOCS FROM interface.md
 /// # `#[php_interface]` Attribute
 ///
-/// Traits can be exported to PHP as interface with the `#[php_interface]` attribute
-/// macro. This attribute generate empty struct and derives the `RegisteredClass`.
-/// To register the interface use the `interface::<PhpInterface{TraitName}>()` method
-/// on the `ModuleBuilder` in the `#[php_module]` macro.
+/// Traits can be exported to PHP as interface with the `#[php_interface]`
+/// attribute macro. This attribute generate empty struct and derives the
+/// `RegisteredClass`. To register the interface use the
+/// `interface::<PhpInterface{TraitName}>()` method on the `ModuleBuilder` in
+/// the `#[php_module]` macro.
 ///
 /// ## Options
 ///
-/// The `#[php_interface]` attribute can be configured with the following options:
-/// - `#[php(name = "InterfaceName")]` or `#[php(change_case = snake_case)]`: Sets
-///   the name of the interface in PHP. The default is the `PascalCase` name of the
-///   interface.
-/// - `#[php(extends(ce = ce::throwable, stub = "\\Throwable"))]`
-///   to extends interface from other interface
+/// The `#[php_interface]` attribute can be configured with the following
+/// options:
+/// - `#[php(name = "InterfaceName")]` or `#[php(change_case = snake_case)]`:
+///   Sets the name of the interface in PHP. The default is the `PascalCase`
+///   name of the interface.
+/// - `#[php(extends(ce = ce::throwable, stub = "\\Throwable"))]` to extends
+///   interface from other interface
 ///
 /// ### Example
 ///
