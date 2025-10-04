@@ -3,22 +3,28 @@ use std::collections::{HashMap, HashSet};
 use crate::class::ClassEntryAttribute;
 use crate::constant::PhpConstAttribute;
 use crate::function::{Args, Function};
-use crate::helpers::{get_docs, CleanPhpAttr};
-use darling::util::Flag;
+use crate::helpers::{CleanPhpAttr, get_docs};
 use darling::FromAttributes;
+use darling::util::Flag;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use syn::{Expr, Ident, ItemTrait, Path, TraitItem, TraitItemConst, TraitItemFn};
 
 use crate::impl_::{FnBuilder, MethodModifier};
 use crate::parsing::{PhpRename, RenameRule, Visibility};
 use crate::prelude::*;
 
+const INTERNAL_INTERFACE_NAME_PREFIX: &str = "PhpInterface";
+
 #[derive(FromAttributes, Debug, Default)]
 #[darling(attributes(php), forward_attrs(doc), default)]
-pub struct StructAttributes {
+pub struct TraitAttributes {
     #[darling(flatten)]
     rename: PhpRename,
+    /// Rename methods to match the given rule.
+    change_method_case: Option<RenameRule>,
+    /// Rename constants to match the given rule.
+    change_constant_case: Option<RenameRule>,
     #[darling(multiple)]
     extends: Vec<ClassEntryAttribute>,
     attrs: Vec<syn::Attribute>,
@@ -43,7 +49,7 @@ struct InterfaceData<'a> {
     ident: &'a Ident,
     name: String,
     path: Path,
-    attrs: StructAttributes,
+    extends: Vec<ClassEntryAttribute>,
     constructor: Option<Function<'a>>,
     methods: Vec<FnBuilder>,
     constants: Vec<Constant<'a>>,
@@ -53,9 +59,9 @@ struct InterfaceData<'a> {
 impl ToTokens for InterfaceData<'_> {
     #[allow(clippy::too_many_lines)]
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let interface_name = format_ident!("PhpInterface{}", self.ident);
+        let interface_name = format_ident!("{INTERNAL_INTERFACE_NAME_PREFIX}{}", self.ident);
         let name = &self.name;
-        let implements = &self.attrs.extends;
+        let implements = &self.extends;
         let methods_sig = &self.methods;
         let constants = &self.constants;
         let docs = &self.docs;
@@ -188,19 +194,19 @@ impl ToTokens for InterfaceData<'_> {
 
 impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
     fn parse(&'a mut self) -> Result<InterfaceData<'a>> {
-        let attrs = StructAttributes::from_attributes(&self.attrs)?;
+        let attrs = TraitAttributes::from_attributes(&self.attrs)?;
         let ident = &self.ident;
         let name = attrs.rename.rename(ident.to_string(), RenameRule::Pascal);
         let docs = get_docs(&attrs.attrs)?;
         self.attrs.clean_php();
-        let interface_name = format_ident!("PhpInterface{ident}");
+        let interface_name = format_ident!("{INTERNAL_INTERFACE_NAME_PREFIX}{ident}");
         let ts = quote! { #interface_name };
         let path: Path = syn::parse2(ts)?;
         let mut data = InterfaceData {
             ident,
             name,
             path,
-            attrs,
+            extends: attrs.extends,
             constructor: None,
             methods: Vec::default(),
             constants: Vec::default(),
@@ -209,17 +215,17 @@ impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
 
         for item in &mut self.items {
             match item {
-                TraitItem::Fn(f) => {
-                    match f.parse()? {
-                        MethodKind::Method(builder) => data.methods.push(builder),
-                        MethodKind::Constructor(builder) => {
-                            if data.constructor.replace(builder).is_some() {
-                                bail!("Only one constructor can be provided per class.");
-                            }
+                TraitItem::Fn(f) => match parse_trait_item_fn(f, attrs.change_method_case)? {
+                    MethodKind::Method(builder) => data.methods.push(builder),
+                    MethodKind::Constructor(builder) => {
+                        if data.constructor.replace(builder).is_some() {
+                            bail!("Only one constructor can be provided per class.");
                         }
-                    };
-                }
-                TraitItem::Const(c) => data.constants.push(c.parse()?),
+                    }
+                },
+                TraitItem::Const(c) => data
+                    .constants
+                    .push(parse_trait_item_const(c, attrs.change_constant_case)?),
                 _ => {}
             }
         }
@@ -247,63 +253,51 @@ enum MethodKind<'a> {
     Constructor(Function<'a>),
 }
 
-impl<'a> Parse<'a, MethodKind<'a>> for TraitItemFn {
-    fn parse(&'a mut self) -> Result<MethodKind<'a>> {
-        if self.default.is_some() {
-            bail!(self => "Interface could not have default impl");
-        }
-
-        let php_attr = PhpFunctionInterfaceAttribute::from_attributes(&self.attrs)?;
-        self.attrs.clean_php();
-
-        let mut args = Args::parse_from_fnargs(self.sig.inputs.iter(), php_attr.defaults)?;
-
-        let docs = get_docs(&php_attr.attrs)?;
-
-        let mut modifiers: HashSet<MethodModifier> = HashSet::new();
-        modifiers.insert(MethodModifier::Abstract);
-
-        if args.typed.first().is_some_and(|arg| arg.name == "self_") {
-            args.typed.pop();
-        } else if args.receiver.is_none() {
-            modifiers.insert(MethodModifier::Static);
-        }
-
-        let f = Function::new(
-            &self.sig,
-            php_attr
-                .rename
-                .rename(self.sig.ident.to_string(), RenameRule::Camel),
-            args,
-            php_attr.optional,
-            docs,
-        );
-
-        if php_attr.constructor.is_present() {
-            Ok(MethodKind::Constructor(f))
-        } else {
-            let builder = FnBuilder {
-                builder: f.abstract_function_builder(),
-                vis: php_attr.vis.unwrap_or(Visibility::Public),
-                modifiers,
-            };
-
-            Ok(MethodKind::Method(builder))
-        }
+fn parse_trait_item_fn(
+    fn_item: &mut TraitItemFn,
+    change_case: Option<RenameRule>,
+) -> Result<MethodKind<'_>> {
+    if fn_item.default.is_some() {
+        bail!(fn_item => "Interface an not have default impl");
     }
-}
 
-impl<'a> Parse<'a, Vec<MethodKind<'a>>> for ItemTrait {
-    fn parse(&'a mut self) -> Result<Vec<MethodKind<'a>>> {
-        Ok(self
-            .items
-            .iter_mut()
-            .filter_map(|item| match item {
-                TraitItem::Fn(f) => Some(f),
-                _ => None,
-            })
-            .flat_map(Parse::parse)
-            .collect())
+    let php_attr = PhpFunctionInterfaceAttribute::from_attributes(&fn_item.attrs)?;
+    fn_item.attrs.clean_php();
+
+    let mut args = Args::parse_from_fnargs(fn_item.sig.inputs.iter(), php_attr.defaults)?;
+
+    let docs = get_docs(&php_attr.attrs)?;
+
+    let mut modifiers: HashSet<MethodModifier> = HashSet::new();
+    modifiers.insert(MethodModifier::Abstract);
+
+    if args.typed.first().is_some_and(|arg| arg.name == "self_") {
+        args.typed.pop();
+    } else if args.receiver.is_none() {
+        modifiers.insert(MethodModifier::Static);
+    }
+
+    let f = Function::new(
+        &fn_item.sig,
+        php_attr.rename.rename(
+            fn_item.sig.ident.to_string(),
+            change_case.unwrap_or(RenameRule::Camel),
+        ),
+        args,
+        php_attr.optional,
+        docs,
+    );
+
+    if php_attr.constructor.is_present() {
+        Ok(MethodKind::Constructor(f))
+    } else {
+        let builder = FnBuilder {
+            builder: f.abstract_function_builder(),
+            vis: php_attr.vis.unwrap_or(Visibility::Public),
+            modifiers,
+        };
+
+        Ok(MethodKind::Method(builder))
     }
 }
 
@@ -332,32 +326,22 @@ impl<'a> Constant<'a> {
     }
 }
 
-impl<'a> Parse<'a, Constant<'a>> for TraitItemConst {
-    fn parse(&'a mut self) -> Result<Constant<'a>> {
-        if self.default.is_none() {
-            bail!(self => "Interface const could not be empty");
-        }
-
-        let attr = PhpConstAttribute::from_attributes(&self.attrs)?;
-        let name = self.ident.to_string();
-        let docs = get_docs(&attr.attrs)?;
-        self.attrs.clean_php();
-
-        let (_, expr) = self.default.as_ref().unwrap();
-        Ok(Constant::new(name, expr, docs))
+fn parse_trait_item_const(
+    const_item: &mut TraitItemConst,
+    change_case: Option<RenameRule>,
+) -> Result<Constant<'_>> {
+    if const_item.default.is_none() {
+        bail!(const_item => "PHP Interface const can not be empty");
     }
-}
 
-impl<'a> Parse<'a, Vec<Constant<'a>>> for ItemTrait {
-    fn parse(&'a mut self) -> Result<Vec<Constant<'a>>> {
-        Ok(self
-            .items
-            .iter_mut()
-            .filter_map(|item| match item {
-                TraitItem::Const(c) => Some(c),
-                _ => None,
-            })
-            .flat_map(Parse::parse)
-            .collect())
-    }
+    let attr = PhpConstAttribute::from_attributes(&const_item.attrs)?;
+    let name = attr.rename.rename(
+        const_item.ident.to_string(),
+        change_case.unwrap_or(RenameRule::ScreamingSnake),
+    );
+    let docs = get_docs(&attr.attrs)?;
+    const_item.attrs.clean_php();
+
+    let (_, expr) = const_item.default.as_ref().unwrap();
+    Ok(Constant::new(name, expr, docs))
 }

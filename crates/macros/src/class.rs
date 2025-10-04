@@ -1,7 +1,7 @@
 use darling::util::Flag;
 use darling::{FromAttributes, FromMeta, ToTokens};
 use proc_macro2::TokenStream;
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use syn::{Attribute, Expr, Fields, ItemStruct};
 
 use crate::helpers::get_docs;

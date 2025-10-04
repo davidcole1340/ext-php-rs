@@ -1,12 +1,13 @@
 # `#[php_interface]` Attribute
 
-You can export an entire `Trait` block to PHP. This exports all methods as well
-as constants to PHP on the interface. Trait method SHOULD NOT contain default implementation
+You can export a `Trait` block to PHP. This exports all methods as well as
+constants to PHP on the interface. Trait method SHOULD NOT contain default
+implementations, as these are not supported in PHP interfaces.
 
 ## Options
 
 By default all constants are renamed to `UPPER_CASE` and all methods are renamed to
-camelCase. This can be changed by passing the `change_method_case` and
+`camelCase`. This can be changed by passing the `change_method_case` and
 `change_constant_case` as `#[php]` attributes on the `impl` block. The options are:
 
 - `#[php(change_method_case = "snake_case")]` - Renames the method to snake case.
@@ -17,16 +18,15 @@ available cases.
 
 ## Methods
 
-See the [php_impl](./impl.md#)
+See the [`php_impl`](./impl.md#)
 
 ## Constants
 
-See the [php_impl](./impl.md#)
+See the [`php_impl`](./impl.md#)
 
 ## Example
 
-Define trait example with few methods and constant, and try implement this interface
-in php
+Define an example trait with methods and constant:
 
 ```rust,no_run
 # #![cfg_attr(windows, feature(abi_vectorcall))]
