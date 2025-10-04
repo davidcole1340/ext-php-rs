@@ -21,6 +21,7 @@ pub struct StructAttributes {
     rename: PhpRename,
     #[darling(multiple)]
     extends: Vec<ClassEntryAttribute>,
+    attrs: Vec<syn::Attribute>,
 }
 
 pub fn parser(mut input: ItemTrait) -> Result<TokenStream> {
@@ -46,6 +47,7 @@ struct InterfaceData<'a> {
     constructor: Option<Function<'a>>,
     methods: Vec<FnBuilder>,
     constants: Vec<Constant<'a>>,
+    docs: Vec<String>,
 }
 
 impl ToTokens for InterfaceData<'_> {
@@ -56,6 +58,7 @@ impl ToTokens for InterfaceData<'_> {
         let implements = &self.attrs.extends;
         let methods_sig = &self.methods;
         let constants = &self.constants;
+        let docs = &self.docs;
 
         let _constructor = self
             .constructor
@@ -79,6 +82,10 @@ impl ToTokens for InterfaceData<'_> {
 
                 const IMPLEMENTS: &'static [::ext_php_rs::class::ClassEntryInfo] = &[
                     #(#implements,)*
+                ];
+
+                const DOC_COMMENTS: &'static [&'static str] = &[
+                    #(#docs,)*
                 ];
 
                 fn get_metadata() -> &'static ::ext_php_rs::class::ClassMetadata<Self> {
@@ -108,7 +115,7 @@ impl ToTokens for InterfaceData<'_> {
                 }
 
                 fn get_properties<'a>() -> ::std::collections::HashMap<&'static str, ::ext_php_rs::internal::property::PropertyInfo<'a, Self>> {
-                    panic!("Non supported for Interface");
+                    panic!("Not supported for Interface");
                 }
             }
 
@@ -179,38 +186,26 @@ impl ToTokens for InterfaceData<'_> {
     }
 }
 
-impl<'a> InterfaceData<'a> {
-    fn new(
-        ident: &'a Ident,
-        name: String,
-        path: Path,
-        attrs: StructAttributes,
-        constructor: Option<Function<'a>>,
-        methods: Vec<FnBuilder>,
-        constants: Vec<Constant<'a>>,
-    ) -> Self {
-        Self {
-            ident,
-            name,
-            path,
-            attrs,
-            constructor,
-            methods,
-            constants,
-        }
-    }
-}
-
 impl<'a> Parse<'a, InterfaceData<'a>> for ItemTrait {
     fn parse(&'a mut self) -> Result<InterfaceData<'a>> {
         let attrs = StructAttributes::from_attributes(&self.attrs)?;
         let ident = &self.ident;
         let name = attrs.rename.rename(ident.to_string(), RenameRule::Pascal);
+        let docs = get_docs(&attrs.attrs)?;
         self.attrs.clean_php();
         let interface_name = format_ident!("PhpInterface{ident}");
         let ts = quote! { #interface_name };
         let path: Path = syn::parse2(ts)?;
-        let mut data = InterfaceData::new(ident, name, path, attrs, None, Vec::new(), Vec::new());
+        let mut data = InterfaceData {
+            ident,
+            name,
+            path,
+            attrs,
+            constructor: None,
+            methods: Vec::default(),
+            constants: Vec::default(),
+            docs,
+        };
 
         for item in &mut self.items {
             match item {
