@@ -16,7 +16,7 @@ impl ::ext_php_rs::class::RegisteredClass for PhpInterfaceMyInterface {
     const EXTENDS: Option<::ext_php_rs::class::ClassEntryInfo> = None;
     const FLAGS: ::ext_php_rs::flags::ClassFlags = ::ext_php_rs::flags::ClassFlags::Interface;
     const IMPLEMENTS: &'static [::ext_php_rs::class::ClassEntryInfo] = &[];
-    const DOC_COMMENTS: &'static [String] = &[
+    const DOC_COMMENTS: &'static [&'static str] = &[
         " Doc comments for MyInterface.",
         " This is a basic interface example.",
     ];
