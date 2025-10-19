@@ -126,6 +126,22 @@ best resource at the moment. This can be viewed at [docs.rs].
     1.57 at the time of writing.
 - Clang 5.0 or later.
 
+### Alpine Linux (musl) Requirements
+
+Building for Alpine Linux (musl libc) is supported on stable Rust with the following
+requirements:
+
+- Install musl toolchain: `sudo apt-get install musl-tools musl-dev`
+- Add musl target: `rustup target add x86_64-unknown-linux-musl`
+- Build with dynamic linking flag:
+  ```bash
+  RUSTFLAGS="-C target-feature=-crt-static" \
+    cargo build --target x86_64-unknown-linux-musl
+  ```
+
+**Note**: Building for musl requires dynamic CRT linking (`-crt-static` flag) to produce
+the `cdylib` output required for PHP extensions.
+
 ### Windows Requirements
 
 - Extensions can only be compiled for PHP installations sourced from
