@@ -31,16 +31,41 @@ mod test {
     fn setup() {
         BUILD.call_once(|| {
             let mut command = Command::new("cargo");
-            command.arg("build").arg("--no-default-features");
-            #[cfg(feature = "enum")]
+            command.arg("build");
+
+            #[cfg(not(debug_assertions))]
+            command.arg("--release");
+
+            // Build features list dynamically based on compiled features
+            // Note: Using vec_init_then_push pattern here is intentional due to conditional compilation
+            #[allow(clippy::vec_init_then_push)]
             {
-                command.arg("--features=enum");
+                let mut features = vec![];
+                #[cfg(feature = "enum")]
+                features.push("enum");
+                #[cfg(feature = "closure")]
+                features.push("closure");
+                #[cfg(feature = "anyhow")]
+                features.push("anyhow");
+                #[cfg(feature = "runtime")]
+                features.push("runtime");
+                #[cfg(feature = "static")]
+                features.push("static");
+
+                if !features.is_empty() {
+                    command.arg("--no-default-features");
+                    command.arg("--features").arg(features.join(","));
+                }
             }
-            assert!(command
-                .output()
-                .expect("failed to build extension")
-                .status
-                .success());
+
+            let result = command.output().expect("failed to execute cargo build");
+
+            assert!(
+                result.status.success(),
+                "Extension build failed:\nstdout: {}\nstderr: {}",
+                String::from_utf8_lossy(&result.stdout),
+                String::from_utf8_lossy(&result.stderr)
+            );
         });
     }
 
@@ -99,7 +124,12 @@ mod test {
         let mut path = env::current_dir().expect("Could not get cwd");
         path.pop();
         path.push("target");
+
+        #[cfg(not(debug_assertions))]
+        path.push("release");
+        #[cfg(debug_assertions)]
         path.push("debug");
+
         path.push(if std::env::consts::DLL_EXTENSION == "dll" {
             "tests"
         } else {
