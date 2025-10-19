@@ -67,10 +67,16 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         // For some reason some symbols don't link without a `#[link(name = "php8")]`
         // attribute on each extern block. Bindgen doesn't give us the option to add
         // this so we need to add it manually.
+        //
+        // Note: bindgen 0.72+ generates `unsafe extern` blocks when using nightly Rust,
+        // so we need to handle both `extern` and `unsafe extern` variants.
         let php_lib_name = self.get_php_lib_name()?;
         for line in bindings.lines() {
             match line {
-                "extern \"C\" {" | "extern \"fastcall\" {" => {
+                "extern \"C\" {"
+                | "extern \"fastcall\" {"
+                | "unsafe extern \"C\" {"
+                | "unsafe extern \"fastcall\" {" => {
                     writeln!(writer, "#[link(name = \"{}\")]", php_lib_name)?;
                 }
                 _ => {}

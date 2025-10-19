@@ -234,7 +234,7 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
         .no_copy("_zend_array")
         .no_debug("_zend_function_entry") // On Windows when the handler uses vectorcall, Debug cannot be derived so we do it in code.
         .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok())
-        .rust_target(RustTarget::Nightly);
+        .rust_target(RustTarget::nightly());
 
     for binding in ALLOWED_BINDINGS {
         bindgen = bindgen
