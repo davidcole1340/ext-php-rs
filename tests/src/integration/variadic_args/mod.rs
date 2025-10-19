@@ -79,10 +79,10 @@ pub fn test_variadic_first_last(items: &[&Zval]) -> Vec<Zval> {
     if let Some(first) = items.first() {
         result.push(first.shallow_clone());
     }
-    if let Some(last) = items.last() {
-        if items.len() > 1 {
-            result.push(last.shallow_clone());
-        }
+    if let Some(last) = items.last()
+        && items.len() > 1
+    {
+        result.push(last.shallow_clone());
     }
     result
 }

@@ -168,7 +168,6 @@ jobs:
         # Macos fails on unstable rust. We skip the inline examples test for now.
         if: "!(contains(matrix.os, 'macos') && matrix.rust == 'nightly')"
         run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast
-
   test-embed:
     name: Test with embed
     runs-on: ubuntu-latest
@@ -226,3 +225,45 @@ jobs:
 
       - name: Test with embed feature
         run: cargo test --workspace --release --features closure,embed,anyhow --no-fail-fast
+
+  build-musl:
+    name: musl / ${{ matrix.php }} / ${{ matrix.phpts[1] }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ["8.1", "8.2", "8.3", "8.4"]
+        phpts: [["-zts", "TS"], ["", "NTS"]]
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Setup DockerX 
+        uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .github/action/musl
+          file: .github/action/musl/Dockerfile
+          tags: |
+            extphprs/ext-php-rs:musl-${{ matrix.php }}-${{ matrix.phpts[1] }}
+          push: false
+          load: true
+          platforms: linux/amd64
+          build-args: |
+            PHP_VERSION=${{ matrix.php }}
+            TS=${{ matrix.phpts[0] }}
+      - name: Build
+        run: |
+          docker run \
+            -v $(pwd):/workspace \
+            -w /workspace \
+            extphprs/ext-php-rs:musl-${{ matrix.php }}-${{ matrix.phpts[1] }} \
+            build --release --features closure,anyhow,runtime --workspace
+      - name: Run tests
+        run: |
+          docker run \
+            -v $(pwd):/workspace \
+            -w /workspace \
+            extphprs/ext-php-rs:musl-${{ matrix.php }}-${{ matrix.phpts[1] }} \
+            test --workspace --release --features closure,anyhow,runtime --no-fail-fast
