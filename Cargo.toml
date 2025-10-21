@@ -28,7 +28,7 @@ skeptic = "0.13"
 
 [build-dependencies]
 anyhow = "1"
-bindgen = "0.72"
+bindgen = { version = "0.72", default-features = false, features = ["logging", "prettyplease"] }
 cc = "1.2"
 skeptic = "0.13"
 
@@ -41,11 +41,13 @@ native-tls = "0.2"
 zip = "6.0"
 
 [features]
-default = ["enum"]
+default = ["enum", "runtime"]
 closure = []
 embed = []
 anyhow = ["dep:anyhow"]
 enum = []
+runtime = ["bindgen/runtime"]
+static = ["bindgen/static"]
 
 [workspace]
 members = [
