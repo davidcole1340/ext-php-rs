@@ -5,4 +5,18 @@
 
 fn main() {
     println!("cargo:rustc-link-arg-bins=-rdynamic");
+
+    // On musl targets, allow undefined symbols for PHP runtime functions
+    // sigsetjmp and PHP symbols will be resolved when the binary runs with PHP loaded
+    #[cfg(target_env = "musl")]
+    {
+        println!("cargo:rustc-link-arg-bins=-Wl,--unresolved-symbols=ignore-all");
+    }
+
+    // On macOS, use dynamic lookup for undefined symbols
+    // This allows PHP symbols to be resolved at runtime
+    #[cfg(target_os = "macos")]
+    {
+        println!("cargo:rustc-link-arg-bins=-Wl,-undefined,dynamic_lookup");
+    }
 }

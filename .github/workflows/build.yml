@@ -91,6 +91,7 @@ jobs:
         rust: [stable, nightly]
         clang: ["15", "17"]
         phpts: [ts, nts]
+        target: [gnu, musl]
         exclude:
           # ext-php-rs requires nightly Rust when on Windows.
           - os: windows-latest
@@ -101,11 +102,26 @@ jobs:
             clang: "15"
           - os: windows-latest
             clang: "15"
+          # musl only supported on Linux with stable Rust
+          - os: windows-latest
+            target: musl
+          - os: macos-latest
+            target: musl
+          - target: musl
+            rust: nightly
+          # Skip PHP 8.0 for musl (EOL)
+          - target: musl
+            php: "8.0"
     env:
       CARGO_TERM_COLOR: always
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      - name: Install musl toolchain
+        if: matrix.target == 'musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools musl-dev
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -118,6 +134,9 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
+      - name: Add musl target
+        if: matrix.target == 'musl'
+        run: rustup target add x86_64-unknown-linux-musl
       - run: rustup show
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
@@ -162,12 +181,15 @@ jobs:
       - name: Build
         env:
           EXT_PHP_RS_TEST: ""
-        run: cargo build --release --features closure,anyhow,runtime --workspace ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
+          RUSTFLAGS: ${{ matrix.target == 'musl' && '-C target-feature=-crt-static' || '' }}
+        run: cargo build --release --features closure,anyhow,runtime --workspace ${{ matrix.php == '8.0' && '--no-default-features' || '' }} ${{ matrix.target == 'musl' && '--target x86_64-unknown-linux-musl' || '' }}
       # Test
       - name: Test inline examples
         # Macos fails on unstable rust. We skip the inline examples test for now.
         if: "!(contains(matrix.os, 'macos') && matrix.rust == 'nightly')"
-        run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
+        env:
+          RUSTFLAGS: ${{ matrix.target == 'musl' && '-C target-feature=-crt-static' || '' }}
+        run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast ${{ matrix.php == '8.0' && '--no-default-features' || '' }} ${{ matrix.target == 'musl' && '--target x86_64-unknown-linux-musl' || '' }}
   build-zts:
     name: Build with ZTS
     runs-on: ubuntu-latest
