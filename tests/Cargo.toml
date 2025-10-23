@@ -6,7 +6,7 @@ publish = false
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-ext-php-rs = { path = "../", default-features = false, features = ["closure"] }
+ext-php-rs = { path = "../", default-features = false, features = ["closure", "runtime"] }
 
 [features]
 default = ["enum"]
