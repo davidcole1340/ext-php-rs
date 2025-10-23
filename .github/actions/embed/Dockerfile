@@ -12,4 +12,4 @@ ENV PATH=/cargo/bin:/rust/bin:$PATH
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path && cargo install cargo-expand
 
-ENTRYPOINT [ "/cargo/bin/cargo", "test", "--workspace", "--release", "--all-features", "--no-fail-fast" ]
+ENTRYPOINT [ "/cargo/bin/cargo", "test", "--workspace", "--release", "--features", "closure,embed,anyhow", "--no-fail-fast" ]

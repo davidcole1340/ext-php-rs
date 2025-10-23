@@ -72,7 +72,7 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all -- --check
       - name: Run clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -W clippy::pedantic -D warnings
+        run: cargo clippy --workspace --all-targets --features closure,embed,anyhow -- -W clippy::pedantic -D warnings
       # Docs
       - name: Run rustdoc
         run: cargo rustdoc -- -D warnings
@@ -162,12 +162,12 @@ jobs:
       - name: Build
         env:
           EXT_PHP_RS_TEST: ""
-        run: cargo build --release --features closure,anyhow --workspace ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
+        run: cargo build --release --features closure,anyhow,runtime --workspace ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
       # Test
       - name: Test inline examples
         # Macos fails on unstable rust. We skip the inline examples test for now.
         if: "!(contains(matrix.os, 'macos') && matrix.rust == 'nightly')"
-        run: cargo test --release --workspace --features closure,anyhow --no-fail-fast ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
+        run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
   build-zts:
     name: Build with ZTS
     runs-on: ubuntu-latest
