@@ -162,6 +162,9 @@ All features are disabled by default.
   class type, `RustClosure`.
 - `anyhow` - Implements `Into<PhpException>` for `anyhow::Error`, allowing you
   to return anyhow results from PHP functions. Supports anyhow v1.x.
+- `static` - Allows building the library against
+  [statically linked clang](https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static),
+  for example with [static-php-cli](https://static-php.dev/)
 
 ## Usage
 
