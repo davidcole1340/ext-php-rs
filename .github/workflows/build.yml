@@ -168,19 +168,60 @@ jobs:
         # Macos fails on unstable rust. We skip the inline examples test for now.
         if: "!(contains(matrix.os, 'macos') && matrix.rust == 'nightly')"
         run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
-  build-zts:
-    name: Build with ZTS
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - name: Build
-        uses: ./.github/actions/zts
   test-embed:
     name: Test with embed
     runs-on: ubuntu-latest
+    env:
+      clang: "17"
+      php_version: "8.4"
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - name: Test
-        uses: ./.github/actions/embed
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.php_version }}
+        env:
+          debug: true
+
+      - name: Install libphp-embed
+        run: sudo apt update -y && sudo apt install -y libphp8.4-embed
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Install cargo-expand
+        uses: dtolnay/install@cargo-expand
+
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ env.RUST_CACHE_PREFIX }}
+
+      - name: Cache LLVM and Clang
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/llvm-${{ env.clang }}
+          key: ubuntu-latest-llvm-${{ env.clang }}
+
+      - name: Setup LLVM & Clang
+        id: clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: ${{ env.clang }}
+          directory: ${{ runner.temp }}/llvm-${{ env.clang }}
+          cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+
+      - name: Configure Clang
+        run: |
+          echo "LIBCLANG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/lib" >> $GITHUB_ENV
+          echo "LLVM_VERSION=${{ steps.clang.outputs.version }}" >> $GITHUB_ENV
+          echo "LLVM_CONFIG_PATH=${{ runner.temp }}/llvm-${{ env.clang }}/bin/llvm-config" >> $GITHUB_ENV
+
+      - name: Test with embed feature
+        run: cargo test --workspace --release --features closure,embed,anyhow --no-fail-fast
