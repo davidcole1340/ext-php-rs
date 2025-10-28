@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.12](https://github.com/davidcole1340/ext-php-rs/compare/cargo-php-v0.1.11...cargo-php-v0.1.12) - 2025-10-28
+
+### Added
+- *(enum)* Add basic enum support (by @Xenira, @joehoyle) [[#178](https://github.com/davidcole1340/ext-php-rs/issues/178)] [[#302](https://github.com/davidcole1340/ext-php-rs/issues/302)] 
+
+### Other
+- *(clippy)* Fix new clippy errors (by @Xenira) [[#558](https://github.com/davidcole1340/ext-php-rs/issues/558)] 
+- *(deps)* Update cargo_metadata requirement from 0.22 to 0.23 (by @dependabot[bot])
+- *(deps)* Update dialoguer requirement from 0.11 to 0.12 (by @dependabot[bot])
+- *(deps)* Update cargo_metadata requirement from 0.21 to 0.22 (by @dependabot[bot])
+- *(deps)* Update cargo_metadata requirement from 0.20 to 0.21 (by @dependabot[bot])
+- Update guide url and authors (by @Xenira) [[#500](https://github.com/davidcole1340/ext-php-rs/issues/500)] 
 ## [0.1.11](https://github.com/davidcole1340/ext-php-rs/compare/cargo-php-v0.1.10...cargo-php-v0.1.11) - 2025-07-04
 
 ### Added

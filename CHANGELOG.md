@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.15.0](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.2...ext-php-rs-v0.15.0) - 2025-10-28
+
+### BREAKING CHANGES
+
+- *(stubs)* [**breaking**] Add stubs for `RustClosure` (by @Xenira) [[#373](https://github.com/davidcole1340/ext-php-rs/issues/373)] 
+> New field `variadic` added to `Parameter` struct.
+- *(enum)* [**breaking**] Add basic enum support (by @Xenira, @joehoyle) [[#178](https://github.com/davidcole1340/ext-php-rs/issues/178)] [[#302](https://github.com/davidcole1340/ext-php-rs/issues/302)] 
+> New field `enums` added to `Module` struct.
+
+### Added
+- *(array)* Introducing BTreeMap conversion and refactoring HashMap conversion (by @kakserpom) [[#535](https://github.com/davidcole1340/ext-php-rs/issues/535)] 
+- *(array)* Support `Vec<(K,V)>` for hashtables (by @Xenira) [[#425](https://github.com/davidcole1340/ext-php-rs/issues/425)] 
+- *(module)* Add `ModuleBuilder` name and version setters (by @kakserpom) [[#534](https://github.com/davidcole1340/ext-php-rs/issues/534)] 
+- *(zval)* Add `Zval::null()` (by @kakserpom) [[#521](https://github.com/davidcole1340/ext-php-rs/issues/521)] 
+- Add constructor visibility (by @Norbytus) [[#542](https://github.com/davidcole1340/ext-php-rs/issues/542)] 
+
+### Fixed
+- *(array)* Don't convert array keys with leading zeros (by @tomterl)
+- *(embed)* Add missing zend_destroy_file_handle (by @el7cosmos) [[#556](https://github.com/davidcole1340/ext-php-rs/issues/556)] 
+
+### Other
+- *(array)* Split `array.rs` types into smaller files (by @ptondereau) [[#524](https://github.com/davidcole1340/ext-php-rs/issues/524)] 
+- *(clippy)* Fix new clippy errors (by @Xenira) [[#558](https://github.com/davidcole1340/ext-php-rs/issues/558)] 
+- *(clippy)* Fix new clippy findings (by @Xenira) [[#543](https://github.com/davidcole1340/ext-php-rs/issues/543)] 
+- *(deps)* Upgrade bindgen to 0.72 (by @ptondereau)
+- *(deps)* Update zip requirement from 5.1 to 6.0 (by @dependabot[bot])
+- *(deps)* Bump actions/stale from 9 to 10 (by @dependabot[bot])
+- *(deps)* Update cargo_metadata requirement from 0.22 to 0.23 (by @dependabot[bot])
+- *(deps)* Update zip requirement from 4.0 to 5.1 (by @dependabot[bot])
+- *(deps)* Remove unused deps (by @robem)
+- *(deps)* Update dialoguer requirement from 0.11 to 0.12 (by @dependabot[bot])
+- *(deps)* Update cargo_metadata requirement from 0.21 to 0.22 (by @dependabot[bot])
+- *(deps)* Bump actions/checkout from 4 to 5 (by @dependabot[bot])
+- *(macro)* Add test infrastructure for macro crate (by @Xenira) [[#530](https://github.com/davidcole1340/ext-php-rs/issues/530)] 
+- *(php)* Use PHP 8.4 for linting (by @ptondereau)
+- *(readme)* Update example in readme (by @joehoyle) [[#539](https://github.com/davidcole1340/ext-php-rs/issues/539)] 
+- Add ptondereau to maintainer list (by @ptondereau)
+- Remove old ZTS docker and remove docker for embed tests (by @ptondereau)
+- Update guide url and authors (by @Xenira) [[#500](https://github.com/davidcole1340/ext-php-rs/issues/500)] 
 ## [0.14.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-v0.14.1...ext-php-rs-v0.14.2) - 2025-07-13
 
 ### Added

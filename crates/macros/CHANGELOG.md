@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.3](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.2...ext-php-rs-derive-v0.11.3) - 2025-10-28
+
+### Added
+- *(enum)* Add basic enum support (by @Xenira, @joehoyle) [[#178](https://github.com/davidcole1340/ext-php-rs/issues/178)] [[#302](https://github.com/davidcole1340/ext-php-rs/issues/302)] 
+- Add constructor visibility (by @Norbytus) [[#542](https://github.com/davidcole1340/ext-php-rs/issues/542)] 
+
+### Other
+- *(clippy)* Fix new clippy findings (by @Xenira) [[#543](https://github.com/davidcole1340/ext-php-rs/issues/543)] 
+- *(deps)* Upgrade bindgen to 0.72 (by @ptondereau)
+- *(deps)* Remove unused deps (by @robem)
+- *(deps)* Update darling requirement from 0.20 to 0.21 (by @dependabot[bot])
+- *(macro)* Add test infrastructure for macro crate (by @Xenira) [[#530](https://github.com/davidcole1340/ext-php-rs/issues/530)] 
+- *(readme)* Update example in readme (by @joehoyle) [[#539](https://github.com/davidcole1340/ext-php-rs/issues/539)] 
+- Update guide url and authors (by @Xenira) [[#500](https://github.com/davidcole1340/ext-php-rs/issues/500)] 
 ## [0.11.2](https://github.com/davidcole1340/ext-php-rs/compare/ext-php-rs-derive-v0.11.1...ext-php-rs-derive-v0.11.2) - 2025-07-13
 
 ### Fixed
