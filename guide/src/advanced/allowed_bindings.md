@@ -24,4 +24,4 @@ Some bindings may also change between PHP versions, so make sure to test your ex
 
 ## Contributing
 
-If you think that a binding should be added to the allowed bindings, please open an issue or a pull request on the [GitHub repository](https://github.com/davidcole1340/ext-php-rs) so that everyone can benefit from it.
+If you think that a binding should be added to the allowed bindings, please open an issue or a pull request on the [GitHub repository](https://github.com/extphprs/ext-php-rs) so that everyone can benefit from it.
