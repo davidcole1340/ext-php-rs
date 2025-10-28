@@ -1,6 +1,5 @@
 [workspace]
 release_always = false
-publish_all_features = true
 git_release_body = """
 {{ changelog }}
 {% if remote.contributors %}
@@ -10,6 +9,10 @@ git_release_body = """
 {% endfor %}
 {% endif %}
 """
+
+[[package]]
+name = "ext-php-rs"
+publish_features = ["enum", "runtime", "closure", "embed", "anyhow"]
 
 [changelog]
 header = "# Changelog"
