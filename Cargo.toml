@@ -7,8 +7,9 @@ license = "MIT OR Apache-2.0"
 keywords = ["php", "ffi", "zend"]
 version = "0.14.2"
 authors = [
+    "Pierre Tondereau <pierre.tondereau@protonmail.com>",
     "Xenira <xenira@php.rs>",
-    "David Cole <david.cole1340@gmail.com>"
+    "David Cole <david.cole1340@gmail.com>",
 ]
 edition = "2021"
 categories = ["api-bindings"]
@@ -28,7 +29,10 @@ skeptic = "0.13"
 
 [build-dependencies]
 anyhow = "1"
-bindgen = { version = "0.72", default-features = false, features = ["logging", "prettyplease"] }
+bindgen = { version = "0.72", default-features = false, features = [
+    "logging",
+    "prettyplease",
+] }
 cc = "1.2"
 skeptic = "0.13"
 
@@ -50,11 +54,7 @@ runtime = ["bindgen/runtime"]
 static = ["bindgen/static"]
 
 [workspace]
-members = [
-    "crates/macros",
-    "crates/cli",
-    "tests"
-]
+members = ["crates/macros", "crates/cli", "tests"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docs"]
