@@ -2,7 +2,7 @@ use crate::ffi::{
     ext_php_rs_zend_bailout, ext_php_rs_zend_first_try_catch, ext_php_rs_zend_try_catch,
 };
 use std::ffi::c_void;
-use std::panic::{catch_unwind, resume_unwind, RefUnwindSafe};
+use std::panic::{RefUnwindSafe, catch_unwind, resume_unwind};
 use std::ptr::null_mut;
 
 /// Error returned when a bailout occurs
@@ -14,7 +14,7 @@ pub(crate) unsafe extern "C" fn panic_wrapper<R, F: FnMut() -> R + RefUnwindSafe
 ) -> *const c_void {
     // we try to catch panic here so we correctly shutdown php if it happens
     // mandatory when we do assert on test as other test would not run correctly
-    let panic = catch_unwind(|| (*(ctx as *mut F))());
+    let panic = catch_unwind(|| unsafe { (*(ctx as *mut F))() });
 
     Box::into_raw(Box::new(panic)).cast::<c_void>()
 }
@@ -106,7 +106,7 @@ fn do_try_catch<R, F: FnMut() -> R + RefUnwindSafe>(func: F, first: bool) -> Res
 /// When using this function you should ensure that all the memory allocated in
 /// the current scope is released
 pub unsafe fn bailout() -> ! {
-    ext_php_rs_zend_bailout();
+    unsafe { ext_php_rs_zend_bailout() };
 }
 
 #[cfg(feature = "embed")]

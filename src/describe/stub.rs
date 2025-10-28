@@ -9,9 +9,9 @@ use std::{
 };
 
 use super::{
-    abi::{Option, RString},
     Class, Constant, DocBlock, Function, Method, MethodType, Module, Parameter, Property,
     Visibility,
+    abi::{Option, RString},
 };
 
 #[cfg(feature = "enum")]
@@ -350,14 +350,14 @@ impl ToStub for Method {
                 .join(", ")
         )?;
 
-        if !matches!(self.ty, MethodType::Constructor) {
-            if let Option::Some(retval) = &self.retval {
-                write!(buf, ": ")?;
-                if retval.nullable {
-                    write!(buf, "?")?;
-                }
-                retval.ty.fmt_stub(buf)?;
+        if !matches!(self.ty, MethodType::Constructor)
+            && let Option::Some(retval) = &self.retval
+        {
+            write!(buf, ": ")?;
+            if retval.nullable {
+                write!(buf, "?")?;
             }
+            retval.ty.fmt_stub(buf)?;
         }
 
         writeln!(buf, " {{}}")

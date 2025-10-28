@@ -48,7 +48,7 @@ impl<T: ZBoxable> ZBox<T> {
     /// Caller must ensure that `ptr` is non-null, well-aligned and pointing to
     /// a `T`.
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
-        Self(NonNull::new_unchecked(ptr))
+        Self(unsafe { NonNull::new_unchecked(ptr) })
     }
 
     /// Returns the pointer contained by the box, dropping the box in the

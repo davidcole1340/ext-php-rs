@@ -1,9 +1,9 @@
 use std::convert::TryFrom;
 
-use darling::{util::Flag, FromAttributes};
+use darling::{FromAttributes, util::Flag};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{Fields, Ident, ItemEnum, Lit};
 
 use crate::{

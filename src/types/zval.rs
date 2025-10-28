@@ -4,8 +4,8 @@
 
 use std::{convert::TryInto, ffi::c_void, fmt::Debug, ptr};
 
-use crate::types::iterable::Iterable;
 use crate::types::ZendIterator;
+use crate::types::iterable::Iterable;
 use crate::{
     binary::Pack,
     binary_slice::PackSlice,
@@ -338,7 +338,7 @@ impl Zval {
     #[must_use]
     pub unsafe fn ptr<T>(&self) -> Option<*mut T> {
         if self.is_ptr() {
-            Some(self.value.ptr.cast::<T>())
+            Some(unsafe { self.value.ptr.cast::<T>() })
         } else {
             None
         }

@@ -10,14 +10,14 @@ mod sapi;
 
 use crate::boxed::ZBox;
 use crate::ffi::{
-    _zend_file_handle__bindgen_ty_1, php_execute_script, zend_destroy_file_handle,
-    zend_eval_string, zend_file_handle, zend_stream_init_filename, ZEND_RESULT_CODE_SUCCESS,
+    _zend_file_handle__bindgen_ty_1, ZEND_RESULT_CODE_SUCCESS, php_execute_script,
+    zend_destroy_file_handle, zend_eval_string, zend_file_handle, zend_stream_init_filename,
 };
 use crate::types::{ZendObject, Zval};
-use crate::zend::{panic_wrapper, try_catch, ExecutorGlobals};
-use parking_lot::{const_rwlock, RwLock};
-use std::ffi::{c_char, c_void, CString, NulError};
-use std::panic::{resume_unwind, RefUnwindSafe};
+use crate::zend::{ExecutorGlobals, panic_wrapper, try_catch};
+use parking_lot::{RwLock, const_rwlock};
+use std::ffi::{CString, NulError, c_char, c_void};
+use std::panic::{RefUnwindSafe, resume_unwind};
 use std::path::Path;
 use std::ptr::null_mut;
 

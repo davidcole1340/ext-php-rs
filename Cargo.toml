@@ -11,7 +11,7 @@ authors = [
     "Xenira <xenira@php.rs>",
     "David Cole <david.cole1340@gmail.com>",
 ]
-edition = "2021"
+edition = "2024"
 categories = ["api-bindings"]
 exclude = ["/.github", "/.crates"]
 autotests = false

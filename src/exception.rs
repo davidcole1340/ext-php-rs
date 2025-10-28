@@ -9,7 +9,7 @@ use crate::{
     ffi::zend_throw_exception_object,
     flags::ClassFlags,
     types::Zval,
-    zend::{ce, ClassEntry},
+    zend::{ClassEntry, ce},
 };
 
 /// Result type with the error variant as a [`PhpException`].

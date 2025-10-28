@@ -1,17 +1,17 @@
 use std::{convert::TryFrom, ffi::CString, mem, ptr};
 
 use super::{ClassBuilder, FunctionBuilder};
-#[cfg(feature = "enum")]
-use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 use crate::{
+    PHP_DEBUG, PHP_ZTS,
     class::RegisteredClass,
     constant::IntoConst,
     describe::DocComments,
     error::Result,
-    ffi::{ext_php_rs_php_build_id, ZEND_MODULE_API_NO},
+    ffi::{ZEND_MODULE_API_NO, ext_php_rs_php_build_id},
     zend::{FunctionEntry, ModuleEntry},
-    PHP_DEBUG, PHP_ZTS,
 };
+#[cfg(feature = "enum")]
+use crate::{builders::enum_builder::EnumBuilder, enum_::RegisteredEnum};
 
 /// Builds a Zend module extension to be registered with PHP. Must be called
 /// from within an external function called `get_module`, returning a mutable
@@ -24,14 +24,14 @@ use crate::{
 ///     info_table_start, info_table_end, info_table_row
 /// };
 ///
-/// #[no_mangle]
+/// #[unsafe(no_mangle)]
 /// pub extern "C" fn php_module_info(_module: *mut ModuleEntry) {
 ///     info_table_start!();
 ///     info_table_row!("column 1", "column 2");
 ///     info_table_end!();
 /// }
 ///
-/// #[no_mangle]
+/// #[unsafe(no_mangle)]
 /// pub extern "C" fn get_module() -> *mut ModuleEntry {
 ///     let (entry, _) = ModuleBuilder::new("ext-name", "ext-version")
 ///         .info_function(php_module_info)

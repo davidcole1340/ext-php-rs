@@ -3,8 +3,8 @@
 #[cfg(not(windows))]
 mod ext;
 
-use anyhow::{bail, Context, Result as AResult};
-use cargo_metadata::{camino::Utf8PathBuf, CrateType, Target};
+use anyhow::{Context, Result as AResult, bail};
+use cargo_metadata::{CrateType, Target, camino::Utf8PathBuf};
 use clap::Parser;
 use dialoguer::{Confirm, Select};
 
@@ -27,7 +27,7 @@ macro_rules! stub_symbols {
     (@INTERNAL; $s: ident) => {
         #[allow(non_upper_case_globals)]
         #[allow(missing_docs)]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub static mut $s: *mut () = ::std::ptr::null_mut();
     };
 }
@@ -221,9 +221,9 @@ impl Install {
             ext_dir.push(ext_name);
         }
 
-        std::fs::copy(&ext_path, &ext_dir).with_context(|| {
-            "Failed to copy extension from target directory to extension directory"
-        })?;
+        std::fs::copy(&ext_path, &ext_dir).with_context(
+            || "Failed to copy extension from target directory to extension directory",
+        )?;
 
         if let Some(php_ini) = php_ini {
             let mut file = OpenOptions::new()
@@ -408,15 +408,17 @@ impl Stubs {
         let result = ext.describe();
 
         // Ensure extension and CLI `ext-php-rs` versions are compatible.
-        let cli_version = semver::VersionReq::from_str(ext_php_rs::VERSION).with_context(|| {
-            "Failed to parse `ext-php-rs` version that `cargo php` was compiled with"
-        })?;
-        let ext_version = semver::Version::from_str(result.version).with_context(|| {
-            "Failed to parse `ext-php-rs` version that your extension was compiled with"
-        })?;
+        let cli_version = semver::VersionReq::from_str(ext_php_rs::VERSION).with_context(
+            || "Failed to parse `ext-php-rs` version that `cargo php` was compiled with",
+        )?;
+        let ext_version = semver::Version::from_str(result.version).with_context(
+            || "Failed to parse `ext-php-rs` version that your extension was compiled with",
+        )?;
 
         if !cli_version.matches(&ext_version) {
-            bail!("Extension was compiled with an incompatible version of `ext-php-rs` - Extension: {ext_version}, CLI: {cli_version}");
+            bail!(
+                "Extension was compiled with an incompatible version of `ext-php-rs` - Extension: {ext_version}, CLI: {cli_version}"
+            );
         }
 
         let stubs = result

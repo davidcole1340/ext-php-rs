@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use darling::FromMeta;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 
 const MAGIC_METHOD: [&str; 17] = [
     "__construct",

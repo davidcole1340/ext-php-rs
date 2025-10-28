@@ -1,5 +1,5 @@
 use crate::convert::FromZvalMut;
-use crate::ffi::{zend_object_iterator, ZEND_RESULT_CODE_SUCCESS};
+use crate::ffi::{ZEND_RESULT_CODE_SUCCESS, zend_object_iterator};
 use crate::flags::DataType;
 use crate::types::Zval;
 use crate::zend::ExecutorGlobals;

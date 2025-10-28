@@ -6,7 +6,7 @@ use cfg_if::cfg_if;
 use crate::ffi::{_efree, _emalloc, _estrdup};
 use std::{
     alloc::Layout,
-    ffi::{c_char, c_void, CString},
+    ffi::{CString, c_char, c_void},
 };
 
 /// Uses the PHP memory allocator to allocate request-bound memory.
@@ -52,16 +52,20 @@ pub unsafe fn efree(ptr: *mut u8) {
     cfg_if! {
         if #[cfg(php_debug)] {
             #[allow(clippy::used_underscore_items)]
-            _efree(
-                ptr.cast::<c_void>(),
-                std::ptr::null_mut(),
-                0,
-                std::ptr::null_mut(),
-                0,
-            );
+            unsafe {
+                _efree(
+                    ptr.cast::<c_void>(),
+                    std::ptr::null_mut(),
+                    0,
+                    std::ptr::null_mut(),
+                    0,
+                );
+            }
         } else {
             #[allow(clippy::used_underscore_items)]
-            _efree(ptr.cast::<c_void>());
+            unsafe {
+                _efree(ptr.cast::<c_void>());
+            }
         }
     }
 }
