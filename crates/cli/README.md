@@ -3,7 +3,7 @@
 Installs extensions and generates stub files for PHP extensions generated with
 `ext-php-rs`.
 
-- [`ext-php-rs`](https://github.com/davidcole1340/ext-php-rs)
+- [`ext-php-rs`](https://github.com/extphprs/ext-php-rs)
 
 ## Installation
 
@@ -148,5 +148,5 @@ Licensed under either of
 
 at your option.
 
-[LICENSE_APACHE]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_APACHE
-[LICENSE_MIT]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_MIT
+[LICENSE_APACHE]: https://github.com/extphprs/ext-php-rs/blob/master/LICENSE_APACHE
+[LICENSE_MIT]: https://github.com/extphprs/ext-php-rs/blob/master/LICENSE_MIT

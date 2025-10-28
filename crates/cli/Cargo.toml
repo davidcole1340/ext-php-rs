@@ -1,7 +1,7 @@
 [package]
 name = "cargo-php"
 description = "Installs extensions and generates stub files for PHP extensions generated with `ext-php-rs`."
-repository = "https://github.com/davidcole1340/ext-php-rs"
+repository = "https://github.com/extphprs/ext-php-rs"
 homepage = "https://ext-php.rs"
 license = "MIT OR Apache-2.0"
 keywords = ["php", "ffi", "zend"]

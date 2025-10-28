@@ -2,9 +2,9 @@
 
 [![Crates.io](https://img.shields.io/crates/v/ext-php-rs)](https://lib.rs/ext-php-rs)
 [![docs.rs](https://img.shields.io/docsrs/ext-php-rs/latest)](https://docs.rs/ext-php-rs)
-[![Guide Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/docs.yml?branch=master&label=guide)](https://ext-php.rs)
-![CI Workflow Status](https://img.shields.io/github/actions/workflow/status/davidcole1340/ext-php-rs/build.yml?branch=master)
-[![Coverage Status](https://coveralls.io/repos/github/davidcole1340/ext-php-rs/badge.svg)](https://coveralls.io/github/davidcole1340/ext-php-rs)
+[![Guide Workflow Status](https://img.shields.io/github/actions/workflow/status/extphprs/ext-php-rs/docs.yml?branch=master&label=guide)](https://ext-php.rs)
+![CI Workflow Status](https://img.shields.io/github/actions/workflow/status/extphprs/ext-php-rs/build.yml?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/extphprs/ext-php-rs/badge.svg)](https://coveralls.io/github/extphprs/ext-php-rs)
 [![Discord](https://img.shields.io/discord/115233111977099271)](https://discord.gg/dphp)
 
 Bindings and abstractions for the Zend API to build PHP extensions natively in
@@ -219,6 +219,6 @@ Licensed under either of
 
 at your option.
 
-[LICENSE_APACHE]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_APACHE
-[LICENSE_MIT]: https://github.com/davidcole1340/ext-php-rs/blob/master/LICENSE_MIT
+[LICENSE_APACHE]: https://github.com/extphprs/ext-php-rs/blob/master/LICENSE_APACHE
+[LICENSE_MIT]: https://github.com/extphprs/ext-php-rs/blob/master/LICENSE_MIT
 [docs.rs]: https://docs.rs/ext-php-rs
