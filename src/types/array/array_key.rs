@@ -18,7 +18,11 @@ pub enum ArrayKey<'a> {
 impl From<String> for ArrayKey<'_> {
     fn from(value: String) -> Self {
         if let Ok(index) = i64::from_str(value.as_str()) {
-            Self::Long(index)
+            if value == "0" || !value.starts_with('0') {
+                Self::Long(index)
+            } else {
+                Self::String(value)
+            }
         } else {
             Self::String(value)
         }
@@ -77,7 +81,11 @@ impl Display for ArrayKey<'_> {
 impl<'a> From<&'a str> for ArrayKey<'a> {
     fn from(value: &'a str) -> ArrayKey<'a> {
         if let Ok(index) = i64::from_str(value) {
-            Self::Long(index)
+            if value == "0" || !value.starts_with('0') {
+                ArrayKey::Long(index)
+            } else {
+                ArrayKey::Str(value)
+            }
         } else {
             ArrayKey::Str(value)
         }
@@ -159,5 +167,31 @@ mod tests {
         let result: crate::error::Result<i64, _> = key.try_into();
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), Error::InvalidProperty));
+    }
+
+    #[test]
+    fn test_from_str_with_leading_zeros() {
+        let key: ArrayKey = "00".into();
+        assert_eq!(key, ArrayKey::Str("00"));
+        let key: ArrayKey = "071".into();
+        assert_eq!(key, ArrayKey::Str("071"));
+        let key: ArrayKey = "0".into();
+        assert_eq!(key, ArrayKey::Long(0));
+    }
+
+    #[test]
+    fn test_from_string_with_leading_zeros() {
+        let key = ArrayKey::String("042".to_string());
+        let result: crate::error::Result<String, _> = key.try_into();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "042");
+        let key = ArrayKey::String("00".to_string());
+        let result: crate::error::Result<String, _> = key.try_into();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "00");
+        let key = ArrayKey::String("0".to_string());
+        let result: crate::error::Result<i64, _> = key.try_into();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 0);
     }
 }

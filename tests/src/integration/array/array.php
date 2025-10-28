@@ -64,3 +64,18 @@ assert(test_btree_map(['foo', 'bar', 'baz']) === [
     1 => 'bar',
     2 => 'baz',
 ]);
+
+$leading_zeros = test_array_assoc_array_keys([
+  '0' => 'zero',
+  '00' => 'zerozero',
+  '007' => 'bond',
+]);
+
+assert(array_key_exists(0, $leading_zeros), '"0" should become integer key 0');
+assert($leading_zeros[0] === 'zero', 'Value at key 0 should be "zero"');
+
+assert(array_key_exists('007', $leading_zeros), '"007" should stay as string key');
+assert($leading_zeros['007'] === 'bond', 'Value at key "007" should be "bond"');
+
+assert(array_key_exists('00', $leading_zeros), '"00" should stay as string key');
+assert($leading_zeros['00'] === 'zerozero', 'Value at key "00" should be "zerozero"');
