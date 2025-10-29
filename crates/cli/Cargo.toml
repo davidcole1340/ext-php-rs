@@ -23,6 +23,9 @@ libloading = "0.8"
 cargo_metadata = "0.23"
 semver = "1.0"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [lints.rust]
 missing_docs = "warn"
 
