@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.13](https://github.com/extphprs/ext-php-rs/compare/cargo-php-v0.1.12...cargo-php-v0.1.13) - 2025-10-29
+
+### Other
+- Change links for org move (by @Xenira) [[#500](https://github.com/davidcole1340/ext-php-rs/issues/500)] 
 ## [0.1.12](https://github.com/extphprs/ext-php-rs/compare/cargo-php-v0.1.11...cargo-php-v0.1.12) - 2025-10-28
 
 ### Added

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.11.4](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-derive-v0.11.3...ext-php-rs-derive-v0.11.4) - 2025-10-29
+
+### Other
+- Change links for org move (by @Xenira) [[#500](https://github.com/davidcole1340/ext-php-rs/issues/500)] 
 ## [0.11.3](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-derive-v0.11.2...ext-php-rs-derive-v0.11.3) - 2025-10-28
 
 ### Added

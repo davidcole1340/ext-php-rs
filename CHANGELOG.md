@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.15.0...ext-php-rs-v0.15.1) - 2025-10-29
+
+### Other
+- *(release)* Switch to trusted publishing (by @Xenira)
+- Update build warning to reflect support status of php 8.0 (by @Xenira)
+- Remove tests for eol PHP 8.0 (by @Xenira)
+- Change links for org move (by @Xenira) [[#500](https://github.com/davidcole1340/ext-php-rs/issues/500)] 
 ## [0.15.0](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.14.2...ext-php-rs-v0.15.0) - 2025-10-28
 
 ### BREAKING CHANGES
