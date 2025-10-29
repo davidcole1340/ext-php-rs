@@ -2,8 +2,8 @@ use std::{ffi::c_void, ptr};
 
 use crate::{
     ffi::{
-        zend_type, IS_MIXED, MAY_BE_ANY, MAY_BE_BOOL, _IS_BOOL, _ZEND_IS_VARIADIC_BIT,
-        _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NULLABLE_BIT,
+        _IS_BOOL, _ZEND_IS_VARIADIC_BIT, _ZEND_SEND_MODE_SHIFT, _ZEND_TYPE_NULLABLE_BIT, IS_MIXED,
+        MAY_BE_ANY, MAY_BE_BOOL, zend_type,
     },
     flags::DataType,
 };

@@ -38,7 +38,7 @@ pub use module::ModuleEntry;
 pub use streams::*;
 #[cfg(feature = "embed")]
 pub(crate) use try_catch::panic_wrapper;
-pub use try_catch::{bailout, try_catch, try_catch_first, CatchError};
+pub use try_catch::{CatchError, bailout, try_catch, try_catch_first};
 
 // Used as the format string for `php_printf`.
 const FORMAT_STR: &[u8] = b"%s\0";

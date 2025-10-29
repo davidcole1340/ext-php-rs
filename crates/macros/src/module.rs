@@ -25,13 +25,13 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
 
     Ok(quote! {
         #[doc(hidden)]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         extern "C" fn get_module() -> *mut ::ext_php_rs::zend::ModuleEntry {
             static __EXT_PHP_RS_MODULE_STARTUP: ::ext_php_rs::internal::ModuleStartupMutex =
                 ::ext_php_rs::internal::MODULE_STARTUP_INIT;
 
             extern "C" fn ext_php_rs_startup(ty: i32, mod_num: i32) -> i32 {
-                let a = #startup;
+                let a = unsafe { #startup };
                 let b = __EXT_PHP_RS_MODULE_STARTUP
                     .lock()
                     .take()
@@ -64,7 +64,7 @@ pub fn parser(input: ItemFn) -> Result<TokenStream> {
         }
 
         #[cfg(debug_assertions)]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn ext_php_rs_describe_module() -> ::ext_php_rs::describe::Description {
             use ::ext_php_rs::describe::*;
 

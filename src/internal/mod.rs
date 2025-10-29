@@ -1,5 +1,5 @@
 //! Internal, public functions that are called from downstream extensions.
-use parking_lot::{const_mutex, Mutex};
+use parking_lot::{Mutex, const_mutex};
 
 use crate::builders::ModuleStartup;
 

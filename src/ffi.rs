@@ -12,7 +12,7 @@ pub const ZEND_MM_ALIGNMENT_MASK: isize = -8;
 // the `#[link(name = "php")]` attribute appended. This will cause the wrapper
 // functions to fail to link.
 #[link(name = "wrapper")]
-extern "C" {
+unsafe extern "C" {
     pub fn ext_php_rs_zend_string_init(
         str_: *const c_char,
         len: usize,

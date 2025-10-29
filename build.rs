@@ -16,7 +16,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, bail, Context, Error, Result};
+use anyhow::{Context, Error, Result, anyhow, bail};
 use bindgen::RustTarget;
 use impl_::Provider;
 
@@ -332,17 +332,25 @@ impl TryFrom<u32> for ApiVersion {
 
     fn try_from(version: u32) -> Result<Self, Self::Error> {
         match version {
-            x if ((ApiVersion::Php80 as u32)..(ApiVersion::Php81 as u32)).contains(&x) => Ok(ApiVersion::Php80),
-            x if ((ApiVersion::Php81 as u32)..(ApiVersion::Php82 as u32)).contains(&x) => Ok(ApiVersion::Php81),
-            x if ((ApiVersion::Php82 as u32)..(ApiVersion::Php83 as u32)).contains(&x) => Ok(ApiVersion::Php82),
-            x if ((ApiVersion::Php83 as u32)..(ApiVersion::Php84 as u32)).contains(&x) => Ok(ApiVersion::Php83),
+            x if ((ApiVersion::Php80 as u32)..(ApiVersion::Php81 as u32)).contains(&x) => {
+                Ok(ApiVersion::Php80)
+            }
+            x if ((ApiVersion::Php81 as u32)..(ApiVersion::Php82 as u32)).contains(&x) => {
+                Ok(ApiVersion::Php81)
+            }
+            x if ((ApiVersion::Php82 as u32)..(ApiVersion::Php83 as u32)).contains(&x) => {
+                Ok(ApiVersion::Php82)
+            }
+            x if ((ApiVersion::Php83 as u32)..(ApiVersion::Php84 as u32)).contains(&x) => {
+                Ok(ApiVersion::Php83)
+            }
             x if (ApiVersion::Php84 as u32) == x => Ok(ApiVersion::Php84),
             version => Err(anyhow!(
-              "The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}",
-              version,
-              ApiVersion::min() as u32,
-              ApiVersion::max() as u32
-            ))
+                "The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}",
+                version,
+                ApiVersion::min() as u32,
+                ApiVersion::max() as u32
+            )),
         }
     }
 }
@@ -367,7 +375,9 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     );
 
     if version == ApiVersion::Php80 {
-        println!("cargo:warning=PHP 8.0 is EOL and is no longer supported. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines.");
+        println!(
+            "cargo:warning=PHP 8.0 is EOL and is no longer supported. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines."
+        );
     }
 
     for supported_version in version.supported_apis() {

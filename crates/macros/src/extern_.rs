@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, spanned::Spanned as _, token::Unsafe, ForeignItemFn, ItemForeignMod,
-    ReturnType, Signature, Token,
+    ForeignItemFn, ItemForeignMod, ReturnType, Signature, Token, punctuated::Punctuated,
+    spanned::Spanned as _, token::Unsafe,
 };
 
 use crate::prelude::*;

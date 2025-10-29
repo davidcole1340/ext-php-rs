@@ -4,7 +4,7 @@ use std::{ffi::CString, ptr};
 
 use crate::{
     convert::{FromZvalMut, IntoZvalDyn},
-    describe::{abi, Parameter},
+    describe::{Parameter, abi},
     error::{Error, Result},
     ffi::{
         _zend_expected_type, _zend_expected_type_Z_EXPECTED_ARRAY,
@@ -189,11 +189,7 @@ impl From<Arg<'_>> for _zend_expected_type {
             _ => unreachable!(),
         };
 
-        if arg.allow_null {
-            type_id + 1
-        } else {
-            type_id
-        }
+        if arg.allow_null { type_id + 1 } else { type_id }
     }
 }
 

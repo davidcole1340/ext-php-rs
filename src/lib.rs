@@ -3,6 +3,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+#![allow(unsafe_attr_outside_unsafe)]
 #![warn(clippy::pedantic)]
 #![cfg_attr(docs, feature(doc_cfg))]
 #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -55,8 +56,8 @@ pub mod prelude {
     pub use crate::php_println;
     pub use crate::types::ZendCallable;
     pub use crate::{
-        php_class, php_const, php_extern, php_function, php_impl, php_module, wrap_constant,
-        wrap_function, zend_fastcall, ZvalConvert,
+        ZvalConvert, php_class, php_const, php_extern, php_function, php_impl, php_module,
+        wrap_constant, wrap_function, zend_fastcall,
     };
 }
 
@@ -72,6 +73,6 @@ pub const PHP_ZTS: bool = cfg!(php_zts);
 #[cfg(feature = "enum")]
 pub use ext_php_rs_derive::php_enum;
 pub use ext_php_rs_derive::{
-    php_class, php_const, php_extern, php_function, php_impl, php_module, wrap_constant,
-    wrap_function, zend_fastcall, ZvalConvert,
+    ZvalConvert, php_class, php_const, php_extern, php_function, php_impl, php_module,
+    wrap_constant, wrap_function, zend_fastcall,
 };

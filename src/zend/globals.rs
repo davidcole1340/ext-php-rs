@@ -13,12 +13,12 @@ use crate::exception::PhpResult;
 #[cfg(php82)]
 use crate::ffi::zend_atomic_bool_store;
 use crate::ffi::{
-    _sapi_module_struct, _zend_compiler_globals, _zend_executor_globals,
+    _sapi_module_struct, _zend_compiler_globals, _zend_executor_globals, TRACK_VARS_COOKIE,
+    TRACK_VARS_ENV, TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_SERVER,
     ext_php_rs_compiler_globals, ext_php_rs_executor_globals, ext_php_rs_file_globals,
     ext_php_rs_process_globals, ext_php_rs_sapi_globals, ext_php_rs_sapi_module, php_core_globals,
     php_file_globals, sapi_globals_struct, sapi_header_struct, sapi_headers_struct,
-    sapi_request_info, zend_ini_entry, zend_is_auto_global, TRACK_VARS_COOKIE, TRACK_VARS_ENV,
-    TRACK_VARS_FILES, TRACK_VARS_GET, TRACK_VARS_POST, TRACK_VARS_SERVER,
+    sapi_request_info, zend_ini_entry, zend_is_auto_global,
 };
 #[cfg(not(php81))]
 use crate::ffi::{_zend_hash_find_known_hash, _zend_string};
@@ -848,7 +848,7 @@ pub(crate) mod lock {
 /// this is only effective on the Rust side.
 #[cfg(php_zts)]
 pub(crate) mod lock {
-    use parking_lot::{const_rwlock, RwLock};
+    use parking_lot::{RwLock, const_rwlock};
     use std::sync::Arc;
 
     thread_local! {

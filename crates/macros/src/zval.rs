@@ -2,8 +2,8 @@ use darling::ToTokens;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    punctuated::Punctuated, token::Where, DataEnum, DataStruct, DeriveInput, GenericParam,
-    Generics, Ident, ImplGenerics, Lifetime, LifetimeParam, TypeGenerics, Variant, WhereClause,
+    DataEnum, DataStruct, DeriveInput, GenericParam, Generics, Ident, ImplGenerics, Lifetime,
+    LifetimeParam, TypeGenerics, Variant, WhereClause, punctuated::Punctuated, token::Where,
 };
 
 use crate::prelude::*;

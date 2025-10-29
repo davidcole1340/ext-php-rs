@@ -72,7 +72,7 @@ impl<T: RegisteredClass> ZendClassObject<T> {
     ///
     /// Panics if memory was unable to be allocated for the new object.
     pub unsafe fn new_uninit(ce: Option<&'static ClassEntry>) -> ZBox<Self> {
-        Self::internal_new(None, ce)
+        unsafe { Self::internal_new(None, ce) }
     }
 
     /// Creates a new [`ZendObject`] of type `T`, storing the given (and
@@ -110,21 +110,23 @@ impl<T: RegisteredClass> ZendClassObject<T> {
         let size = mem::size_of::<ZendClassObject<T>>();
         let meta = T::get_metadata();
         let ce = ptr::from_ref(ce.unwrap_or_else(|| meta.ce())).cast_mut();
-        let obj = ext_php_rs_zend_object_alloc(size as _, ce).cast::<ZendClassObject<T>>();
-        let obj = obj
-            .as_mut()
-            .expect("Failed to allocate for new Zend object");
+        let obj =
+            unsafe { ext_php_rs_zend_object_alloc(size as _, ce).cast::<ZendClassObject<T>>() };
+        let obj = unsafe {
+            obj.as_mut()
+                .expect("Failed to allocate for new Zend object")
+        };
 
-        zend_object_std_init(&raw mut obj.std, ce);
-        object_properties_init(&raw mut obj.std, ce);
+        unsafe { zend_object_std_init(&raw mut obj.std, ce) };
+        unsafe { object_properties_init(&raw mut obj.std, ce) };
 
         // SAFETY: `obj` is non-null and well aligned as it is a reference.
         // As the data in `obj.obj` is uninitialized, we don't want to drop
         // the data, but directly override it.
-        ptr::write(&raw mut obj.obj, val);
+        unsafe { ptr::write(&raw mut obj.obj, val) };
 
         obj.std.handlers = meta.handlers();
-        ZBox::from_raw(obj)
+        unsafe { ZBox::from_raw(obj) }
     }
 
     /// Initializes the class object with the value `val`.

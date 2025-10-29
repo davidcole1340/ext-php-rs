@@ -1,4 +1,4 @@
-use crate::ffi::{zend_execute_data, ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK};
+use crate::ffi::{ZEND_MM_ALIGNMENT, ZEND_MM_ALIGNMENT_MASK, zend_execute_data};
 
 use crate::{
     args::ArgParser,
@@ -28,7 +28,7 @@ impl ExecuteData {
     /// ```no_run
     /// use ext_php_rs::{types::Zval, zend::ExecuteData, args::Arg, flags::DataType};
     ///
-    /// #[no_mangle]
+    /// #[unsafe(no_mangle)]
     /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
     ///     let mut a = Arg::new("a", DataType::Long);
     ///
@@ -59,7 +59,7 @@ impl ExecuteData {
     /// ```no_run
     /// use ext_php_rs::{types::Zval, zend::ExecuteData, args::Arg, flags::DataType};
     ///
-    /// #[no_mangle]
+    /// #[unsafe(no_mangle)]
     /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
     ///     let mut a = Arg::new("a", DataType::Long);
     ///
@@ -113,7 +113,7 @@ impl ExecuteData {
     /// #[derive(Debug)]
     /// struct Example;
     ///
-    /// #[no_mangle]
+    /// #[unsafe(no_mangle)]
     /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
     ///     let mut a = Arg::new("a", DataType::Long);
     ///
@@ -161,7 +161,7 @@ impl ExecuteData {
     /// #[derive(Debug)]
     /// struct Example;
     ///
-    /// #[no_mangle]
+    /// #[unsafe(no_mangle)]
     /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
     ///     let this = ex.get_object::<Example>();
     ///     dbg!(this);
@@ -184,7 +184,7 @@ impl ExecuteData {
     /// ```no_run
     /// use ext_php_rs::{types::Zval, zend::ExecuteData};
     ///
-    /// #[no_mangle]
+    /// #[unsafe(no_mangle)]
     /// pub extern "C" fn example_fn(ex: &mut ExecuteData, retval: &mut Zval) {
     ///     let this = ex.get_self();
     ///     dbg!(this);
@@ -219,8 +219,8 @@ impl ExecuteData {
     #[doc(hidden)]
     unsafe fn zend_call_arg<'a>(&self, n: usize) -> Option<&'a mut Zval> {
         let n = isize::try_from(n).expect("n is too large");
-        let ptr = self.zend_call_var_num(n);
-        ptr.as_mut()
+        let ptr = unsafe { self.zend_call_var_num(n) };
+        unsafe { ptr.as_mut() }
     }
 
     /// Translation of macro `ZEND_CALL_VAR_NUM(call, n)`
@@ -228,7 +228,7 @@ impl ExecuteData {
     #[doc(hidden)]
     unsafe fn zend_call_var_num(&self, n: isize) -> *mut Zval {
         let ptr = std::ptr::from_ref(self) as *mut Zval;
-        ptr.offset(Self::zend_call_frame_slot() + n)
+        unsafe { ptr.offset(Self::zend_call_frame_slot() + n) }
     }
 
     /// Translation of macro `ZEND_CALL_FRAME_SLOT`

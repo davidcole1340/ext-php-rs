@@ -9,14 +9,14 @@ use crate::{
     convert::{FromZendObject, FromZval, FromZvalMut, IntoZval, IntoZvalDyn},
     error::{Error, Result},
     ffi::{
+        HashTable, ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
         ext_php_rs_zend_object_release, object_properties_init, zend_call_known_function,
-        zend_function, zend_hash_str_find_ptr_lc, zend_object, zend_objects_new, HashTable,
-        ZEND_ISEMPTY, ZEND_PROPERTY_EXISTS, ZEND_PROPERTY_ISSET,
+        zend_function, zend_hash_str_find_ptr_lc, zend_object, zend_objects_new,
     },
     flags::DataType,
     rc::PhpRc,
     types::{ZendClassObject, ZendStr, Zval},
-    zend::{ce, ClassEntry, ExecutorGlobals, ZendObjectHandlers},
+    zend::{ClassEntry, ExecutorGlobals, ZendObjectHandlers, ce},
 };
 
 /// A PHP object.
@@ -354,7 +354,7 @@ impl ZendObject {
     /// Attempts to retrieve a reference to the object handlers.
     #[inline]
     unsafe fn handlers(&self) -> Result<&ZendObjectHandlers> {
-        self.handlers.as_ref().ok_or(Error::InvalidScope)
+        unsafe { self.handlers.as_ref() }.ok_or(Error::InvalidScope)
     }
 
     /// Returns a mutable pointer to `self`, regardless of the type of

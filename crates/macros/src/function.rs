@@ -218,6 +218,19 @@ impl<'a> Function<'a> {
         let required_arg_names: Vec<_> = required.iter().map(|arg| arg.name).collect();
         let not_required_arg_names: Vec<_> = not_required.iter().map(|arg| arg.name).collect();
 
+        let variadic_bindings = self.args.typed.iter().filter_map(|arg| {
+            if arg.variadic {
+                let name = arg.name;
+                let variadic_name = format_ident!("__variadic_{}", name);
+                let clean_ty = arg.clean_ty();
+                Some(quote! {
+                    let #variadic_name = #name.variadic_vals::<#clean_ty>();
+                })
+            } else {
+                None
+            }
+        });
+
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(|e| {
                 quote! {
@@ -237,6 +250,7 @@ impl<'a> Function<'a> {
                 if parse.is_err() {
                     return;
                 }
+                #(#variadic_bindings)*
 
                 #ident(#({#arg_accessors}),*)
             },
@@ -277,6 +291,7 @@ impl<'a> Function<'a> {
                     if parse_result.is_err() {
                         return;
                     }
+                    #(#variadic_bindings)*
 
                     #call
                 }
@@ -332,6 +347,18 @@ impl<'a> Function<'a> {
             .iter()
             .map(TypedArg::arg_declaration)
             .collect::<Vec<_>>();
+        let variadic_bindings = self.args.typed.iter().filter_map(|arg| {
+            if arg.variadic {
+                let name = arg.name;
+                let variadic_name = format_ident!("__variadic_{}", name);
+                let clean_ty = arg.clean_ty();
+                Some(quote! {
+                    let #variadic_name = #name.variadic_vals::<#clean_ty>();
+                })
+            } else {
+                None
+            }
+        });
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(
                 |e| quote! { return ::ext_php_rs::class::ConstructorResult::Exception(#e); },
@@ -359,6 +386,7 @@ impl<'a> Function<'a> {
                         if parse.is_err() {
                             return ::ext_php_rs::class::ConstructorResult::ArgError;
                         }
+                        #(#variadic_bindings)*
                         #class::#ident(#({#arg_accessors}),*).into()
                     }
                     inner
@@ -535,7 +563,7 @@ impl TypedArg<'_> {
         let mut ty = self.ty.clone();
         ty.drop_lifetimes();
 
-        // Variadic arguments are passed as slices, so we need to extract the
+        // Variadic arguments are passed as &[&Zval], so we need to extract the
         // inner type.
         if self.variadic {
             let Type::Reference(reference) = &ty else {
@@ -599,8 +627,9 @@ impl TypedArg<'_> {
                 #name.val().unwrap_or(#default.into())
             }
         } else if self.variadic {
+            let variadic_name = format_ident!("__variadic_{}", name);
             quote! {
-                &#name.variadic_vals()
+                #variadic_name.as_slice()
             }
         } else if self.nullable {
             // Originally I thought we could just use the below case for `null` options, as

@@ -8,9 +8,10 @@ keywords = ["php", "ffi", "zend"]
 version = "0.1.13"
 authors = [
     "Xenira <xenira@php.rs>",
-    "David Cole <david.cole1340@gmail.com>"
+    "David Cole <david.cole1340@gmail.com>",
+    "Pierre Tondereau <pierre.tondereau@protonmail.com>",
 ]
-edition = "2018"
+edition = "2024"
 categories = ["api-bindings", "command-line-interface"]
 
 [dependencies]

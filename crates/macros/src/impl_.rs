@@ -1,5 +1,5 @@
-use darling::util::Flag;
 use darling::FromAttributes;
+use darling::util::Flag;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::{HashMap, HashSet};

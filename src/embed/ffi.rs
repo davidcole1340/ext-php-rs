@@ -9,7 +9,7 @@ use crate::ffi::php_ini_builder;
 use std::ffi::{c_char, c_int, c_void};
 
 #[link(name = "wrapper")]
-extern "C" {
+unsafe extern "C" {
     pub fn ext_php_rs_embed_callback(
         argc: c_int,
         argv: *mut *mut c_char,

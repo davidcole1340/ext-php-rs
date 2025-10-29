@@ -7,7 +7,7 @@ use crate::types::Zval;
 use crate::{embed::SapiModule, error::Result};
 
 use std::{
-    ffi::{c_char, c_int, c_void, CString},
+    ffi::{CString, c_char, c_int, c_void},
     ptr,
 };
 
@@ -22,13 +22,13 @@ use std::{
 ///     ffi::sapi_header_struct
 /// };
 ///
-/// #[no_mangle]
+/// #[unsafe(no_mangle)]
 /// pub extern "C" fn ub_write(str: *const i8, str_length: usize) -> usize {
 ///     println!("PHP wrote: {:?}", str);
 ///     str_length
 /// }
 ///
-/// #[no_mangle]
+/// #[unsafe(no_mangle)]
 /// pub extern "C" fn send_header(header: *mut sapi_header_struct, server_context: *mut c_void) {
 ///     println!("PHP sent a header: {:?}", header);
 /// }

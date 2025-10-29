@@ -9,10 +9,10 @@
 extern crate ext_php_rs;
 
 use ext_php_rs::builders::SapiBuilder;
-use ext_php_rs::embed::{ext_php_rs_sapi_startup, Embed};
+use ext_php_rs::embed::{Embed, ext_php_rs_sapi_startup};
 use ext_php_rs::ffi::{
-    php_module_shutdown, php_module_startup, php_request_shutdown, php_request_startup,
-    sapi_shutdown, sapi_startup, ZEND_RESULT_CODE_SUCCESS,
+    ZEND_RESULT_CODE_SUCCESS, php_module_shutdown, php_module_startup, php_request_shutdown,
+    php_request_startup, sapi_shutdown, sapi_startup,
 };
 use ext_php_rs::prelude::*;
 use ext_php_rs::zend::try_catch_first;

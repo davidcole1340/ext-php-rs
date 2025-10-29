@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::{
     convert::TryFrom,
     fmt::Display,
@@ -38,7 +38,9 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
         let devel = DevelPack::new(version, is_zts, arch)?;
         if let Ok(linker) = get_rustc_linker() {
             if looks_like_msvc_linker(&linker) {
-                println!("cargo:warning=It looks like you are using a MSVC linker. You may encounter issues when attempting to load your compiled extension into PHP if your MSVC linker version is not compatible with the linker used to compile your PHP. It is recommended to use `rust-lld` as your linker.");
+                println!(
+                    "cargo:warning=It looks like you are using a MSVC linker. You may encounter issues when attempting to load your compiled extension into PHP if your MSVC linker version is not compatible with the linker used to compile your PHP. It is recommended to use `rust-lld` as your linker."
+                );
             }
         }
 
