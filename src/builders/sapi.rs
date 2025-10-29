@@ -1,7 +1,7 @@
 use crate::embed::ext_php_rs_php_error;
 use crate::ffi::{
     gid_t, php_default_input_filter, php_default_post_reader, php_default_treat_data,
-    sapi_header_struct, uid_t,
+    sapi_header_struct, sapi_headers_struct, uid_t,
 };
 use crate::types::Zval;
 use crate::{embed::SapiModule, error::Result};
@@ -189,6 +189,18 @@ impl SapiBuilder {
     /// * `func` - The function to be called on shutdown.
     pub fn send_header_function(mut self, func: SapiSendHeaderFunc) -> Self {
         self.module.send_header = Some(func);
+        self
+    }
+
+    /// Sets the send headers function for this SAPI
+    ///
+    /// This function is called once when all headers are finalized and ready to send.
+    ///
+    /// # Arguments
+    ///
+    /// * `func` - The function to be called when headers are ready.
+    pub fn send_headers_function(mut self, func: SapiSendHeadersFunc) -> Self {
+        self.module.send_headers = Some(func);
         self
     }
 
@@ -388,6 +400,9 @@ pub type SapiDeactivateFunc = extern "C" fn() -> c_int;
 pub type SapiSendHeaderFunc =
     extern "C" fn(header: *mut sapi_header_struct, server_context: *mut c_void);
 
+/// A function to be called when PHP finalizes all headers
+pub type SapiSendHeadersFunc = extern "C" fn(sapi_headers: *mut sapi_headers_struct) -> c_int;
+
 /// A function to be called when PHP write to the output buffer
 pub type SapiUbWriteFunc = extern "C" fn(str: *const c_char, str_length: usize) -> usize;
 
@@ -453,6 +468,9 @@ mod test {
     // Note: C-variadic functions are unstable in Rust, so we can't test this properly
     // extern "C" fn test_sapi_error(_type: c_int, _error_msg: *const c_char, _args: ...) {}
     extern "C" fn test_send_header(_header: *mut sapi_header_struct, _server_context: *mut c_void) {
+    }
+    extern "C" fn test_send_headers(_sapi_headers: *mut sapi_headers_struct) -> c_int {
+        0
     }
     extern "C" fn test_read_post(_buffer: *mut c_char, _length: usize) -> usize {
         0
@@ -606,6 +624,21 @@ mod test {
         assert_eq!(
             sapi.send_header.expect("should have send_header function") as usize,
             test_send_header as usize
+        );
+    }
+
+    #[test]
+    fn test_send_headers_function() {
+        let sapi = SapiBuilder::new("test", "Test")
+            .send_headers_function(test_send_headers)
+            .build()
+            .expect("should build sapi module");
+
+        assert!(sapi.send_headers.is_some());
+        assert_eq!(
+            sapi.send_headers
+                .expect("should have send_headers function") as usize,
+            test_send_headers as usize
         );
     }
 
