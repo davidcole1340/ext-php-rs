@@ -87,7 +87,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        php: ["8.0", "8.1", "8.2", "8.3", "8.4"]
+        php: ["8.1", "8.2", "8.3", "8.4"]
         rust: [stable, nightly]
         clang: ["15", "17"]
         phpts: [ts, nts]
@@ -162,12 +162,13 @@ jobs:
       - name: Build
         env:
           EXT_PHP_RS_TEST: ""
-        run: cargo build --release --features closure,anyhow,runtime --workspace ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
+        run: cargo build --release --features closure,anyhow,runtime --workspace
       # Test
       - name: Test inline examples
         # Macos fails on unstable rust. We skip the inline examples test for now.
         if: "!(contains(matrix.os, 'macos') && matrix.rust == 'nightly')"
-        run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast ${{ matrix.php == '8.0' && '--no-default-features' || '' }}
+        run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast
+
   test-embed:
     name: Test with embed
     runs-on: ubuntu-latest
