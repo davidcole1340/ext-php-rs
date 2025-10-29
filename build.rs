@@ -367,7 +367,7 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     );
 
     if version == ApiVersion::Php80 {
-        println!("cargo:warning=PHP 8.0 is EOL and will no longer be supported in a future release. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines.");
+        println!("cargo:warning=PHP 8.0 is EOL and is no longer supported. Please upgrade to a supported version of PHP. See https://www.php.net/supported-versions.php for information on version support timelines.");
     }
 
     for supported_version in version.supported_apis() {
