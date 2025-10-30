@@ -37,7 +37,7 @@ fn test_module() {
 
         let string = zval.string().unwrap();
 
-        assert_eq!(string.to_string(), "Hello, foo!");
+        assert_eq!(string.clone(), "Hello, foo!");
     });
 }
 

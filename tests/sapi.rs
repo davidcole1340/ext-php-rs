@@ -68,7 +68,7 @@ fn test_sapi() {
 
         let string = zval.string().unwrap();
 
-        assert_eq!(string.to_string(), "Hello, foo!");
+        assert_eq!(string.clone(), "Hello, foo!");
 
         let result = Embed::eval("var_dump($foo);");
 

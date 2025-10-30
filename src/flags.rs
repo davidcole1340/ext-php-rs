@@ -355,7 +355,7 @@ impl From<u8> for FunctionType {
 
 /// Valid data types for PHP.
 #[repr(C, u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum DataType {
     /// Undefined
     Undef,
@@ -386,6 +386,7 @@ pub enum DataType {
     /// Constant expression
     ConstantExpression,
     /// Void
+    #[default]
     Void,
     /// Mixed
     Mixed,
@@ -395,12 +396,6 @@ pub enum DataType {
     Ptr,
     /// Indirect (internal)
     Indirect,
-}
-
-impl Default for DataType {
-    fn default() -> Self {
-        Self::Void
-    }
 }
 
 impl DataType {
