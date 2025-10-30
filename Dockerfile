@@ -8,14 +8,20 @@ apt update -y
 apt install -y \
   libclang-dev \
   bison \
-  re2c
+  re2c \
+  curl \
+  jq
+
+# Download and extract PHP
+FULL_VERSION=$(curl -fsSL "https://www.php.net/releases/index.php?json&version=${PHP_VERSION}" | jq -r '.version')
+echo "Downloading PHP ${FULL_VERSION}..."
+curl -fsSL "https://www.php.net/distributions/php-${FULL_VERSION}.tar.gz" -o php.tar.gz
+tar -xzf php.tar.gz
+rm php.tar.gz
+mv "php-${FULL_VERSION}" php-src
 
 # Build PHP
-git clone --depth 1 -b PHP-${PHP_VERSION} https://github.com/php/php-src.git
 cd php-src
-# by default you will be on the master branch, which is the current
-# development version. You can check out a stable branch instead:
-./buildconf
 ./configure \
     --enable-debug \
     --disable-all --disable-cgi

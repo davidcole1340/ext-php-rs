@@ -126,6 +126,16 @@ best resource at the moment. This can be viewed at [docs.rs].
     1.57 at the time of writing.
 - Clang 5.0 or later.
 
+### Alpine Linux (musl)
+
+Building for Alpine Linux (musl libc) is supported on stable Rust with dynamic linking
+thanks to `runtime` feature flag from `bindgen`.
+
+**Note**: Building for musl requires dynamic CRT linking (`-crt-static` flag) to produce
+the `cdylib` output required for PHP extensions.
+If you want to build statically, you'll need full LLVM + Clang toolchain.
+Please read: <https://github.com/KyleMayes/clang-sys#static>
+
 ### Windows Requirements
 
 - Extensions can only be compiled for PHP installations sourced from
