@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.15.2](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.15.1...ext-php-rs-v0.15.2) - 2025-10-29
+
+### Added
+- *(builders)* Add send_headers setter to SapiBuilder (by @Qard)
 ## [0.15.1](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.15.0...ext-php-rs-v0.15.1) - 2025-10-29
 
 ### Other

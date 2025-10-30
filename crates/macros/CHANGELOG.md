@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.11.5](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-derive-v0.11.4...ext-php-rs-derive-v0.11.5) - 2025-10-29
+
+### Other
+- *(rust)* Bump Rust edtion to 2024 (by @ptondereau)
 ## [0.11.4](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-derive-v0.11.3...ext-php-rs-derive-v0.11.4) - 2025-10-29
 
 ### Other
