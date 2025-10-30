@@ -161,7 +161,7 @@ mod tests {
 
             let zval_str: Zval = Zval::try_from(&Discriminant::String("foo")).unwrap();
             assert!(zval_str.is_string());
-            assert_eq!(zval_str.string().unwrap().to_string(), "foo");
+            assert_eq!(zval_str.string().unwrap().clone(), "foo");
         });
     }
 }

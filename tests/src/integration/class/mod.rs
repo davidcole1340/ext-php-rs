@@ -20,7 +20,7 @@ pub struct TestClass {
 impl TestClass {
     #[php(getter)]
     pub fn get_string(&self) -> String {
-        self.string.to_string()
+        self.string.clone()
     }
 
     #[php(setter)]

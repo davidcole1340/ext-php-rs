@@ -61,7 +61,7 @@ pub struct PhpRename {
 impl PhpRename {
     pub fn rename(&self, name: impl AsRef<str>, default: RenameRule) -> String {
         if let Some(name) = self.name.as_ref() {
-            name.to_string()
+            name.clone()
         } else {
             name.as_ref().rename(self.change_case.unwrap_or(default))
         }
@@ -69,7 +69,7 @@ impl PhpRename {
 
     pub fn rename_method(&self, name: impl AsRef<str>, default: RenameRule) -> String {
         if let Some(name) = self.name.as_ref() {
-            name.to_string()
+            name.clone()
         } else {
             name.as_ref()
                 .rename_method(self.change_case.unwrap_or(default))
