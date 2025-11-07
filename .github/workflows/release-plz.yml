@@ -6,6 +6,9 @@ permissions:
 
 on:
   workflow_call:
+    secrets:
+      RELEASE_PLZ_TOKEN:
+        required: true
     outputs:
       release_created:
         description: "Indicates if a release was created"
