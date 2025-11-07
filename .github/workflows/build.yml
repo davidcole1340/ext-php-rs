@@ -1,15 +1,15 @@
 name: Build and Lint
 on:
-  schedule:
-    # runs every monday at midnight
-    - cron: "0 0 * * 1"
-  push:
-    branches:
-      - master
-  pull_request:
+  workflow_call:
+    inputs:
+      rust_cache_prefix:
+        description: "Cache busting prefix for Rust dependencies"
+        default: "v0-rust"
+        type: string
+  workflow_dispatch:
 env:
   # increment this manually to force cache eviction
-  RUST_CACHE_PREFIX: "v0-rust"
+  RUST_CACHE_PREFIX: ${{ inputs.rust_cache_prefix }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -226,13 +226,3 @@ jobs:
 
       - name: Test with embed feature
         run: cargo test --workspace --release --features closure,embed,anyhow --no-fail-fast
-
-  release:
-    name: Create Release
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    needs: [lint, build, test-embed]
-    permissions:
-      id-token: write
-      contents: write
-      pull-requests: write
-    uses: extphprs/ext-php-rs/.github/workflows/release-plz.yml@master

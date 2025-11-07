@@ -6,6 +6,10 @@ permissions:
 
 on:
   workflow_call:
+    outputs:
+      release_created:
+        description: "Indicates if a release was created"
+        value: ${{ jobs.release-plz-release.outputs.release_created }}
   workflow_dispatch:
 
 jobs:
@@ -15,6 +19,8 @@ jobs:
     if: github.ref == 'refs/heads/master'
     permissions:
       id-token: write
+    outputs:
+      release_created: ${{ steps.release-plz.outputs.release_created }}
     env:
       clang: "17"
       php_version: "8.4"
@@ -53,6 +59,7 @@ jobs:
         uses: rust-lang/crates-io-auth-action@v1
         id: auth
       - name: Run release-plz
+        id: release-plz
         uses: release-plz/action@v0.5
         with:
           command: release
