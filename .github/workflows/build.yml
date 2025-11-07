@@ -231,4 +231,8 @@ jobs:
     name: Create Release
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     needs: [lint, build, test-embed]
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
     uses: extphprs/ext-php-rs/.github/workflows/release-plz.yml@master
