@@ -226,3 +226,9 @@ jobs:
 
       - name: Test with embed feature
         run: cargo test --workspace --release --features closure,embed,anyhow --no-fail-fast
+
+  release:
+    name: Create Release
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: [lint, build, test-embed]
+    uses: extphprs/ext-php-rs/.github/workflows/release-plz.yml@master
