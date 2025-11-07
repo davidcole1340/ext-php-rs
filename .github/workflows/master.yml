@@ -1,0 +1,24 @@
+name: Master Branch Workflow
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build_and_lint:
+    name: Build and Lint
+    uses: ./.github/workflows/build.yml
+  release:
+    name: Create Release (MR)
+    needs: [build_and_lint]
+    uses: ./.github/workflows/release-plz.yml
+  docs:
+    name: Build and Deploy Documentation
+    needs: [release]
+    if: needs.release.outputs.release_created == 'true'
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+    uses: ./.github/workflows/docs.yml

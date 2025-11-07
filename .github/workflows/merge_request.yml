@@ -1,0 +1,13 @@
+name: Merge Request Workflow
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build_and_lint:
+    name: Build and Lint
+    uses: ./.github/workflows/build.yml
+  coverage:
+    name: Code Coverage
+    if: ${{ ! startsWith(github.head_ref, 'release-plz-') }}
+    uses: ./.github/workflows/coverage.yml
