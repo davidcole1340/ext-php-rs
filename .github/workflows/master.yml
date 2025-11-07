@@ -21,4 +21,6 @@ jobs:
     name: Build and Deploy Documentation
     needs: [release]
     if: needs.release.outputs.release_created == 'true'
+    permissions:
+      contents: write
     uses: ./.github/workflows/docs.yml
