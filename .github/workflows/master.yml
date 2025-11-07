@@ -12,13 +12,13 @@ jobs:
   release:
     name: Create Release (MR)
     needs: [build_and_lint]
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
     uses: ./.github/workflows/release-plz.yml
   docs:
     name: Build and Deploy Documentation
     needs: [release]
     if: needs.release.outputs.release_created == 'true'
-    permissions:
-      id-token: write
-      contents: write
-      pull-requests: write
     uses: ./.github/workflows/docs.yml
