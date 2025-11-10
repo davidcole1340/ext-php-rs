@@ -1,16 +1,20 @@
 [package]
 name = "tests"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 publish = false
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-ext-php-rs = { path = "../", default-features = false, features = ["closure", "runtime"] }
+ext-php-rs = { path = "../", default-features = false }
 
 [features]
-default = ["enum"]
+default = ["enum", "runtime", "closure"]
 enum = ["ext-php-rs/enum"]
+anyhow = ["ext-php-rs/anyhow"]
+runtime = ["ext-php-rs/runtime"]
+closure = ["ext-php-rs/closure"]
+static = ["ext-php-rs/static"]
 
 [lib]
 crate-type = ["cdylib"]

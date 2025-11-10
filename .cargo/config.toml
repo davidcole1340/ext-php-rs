@@ -6,3 +6,6 @@ linker = "rust-lld"
 
 [target.i686-pc-windows-msvc]
 linker = "rust-lld"
+
+[target.'cfg(target_env = "musl")']
+rustflags = ["-C", "target-feature=-crt-static"]
