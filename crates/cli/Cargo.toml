@@ -20,7 +20,7 @@ ext-php-rs = { version = "0.15", default-features = false, path = "../../" }
 clap = { version = "4.0", features = ["derive"] }
 anyhow = "1"
 dialoguer = "0.12"
-libloading = "0.8"
+libloading = "0.9"
 cargo_metadata = "0.23"
 semver = "1.0"
 
