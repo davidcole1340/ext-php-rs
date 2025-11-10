@@ -171,6 +171,9 @@ jobs:
   test-embed:
     name: Test with embed
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        phpts: [ts, nts]
     env:
       clang: "17"
       php_version: "8.4"
@@ -183,6 +186,7 @@ jobs:
         with:
           php-version: ${{ env.php_version }}
         env:
+          phpts: ${{ matrix.phpts }}
           debug: true
 
       - name: Install libphp-embed
