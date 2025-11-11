@@ -189,9 +189,6 @@ jobs:
           phpts: ${{ matrix.phpts }}
           debug: true
 
-      - name: Install libphp-embed
-        run: sudo apt update -y && sudo apt install -y libphp8.4-embed
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
         with:
