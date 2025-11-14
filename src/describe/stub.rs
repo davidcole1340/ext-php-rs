@@ -16,7 +16,7 @@ use super::{
 
 #[cfg(feature = "enum")]
 use crate::describe::{Enum, EnumCase};
-use crate::flags::DataType;
+use crate::flags::{ClassFlags, DataType};
 
 /// Implemented on types which can be converted into PHP stubs.
 pub trait ToStub {
@@ -226,16 +226,35 @@ impl ToStub for Class {
         self.docs.fmt_stub(buf)?;
 
         let (_, name) = split_namespace(self.name.as_ref());
-        write!(buf, "class {name} ")?;
+        let flags = ClassFlags::from_bits(self.flags).unwrap_or(ClassFlags::empty());
+        let is_interface = flags.contains(ClassFlags::Interface);
+
+        if is_interface {
+            write!(buf, "interface {name} ")?;
+        } else {
+            write!(buf, "class {name} ")?;
+        }
 
         if let Option::Some(extends) = &self.extends {
             write!(buf, "extends {extends} ")?;
         }
 
-        if !self.implements.is_empty() {
+        if !self.implements.is_empty() && !is_interface {
             write!(
                 buf,
                 "implements {} ",
+                self.implements
+                    .iter()
+                    .map(RString::as_str)
+                    .collect::<StdVec<_>>()
+                    .join(", ")
+            )?;
+        }
+
+        if !self.implements.is_empty() && is_interface {
+            write!(
+                buf,
+                "extends {} ",
                 self.implements
                     .iter()
                     .map(RString::as_str)
@@ -360,7 +379,11 @@ impl ToStub for Method {
             retval.ty.fmt_stub(buf)?;
         }
 
-        writeln!(buf, " {{}}")
+        if self.r#abstract {
+            writeln!(buf, ";")
+        } else {
+            writeln!(buf, " {{}}")
+        }
     }
 }
 

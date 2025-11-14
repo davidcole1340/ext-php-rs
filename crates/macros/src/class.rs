@@ -1,7 +1,7 @@
 use darling::util::Flag;
 use darling::{FromAttributes, FromMeta, ToTokens};
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{TokenStreamExt, quote};
 use syn::{Attribute, Expr, Fields, ItemStruct};
 
 use crate::helpers::get_docs;
@@ -28,8 +28,17 @@ pub struct StructAttributes {
 
 #[derive(FromMeta, Debug)]
 pub struct ClassEntryAttribute {
-    ce: syn::Expr,
-    stub: String,
+    pub ce: syn::Expr,
+    pub stub: String,
+}
+
+impl ToTokens for ClassEntryAttribute {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let ce = &self.ce;
+        let stub = &self.stub;
+        let token = quote! { (#ce, #stub) };
+        tokens.append_all(token);
+    }
 }
 
 pub fn parser(mut input: ItemStruct) -> Result<TokenStream> {
@@ -151,10 +160,8 @@ fn generate_registered_class_impl(
     };
 
     let extends = if let Some(extends) = extends {
-        let ce = &extends.ce;
-        let stub = &extends.stub;
         quote! {
-            Some((#ce, #stub))
+            Some(#extends)
         }
     } else {
         quote! { None }

@@ -118,6 +118,7 @@ bind! {
     zend_register_double_constant,
     zend_register_ini_entries,
     zend_register_internal_enum,
+    zend_register_internal_interface,
     zend_ini_entry_def,
     zend_register_internal_class_ex,
     zend_register_long_constant,

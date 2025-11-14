@@ -193,6 +193,8 @@ pub struct Class {
     pub methods: Vec<Method>,
     /// Constants of the class.
     pub constants: Vec<Constant>,
+    /// Class flags
+    pub flags: u32,
 }
 
 #[cfg(feature = "closure")]
@@ -225,15 +227,18 @@ impl Class {
                 }),
                 r#static: false,
                 visibility: Visibility::Public,
+                r#abstract: false,
             }]
             .into(),
             constants: StdVec::new().into(),
+            flags: 0,
         }
     }
 }
 
 impl From<ClassBuilder> for Class {
     fn from(val: ClassBuilder) -> Self {
+        let flags = val.get_flags();
         Self {
             name: val.name.into(),
             docs: DocBlock(
@@ -269,6 +274,7 @@ impl From<ClassBuilder> for Class {
                 .map(Constant::from)
                 .collect::<StdVec<_>>()
                 .into(),
+            flags,
         }
     }
 }
@@ -416,6 +422,8 @@ pub struct Method {
     pub r#static: bool,
     /// Visibility of the method.
     pub visibility: Visibility,
+    /// Not describe method body, if is abstract.
+    pub r#abstract: bool,
 }
 
 impl From<(FunctionBuilder<'_>, MethodFlags)> for Method {
@@ -448,6 +456,7 @@ impl From<(FunctionBuilder<'_>, MethodFlags)> for Method {
             ty: flags.into(),
             r#static: flags.contains(MethodFlags::Static),
             visibility: flags.into(),
+            r#abstract: flags.contains(MethodFlags::Abstract),
         }
     }
 }
@@ -685,6 +694,7 @@ mod tests {
                 retval: Option::None,
                 r#static: false,
                 visibility: Visibility::Protected,
+                r#abstract: false
             }
         );
     }

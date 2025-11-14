@@ -9,7 +9,7 @@ use crate::{
     exception::PhpException,
     ffi::{
         zend_declare_class_constant, zend_declare_property, zend_do_implement_interface,
-        zend_register_internal_class_ex,
+        zend_register_internal_class_ex, zend_register_internal_interface,
     },
     flags::{ClassFlags, MethodFlags, PropertyFlags},
     types::{ZendClassObject, ZendObject, ZendStr, Zval},
@@ -56,6 +56,12 @@ impl ClassBuilder {
             register: None,
             docs: &[],
         }
+    }
+
+    /// Return PHP class flags
+    #[must_use]
+    pub fn get_flags(&self) -> u32 {
+        self.ce.ce_flags
     }
 
     /// Sets the class builder to extend another class.
@@ -238,16 +244,26 @@ impl ClassBuilder {
             "Class name in builder does not match class name in `impl RegisteredClass`."
         );
         self.object_override = Some(create_object::<T>);
+        let is_interface = T::FLAGS.contains(ClassFlags::Interface);
 
         let (func, visibility) = if let Some(ConstructorMeta {
             build_fn, flags, ..
         }) = T::constructor()
         {
-            let func = FunctionBuilder::new("__construct", constructor::<T>);
+            let func = if is_interface {
+                FunctionBuilder::new_abstract("__construct")
+            } else {
+                FunctionBuilder::new("__construct", constructor::<T>)
+            };
+
             (build_fn(func), flags.unwrap_or(MethodFlags::Public))
         } else {
             (
-                FunctionBuilder::new("__construct", constructor::<T>),
+                if is_interface {
+                    FunctionBuilder::new_abstract("__construct")
+                } else {
+                    FunctionBuilder::new("__construct", constructor::<T>)
+                },
                 MethodFlags::Public,
             )
         };
@@ -306,16 +322,24 @@ impl ClassBuilder {
         let func = Box::into_raw(methods.into_boxed_slice()) as *const FunctionEntry;
         self.ce.info.internal.builtin_functions = func;
 
-        let class = unsafe {
-            zend_register_internal_class_ex(
-                &raw mut self.ce,
-                match self.extends {
-                    Some((ptr, _)) => ptr::from_ref(ptr()).cast_mut(),
-                    None => std::ptr::null_mut(),
-                },
-            )
-            .as_mut()
-            .ok_or(Error::InvalidPointer)?
+        let class = if self.ce.flags().contains(ClassFlags::Interface) {
+            unsafe {
+                zend_register_internal_interface(&raw mut self.ce)
+                    .as_mut()
+                    .ok_or(Error::InvalidPointer)?
+            }
+        } else {
+            unsafe {
+                zend_register_internal_class_ex(
+                    &raw mut self.ce,
+                    match self.extends {
+                        Some((ptr, _)) => ptr::from_ref(ptr()).cast_mut(),
+                        None => std::ptr::null_mut(),
+                    },
+                )
+                .as_mut()
+                .ok_or(Error::InvalidPointer)?
+            }
         };
 
         // disable serialization if the class has an associated object
@@ -464,6 +488,14 @@ mod tests {
     #[test]
     fn test_registration() {
         let class = ClassBuilder::new("Foo").registration(|_| {});
+        assert!(class.register.is_some());
+    }
+
+    #[test]
+    fn test_registration_interface() {
+        let class = ClassBuilder::new("Foo")
+            .flags(ClassFlags::Interface)
+            .registration(|_| {});
         assert!(class.register.is_some());
     }
 
