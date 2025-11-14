@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.5](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-derive-v0.11.4...ext-php-rs-derive-v0.11.5) - 2025-11-14
+
+### Added
+- *(interface)* Add support for interfaces (by @Norbytus) [[#533](https://github.com/davidcole1340/ext-php-rs/issues/533)] 
+
+### Other
+- *(deps)* Update convert_case requirement from 0.8.0 to 0.9.0 (by @dependabot[bot])
+- *(rust)* Bump Rust edtion to 2024 (by @ptondereau)
+- Add musl build step ([#561](https://github.com/extphprs/ext-php-rs/pull/561)) (by @ptondereau) [[#561](https://github.com/davidcole1340/ext-php-rs/issues/561)] 
 ## [0.11.4](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-derive-v0.11.3...ext-php-rs-derive-v0.11.4) - 2025-10-29
 
 ### Other

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.15.2](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.15.1...ext-php-rs-v0.15.2) - 2025-11-14
+
+### Added
+- *(builders)* Add send_headers setter to SapiBuilder (by @Qard)
+- *(interface)* Add support for interfaces (by @Norbytus) [[#533](https://github.com/davidcole1340/ext-php-rs/issues/533)] 
+
+### Fixed
+- *(release-plz)* Update workflow to run release-plz ([#578](https://github.com/extphprs/ext-php-rs/pull/578)) (by @ptondereau) [[#578](https://github.com/davidcole1340/ext-php-rs/issues/578)] 
+- *(releaze-plz)* Trusted publishing token ([#579](https://github.com/extphprs/ext-php-rs/pull/579)) (by @ptondereau) [[#579](https://github.com/davidcole1340/ext-php-rs/issues/579)] 
+
+### Other
+- *(deps)* Bump JamesIves/github-pages-deploy-action (by @dependabot[bot])
+- *(deps)* Update convert_case requirement from 0.8.0 to 0.9.0 (by @dependabot[bot])
+- *(deps)* Update libloading requirement from 0.8 to 0.9 (by @dependabot[bot])
+- *(docs)* Fix docs workflow permissions (by @Xenira)
+- *(release)* Pass github pat to release workflow (by @Xenira)
+- *(release)* Fix permissions again (by @Xenira)
+- *(release)* Add missing permissions to release trigger (by @Xenira) [[#580](https://github.com/davidcole1340/ext-php-rs/issues/580)] 
+- *(release)* Trigger release via reusable workflow (by @Xenira) [[#579](https://github.com/davidcole1340/ext-php-rs/issues/579)] [[#578](https://github.com/davidcole1340/ext-php-rs/issues/578)] 
+- Add musl build step ([#561](https://github.com/extphprs/ext-php-rs/pull/561)) (by @ptondereau) [[#561](https://github.com/davidcole1340/ext-php-rs/issues/561)] 
+- Restructure master and pr workflows (by @Xenira)
 ## [0.15.1](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.15.0...ext-php-rs-v0.15.1) - 2025-10-29
 
 ### Other
