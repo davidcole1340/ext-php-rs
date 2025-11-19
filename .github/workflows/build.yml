@@ -169,8 +169,11 @@ jobs:
         if: "!(contains(matrix.os, 'macos') && matrix.rust == 'nightly')"
         run: cargo test --release --workspace --features closure,anyhow,runtime --no-fail-fast
   test-embed:
-    name: Test with embed
+    name: Test with embed (${{ matrix.phpts }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        phpts: [ts, nts]
     env:
       clang: "17"
       php_version: "8.4"
@@ -183,10 +186,8 @@ jobs:
         with:
           php-version: ${{ env.php_version }}
         env:
+          phpts: ${{ matrix.phpts }}
           debug: true
-
-      - name: Install libphp-embed
-        run: sudo apt update -y && sudo apt install -y libphp8.4-embed
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
