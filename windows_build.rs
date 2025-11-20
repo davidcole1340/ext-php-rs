@@ -28,6 +28,35 @@ impl<'a> Provider<'a> {
             .to_string_lossy()
             .to_string())
     }
+
+    /// Returns Windows SDK include paths for bindgen's clang.
+    /// PHP 8.5+ requires intsafe.h from the Windows SDK.
+    pub fn get_windows_sdk_includes(&self) -> Vec<PathBuf> {
+        // Use cc crate's Windows registry detection to find SDK paths
+        let target =
+            std::env::var("TARGET").unwrap_or_else(|_| "x86_64-pc-windows-msvc".to_string());
+
+        if let Ok(tool) = cc::windows_registry::find_tool(&target, "cl.exe") {
+            // Extract include paths from the MSVC tool environment
+            tool.env()
+                .iter()
+                .filter(|(key, _)| key == &"INCLUDE")
+                .flat_map(|(_, value)| {
+                    value
+                        .to_str()
+                        .map(|s| {
+                            s.split(';')
+                                .filter(|p| !p.is_empty())
+                                .map(PathBuf::from)
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default()
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
 }
 
 impl<'a> PHPProvider<'a> for Provider<'a> {
@@ -63,6 +92,16 @@ impl<'a> PHPProvider<'a> for Provider<'a> {
             defines.push(("ZTS", "1"));
         }
         Ok(defines)
+    }
+
+    fn get_extra_clang_args(&self) -> Result<Vec<String>> {
+        // PHP 8.5+ on Windows requires intsafe.h from the Windows SDK
+        // Add Windows SDK include paths so bindgen's clang can find system headers
+        let sdk_includes = self.get_windows_sdk_includes();
+        Ok(sdk_includes
+            .iter()
+            .map(|path| format!("-I{}", path.display()))
+            .collect())
     }
 
     fn write_bindings(&self, bindings: String, writer: &mut impl Write) -> Result<()> {

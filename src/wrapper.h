@@ -8,6 +8,7 @@
 // generate bindings. To work around this, we include the header file containing
 // the `ZEND_FASTCALL` macro but not before undefining `__clang__` to pretend we
 // are compiling on MSVC.
+
 #if defined(_MSC_VER) && defined(__clang__)
 #undef __clang__
 #include "zend_portability.h"

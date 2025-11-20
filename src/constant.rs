@@ -107,13 +107,26 @@ impl IntoConst for &str {
         flags: GlobalConstantFlags,
     ) -> Result<()> {
         unsafe {
-            zend_register_string_constant(
-                CString::new(name)?.as_ptr(),
-                name.len() as _,
-                CString::new(*self)?.as_ptr(),
-                flags.bits().try_into()?,
-                module_number,
-            );
+            #[cfg(php85)]
+            {
+                let _ = zend_register_string_constant(
+                    CString::new(name)?.as_ptr(),
+                    name.len() as _,
+                    CString::new(*self)?.as_ptr(),
+                    flags.bits().try_into()?,
+                    module_number,
+                );
+            }
+            #[cfg(not(php85))]
+            {
+                zend_register_string_constant(
+                    CString::new(name)?.as_ptr(),
+                    name.len() as _,
+                    CString::new(*self)?.as_ptr(),
+                    flags.bits().try_into()?,
+                    module_number,
+                );
+            }
         };
         Ok(())
     }
@@ -127,13 +140,26 @@ impl IntoConst for bool {
         flags: GlobalConstantFlags,
     ) -> Result<()> {
         unsafe {
-            zend_register_bool_constant(
-                CString::new(name)?.as_ptr(),
-                name.len() as _,
-                *self,
-                flags.bits().try_into()?,
-                module_number,
-            );
+            #[cfg(php85)]
+            {
+                let _ = zend_register_bool_constant(
+                    CString::new(name)?.as_ptr(),
+                    name.len() as _,
+                    *self,
+                    flags.bits().try_into()?,
+                    module_number,
+                );
+            }
+            #[cfg(not(php85))]
+            {
+                zend_register_bool_constant(
+                    CString::new(name)?.as_ptr(),
+                    name.len() as _,
+                    *self,
+                    flags.bits().try_into()?,
+                    module_number,
+                );
+            }
         };
         Ok(())
     }
@@ -150,15 +176,29 @@ macro_rules! into_const_num {
                 module_number: i32,
                 flags: GlobalConstantFlags,
             ) -> Result<()> {
-                Ok(unsafe {
-                    $fn(
-                        CString::new(name)?.as_ptr(),
-                        name.len() as _,
-                        (*self).into(),
-                        flags.bits().try_into()?,
-                        module_number,
-                    )
-                })
+                unsafe {
+                    #[cfg(php85)]
+                    {
+                        let _ = $fn(
+                            CString::new(name)?.as_ptr(),
+                            name.len() as _,
+                            (*self).into(),
+                            flags.bits().try_into()?,
+                            module_number,
+                        );
+                    }
+                    #[cfg(not(php85))]
+                    {
+                        $fn(
+                            CString::new(name)?.as_ptr(),
+                            name.len() as _,
+                            (*self).into(),
+                            flags.bits().try_into()?,
+                            module_number,
+                        );
+                    }
+                };
+                Ok(())
             }
         }
     };
