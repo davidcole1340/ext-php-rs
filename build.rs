@@ -34,6 +34,12 @@ pub trait PHPProvider<'a>: Sized {
     #[allow(clippy::missing_errors_doc)]
     fn get_defines(&self) -> Result<Vec<(&'static str, &'static str)>>;
 
+    /// Retrieve extra clang arguments for bindgen (e.g., system include paths).
+    #[allow(clippy::missing_errors_doc)]
+    fn get_extra_clang_args(&self) -> Result<Vec<String>> {
+        Ok(Vec::new())
+    }
+
     /// Writes the bindings to a file.
     #[allow(clippy::missing_errors_doc)]
     fn write_bindings(&self, bindings: String, writer: &mut impl Write) -> Result<()> {
@@ -211,7 +217,11 @@ fn build_embed(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<()> {
 }
 
 /// Generates bindings to the Zend API.
-fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<String> {
+fn generate_bindings(
+    defines: &[(&str, &str)],
+    includes: &[PathBuf],
+    extra_clang_args: &[String],
+) -> Result<String> {
     let mut bindgen = bindgen::Builder::default();
 
     #[cfg(feature = "embed")]
@@ -227,6 +237,7 @@ fn generate_bindings(defines: &[(&str, &str)], includes: &[PathBuf]) -> Result<S
                 .map(|inc| format!("-I{}", inc.to_string_lossy())),
         )
         .clang_args(defines.iter().map(|(var, val)| format!("-D{var}={val}")))
+        .clang_args(extra_clang_args)
         .formatter(bindgen::Formatter::Rustfmt)
         .no_copy("php_ini_builder")
         .no_copy("_zval_struct")
@@ -268,6 +279,7 @@ enum ApiVersion {
     Php82 = 2022_08_29,
     Php83 = 2023_08_31,
     Php84 = 2024_09_24,
+    Php85 = 2025_09_25,
 }
 
 impl ApiVersion {
@@ -285,7 +297,7 @@ impl ApiVersion {
 
     /// Returns the maximum API version supported by ext-php-rs.
     pub const fn max() -> Self {
-        ApiVersion::Php84
+        ApiVersion::Php85
     }
 
     pub fn versions() -> Vec<Self> {
@@ -295,6 +307,7 @@ impl ApiVersion {
             ApiVersion::Php82,
             ApiVersion::Php83,
             ApiVersion::Php84,
+            ApiVersion::Php85,
         ]
     }
 
@@ -313,6 +326,7 @@ impl ApiVersion {
             ApiVersion::Php82 => "php82",
             ApiVersion::Php83 => "php83",
             ApiVersion::Php84 => "php84",
+            ApiVersion::Php85 => "php85",
         }
     }
 
@@ -323,6 +337,7 @@ impl ApiVersion {
             ApiVersion::Php82 => "EXT_PHP_RS_PHP_82",
             ApiVersion::Php83 => "EXT_PHP_RS_PHP_83",
             ApiVersion::Php84 => "EXT_PHP_RS_PHP_84",
+            ApiVersion::Php85 => "EXT_PHP_RS_PHP_85",
         }
     }
 }
@@ -344,7 +359,10 @@ impl TryFrom<u32> for ApiVersion {
             x if ((ApiVersion::Php83 as u32)..(ApiVersion::Php84 as u32)).contains(&x) => {
                 Ok(ApiVersion::Php83)
             }
-            x if (ApiVersion::Php84 as u32) == x => Ok(ApiVersion::Php84),
+            x if ((ApiVersion::Php84 as u32)..(ApiVersion::Php85 as u32)).contains(&x) => {
+                Ok(ApiVersion::Php84)
+            }
+            x if (ApiVersion::Php85 as u32) == x => Ok(ApiVersion::Php85),
             version => Err(anyhow!(
                 "The current version of PHP is not supported. Current PHP API version: {}, requires a version between {} and {}",
                 version,
@@ -371,7 +389,7 @@ fn check_php_version(info: &PHPInfo) -> Result<()> {
     // The PHP version cfg flags should also stack - if you compile on PHP 8.2 you
     // should get both the `php81` and `php82` flags.
     println!(
-        "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php_zts, php_debug, docs)"
+        "cargo::rustc-check-cfg=cfg(php80, php81, php82, php83, php84, php85, php_zts, php_debug, docs)"
     );
 
     if version == ApiVersion::Php80 {
@@ -416,6 +434,7 @@ fn main() -> Result<()> {
         println!("cargo:rustc-cfg=php82");
         println!("cargo:rustc-cfg=php83");
         println!("cargo:rustc-cfg=php84");
+        println!("cargo:rustc-cfg=php85");
         std::fs::copy("docsrs_bindings.rs", out_path)
             .expect("failed to copy docs.rs stub bindings to out directory");
         return Ok(());
@@ -428,6 +447,7 @@ fn main() -> Result<()> {
     let includes = provider.get_includes()?;
     let mut defines = provider.get_defines()?;
     add_php_version_defines(&mut defines, &info)?;
+    let extra_clang_args = provider.get_extra_clang_args()?;
 
     check_php_version(&info)?;
     build_wrapper(&defines, &includes)?;
@@ -435,7 +455,7 @@ fn main() -> Result<()> {
     #[cfg(feature = "embed")]
     build_embed(&defines, &includes)?;
 
-    let bindings = generate_bindings(&defines, &includes)?;
+    let bindings = generate_bindings(&defines, &includes, &extra_clang_args)?;
 
     let out_file =
         File::create(&out_path).context("Failed to open output bindings file for writing")?;
