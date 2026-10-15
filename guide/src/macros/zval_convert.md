@@ -103,7 +103,8 @@ variants could not be extracted from the zval.
 The ordering of the variants in the enum is important, as the `FromZval`
 implementation will attempt to parse the zval data in order. For example, if you
 put a `String` variant before an integer variant, the integer would be converted
-to a string and passed as the string variant.
+to a string and passed as the string variant. Because an `f64` or `f32` variant
+also accepts an integer, the integer variants must come before it.
 
 ### Examples
 

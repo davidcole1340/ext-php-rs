@@ -13,7 +13,8 @@ long is always signed, and the size will be 32-bits on 32-bit platforms and
 64-bits on 64-bit platforms.
 
 Floating point numbers are always stored in a `double` type (`f64`), regardless
-of platform. Note that converting a zval into a `f32` will lose accuracy.
+of platform. Note that converting a zval into a `f32` will lose accuracy. An `f32`
+or `f64` parameter also accepts a PHP `int`, the same as a PHP `float` parameter.
 
 This means that converting `i64`, `u32`, `u64`, `isize` and `usize` _can_ fail
 depending on the value and the platform, which is why all zval conversions are

@@ -9,7 +9,7 @@ use crate::{
     exception::PhpException,
     flags::{DataType, MethodFlags},
     types::Zval,
-    zend::ExecuteData,
+    zend::{ExecuteData, ce},
     zend_fastcall,
 };
 
@@ -310,7 +310,7 @@ macro_rules! php_closure_impl {
                         match $gen.consume() {
                             Ok(val) => val,
                             _ => {
-                                PhpException::from_message(concat!("Invalid parameter type for `", stringify!($gen), "`.").into()).throw();
+                                PhpException::new(concat!("Invalid parameter type for `", stringify!($gen), "`.").into(), 0, ce::type_error()).throw();
                                 return;
                             }
                         }

@@ -57,8 +57,10 @@ impl ::ext_php_rs::internal::function::PhpFunction for _internal_greet {
                                             match __value {
                                                 Some(value) => value,
                                                 None => {
-                                                    ::ext_php_rs::exception::PhpException::from_message(
+                                                    ::ext_php_rs::exception::PhpException::new(
                                                             "Invalid value given for argument `name`.".into(),
+                                                            0,
+                                                            ::ext_php_rs::zend::ce::type_error(),
                                                         )
                                                         .throw();
                                                     return;
@@ -85,8 +87,10 @@ impl ::ext_php_rs::internal::function::PhpFunction for _internal_greet {
                                             match __value {
                                                 Some(value) => value,
                                                 None => {
-                                                    ::ext_php_rs::exception::PhpException::from_message(
+                                                    ::ext_php_rs::exception::PhpException::new(
                                                             "Invalid value given for argument `age`.".into(),
+                                                            0,
+                                                            ::ext_php_rs::zend::ce::type_error(),
                                                         )
                                                         .throw();
                                                     return;
@@ -120,8 +124,10 @@ impl ::ext_php_rs::internal::function::PhpFunction for _internal_greet {
                                             match __value {
                                                 Some(value) => value,
                                                 None => {
-                                                    ::ext_php_rs::exception::PhpException::from_message(
+                                                    ::ext_php_rs::exception::PhpException::new(
                                                             "Invalid value given for argument `times`.".into(),
+                                                            0,
+                                                            ::ext_php_rs::zend::ce::type_error(),
                                                         )
                                                         .throw();
                                                     return;
@@ -200,7 +206,7 @@ impl ::ext_php_rs::internal::function::PhpFunction for _internal_sum {
                                             if parse.is_err() {
                                                 return;
                                             }
-                                            let __variadic_rest = rest.variadic_vals::<i64>();
+                                            let __variadic_rest = rest.try_variadic_vals::<i64>();
                                             sum(
                                                 {
                                                     match match first.zval() {
@@ -215,15 +221,30 @@ impl ::ext_php_rs::internal::function::PhpFunction for _internal_sum {
                                                     } {
                                                         Some(value) => value,
                                                         None => {
-                                                            ::ext_php_rs::exception::PhpException::from_message(
+                                                            ::ext_php_rs::exception::PhpException::new(
                                                                     "Invalid value given for argument `first`.".into(),
+                                                                    0,
+                                                                    ::ext_php_rs::zend::ce::type_error(),
                                                                 )
                                                                 .throw();
                                                             return;
                                                         }
                                                     }
                                                 },
-                                                { __variadic_rest.as_slice() },
+                                                {
+                                                    match __variadic_rest.as_deref() {
+                                                        Some(values) => values,
+                                                        None => {
+                                                            ::ext_php_rs::exception::PhpException::new(
+                                                                    "Invalid value given for argument `rest`.".into(),
+                                                                    0,
+                                                                    ::ext_php_rs::zend::ce::type_error(),
+                                                                )
+                                                                .throw();
+                                                            return;
+                                                        }
+                                                    }
+                                                },
                                             )
                                         };
                                         if let Err(e) = result.set_zval(retval, false) {
@@ -300,8 +321,10 @@ impl ::ext_php_rs::internal::function::PhpFunction for _internal_bump {
                                             match __value {
                                                 Some(value) => value,
                                                 None => {
-                                                    ::ext_php_rs::exception::PhpException::from_message(
+                                                    ::ext_php_rs::exception::PhpException::new(
                                                             "Invalid value given for argument `target`.".into(),
+                                                            0,
+                                                            ::ext_php_rs::zend::ce::type_error(),
                                                         )
                                                         .throw();
                                                     return;

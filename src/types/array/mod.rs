@@ -893,7 +893,11 @@ impl<'a> FromZvalMut<'a> for Option<&'a mut ZendHashTable> {
     const BY_REF: bool = true;
 
     fn from_zval_mut(zval: &'a mut Zval) -> Option<Self> {
-        Some(zval.array_mut())
+        if zval.dereference().is_null() {
+            Some(None)
+        } else {
+            zval.array_mut().map(Some)
+        }
     }
 
     fn from_missing() -> Option<Self> {

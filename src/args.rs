@@ -128,7 +128,9 @@ impl<'a> Arg<'a> {
             .and_then(|zv| T::from_zval_mut(zv.dereference_mut()))
     }
 
-    /// Retrice all the variadic values for this Rust argument.
+    /// Gets all the variadic values for this Rust argument. The result does not
+    /// contain a value that cannot be converted into `T`.
+    /// [`try_variadic_vals`](Self::try_variadic_vals) rejects it.
     pub fn variadic_vals<T>(&'a mut self) -> Vec<T>
     where
         T: FromZvalMut<'a>,
@@ -137,6 +139,19 @@ impl<'a> Arg<'a> {
             .iter_mut()
             .filter_map(|zv| zv.as_mut())
             .filter_map(|zv| T::from_zval_mut(zv.dereference_mut()))
+            .collect()
+    }
+
+    /// Gets all the variadic values for this Rust argument. Returns `None` if
+    /// one of the values cannot be converted into `T`.
+    pub fn try_variadic_vals<T>(&'a mut self) -> Option<Vec<T>>
+    where
+        T: FromZvalMut<'a>,
+    {
+        self.variadic_zvals
+            .iter_mut()
+            .filter_map(|zv| zv.as_mut())
+            .map(|zv| T::from_zval_mut(zv.dereference_mut()))
             .collect()
     }
 
@@ -474,6 +489,18 @@ mod tests {
 
         let result: Vec<i32> = arg.variadic_vals();
         assert_eq!(result, vec![42, 43]);
+    }
+
+    #[test]
+    #[cfg(feature = "embed")]
+    fn try_variadic_vals_fails_when_a_value_does_not_convert() {
+        let mut arg = Arg::new("test", DataType::Long).is_variadic();
+        let mut long = Zval::from(42);
+        let mut double = Zval::from(1.5);
+        arg.variadic_zvals.push(Some(&mut long));
+        arg.variadic_zvals.push(Some(&mut double));
+
+        assert_eq!(arg.try_variadic_vals::<i64>(), None);
     }
 
     #[test]

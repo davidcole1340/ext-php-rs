@@ -4,7 +4,8 @@ Used to annotate functions which should be exported to PHP. Note that this
 should not be used on class methods - see the `#[php_impl]` macro for that.
 
 See the [list of types](../types/index.md) that are valid as parameter and
-return types.
+return types. If the caller passes a value that the parameter type does not
+accept, the call throws a `TypeError`.
 
 A function accepts the `name`, `change_case`, `defaults` and `optional`
 options. PHP functions have no visibility, so `#[php(vis = "...")]` is a
@@ -140,7 +141,8 @@ pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
 
 A slice parameter `&[T]` in last position is variadic, the equivalent of the PHP
 `...$args` syntax. `T` is any argument type: `&[&Zval]` receives the raw values,
-`&[i64]` receives converted integers. A variadic parameter that is not the last
+`&[i64]` receives converted integers. If one of the values cannot be converted
+into `T`, the call throws a `TypeError`. A variadic parameter that is not the last
 parameter is a compile error. The slice must be spelled in the signature; a type
 alias that hides the slice is not detected.
 

@@ -68,6 +68,15 @@ assert(test_variadic_sum_all(10, 20, 30) === 60, 'Sum should be 60');
 assert(test_variadic_sum_all(-5, 5) === 0, 'Negative and positive should cancel');
 assert(test_variadic_sum_all(100, 'not a number', 200) === 300, 'Should skip non-numeric values');
 
+assert(test_variadic_ints(1, 2, 3) === 6);
+assert_type_error(fn() => test_variadic_ints(1, 'x', 3));
+try {
+    test_variadic_ints('x', 2, 'y');
+    assert(false, 'a value of the wrong type must throw');
+} catch (TypeError $e) {
+    assert(str_contains($e->getMessage(), '`first`'), $e->getMessage());
+}
+
 // Test variadic with optional parameter
 assert(test_variadic_optional('req', null) === 'req-none-0', 'Optional null, no extras');
 assert(test_variadic_optional('req', 42) === 'req-42-0', 'Optional provided, no extras');

@@ -10,5 +10,5 @@ assert(test_binary_slice_sum(pack('P', PHP_INT_MAX)) === PHP_INT_MAX);
 try {
     test_binary_slice_len('1234567');
     assert(false, 'a 7-byte string must be rejected, not truncated');
-} catch (Exception $e) {
+} catch (TypeError $e) {
 }

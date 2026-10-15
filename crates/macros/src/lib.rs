@@ -1425,7 +1425,8 @@ fn php_interface_internal(args: TokenStream2, input: TokenStream2) -> TokenStrea
 /// should not be used on class methods - see the `#[php_impl]` macro for that.
 ///
 /// See the [list of types](../types/index.md) that are valid as parameter and
-/// return types.
+/// return types. If the caller passes a value that the parameter type does not
+/// accept, the call throws a `TypeError`.
 ///
 /// A function accepts the `name`, `change_case`, `defaults` and `optional`
 /// options. PHP functions have no visibility, so `#[php(vis = "...")]` is a
@@ -1562,9 +1563,10 @@ fn php_interface_internal(args: TokenStream2, input: TokenStream2) -> TokenStrea
 ///
 /// A slice parameter `&[T]` in last position is variadic, the equivalent of the
 /// PHP `...$args` syntax. `T` is any argument type: `&[&Zval]` receives the raw
-/// values, `&[i64]` receives converted integers. A variadic parameter that is
-/// not the last parameter is a compile error. The slice must be spelled in the
-/// signature; a type alias that hides the slice is not detected.
+/// values, `&[i64]` receives converted integers. If one of the values cannot be
+/// converted into `T`, the call throws a `TypeError`. A variadic parameter that
+/// is not the last parameter is a compile error. The slice must be spelled in
+/// the signature; a type alias that hides the slice is not detected.
 ///
 /// ```rust,no_run,ignore
 /// # #![cfg_attr(windows, feature(abi_vectorcall))]
@@ -2457,7 +2459,9 @@ fn php_extern_internal(args: TokenStream2, input: TokenStream2) -> TokenStream2 
 /// The ordering of the variants in the enum is important, as the `FromZval`
 /// implementation will attempt to parse the zval data in order. For example, if
 /// you put a `String` variant before an integer variant, the integer would be
-/// converted to a string and passed as the string variant.
+/// converted to a string and passed as the string variant. Because an `f64` or
+/// `f32` variant also accepts an integer, the integer variants must come before
+/// it.
 ///
 /// ### Examples
 ///
