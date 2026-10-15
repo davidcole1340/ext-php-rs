@@ -203,7 +203,8 @@ impl DevelPack {
             let inner_name = zip_content
                 .file_names()
                 .next()
-                .and_then(|f| f.split('/').next())
+                .transpose()?
+                .and_then(|f| f.split('/').next().map(str::to_owned))
                 .context("Failed to get development pack name")?;
             let devpack_path = out_dir.join(inner_name);
             let _ = std::fs::remove_dir_all(&devpack_path);
