@@ -597,11 +597,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "embed")]
     fn option_rejects_a_value_the_inner_type_rejects() {
         assert_eq!(<Option<i64> as FromZval>::from_zval(&Zval::from(1.5)), None);
     }
 
     #[test]
+    #[cfg(feature = "embed")]
     fn option_reads_null_as_none_unless_the_inner_type_accepts_null() {
         assert_eq!(
             <Option<i64> as FromZval>::from_zval(&Zval::new()),

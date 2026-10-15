@@ -492,6 +492,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "embed")]
     fn try_variadic_vals_fails_when_a_value_does_not_convert() {
         let mut arg = Arg::new("test", DataType::Long).is_variadic();
         let mut long = Zval::from(42);

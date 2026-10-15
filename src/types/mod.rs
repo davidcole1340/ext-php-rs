@@ -69,6 +69,7 @@ impl FromZval<'_> for f32 {
 }
 
 #[cfg(test)]
+#[cfg(feature = "embed")]
 mod tests {
     use super::*;
 
