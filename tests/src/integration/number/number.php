@@ -16,3 +16,4 @@ assert_exception_thrown(fn() => test_number_unsigned(-12));
 assert(round(test_number_float(-1.2), 2) === round(-1.2, 2));
 assert(round(test_number_float(0.0), 2) === round(0.0, 2));
 assert(round(test_number_float(1.2), 2) === round(1.2, 2));
+assert(test_number_float(1) === 1.0);

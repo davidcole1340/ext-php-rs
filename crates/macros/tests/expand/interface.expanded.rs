@@ -636,13 +636,10 @@ for ::ext_php_rs::internal::class::PhpClassImplCollector<MyImpl> {
                                                     } {
                                                         Some(value) => value,
                                                         None => {
-                                                            let msg = ::alloc::__export::must_use({
-                                                                ::alloc::fmt::format(
-                                                                    format_args!("Invalid value for argument `{0}`", "arg"),
-                                                                )
-                                                            });
-                                                            ::ext_php_rs::exception::PhpException::from_message(
-                                                                    msg.into(),
+                                                            ::ext_php_rs::exception::PhpException::new(
+                                                                    "Invalid value given for argument `arg`.".into(),
+                                                                    0,
+                                                                    ::ext_php_rs::zend::ce::type_error(),
                                                                 )
                                                                 .throw();
                                                             return;

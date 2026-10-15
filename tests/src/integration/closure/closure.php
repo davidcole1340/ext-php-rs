@@ -6,6 +6,7 @@ $v = test_closure();
 
 // Closure
 assert($v('works') === 'works');
+assert_type_error(fn() => $v(42));
 
 // Closure once
 $closure = test_closure_once('test');

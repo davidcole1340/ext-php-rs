@@ -51,7 +51,9 @@ where
     const NULLABLE: bool = true;
 
     fn from_zval(zval: &'a Zval) -> Option<Self> {
-        Some(T::from_zval(zval))
+        T::from_zval(zval)
+            .map(Some)
+            .or_else(|| zval.dereference().is_null().then_some(None))
     }
 
     fn from_missing() -> Option<Self> {
@@ -592,5 +594,22 @@ mod tests {
             Some(None)
         );
         assert_eq!(<i64 as FromZvalMut>::from_missing(), None);
+    }
+
+    #[test]
+    fn option_rejects_a_value_the_inner_type_rejects() {
+        assert_eq!(<Option<i64> as FromZval>::from_zval(&Zval::from(1.5)), None);
+    }
+
+    #[test]
+    fn option_reads_null_as_none_unless_the_inner_type_accepts_null() {
+        assert_eq!(
+            <Option<i64> as FromZval>::from_zval(&Zval::new()),
+            Some(None)
+        );
+        assert_eq!(
+            <Option<Option<i64>> as FromZval>::from_zval(&Zval::new()),
+            Some(Some(None))
+        );
     }
 }

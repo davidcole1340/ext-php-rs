@@ -13,6 +13,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{FnArg, ImplItem, ItemImpl, Pat, ReturnType};
 
+use crate::function::invalid_argument;
 use crate::interface::method_name_const;
 use crate::parsing::{RenameRule, ident_to_php_name, reject_php_attrs};
 use crate::prelude::*;
@@ -200,7 +201,7 @@ fn generate_method_builder(
     let arg_value_accessors: Vec<_> = args
         .iter()
         .map(|(name, ty)| {
-            let php_name = ident_to_php_name(name);
+            let invalid = invalid_argument(name);
             quote! {
                 let #name: #ty = match match #name.zval() {
                     Some(zval) => <#ty as ::ext_php_rs::convert::FromZvalMut>::from_zval_mut(zval.dereference_mut()),
@@ -208,9 +209,7 @@ fn generate_method_builder(
                 } {
                     Some(value) => value,
                     None => {
-                        let msg = format!("Invalid value for argument `{}`", #php_name);
-                        ::ext_php_rs::exception::PhpException::from_message(msg.into())
-                            .throw();
+                        #invalid.throw();
                         return;
                     }
                 };

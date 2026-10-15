@@ -1,5 +1,7 @@
 <?php
 
+require __DIR__ . '/../_utils.php';
+
 // Tests sequential arrays
 $array = test_array(['a', 'b', 'c', 'd']);
 unset($array[2]);
@@ -122,6 +124,8 @@ assert(array_key_exists('added_by_rust', $mut_arr), 'Rust should have added a ke
 assert($mut_arr['added_by_rust'] === 'value', 'Added value should be correct');
 $null_arr = null;
 assert(test_optional_array_mut_ref($null_arr) === -1, 'Option<&mut ZendHashTable> should accept null');
+$not_an_array = 'text';
+assert_type_error(fn() => test_optional_array_mut_ref($not_an_array));
 
 // Test ZendEmptyArray - returns an empty immutable shared array
 $empty = test_empty_array();

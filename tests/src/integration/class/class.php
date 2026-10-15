@@ -261,6 +261,7 @@ assert(count($arr) === 3, 'Each property should appear once: ' . var_export($arr
 assert($arr["\0TestPropertyVisibility\0privateStr"] === 'new_private');
 
 $optional = new TestOptionalProp('set');
+assert_type_error(fn() => new TestOptionalProp(42));
 assert((array) $optional === ['opt' => 'set']);
 assert(isset($optional->opt));
 $optional->clear();

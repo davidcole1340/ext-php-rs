@@ -9,10 +9,14 @@ is also able to be converted to/from a zval.
 | Yes           | No             | Yes             | No               | Depends on `T`, `null` for `None`. |
 
 An `Option<T>` parameter is nullable. If the caller passes `null`, the function
-receives `None`. A trailing `Option<T>` parameter is also optional. If the caller
-omits it, the function receives `None`, and PHP reflection reports a default of
-`null`. The macro reads this from `FromZvalMut::NULLABLE`, so a type alias or a
-qualified path behaves the same way as `Option<T>`.
+receives `None`. If the caller passes a value that `T` does not accept, the call
+throws a `TypeError`, the same as for a `T` parameter. If `T` accepts `null`, as
+`&Zval` does, a `null` argument gives `Some`.
+
+A trailing `Option<T>` parameter is also optional. If the caller omits it, the
+function receives `None`, and PHP reflection reports a default of `null`. The
+macro reads this from `FromZvalMut::NULLABLE`, so a type alias or a qualified path
+behaves the same way as `Option<T>`.
 
 Returning `Option<T>` is a nullable return type. Returning `None` will return
 null to PHP.

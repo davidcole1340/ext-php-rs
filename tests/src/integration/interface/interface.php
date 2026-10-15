@@ -1,6 +1,8 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
+
+require __DIR__ . '/../_utils.php';
 
 // Test existing functionality: Interface existence and explicit extends
 assert(interface_exists('ExtPhpRs\Interface\EmptyObjectInterface'), 'Interface not exist');
@@ -200,6 +202,7 @@ assert($greeter instanceof ExtPhpRs\Interface\OptionalGreeting);
 assert($greeter->greetOptional() === 'Hi World');
 assert($greeter->greetOptional(null) === 'Hi World');
 assert($greeter->greetOptional('Hello') === 'Hello World');
+assert_type_error(fn() => $greeter->greetOptional(42));
 $param = ( new ReflectionMethod($greeter, 'greetOptional') )->getParameters()[0];
 assert($param->allowsNull());
 assert($param->isOptional());

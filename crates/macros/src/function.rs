@@ -369,18 +369,11 @@ impl<'a> Function<'a> {
         let ident = self.ident;
         let arg_names: Vec<_> = self.args.typed.iter().map(|arg| arg.name).collect();
 
-        let variadic_bindings = self.args.typed.iter().filter_map(|arg| {
-            if arg.variadic {
-                let name = arg.name;
-                let variadic_name = format_ident!("__variadic_{}", name);
-                let clean_ty = arg.clean_ty();
-                Some(quote! {
-                    let #variadic_name = #name.variadic_vals::<#clean_ty>();
-                })
-            } else {
-                None
-            }
-        });
+        let variadic_bindings = self
+            .args
+            .typed
+            .iter()
+            .filter_map(TypedArg::variadic_binding);
 
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(|e| {
@@ -508,10 +501,9 @@ impl<'a> Function<'a> {
             )
         };
 
+        let invalid = invalid_argument(name);
         let throw_invalid = quote! {
-            ::ext_php_rs::exception::PhpException::from_message(
-                concat!("Invalid value given for argument `", stringify!(#name), "`.").into()
-            ).throw();
+            #invalid.throw();
             return;
         };
 
@@ -710,18 +702,11 @@ impl<'a> Function<'a> {
             .iter()
             .map(TypedArg::arg_declaration)
             .collect::<Vec<_>>();
-        let variadic_bindings = self.args.typed.iter().filter_map(|arg| {
-            if arg.variadic {
-                let name = arg.name;
-                let variadic_name = format_ident!("__variadic_{}", name);
-                let clean_ty = arg.clean_ty();
-                Some(quote! {
-                    let #variadic_name = #name.variadic_vals::<#clean_ty>();
-                })
-            } else {
-                None
-            }
-        });
+        let variadic_bindings = self
+            .args
+            .typed
+            .iter()
+            .filter_map(TypedArg::variadic_binding);
         let arg_accessors = self.args.typed.iter().map(|arg| {
             arg.accessor(
                 |e| quote! { return ::ext_php_rs::class::ConstructorResult::Exception(#e); },
@@ -912,6 +897,20 @@ fn is_slice_ref(ty: &Type) -> bool {
     matches!(ty, Type::Reference(reference) if matches!(*reference.elem, Type::Slice(_)))
 }
 
+pub(crate) fn invalid_argument(name: &Ident) -> TokenStream {
+    let message = format!(
+        "Invalid value given for argument `{}`.",
+        ident_to_php_name(name)
+    );
+    quote! {
+        ::ext_php_rs::exception::PhpException::new(
+            #message.into(),
+            0,
+            ::ext_php_rs::zend::ce::type_error(),
+        )
+    }
+}
+
 impl TypedArg<'_> {
     /// Returns a 'clean type' with the lifetimes removed. This allows the type
     /// to be used outside of the original function context.
@@ -965,6 +964,18 @@ impl TypedArg<'_> {
         }
     }
 
+    fn variadic_binding(&self) -> Option<TokenStream> {
+        if !self.variadic {
+            return None;
+        }
+        let name = self.name;
+        let variadic_name = format_ident!("__variadic_{}", name);
+        let ty = self.clean_ty();
+        Some(quote! {
+            let #variadic_name = #name.try_variadic_vals::<#ty>();
+        })
+    }
+
     /// The value of the argument when the caller omitted it: the default when
     /// one is declared, otherwise what the type says (`Some(None)` for
     /// `Option<T>`, `None` for a required type).
@@ -979,19 +990,20 @@ impl TypedArg<'_> {
     /// Get the accessor used to access the value of the argument.
     fn accessor(&self, bail_fn: impl Fn(TokenStream) -> TokenStream) -> TokenStream {
         let name = self.name;
+        let bail_invalid = bail_fn(invalid_argument(name));
         if self.variadic {
             let variadic_name = format_ident!("__variadic_{}", name);
             return quote! {
-                #variadic_name.as_slice()
+                match #variadic_name.as_deref() {
+                    Some(values) => values,
+                    None => {
+                        #bail_invalid
+                    }
+                }
             };
         }
 
         let ty = self.clean_ty();
-        let bail_invalid = bail_fn(quote! {
-            ::ext_php_rs::exception::PhpException::from_message(
-                concat!("Invalid value given for argument `", stringify!(#name), "`.").into()
-            )
-        });
         let reject_null = self.default.as_ref().map(|_| {
             let bail_null = bail_fn(quote! {
                 ::ext_php_rs::exception::PhpException::new(

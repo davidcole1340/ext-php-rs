@@ -63,6 +63,11 @@ pub fn test_variadic_sum_all(nums: &[&Zval]) -> i64 {
 }
 
 #[php_function]
+pub fn test_variadic_ints(first: i64, rest: &[i64]) -> i64 {
+    first + rest.iter().sum::<i64>()
+}
+
+#[php_function]
 pub fn test_variadic_optional(required: String, optional: Option<i64>, extras: &[&Zval]) -> String {
     let opt_str = optional.map_or_else(|| "none".to_string(), |v| v.to_string());
     format!("{required}-{opt_str}-{}", extras.len())
@@ -95,6 +100,7 @@ pub fn build_module(builder: ModuleBuilder) -> ModuleBuilder {
         .function(wrap_function!(test_variadic_types))
         .function(wrap_function!(test_variadic_strings))
         .function(wrap_function!(test_variadic_sum_all))
+        .function(wrap_function!(test_variadic_ints))
         .function(wrap_function!(test_variadic_optional))
         .function(wrap_function!(test_variadic_empty_check))
         .function(wrap_function!(test_variadic_first_last))
