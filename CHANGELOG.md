@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [0.16.3](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.16.2...ext-php-rs-v0.16.3) - 2026-10-15
+
+### Added
+- *(zend)* Add a per-request sapi activate hook ([#816](https://github.com/extphprs/ext-php-rs/pull/816)) (by @ptondereau) [[#816](https://github.com/extphprs/ext-php-rs/issues/816)] 
+- *(zend)* Add response header wrappers ([#814](https://github.com/extphprs/ext-php-rs/pull/814)) (by @ptondereau) [[#814](https://github.com/extphprs/ext-php-rs/issues/814)] 
+
+### Fixed
+- Reject an argument of the wrong type with a TypeError ([#820](https://github.com/extphprs/ext-php-rs/pull/820)) (by @ptondereau) [[#820](https://github.com/extphprs/ext-php-rs/issues/820)] 
+
+### Other
+- *(deps)* Update skeptic requirement from 0.13 to 0.14 ([#817](https://github.com/extphprs/ext-php-rs/pull/817)) (by @dependabot[bot]) [[#817](https://github.com/extphprs/ext-php-rs/issues/817)] 
+- *(deps)* Bump zip to 9.0 ([#821](https://github.com/extphprs/ext-php-rs/pull/821)) (by @ptondereau) [[#821](https://github.com/extphprs/ext-php-rs/issues/821)] 
 ## [0.16.2](https://github.com/extphprs/ext-php-rs/compare/ext-php-rs-v0.16.1...ext-php-rs-v0.16.2) - 2026-10-10
 
 ### Added
