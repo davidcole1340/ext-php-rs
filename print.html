@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c904634f.js";
+            window.path_to_searchindex_js = "searchindex-8cebfd59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-31a31a08.js"></script>
@@ -640,7 +640,8 @@ and therefore it must be converted into a long to be stored inside the zval. A
 long is always signed, and the size will be 32-bits on 32-bit platforms and
 64-bits on 64-bit platforms.</p>
 <p>Floating point numbers are always stored in a <code>double</code> type (<code>f64</code>), regardless
-of platform. Note that converting a zval into a <code>f32</code> will lose accuracy.</p>
+of platform. Note that converting a zval into a <code>f32</code> will lose accuracy. An <code>f32</code>
+or <code>f64</code> parameter also accepts a PHP <code>int</code>, the same as a PHP <code>float</code> parameter.</p>
 <p>This means that converting <code>i64</code>, <code>u32</code>, <code>u64</code>, <code>isize</code> and <code>usize</code> <em>can</em> fail
 depending on the value and the platform, which is why all zval conversions are
 fallible.</p>
@@ -1499,10 +1500,13 @@ is also able to be converted to/from a zval.</p>
 </table>
 </div>
 <p>An <code>Option&lt;T&gt;</code> parameter is nullable. If the caller passes <code>null</code>, the function
-receives <code>None</code>. A trailing <code>Option&lt;T&gt;</code> parameter is also optional. If the caller
-omits it, the function receives <code>None</code>, and PHP reflection reports a default of
-<code>null</code>. The macro reads this from <code>FromZvalMut::NULLABLE</code>, so a type alias or a
-qualified path behaves the same way as <code>Option&lt;T&gt;</code>.</p>
+receives <code>None</code>. If the caller passes a value that <code>T</code> does not accept, the call
+throws a <code>TypeError</code>, the same as for a <code>T</code> parameter. If <code>T</code> accepts <code>null</code>, as
+<code>&amp;Zval</code> does, a <code>null</code> argument gives <code>Some</code>.</p>
+<p>A trailing <code>Option&lt;T&gt;</code> parameter is also optional. If the caller omits it, the
+function receives <code>None</code>, and PHP reflection reports a default of <code>null</code>. The
+macro reads this from <code>FromZvalMut::NULLABLE</code>, so a type alias or a qualified path
+behaves the same way as <code>Option&lt;T&gt;</code>.</p>
 <p>Returning <code>Option&lt;T&gt;</code> is a nullable return type. Returning <code>None</code> will return
 null to PHP.</p>
 <h2 id="rust-example-6"><a class="header" href="#rust-example-6">Rust example</a></h2>
@@ -2161,7 +2165,8 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <p>Used to annotate functions which should be exported to PHP. Note that this
 should not be used on class methods - see the <code>#[php_impl]</code> macro for that.</p>
 <p>See the <a href="#types">list of types</a> that are valid as parameter and
-return types.</p>
+return types. If the caller passes a value that the parameter type does not
+accept, the call throws a <code>TypeError</code>.</p>
 <p>A function accepts the <code>name</code>, <code>change_case</code>, <code>defaults</code> and <code>optional</code>
 options. PHP functions have no visibility, so <code>#[php(vis = "...")]</code> is a
 compile error on a function.</p>
@@ -2277,7 +2282,8 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <h2 id="variadic-functions"><a class="header" href="#variadic-functions">Variadic Functions</a></h2>
 <p>A slice parameter <code>&amp;[T]</code> in last position is variadic, the equivalent of the PHP
 <code>...$args</code> syntax. <code>T</code> is any argument type: <code>&amp;[&amp;Zval]</code> receives the raw values,
-<code>&amp;[i64]</code> receives converted integers. A variadic parameter that is not the last
+<code>&amp;[i64]</code> receives converted integers. If one of the values cannot be converted
+into <code>T</code>, the call throws a <code>TypeError</code>. A variadic parameter that is not the last
 parameter is a compile error. The slice must be spelled in the signature; a type
 alias that hides the slice is not detected.</p>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
@@ -3905,7 +3911,8 @@ variants could not be extracted from the zval.</p>
 <p>The ordering of the variants in the enum is important, as the <code>FromZval</code>
 implementation will attempt to parse the zval data in order. For example, if you
 put a <code>String</code> variant before an integer variant, the integer would be converted
-to a string and passed as the string variant.</p>
+to a string and passed as the string variant. Because an <code>f64</code> or <code>f32</code> variant
+also accepts an integer, the integer variants must come before it.</p>
 <h3 id="examples-1-1"><a class="header" href="#examples-1-1">Examples</a></h3>
 <p>Basic example showing the importance of variant ordering and default field:</p>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
@@ -4314,6 +4321,44 @@ during <code>MINIT</code>.</p>
 <p>If the handler panics, PHP sends the buffered bytes without a change. Then PHP
 disables the handler. PHP discards the output that the handler writes while it
 runs.</p>
+<h2 id="response-headers"><a class="header" href="#response-headers">Response Headers</a></h2>
+<p>Use these functions to change the response headers and the status code. They
+do the same work as the PHP functions in the table.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>PHP equivalent</th></tr>
+</thead>
+<tbody>
+<tr><td><code>zend::set_header(header)</code></td><td><code>header($header)</code></td></tr>
+<tr><td><code>zend::add_header(header)</code></td><td><code>header($header, false)</code></td></tr>
+<tr><td><code>zend::remove_header(name)</code></td><td><code>header_remove($name)</code></td></tr>
+<tr><td><code>zend::remove_all_headers()</code></td><td><code>header_remove()</code></td></tr>
+<tr><td><code>zend::set_response_code(code)</code></td><td><code>http_response_code($code)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
+use ext_php_rs::zend::{set_header, set_response_code};
+
+#[php_function]
+pub fn moved(location: &amp;str) -&gt; PhpResult&lt;()&gt; {
+    set_header(&amp;format!("Location: {location}"))?;
+    set_response_code(301)?;
+    Ok(())
+}</code></pre>
+<p>PHP applies its usual rules to the header. A <code>Location</code> header sets the status
+to <code>302</code>, or to <code>303</code> for a request that is not <code>GET</code> or <code>HEAD</code>. To send a
+different code, call <code>set_response_code</code> after <code>set_header</code>.</p>
+<p>Each function returns an error in these conditions:</p>
+<ul>
+<li>No request is active, for example during <code>MINIT</code>.</li>
+<li>A <code>SapiGlobals</code> guard is alive. The engine changes the SAPI globals, so you
+must drop the guard first.</li>
+<li>The header is empty.</li>
+<li>PHP refuses the header. PHP also emits a warning when it sent the headers
+before, or when the header has a new line or a NUL byte.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ini-settings"><a class="header" href="#ini-settings">INI Settings</a></h1>
 <p>Your PHP Extension may want to provide it’s own PHP INI settings to configure behaviour. This can be done in the <code>#[php_startup]</code> annotated startup function.</p>
@@ -5918,6 +5963,39 @@ std::thread::spawn(|| {
 <p>Worker mode pairs naturally with a custom <code>Sapi</code> implementation. Build the
 SAPI module once, start it, then use worker mode to cycle between requests
 without tearing down the full engine.</p>
+<h2 id="run-code-at-the-start-of-each-request"><a class="header" href="#run-code-at-the-start-of-each-request">Run code at the start of each request</a></h2>
+<p>In worker mode, PHP does not call the request startup function of an
+extension for each request. This is also true for a <code>FrankenPHP</code> worker. To
+run code for each request, use <code>ModuleBuilder::sapi_activate_function</code>.</p>
+<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
+use ext_php_rs::zend::{SapiRequestInfo, set_header, set_response_code};
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.sapi_activate_function(|info: &amp;SapiRequestInfo| {
+        if info.request_uri() == Some("/old") {
+            let _ = set_header("Location: /new");
+            let _ = set_response_code(301);
+        }
+    })
+}</code></pre>
+<p>PHP calls the closure from <code>sapi_module.activate</code> at the start of each
+request. This includes each request of a <code>FrankenPHP</code> worker, and the first
+request that starts the worker script.</p>
+<p>The closure gets the request data from the SAPI: the method, the URI, the
+query string and the cookies. The response headers are empty, so
+<code>set_header</code> and <code>set_response_code</code> work. <code>$_SERVER</code> does not exist yet, and
+PHP code cannot run.</p>
+<p>Obey these rules:</p>
+<ul>
+<li>Do not load the extension with <code>dl()</code>. PHP removes the extension at the end
+of the request, but the SAPI keeps the hook. The extension refuses to start.</li>
+<li>Do not use a panic for control. PHP prints the panic message and continues
+the request.</li>
+</ul>
+<p>A redirect in the closure does not stop the application. The script, or the
+worker callback, runs after the closure. It can replace the headers and write
+a body.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="memory-model-at-minit"><a class="header" href="#memory-model-at-minit">Memory Model at MINIT</a></h1>
 <p>Registering classes, functions, INI entries and constants builds C tables that

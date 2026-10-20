@@ -34,7 +34,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c904634f.js";
+            window.path_to_searchindex_js = "../searchindex-8cebfd59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-31a31a08.js"></script>
@@ -191,7 +191,8 @@ and therefore it must be converted into a long to be stored inside the zval. A
 long is always signed, and the size will be 32-bits on 32-bit platforms and
 64-bits on 64-bit platforms.</p>
 <p>Floating point numbers are always stored in a <code>double</code> type (<code>f64</code>), regardless
-of platform. Note that converting a zval into a <code>f32</code> will lose accuracy.</p>
+of platform. Note that converting a zval into a <code>f32</code> will lose accuracy. An <code>f32</code>
+or <code>f64</code> parameter also accepts a PHP <code>int</code>, the same as a PHP <code>float</code> parameter.</p>
 <p>This means that converting <code>i64</code>, <code>u32</code>, <code>u64</code>, <code>isize</code> and <code>usize</code> <em>can</em> fail
 depending on the value and the platform, which is why all zval conversions are
 fallible.</p>

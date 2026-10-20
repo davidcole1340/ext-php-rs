@@ -34,7 +34,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c904634f.js";
+            window.path_to_searchindex_js = "../searchindex-8cebfd59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-31a31a08.js"></script>
@@ -177,7 +177,8 @@
 <p>Used to annotate functions which should be exported to PHP. Note that this
 should not be used on class methods - see the <code>#[php_impl]</code> macro for that.</p>
 <p>See the <a href="../types/index.html">list of types</a> that are valid as parameter and
-return types.</p>
+return types. If the caller passes a value that the parameter type does not
+accept, the call throws a <code>TypeError</code>.</p>
 <p>A function accepts the <code>name</code>, <code>change_case</code>, <code>defaults</code> and <code>optional</code>
 options. PHP functions have no visibility, so <code>#[php(vis = "...")]</code> is a
 compile error on a function.</p>
@@ -293,7 +294,8 @@ pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
 <h2 id="variadic-functions"><a class="header" href="#variadic-functions">Variadic Functions</a></h2>
 <p>A slice parameter <code>&amp;[T]</code> in last position is variadic, the equivalent of the PHP
 <code>...$args</code> syntax. <code>T</code> is any argument type: <code>&amp;[&amp;Zval]</code> receives the raw values,
-<code>&amp;[i64]</code> receives converted integers. A variadic parameter that is not the last
+<code>&amp;[i64]</code> receives converted integers. If one of the values cannot be converted
+into <code>T</code>, the call throws a <code>TypeError</code>. A variadic parameter that is not the last
 parameter is a compile error. The slice must be spelled in the signature; a type
 alias that hides the slice is not detected.</p>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]

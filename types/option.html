@@ -34,7 +34,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c904634f.js";
+            window.path_to_searchindex_js = "../searchindex-8cebfd59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-31a31a08.js"></script>
@@ -188,10 +188,13 @@ is also able to be converted to/from a zval.</p>
 </table>
 </div>
 <p>An <code>Option&lt;T&gt;</code> parameter is nullable. If the caller passes <code>null</code>, the function
-receives <code>None</code>. A trailing <code>Option&lt;T&gt;</code> parameter is also optional. If the caller
-omits it, the function receives <code>None</code>, and PHP reflection reports a default of
-<code>null</code>. The macro reads this from <code>FromZvalMut::NULLABLE</code>, so a type alias or a
-qualified path behaves the same way as <code>Option&lt;T&gt;</code>.</p>
+receives <code>None</code>. If the caller passes a value that <code>T</code> does not accept, the call
+throws a <code>TypeError</code>, the same as for a <code>T</code> parameter. If <code>T</code> accepts <code>null</code>, as
+<code>&amp;Zval</code> does, a <code>null</code> argument gives <code>Some</code>.</p>
+<p>A trailing <code>Option&lt;T&gt;</code> parameter is also optional. If the caller omits it, the
+function receives <code>None</code>, and PHP reflection reports a default of <code>null</code>. The
+macro reads this from <code>FromZvalMut::NULLABLE</code>, so a type alias or a qualified path
+behaves the same way as <code>Option&lt;T&gt;</code>.</p>
 <p>Returning <code>Option&lt;T&gt;</code> is a nullable return type. Returning <code>None</code> will return
 null to PHP.</p>
 <h2 id="rust-example"><a class="header" href="#rust-example">Rust example</a></h2>

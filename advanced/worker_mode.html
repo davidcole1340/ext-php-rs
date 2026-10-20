@@ -34,7 +34,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c904634f.js";
+            window.path_to_searchindex_js = "../searchindex-8cebfd59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-31a31a08.js"></script>
@@ -223,6 +223,39 @@ std::thread::spawn(|| {
 <p>Worker mode pairs naturally with a custom <code>Sapi</code> implementation. Build the
 SAPI module once, start it, then use worker mode to cycle between requests
 without tearing down the full engine.</p>
+<h2 id="run-code-at-the-start-of-each-request"><a class="header" href="#run-code-at-the-start-of-each-request">Run code at the start of each request</a></h2>
+<p>In worker mode, PHP does not call the request startup function of an
+extension for each request. This is also true for a <code>FrankenPHP</code> worker. To
+run code for each request, use <code>ModuleBuilder::sapi_activate_function</code>.</p>
+<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
+use ext_php_rs::zend::{SapiRequestInfo, set_header, set_response_code};
+
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.sapi_activate_function(|info: &amp;SapiRequestInfo| {
+        if info.request_uri() == Some("/old") {
+            let _ = set_header("Location: /new");
+            let _ = set_response_code(301);
+        }
+    })
+}</code></pre>
+<p>PHP calls the closure from <code>sapi_module.activate</code> at the start of each
+request. This includes each request of a <code>FrankenPHP</code> worker, and the first
+request that starts the worker script.</p>
+<p>The closure gets the request data from the SAPI: the method, the URI, the
+query string and the cookies. The response headers are empty, so
+<code>set_header</code> and <code>set_response_code</code> work. <code>$_SERVER</code> does not exist yet, and
+PHP code cannot run.</p>
+<p>Obey these rules:</p>
+<ul>
+<li>Do not load the extension with <code>dl()</code>. PHP removes the extension at the end
+of the request, but the SAPI keeps the hook. The extension refuses to start.</li>
+<li>Do not use a panic for control. PHP prints the panic message and continues
+the request.</li>
+</ul>
+<p>A redirect in the closure does not stop the application. The script, or the
+worker callback, runs after the closure. It can replace the headers and write
+a body.</p>
 
                     </main>
 

@@ -34,7 +34,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c904634f.js";
+            window.path_to_searchindex_js = "../searchindex-8cebfd59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-31a31a08.js"></script>
@@ -260,7 +260,8 @@ variants could not be extracted from the zval.</p>
 <p>The ordering of the variants in the enum is important, as the <code>FromZval</code>
 implementation will attempt to parse the zval data in order. For example, if you
 put a <code>String</code> variant before an integer variant, the integer would be converted
-to a string and passed as the string variant.</p>
+to a string and passed as the string variant. Because an <code>f64</code> or <code>f32</code> variant
+also accepts an integer, the integer variants must come before it.</p>
 <h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
 <p>Basic example showing the importance of variant ordering and default field:</p>
 <pre class="playground"><code class="language-rust no_run edition2024"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]

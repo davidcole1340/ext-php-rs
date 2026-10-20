@@ -34,7 +34,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c904634f.js";
+            window.path_to_searchindex_js = "searchindex-8cebfd59.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-31a31a08.js"></script>
@@ -339,6 +339,44 @@ during <code>MINIT</code>.</p>
 <p>If the handler panics, PHP sends the buffered bytes without a change. Then PHP
 disables the handler. PHP discards the output that the handler writes while it
 runs.</p>
+<h2 id="response-headers"><a class="header" href="#response-headers">Response Headers</a></h2>
+<p>Use these functions to change the response headers and the status code. They
+do the same work as the PHP functions in the table.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>PHP equivalent</th></tr>
+</thead>
+<tbody>
+<tr><td><code>zend::set_header(header)</code></td><td><code>header($header)</code></td></tr>
+<tr><td><code>zend::add_header(header)</code></td><td><code>header($header, false)</code></td></tr>
+<tr><td><code>zend::remove_header(name)</code></td><td><code>header_remove($name)</code></td></tr>
+<tr><td><code>zend::remove_all_headers()</code></td><td><code>header_remove()</code></td></tr>
+<tr><td><code>zend::set_response_code(code)</code></td><td><code>http_response_code($code)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-rust ignore">use ext_php_rs::prelude::*;
+use ext_php_rs::zend::{set_header, set_response_code};
+
+#[php_function]
+pub fn moved(location: &amp;str) -&gt; PhpResult&lt;()&gt; {
+    set_header(&amp;format!("Location: {location}"))?;
+    set_response_code(301)?;
+    Ok(())
+}</code></pre>
+<p>PHP applies its usual rules to the header. A <code>Location</code> header sets the status
+to <code>302</code>, or to <code>303</code> for a request that is not <code>GET</code> or <code>HEAD</code>. To send a
+different code, call <code>set_response_code</code> after <code>set_header</code>.</p>
+<p>Each function returns an error in these conditions:</p>
+<ul>
+<li>No request is active, for example during <code>MINIT</code>.</li>
+<li>A <code>SapiGlobals</code> guard is alive. The engine changes the SAPI globals, so you
+must drop the guard first.</li>
+<li>The header is empty.</li>
+<li>PHP refuses the header. PHP also emits a warning when it sent the headers
+before, or when the header has a new line or a NUL byte.</li>
+</ul>
 
                     </main>
 
