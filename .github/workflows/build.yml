@@ -223,7 +223,7 @@ jobs:
         run: cargo test --test ui -- --ignored
   test-embed:
     name: Test with embed (${{ matrix.label }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         include:
@@ -431,7 +431,7 @@ jobs:
 
   test-asan:
     name: Test with ASan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       clang: "17"
       php_version: "8.5"
